@@ -43,7 +43,8 @@ object AnalysisJobStates {
   }
 
   // sugar
-  val VALID_STATES = Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
+  val VALID_STATES =
+    Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
 
   val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED)
   val FAILURE_STATES = Seq(TERMINATED, FAILED)
@@ -54,10 +55,12 @@ object AnalysisJobStates {
 
   def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
 
-  def intToState(i: Int): Option[JobStates] = VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
+  def intToState(i: Int): Option[JobStates] =
+    VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
 
   // This is NOT case sensitive
-  def toState(s: String): Option[JobStates] = VALID_STATES.map(x => (x.toString.toLowerCase, x)).toMap.get(s.toLowerCase)
+  def toState(s: String): Option[JobStates] =
+    VALID_STATES.map(x => (x.toString.toLowerCase, x)).toMap.get(s.toLowerCase)
 
 }
 
@@ -73,8 +76,12 @@ object OptionTypes {
   case object FLOAT extends OptionType { val optionTypeId = "float" }
   case object BOOL extends OptionType { val optionTypeId = "boolean" }
   case object CHOICE extends OptionType { val optionTypeId = "choice_string" }
-  case object CHOICE_INT extends OptionType { val optionTypeId = "choice_integer" }
-  case object CHOICE_FLOAT extends OptionType { val optionTypeId = "choice_float" }
+  case object CHOICE_INT extends OptionType {
+    val optionTypeId = "choice_integer"
+  }
+  case object CHOICE_FLOAT extends OptionType {
+    val optionTypeId = "choice_float"
+  }
 
 }
 
@@ -117,7 +124,7 @@ object JobModels {
 
     case object HELLO_WORLD extends JobType {
       val id = "hello-world"
-      val name =  "Hello World"
+      val name = "Hello World"
       val description = "Sanity Test hello-world job"
       override def isQuick: Boolean = true
     }
@@ -137,11 +144,12 @@ object JobModels {
     case object CONVERT_RS_MOVIE extends JobType {
       val id = "convert-rs-movie"
       val name = "Convert RS to HdfSubreadSet"
-      val description = "Convert a Legacy RS movie XML file to HdfSubreadSet XML"
+      val description =
+        "Convert a Legacy RS movie XML file to HdfSubreadSet XML"
       override def isQuick: Boolean = true
     }
 
-    case object DELETE_DATASETS  extends JobType {
+    case object DELETE_DATASETS extends JobType {
       val id = "delete-datasets"
       val name = "Delete DataSet"
       val description = "(Soft) delete of PacBio DataSet XML"
@@ -169,58 +177,59 @@ object JobModels {
       override def isQuick: Boolean = false
     }
 
-    case object IMPORT_DATASET extends JobType{
-      val id ="import-dataset"
-      val name ="Import PacBio DataSet"
+    case object IMPORT_DATASET extends JobType {
+      val id = "import-dataset"
+      val name = "Import PacBio DataSet"
       val description = "Import a PacBio XML DataSet"
       override def isQuick: Boolean = true
     }
 
     case object MERGE_DATASETS extends JobType {
-      val id ="merge-datasets"
+      val id = "merge-datasets"
       val name = "Merge PacBio DataSet(s)"
-      val description = "Merge DatatSet(s) Only SubreadSet, HdfSubreadSet dataset types are supported"
+      val description =
+        "Merge DatatSet(s) Only SubreadSet, HdfSubreadSet dataset types are supported"
       override def isQuick: Boolean = true
     }
 
     case object MOCK_PBSMRTPIPE extends JobType {
-      val id ="mock-pbsmrtpipe"
+      val id = "mock-pbsmrtpipe"
       val name = "Mock Pbsmrtpipe Job"
       val description = "Mock Pbsmrtpipe for testing"
       override def isQuick: Boolean = true
     }
 
-    case object PBSMRTPIPE extends JobType{
-      val id ="pbsmrtpipe"
+    case object PBSMRTPIPE extends JobType {
+      val id = "pbsmrtpipe"
       val name = "Pbsmrtpipe"
       val description = "Pbsmrtpipe (i.e., analysis) Jobs"
     }
 
-    case object SIMPLE extends JobType{
-      val id ="simple"
+    case object SIMPLE extends JobType {
+      val id = "simple"
       val name = "Simple"
-      val description ="Simple Job type for testing"
+      val description = "Simple Job type for testing"
       override def isQuick: Boolean = true
     }
 
-    case object TS_JOB extends JobType{
+    case object TS_JOB extends JobType {
       val id = "tech-support-job"
       val name = "PacBio TechSupport Failed Job"
-      val description ="Create a TechSupport TGZ bundle from a failed job"
+      val description = "Create a TechSupport TGZ bundle from a failed job"
       override def isQuick: Boolean = true
     }
 
     case object TS_SYSTEM_STATUS extends JobType {
-      val id ="tech-support-status"
+      val id = "tech-support-status"
       val name = "PacBio Tech Support System Status"
       val description = "Create a TechSupport system status TGZ bundle"
       override def isQuick: Boolean = true
     }
 
-    case object DB_BACKUP extends JobType{
-      val id ="db-backup"
+    case object DB_BACKUP extends JobType {
+      val id = "db-backup"
       val name = "SMRT Link db backup"
-      val description ="Create a DB backup of the SMRT Link system"
+      val description = "Create a DB backup of the SMRT Link system"
       override def isQuick: Boolean = true
     }
 
@@ -233,16 +242,27 @@ object JobModels {
       override def isMultiJob: Boolean = true
     }
 
-
     // This really shouldn't be private
-    val ALL = Seq(CONVERT_FASTA_BARCODES, CONVERT_FASTA_REFERENCE,
-                  CONVERT_RS_MOVIE, DELETE_DATASETS, DELETE_JOB,
-                  EXPORT_DATASETS, IMPORT_DATASET, EXPORT_JOBS,
-                  MERGE_DATASETS, MOCK_PBSMRTPIPE, PBSMRTPIPE,
-      SIMPLE, TS_JOB, TS_SYSTEM_STATUS, DB_BACKUP,
-      MJOB_MULTI_ANALYSIS)
+    val ALL = Seq(
+      CONVERT_FASTA_BARCODES,
+      CONVERT_FASTA_REFERENCE,
+      CONVERT_RS_MOVIE,
+      DELETE_DATASETS,
+      DELETE_JOB,
+      EXPORT_DATASETS,
+      IMPORT_DATASET,
+      EXPORT_JOBS,
+      MERGE_DATASETS,
+      MOCK_PBSMRTPIPE,
+      PBSMRTPIPE,
+      SIMPLE,
+      TS_JOB,
+      TS_SYSTEM_STATUS,
+      DB_BACKUP,
+      MJOB_MULTI_ANALYSIS
+    )
 
-    def fromString(s: String):Option[JobType] =
+    def fromString(s: String): Option[JobType] =
       ALL.map(x => (x.id.toLowerCase(), x)).toMap.get(s.toLowerCase)
   }
 
@@ -252,9 +272,7 @@ object JobModels {
   }
 
   // This is a terrible name
-  case class JobResource(
-      jobId: UUID,
-      path: Path) extends JobResourceBase
+  case class JobResource(jobId: UUID, path: Path) extends JobResourceBase
 
   trait JobResult {
     val uuid: UUID
@@ -266,26 +284,44 @@ object JobModels {
   }
 
   // This needs to be fixed.
-  case class ResultSuccess(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String) extends JobResult
+  case class ResultSuccess(uuid: UUID,
+                           jobType: String,
+                           message: String,
+                           runTimeSec: Int,
+                           state: AnalysisJobStates.JobStates,
+                           host: String)
+      extends JobResult
 
   // On Failed Results, and datastore files in the datastore will also be imported
-  case class ResultFailed(uuid: UUID, jobType: String, message: String, runTimeSec: Int, state: AnalysisJobStates.JobStates, host: String, datastore: Option[PacBioDataStore] = None) extends JobResult
+  case class ResultFailed(uuid: UUID,
+                          jobType: String,
+                          message: String,
+                          runTimeSec: Int,
+                          state: AnalysisJobStates.JobStates,
+                          host: String,
+                          datastore: Option[PacBioDataStore] = None)
+      extends JobResult
 
   case class NoAvailableWorkError(message: String)
 
-  case class EngineManagerStatus(totalGeneralWorkers: Int, activeGeneralWorkers: Int, totalQuickWorkers: Int, activeQuickWorkers: Int) {
-    def prettySummary = s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
+  case class EngineManagerStatus(totalGeneralWorkers: Int,
+                                 activeGeneralWorkers: Int,
+                                 totalQuickWorkers: Int,
+                                 activeQuickWorkers: Int) {
+    def prettySummary =
+      s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
   }
 
   // New Job Models
   case class RunnableJob(job: CoreJob, state: AnalysisJobStates.JobStates)
 
   // There's a bit of awkwardness here due to the PrimaryKey of the job having a Int and UUID
-  case class RunnableJobWithId(id: Int, job: CoreJob, state: AnalysisJobStates.JobStates)
+  case class RunnableJobWithId(id: Int,
+                               job: CoreJob,
+                               state: AnalysisJobStates.JobStates)
 
   // This should only have the "completed" jobOptions states
   case class JobCompletedResult(uuid: UUID, state: AnalysisJobStates.JobStates)
-
 
   /**
     * General Job Event data model.
@@ -299,13 +335,12 @@ object JobModels {
     * @param createdAt   When the message was created
     * @param eventTypeId event type id
     */
-  case class JobEvent(
-      eventId: UUID,
-      jobId: Int,
-      state: AnalysisJobStates.JobStates,
-      message: String,
-      createdAt: JodaDateTime,
-      eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
+  case class JobEvent(eventId: UUID,
+                      jobId: Int,
+                      state: AnalysisJobStates.JobStates,
+                      message: String,
+                      createdAt: JodaDateTime,
+                      eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
 
   trait SmrtLinkJob {
     val id: Int
@@ -327,7 +362,7 @@ object JobModels {
     def isComplete: Boolean = AnalysisJobStates.isCompleted(state)
     def isSuccessful: Boolean = state == AnalysisJobStates.SUCCESSFUL
     def isRunning: Boolean = state == AnalysisJobStates.RUNNING
-    def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains(state)
+    def hasFailed: Boolean = AnalysisJobStates.FAILURE_STATES contains (state)
   }
 
   /**
@@ -354,26 +389,26 @@ object JobModels {
     * @param isActive if the job is active. Not Active jobs will not be displayed by default
     * @param errorMessage error message if the job is an Error state.
     */
-  case class EngineJob(
-      id: Int,
-      uuid: UUID,
-      name: String,
-      comment: String,
-      createdAt: JodaDateTime,
-      updatedAt: JodaDateTime,
-      state: AnalysisJobStates.JobStates,
-      jobTypeId: String,
-      path: String,
-      jsonSettings: String,
-      createdBy: Option[String],
-      createdByEmail: Option[String],
-      smrtlinkVersion: Option[String],
-      isActive: Boolean = true,
-      errorMessage: Option[String] = None,
-      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      isMultiJob: Boolean = false,
-      workflow: String = "{}",
-      parentMultiJobId: Option[Int] = None) extends SmrtLinkJob {
+  case class EngineJob(id: Int,
+                       uuid: UUID,
+                       name: String,
+                       comment: String,
+                       createdAt: JodaDateTime,
+                       updatedAt: JodaDateTime,
+                       state: AnalysisJobStates.JobStates,
+                       jobTypeId: String,
+                       path: String,
+                       jsonSettings: String,
+                       createdBy: Option[String],
+                       createdByEmail: Option[String],
+                       smrtlinkVersion: Option[String],
+                       isActive: Boolean = true,
+                       errorMessage: Option[String] = None,
+                       projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                       isMultiJob: Boolean = false,
+                       workflow: String = "{}",
+                       parentMultiJobId: Option[Int] = None)
+      extends SmrtLinkJob {
 
     def toEngineCoreJob: EngineCoreJob = {
       EngineCoreJob(
@@ -393,30 +428,31 @@ object JobModels {
         isActive,
         errorMessage,
         projectId,
-        parentMultiJobId)
+        parentMultiJobId
+      )
     }
   }
 
   // Trying to keep a clear delineation between the "Core" Engine data model and the
   // Multi-Job Engine Data Model.
   case class EngineCoreJob(id: Int,
-                          uuid: UUID,
-                          name: String,
-                          comment: String,
-                          createdAt: JodaDateTime,
-                          updatedAt: JodaDateTime,
-                          state: AnalysisJobStates.JobStates,
-                          jobTypeId: String,
-                          path: String,
-                          jsonSettings: String,
-                          createdBy: Option[String],
-                          createdByEmail: Option[String],
-                          smrtlinkVersion: Option[String],
-                          isActive: Boolean = true,
-                          errorMessage: Option[String] = None,
-                          projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-                          parentMultiJobId: Option[Int] = None) extends SmrtLinkJob {}
-
+                           uuid: UUID,
+                           name: String,
+                           comment: String,
+                           createdAt: JodaDateTime,
+                           updatedAt: JodaDateTime,
+                           state: AnalysisJobStates.JobStates,
+                           jobTypeId: String,
+                           path: String,
+                           jsonSettings: String,
+                           createdBy: Option[String],
+                           createdByEmail: Option[String],
+                           smrtlinkVersion: Option[String],
+                           isActive: Boolean = true,
+                           errorMessage: Option[String] = None,
+                           projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                           parentMultiJobId: Option[Int] = None)
+      extends SmrtLinkJob {}
 
   /**
     * A Single Engine Job has many sub-computational units of work. These are a JobTask.
@@ -458,58 +494,57 @@ object JobModels {
                            errorMessage: Option[String])
 
   // This is too pbsmtpipe-centric. This should be generalized or defined a base trait
-  case class AnalysisJobResources(
-      path: Path,
-      tasksDir: Path,
-      workflowDir: Path,
-      logDir: Path,
-      htmlDir: Path,
-      datastoreJson: Path,
-      entryPointsJson: Path,
-      jobReportJson: Path)
+  case class AnalysisJobResources(path: Path,
+                                  tasksDir: Path,
+                                  workflowDir: Path,
+                                  logDir: Path,
+                                  htmlDir: Path,
+                                  datastoreJson: Path,
+                                  entryPointsJson: Path,
+                                  jobReportJson: Path)
 
   trait ImportAble {
     def summary: String
   }
 
   /**
-   * Core DataStore File
-   *
-   * @param uniqueId    UUID of the DataStore file
-   * @param sourceId    General string to provide context of it's origin
-   * @param fileTypeId  FileType Id (FIXME, this should be a FileTypes.FileType)
-   * @param fileSize    Size of the file
-   * @param createdAt   created at time of the file
-   * @param modifiedAt  modified timestamp of the file
-   * @param path        Absolute path to the file
-   * @param isChunked   Was the file an intermediate "chunked" file that was generated.
-   * @param name        Display Name of the File
-   * @param description Description of the File
-   */
-  case class DataStoreFile(
-      uniqueId: UUID,
-      sourceId: String,
-      fileTypeId: String,
-      fileSize: Long,
-      createdAt: JodaDateTime,
-      modifiedAt: JodaDateTime,
-      path: String,
-      isChunked: Boolean = false,
-      name: String,
-      description: String) extends ImportAble {
+    * Core DataStore File
+    *
+    * @param uniqueId    UUID of the DataStore file
+    * @param sourceId    General string to provide context of it's origin
+    * @param fileTypeId  FileType Id (FIXME, this should be a FileTypes.FileType)
+    * @param fileSize    Size of the file
+    * @param createdAt   created at time of the file
+    * @param modifiedAt  modified timestamp of the file
+    * @param path        Absolute path to the file
+    * @param isChunked   Was the file an intermediate "chunked" file that was generated.
+    * @param name        Display Name of the File
+    * @param description Description of the File
+    */
+  case class DataStoreFile(uniqueId: UUID,
+                           sourceId: String,
+                           fileTypeId: String,
+                           fileSize: Long,
+                           createdAt: JodaDateTime,
+                           modifiedAt: JodaDateTime,
+                           path: String,
+                           isChunked: Boolean = false,
+                           name: String,
+                           description: String)
+      extends ImportAble {
 
     def fileExists: Boolean = Paths.get(path).toFile.exists
 
     def summary: String = toString
 
     /**
-     * Convert file path to be absolute starting from a base directory
-     */
+      * Convert file path to be absolute starting from a base directory
+      */
     def absolutize(base: Path) = copy(path = base.resolve(path).toString)
 
     /**
-     * Convert file path to be relative to a base directory path
-     */
+      * Convert file path to be relative to a base directory path
+      */
     def relativize(base: Path) = copy(
       path = base.relativize(Paths.get(path)).toString
     )
@@ -517,28 +552,30 @@ object JobModels {
 
   // Container for file created from a Job.
   // MK. What is the purpose of this container?
-  case class DataStoreJobFile(
-      jobId: UUID,
-      dataStoreFile: DataStoreFile)
+  case class DataStoreJobFile(jobId: UUID, dataStoreFile: DataStoreFile)
 
-
-
-  case class PacBioDataStore(createdAt: JodaDateTime, updatedAt: JodaDateTime, version: String, files: Seq[DataStoreFile]) extends ImportAble {
+  case class PacBioDataStore(createdAt: JodaDateTime,
+                             updatedAt: JodaDateTime,
+                             version: String,
+                             files: Seq[DataStoreFile])
+      extends ImportAble {
     override def summary = {
       s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" +
-          files.zipWithIndex.map {case (d, i) => s"${i + 1}. ${d.toString}" }.reduce(_ + "\n" + _)
+        files.zipWithIndex
+          .map { case (d, i) => s"${i + 1}. ${d.toString}" }
+          .reduce(_ + "\n" + _)
     }
 
     override def toString: String = summary
 
     /**
-     * Convert all file paths to be absolute starting from a base directory
-     */
+      * Convert all file paths to be absolute starting from a base directory
+      */
     def absolutize(base: Path) = copy(files = files.map(_.absolutize(base)))
 
     /**
-     * Convert all file paths to be relative to a base directory path
-     */
+      * Convert all file paths to be relative to a base directory path
+      */
     def relativize(base: Path) = copy(files = files.map(_.relativize(base)))
   }
 
@@ -566,7 +603,9 @@ object JobModels {
     val choices: Seq[In]
     def validate(v: In): In = {
       if (choices.toSet contains v) v
-      else throw new UnsupportedOperationException(s"Value $v is not an allowed choice")
+      else
+        throw new UnsupportedOperationException(
+          s"Value $v is not an allowed choice")
     }
     def applyValue(v: In): PipelineChoiceOption
   }
@@ -587,63 +626,121 @@ object JobModels {
     type In = Boolean
   }
 
-  case class PipelineStrOption(id: String, name: String, value: String, description: String) extends PipelineStrOptionBase {
+  case class PipelineStrOption(id: String,
+                               name: String,
+                               value: String,
+                               description: String)
+      extends PipelineStrOptionBase {
     val optionTypeId = OptionTypes.STR.optionTypeId
     def asServiceOption = ServiceTaskStrOption(id, value, optionTypeId)
   }
 
-
-  case class PipelineIntOption(id: String, name: String, value: Int, description: String) extends PipelineIntOptionBase {
+  case class PipelineIntOption(id: String,
+                               name: String,
+                               value: Int,
+                               description: String)
+      extends PipelineIntOptionBase {
     val optionTypeId = OptionTypes.INT.optionTypeId
     def asServiceOption = ServiceTaskIntOption(id, value, optionTypeId)
   }
 
-  case class PipelineDoubleOption(id: String, name: String, value: Double, description: String) extends PipelineDoubleOptionBase {
+  case class PipelineDoubleOption(id: String,
+                                  name: String,
+                                  value: Double,
+                                  description: String)
+      extends PipelineDoubleOptionBase {
     val optionTypeId = OptionTypes.FLOAT.optionTypeId
     def asServiceOption = ServiceTaskDoubleOption(id, value, optionTypeId)
   }
 
-  case class PipelineBooleanOption(id: String, name: String, value: Boolean, description: String) extends PipelineBooleanOptionBase {
+  case class PipelineBooleanOption(id: String,
+                                   name: String,
+                                   value: Boolean,
+                                   description: String)
+      extends PipelineBooleanOptionBase {
     val optionTypeId = OptionTypes.BOOL.optionTypeId
     def asServiceOption = ServiceTaskBooleanOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceStrOption(id: String, name: String, value: String, description: String, choices: Seq[String]) extends PipelineStrOptionBase with PipelineChoiceOption {
+  case class PipelineChoiceStrOption(id: String,
+                                     name: String,
+                                     value: String,
+                                     description: String,
+                                     choices: Seq[String])
+      extends PipelineStrOptionBase
+      with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE.optionTypeId
     val _ = validate(value)
 
-    def applyValue(v: String): PipelineChoiceStrOption = copy(value=validate(v))
+    def applyValue(v: String): PipelineChoiceStrOption =
+      copy(value = validate(v))
     def asServiceOption = ServiceTaskStrOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceIntOption(id: String, name: String, value: Int, description: String, choices: Seq[Int]) extends PipelineIntOptionBase with PipelineChoiceOption {
+  case class PipelineChoiceIntOption(id: String,
+                                     name: String,
+                                     value: Int,
+                                     description: String,
+                                     choices: Seq[Int])
+      extends PipelineIntOptionBase
+      with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE_INT.optionTypeId
     val _ = validate(value)
 
-    def applyValue(v: Int): PipelineChoiceIntOption = copy(value=validate(v))
+    def applyValue(v: Int): PipelineChoiceIntOption = copy(value = validate(v))
     def asServiceOption = ServiceTaskIntOption(id, value, optionTypeId)
   }
 
-  case class PipelineChoiceDoubleOption(id: String, name: String, value: Double, description: String, choices: Seq[Double]) extends PipelineDoubleOptionBase with PipelineChoiceOption {
+  case class PipelineChoiceDoubleOption(id: String,
+                                        name: String,
+                                        value: Double,
+                                        description: String,
+                                        choices: Seq[Double])
+      extends PipelineDoubleOptionBase
+      with PipelineChoiceOption {
     val optionTypeId = OptionTypes.CHOICE_FLOAT.optionTypeId
     val _ = validate(value)
 
-    def applyValue(v: Double): PipelineChoiceDoubleOption = copy(value=validate(v))
+    def applyValue(v: Double): PipelineChoiceDoubleOption =
+      copy(value = validate(v))
     def asServiceOption = ServiceTaskDoubleOption(id, value, optionTypeId)
   }
 
-  trait ServiceTaskOptionBase extends PacBioBaseOption {
+  trait ServiceTaskOptionBase extends PacBioBaseOption {}
+
+  trait ServiceTaskStrOptionBase extends ServiceTaskOptionBase {
+    type In = String
+  }
+  trait ServiceTaskIntOptionBase extends ServiceTaskOptionBase {
+    type In = Int
+  }
+  trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase {
+    type In = Boolean
+  }
+  trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase {
+    type In = Double
   }
 
-  trait ServiceTaskStrOptionBase extends ServiceTaskOptionBase{ type In = String }
-  trait ServiceTaskIntOptionBase extends ServiceTaskOptionBase{ type In = Int }
-  trait ServiceTaskBooleanOptionBase extends ServiceTaskOptionBase{ type In = Boolean }
-  trait ServiceTaskDoubleOptionBase extends ServiceTaskOptionBase{ type In = Double }
-
-  case class ServiceTaskStrOption(id: String, value: String, optionTypeId: String = OptionTypes.STR.optionTypeId) extends ServiceTaskStrOptionBase
-  case class ServiceTaskIntOption(id: String, value: Int, optionTypeId: String = OptionTypes.INT.optionTypeId) extends ServiceTaskIntOptionBase
-  case class ServiceTaskBooleanOption(id: String, value: Boolean, optionTypeId: String = OptionTypes.BOOL.optionTypeId) extends ServiceTaskBooleanOptionBase
-  case class ServiceTaskDoubleOption(id: String, value: Double, optionTypeId: String = OptionTypes.FLOAT.optionTypeId) extends ServiceTaskDoubleOptionBase
+  case class ServiceTaskStrOption(id: String,
+                                  value: String,
+                                  optionTypeId: String =
+                                    OptionTypes.STR.optionTypeId)
+      extends ServiceTaskStrOptionBase
+  case class ServiceTaskIntOption(id: String,
+                                  value: Int,
+                                  optionTypeId: String =
+                                    OptionTypes.INT.optionTypeId)
+      extends ServiceTaskIntOptionBase
+  case class ServiceTaskBooleanOption(id: String,
+                                      value: Boolean,
+                                      optionTypeId: String =
+                                        OptionTypes.BOOL.optionTypeId)
+      extends ServiceTaskBooleanOptionBase
+  case class ServiceTaskDoubleOption(id: String,
+                                     value: Double,
+                                     optionTypeId: String =
+                                       OptionTypes.FLOAT.optionTypeId)
+      extends ServiceTaskDoubleOptionBase
 
   // Raw (aka) Direct Options. Minimal options used to call pbsmrtpipe
   case class PbsmrtpipeDirectJobOptions(
@@ -654,48 +751,45 @@ object JobModels {
       workflowOptions: Seq[ServiceTaskOptionBase])
 
   // pbsmrtpipe/smrtflow Pipelines
-  case class PipelineTemplate(
-      id: String,
-      name: String,
-      description: String,
-      version: String,
-      options: Seq[PipelineBaseOption],
-      taskOptions: Seq[PipelineBaseOption],
-      entryPoints: Seq[EntryPoint],
-      tags: Seq[String],
-      presets: Seq[PipelineTemplatePreset])
+  case class PipelineTemplate(id: String,
+                              name: String,
+                              description: String,
+                              version: String,
+                              options: Seq[PipelineBaseOption],
+                              taskOptions: Seq[PipelineBaseOption],
+                              entryPoints: Seq[EntryPoint],
+                              tags: Seq[String],
+                              presets: Seq[PipelineTemplatePreset])
 
   // templateId refers to the PipelineTemplate Id
-  case class PipelineTemplatePreset(
-      presetId: String,
-      pipelineId: String,
-      options: Seq[ServiceTaskOptionBase],
-      taskOptions: Seq[ServiceTaskOptionBase])
-
+  case class PipelineTemplatePreset(presetId: String,
+                                    pipelineId: String,
+                                    options: Seq[ServiceTaskOptionBase],
+                                    taskOptions: Seq[ServiceTaskOptionBase])
 
   // View Rules Models
-  case class PipelineOptionViewRule(id: String, hidden: Boolean, advanced: Boolean)
+  case class PipelineOptionViewRule(id: String,
+                                    hidden: Boolean,
+                                    advanced: Boolean)
 
-  case class PipelineTemplateViewRule(
-      id: String,
-      name: String,
-      description: String,
-      taskOptions: Seq[PipelineOptionViewRule])
+  case class PipelineTemplateViewRule(id: String,
+                                      name: String,
+                                      description: String,
+                                      taskOptions: Seq[PipelineOptionViewRule])
 
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
-  case class DataStoreFileViewRule(
-      sourceId: String,
-      fileTypeId: String,
-      isHidden: Boolean,
-      name: Option[String],
-      description: Option[String])
-  case class PipelineDataStoreViewRules(
-      pipelineId: String,
-      rules: Seq[DataStoreFileViewRule],
-      smrtlinkVersion: String)
+  case class DataStoreFileViewRule(sourceId: String,
+                                   fileTypeId: String,
+                                   isHidden: Boolean,
+                                   name: Option[String],
+                                   description: Option[String])
+  case class PipelineDataStoreViewRules(pipelineId: String,
+                                        rules: Seq[DataStoreFileViewRule],
+                                        smrtlinkVersion: String)
 
-  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
-
+  case class MigrationStatusRow(timestamp: String,
+                                success: Boolean,
+                                error: Option[String] = None)
 
   // Tech Support Related Models. These really belong on "common"
 
@@ -748,7 +842,8 @@ object JobModels {
                                     dnsName: Option[String],
                                     smrtLinkSystemVersion: Option[String],
                                     user: String,
-                                    comment: Option[String]) extends TsManifest
+                                    comment: Option[String])
+      extends TsManifest
 
   case class TsJobManifest(id: UUID,
                            bundleTypeId: String,
@@ -760,8 +855,7 @@ object JobModels {
                            user: String,
                            comment: Option[String],
                            jobTypeId: String,
-                           jobId: Int) extends TsManifest
-
-
+                           jobId: Int)
+      extends TsManifest
 
 }

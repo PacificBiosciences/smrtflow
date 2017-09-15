@@ -10,18 +10,18 @@ import org.apache.avro.specific.SpecificDatumReader
 import org.apache.commons.io.FileUtils
 
 /**
- *
- * Created by mkocher on 9/19/15.
- */
-trait AvroLoader[T] extends Loader[T] with LazyLogging{
+  *
+  * Created by mkocher on 9/19/15.
+  */
+trait AvroLoader[T] extends Loader[T] with LazyLogging {
 
   val extFilter = Seq("avro")
 
   /**
-   * Load an Avro File
-   * @param path Path Avro file
-   * @return
-   */
+    * Load an Avro File
+    * @param path Path Avro file
+    * @return
+    */
   def loadFrom(path: Path): T = {
     logger.debug(s"Loading file from $path")
 

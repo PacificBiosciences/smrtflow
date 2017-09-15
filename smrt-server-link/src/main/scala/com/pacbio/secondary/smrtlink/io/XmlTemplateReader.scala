@@ -19,8 +19,8 @@ object XmlTemplateReader {
   }
 
   /**
-   * Computes the value for each substitution once, and substitutes that same value everywhere.
-   */
+    * Computes the value for each substitution once, and substitutes that same value everywhere.
+    */
   private case object GLOBAL extends Scope {
     override def substituteAll(template: Node, subs: Subs): Node = {
       var xmlString = template.mkString
@@ -33,8 +33,8 @@ object XmlTemplateReader {
   }
 
   /**
-   * Computes a new value for every time the substitution string is found.
-   */
+    * Computes a new value for every time the substitution string is found.
+    */
   private case object INSTANCE extends Scope {
     override def substituteAll(template: Node, subs: Subs): Node = {
       var xmlString = template.mkString
@@ -49,20 +49,21 @@ object XmlTemplateReader {
   }
 
   /**
-   * Only performs substitutions inside nodes with the given label, and computes a new set of
-   * substitution values for each node.
-   */
+    * Only performs substitutions inside nodes with the given label, and computes a new set of
+    * substitution values for each node.
+    */
   private final case class NODE(label: String) extends Scope {
     override def substituteAll(template: Node, subs: Subs): Node = {
       val rule = new RewriteRule {
-        override def transform(n: Node): Seq[Node] = if (n.label == label) {
-          var elemString = n.mkString
-          for ((find, replace) <- subs) {
-            val repString = replace().toString
-            elemString = elemString.replaceAllLiterally(find, repString)
-          }
-          XML.loadString(elemString)
-        } else n
+        override def transform(n: Node): Seq[Node] =
+          if (n.label == label) {
+            var elemString = n.mkString
+            for ((find, replace) <- subs) {
+              val repString = replace().toString
+              elemString = elemString.replaceAllLiterally(find, repString)
+            }
+            XML.loadString(elemString)
+          } else n
       }
       val transformer = new RuleTransformer(rule)
       transformer(template)
@@ -74,7 +75,8 @@ object XmlTemplateReader {
 
     def globally(): ScopedRunner = new ScopedRunner(GLOBAL, this) {}
     def perInstance(): ScopedRunner = new ScopedRunner(INSTANCE, this) {}
-    def perNode(label: String): ScopedRunner = new ScopedRunner(NODE(label), this) {}
+    def perNode(label: String): ScopedRunner =
+      new ScopedRunner(NODE(label), this) {}
 
     def result(): Node = template
   }
@@ -86,7 +88,7 @@ object XmlTemplateReader {
     }
 
     def substituteAll(subs: (String, () => Any)*): Runner = {
-      substituteMap(Map(subs:_*))
+      substituteMap(Map(subs: _*))
     }
 
     def substitute(find: String, replace: => Any): Runner = {
@@ -104,7 +106,8 @@ object XmlTemplateReader {
 
   def fromUrl(url: URL): Runner = fromStream(url.openStream())
 
-  def from(input: String): Runner = fromStream(new ByteArrayInputStream(input.getBytes("UTF-8")))
+  def from(input: String): Runner =
+    fromStream(new ByteArrayInputStream(input.getBytes("UTF-8")))
 
   def from(input: Node): Runner = from(input.mkString)
 }

@@ -7,7 +7,11 @@ import java.util.UUID
 import com.pacbio.common.models.Constants
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.analysis.converters.Utils
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BundleTypes, TsJobManifest, TsSystemStatusManifest}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  BundleTypes,
+  TsJobManifest,
+  TsSystemStatusManifest
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
@@ -23,13 +27,15 @@ trait TechSupportConstants {
 
 object TechSupportConstants extends TechSupportConstants
 
-trait TechSupportUtils extends TechSupportConstants with LazyLogging{
+trait TechSupportUtils extends TechSupportConstants with LazyLogging {
 
   // White listed files
-  final val JOB_EXTS = Set("sh", "stderr", "stdout", "log", "json", "html", "css", "png", "dot")
+  final val JOB_EXTS =
+    Set("sh", "stderr", "stdout", "log", "json", "html", "css", "png", "dot")
 
   def byExt(f: File, extensions: Set[String]): Boolean =
-    extensions.map(e => f.getName.endsWith(e))
+    extensions
+      .map(e => f.getName.endsWith(e))
       .reduceOption(_ || _)
       .getOrElse(false)
 
@@ -68,7 +74,7 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     destFiles.foreach { x =>
       val (srcP, destP) = x
       val destDir = destP.getParent
-      if (! Files.exists(destDir)) {
+      if (!Files.exists(destDir)) {
         FileUtils.forceMkdir(destDir.toFile)
       }
       FileUtils.copyFile(srcP, destP.toFile)
@@ -77,13 +83,17 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     totalSize
   }
 
-  def writeJobBundleTgz(jobRoot: Path, manifest: TsJobManifest, outputTgz: Path): Path = {
+  def writeJobBundleTgz(jobRoot: Path,
+                        manifest: TsJobManifest,
+                        outputTgz: Path): Path = {
 
     val tempDir = Files.createTempDirectory("ts-manifest")
 
-    val manifestPath = tempDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+    val manifestPath =
+      tempDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
 
-    FileUtils.writeStringToFile(manifestPath.toFile, manifest.toJson.prettyPrint)
+    FileUtils.writeStringToFile(manifestPath.toFile,
+                                manifest.toJson.prettyPrint)
 
     TechSupportUtils.copyFilesTo(jobRoot, tempDir, TechSupportUtils.JOB_EXTS)
 
@@ -93,7 +103,6 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     outputTgz
   }
-
 
   /**
     * Copy the last N lines of a src to a dest file
@@ -106,14 +115,15 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     logger.info(s"Log file ${src.toFile.length()} bytes src: $src")
 
-    for (reader <- managed(new ReversedLinesFileReader(src.toFile, 4096, "UTF-8"));
+    for (reader <- managed(
+           new ReversedLinesFileReader(src.toFile, 4096, "UTF-8"));
          writer <- managed(new BufferedWriter(new FileWriter(dest.toFile)))) {
 
       var numLines = 0
 
       val b = new StringBuilder()
 
-      while(numLines < maxLines) {
+      while (numLines < maxLines) {
         val sx = reader.readLine()
         if (sx != null) {
           b.insert(0, sx + "\n")
@@ -124,9 +134,8 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
         }
       }
 
-
       val it = b.iterator
-      while(it.hasNext) {
+      while (it.hasNext) {
         val item = it.next()
         writer.write(item)
       }
@@ -137,9 +146,9 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     dest.toFile.length()
   }
 
-
   // Required Subdirectories under "/smrtlink-system-root/userdata"
   final val TS_REQ_INSTALL = Seq("config", "log", "generated", "user_jmsenv")
+
   /**
     *
     * SMRT_ROOT
@@ -161,12 +170,14 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     // Copy the config and general info. These should only contain small files.
     // The logs will be handled in a separate case below
-    val userDataDirs = TS_REQ_INSTALL.filter(_ != "log")
-        .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
-        .filter(_.toFile.isDirectory)
+    val userDataDirs = TS_REQ_INSTALL
+      .filter(_ != "log")
+      .map(p => smrtLinkUserDataRoot.resolve(p).toAbsolutePath())
+      .filter(_.toFile.isDirectory)
 
     if (userDataDirs.isEmpty) {
-      logger.warn(s"Unable to find required directories ($TS_REQ_INSTALL) in SL UserRoot $smrtLinkUserDataRoot")
+      logger.warn(
+        s"Unable to find required directories ($TS_REQ_INSTALL) in SL UserRoot $smrtLinkUserDataRoot")
     }
 
     // Copy all dirs
@@ -187,7 +198,9 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     val rx = """\.log$""".r
 
-    val logFiles:Seq[File] = Utils.recursiveListFiles(logDir.toAbsolutePath.toFile, rx).filter(logFilter)
+    val logFiles: Seq[File] = Utils
+      .recursiveListFiles(logDir.toAbsolutePath.toFile, rx)
+      .filter(logFilter)
 
     logger.info(s"Found ${logFiles.length} log files to copy")
 
@@ -205,8 +218,13 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
     dest
   }
 
-  def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID, smrtLinkUserDataRoot: Path, dest: Path, user: String, smrtLinkVersion: Option[String], dnsName: Option[String]): Path = {
-    val techSupportBundleId =  UUID.randomUUID()
+  def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID,
+                                   smrtLinkUserDataRoot: Path,
+                                   dest: Path,
+                                   user: String,
+                                   smrtLinkVersion: Option[String],
+                                   dnsName: Option[String]): Path = {
+    val techSupportBundleId = UUID.randomUUID()
 
     val tmpDir = Files.createTempDirectory(s"sl-status-$techSupportBundleId")
 
@@ -214,12 +232,20 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     val comment = s"Created by smrtflow version ${Constants.SMRTFLOW_VERSION}"
 
-    val manifest = TsSystemStatusManifest(techSupportBundleId, BundleTypes.SYSTEM_STATUS, 1,
-      JodaDateTime.now(), smrtLinkSystemId, dnsName, smrtLinkVersion, user, Some(comment))
+    val manifest = TsSystemStatusManifest(techSupportBundleId,
+                                          BundleTypes.SYSTEM_STATUS,
+                                          1,
+                                          JodaDateTime.now(),
+                                          smrtLinkSystemId,
+                                          dnsName,
+                                          smrtLinkVersion,
+                                          user,
+                                          Some(comment))
 
     val manifestPath = tmpDir.resolve(DEFAULT_TS_MANIFEST_JSON)
 
-    FileUtils.writeStringToFile(manifestPath.toFile, manifest.toJson.prettyPrint)
+    FileUtils.writeStringToFile(manifestPath.toFile,
+                                manifest.toJson.prettyPrint)
 
     TarGzUtils.createTarGzip(tmpDir, dest.toFile)
 
@@ -227,7 +253,6 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging{
 
     dest
   }
-
 
 }
 

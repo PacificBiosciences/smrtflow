@@ -21,3 +21,5 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
 
 // Shows which libs can be updated
 addSbtPlugin("com.sksamuel.sbt-versions" % "sbt-versions" % "0.2.0")
+
+addSbtPlugin("com.lucidchart" % "sbt-scalafmt" % "1.10")

@@ -1,8 +1,7 @@
-
 package com.pacbio.secondary.smrtlink.analysis.converters
 
 import java.nio.file.{Files, Path, Paths}
-import java.io.{FileInputStream,FileOutputStream}
+import java.io.{FileInputStream, FileOutputStream}
 import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
 import javax.xml.datatype.DatatypeFactory
@@ -15,30 +14,41 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DatasetIndexFile
 
 // auto-generated Java modules
-import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, InputOutputDataType, ExternalResources}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  ExternalResource,
+  InputOutputDataType,
+  ExternalResources
+}
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
-import com.pacificbiosciences.pacbiodatasets.{DataSetMetadataType, ContigSetMetadataType, DataSetType, ContigSet}
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetMetadataType,
+  ContigSetMetadataType,
+  DataSetType,
+  ContigSet
+}
 
 import com.typesafe.scalalogging.LazyLogging
-import org.joda.time.{DateTime=> JodaDateTime}
+import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.language.postfixOps
-
 
 trait FastaIndexWriter {
   def createFaidx(fastaPath: Path): String = {
     val fastaPathStr = fastaPath.toAbsolutePath.toString
     val outputPath = fastaPathStr + ".fai"
     FastaUtils.createIndexFile(fastaPathStr, outputPath)
-    if (! Files.exists(Paths.get(outputPath))) throw new Exception(s".fai file not written: $outputPath")
+    if (!Files.exists(Paths.get(outputPath)))
+      throw new Exception(s".fai file not written: $outputPath")
     outputPath
   }
 }
 
 /**
- * Base functions for converting a FASTA file to a DataSet
- */
-trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends LazyLogging with FastaIndexWriter{
+  * Base functions for converting a FASTA file to a DataSet
+  */
+trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType]
+    extends LazyLogging
+    with FastaIndexWriter {
 
   protected val baseName: String // reference
   protected val dsName: String // ReferenceSet
@@ -47,14 +57,15 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   protected val fastaMetatype: String // PacBio.ReferenceFile.ReferenceFastaFile
   protected val baseTags: Seq[String] = Seq("converted")
 
-  protected def nameToFileName(name: String): String = name.replaceAll("[^A-Za-z0-9_]", "_")
+  protected def nameToFileName(name: String): String =
+    name.replaceAll("[^A-Za-z0-9_]", "_")
 
   protected def createIndexFiles(fastaPath: Path): Seq[DatasetIndexFile] = {
     Seq(DatasetIndexFile(FileTypes.I_SAM.fileTypeId, createFaidx(fastaPath)))
   }
 
-  protected def composeMetaData(refMetaData: ContigsMetaData)
-                               (implicit man: Manifest[U]): U = {
+  protected def composeMetaData(refMetaData: ContigsMetaData)(
+      implicit man: Manifest[U]): U = {
     val metadata = man.runtimeClass.newInstance.asInstanceOf[U]
     metadata.setNumRecords(refMetaData.nrecords)
     metadata.setTotalLength(refMetaData.totalLength)
@@ -66,20 +77,23 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
   // implicits and/or type classes
   protected def setMetadata(ds: T, metadata: U): Unit
 
-  protected def composeDataSet(
-      fastaPath: Path,
-      name: String,
-      outputDir: Path,
-      metadata: U,
-      relativePath: Boolean = true,
-      makeIndices: Path => Seq[DatasetIndexFile] = createIndexFiles)
-      (implicit man: Manifest[T]): T = {
-    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)
+  protected def composeDataSet(fastaPath: Path,
+                               name: String,
+                               outputDir: Path,
+                               metadata: U,
+                               relativePath: Boolean = true,
+                               makeIndices: Path => Seq[DatasetIndexFile] =
+                                 createIndexFiles)(
+      implicit man: Manifest[T]): T = {
+    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss")
+      .format(Calendar.getInstance().getTime)
     def toTimeStampName(n: String) = s"${n}_$timeStamp"
 
     // This is so clumsy
     val uuid = UUID.randomUUID()
-    val createdAt = DatatypeFactory.newInstance().newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
+    val createdAt = DatatypeFactory
+      .newInstance()
+      .newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
     val timeStampName = toTimeStampName(dsName.toLowerCase)
     val fastaTimeStampName = toTimeStampName("fasta")
     val tags = (baseTags ++ Seq(baseName)).mkString(", ")
@@ -96,7 +110,7 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     er.setTimeStampedName(fastaTimeStampName)
     if (relativePath) {
       er.setResourceId(outputDir.relativize(fastaPath.toAbsolutePath).toString)
-    } else{
+    } else {
       er.setResourceId(fastaPath.toAbsolutePath.toString)
     }
 
@@ -105,7 +119,8 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
       val idx = new InputOutputDataType()
       idx.setUniqueId(UUID.randomUUID().toString)
       idx.setTimeStampedName(toTimeStampName("index"))
-      idx.setResourceId(outputDir.relativize(Paths.get(indexFile.url)).toString)
+      idx.setResourceId(
+        outputDir.relativize(Paths.get(indexFile.url)).toString)
       idx.setMetaType(indexFile.indexType)
       fileIndices.getFileIndex.add(idx)
     }
@@ -129,22 +144,29 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
     ds
   }
 
-  case class TargetInfo(name: String, dataDir: Path, fastaPath: Path, dsFile: Path)
+  case class TargetInfo(name: String,
+                        dataDir: Path,
+                        fastaPath: Path,
+                        dsFile: Path)
 
-  protected def setupTargetDir(name: String, fastaPath: Path, outputDir: Path,
+  protected def setupTargetDir(name: String,
+                               fastaPath: Path,
+                               outputDir: Path,
                                inPlace: Boolean = false,
                                mkdir: Boolean = false): TargetInfo = {
-    if (mkdir && (! Files.exists(outputDir))) outputDir.toFile.mkdir()
+    if (mkdir && (!Files.exists(outputDir))) outputDir.toFile.mkdir()
     val sanitizedName = nameToFileName(name)
     val targetDir = outputDir.resolve(sanitizedName).toAbsolutePath
-    if (Files.exists(targetDir)) throw DatasetConvertError(s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
+    if (Files.exists(targetDir))
+      throw DatasetConvertError(
+        s"The directory ${targetDir} already exists -please remove it or specify an alternate output directory or reference name.")
     targetDir.toFile.mkdir()
     var fastaFinal = fastaPath
-    if (! inPlace) {
+    if (!inPlace) {
       targetDir.resolve("sequence").toFile().mkdir
       fastaFinal = targetDir.resolve(s"sequence/${sanitizedName}.fasta")
-      new FileOutputStream(fastaFinal.toFile()) getChannel() transferFrom(
-        new FileInputStream(fastaPath.toFile()) getChannel, 0, Long.MaxValue)
+      new FileOutputStream(fastaFinal.toFile()) getChannel () transferFrom (new FileInputStream(
+        fastaPath.toFile()) getChannel, 0, Long.MaxValue)
     }
     val ofn = outputDir.resolve(s"${sanitizedName}/${dsName.toLowerCase}.xml")
     TargetInfo(sanitizedName, targetDir, fastaFinal, ofn)
@@ -153,12 +175,15 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType] extends Laz
 }
 
 // XXX This is just a stub right now.
-object FastaContigsConverter extends FastaConverterBase[ContigSet, ContigSetMetadataType] {
+object FastaContigsConverter
+    extends FastaConverterBase[ContigSet, ContigSetMetadataType] {
   protected val baseName: String = "contigs"
   protected val dsName: String = "ContigSet"
   protected val programName: String = "unknown"
   protected val metatype: String = FileTypes.DS_CONTIG.fileTypeId
   protected val fastaMetatype: String = FileTypes.FASTA_CONTIG.fileTypeId
 
-  override protected def setMetadata(ds: ContigSet, metadata: ContigSetMetadataType): Unit = ds.setDataSetMetadata(metadata)
+  override protected def setMetadata(ds: ContigSet,
+                                     metadata: ContigSetMetadataType): Unit =
+    ds.setDataSetMetadata(metadata)
 }

@@ -16,4 +16,5 @@ trait PipelineTemplateViewRulesResourceLoader
   }
 }
 
-object PipelineTemplateViewRulesResourceLoader extends PipelineTemplateViewRulesResourceLoader
+object PipelineTemplateViewRulesResourceLoader
+    extends PipelineTemplateViewRulesResourceLoader

@@ -3,7 +3,10 @@ package com.pacbio.secondary.smrtlink.database
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
+  ResourceNotFoundError,
+  UnprocessableEntityError
+}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.models._
@@ -13,10 +16,9 @@ import scala.concurrent.Future
 
 import slick.driver.PostgresDriver.api._
 
-
 /**
- * RunDao that stores run designs in a Slick database.
- */
+  * RunDao that stores run designs in a Slick database.
+  */
 class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
   import TableModels._
 
@@ -26,48 +28,69 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
       parseResults: Option[ParseResults] = None,
       setReserved: Option[Boolean] = None): Future[RunSummary] = {
 
-    require(update || parseResults.isDefined, "Cannot create a run without ParseResults")
+    require(update || parseResults.isDefined,
+            "Cannot create a run without ParseResults")
 
-    val action = runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap { prev =>
-      if (prev.isEmpty && update)
-        throw new ResourceNotFoundError(s"Unable to find resource $uniqueId")
-      if (prev.isDefined && !update)
-        throw new UnprocessableEntityError(s"Resource $uniqueId already exists")
+    val action =
+      runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap {
+        prev =>
+          if (prev.isEmpty && update)
+            throw new ResourceNotFoundError(
+              s"Unable to find resource $uniqueId")
+          if (prev.isDefined && !update)
+            throw new UnprocessableEntityError(
+              s"Resource $uniqueId already exists")
 
-      val wasReserved = prev.map(_.reserved)
-      val reserved = setReserved.orElse(wasReserved).getOrElse(false)
-      val summary = parseResults.map(_.run.summarize).orElse(prev).get.copy(reserved = reserved)
+          val wasReserved = prev.map(_.reserved)
+          val reserved = setReserved.orElse(wasReserved).getOrElse(false)
+          val summary = parseResults
+            .map(_.run.summarize)
+            .orElse(prev)
+            .get
+            .copy(reserved = reserved)
 
-      val summaryUpdate = Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
+          val summaryUpdate =
+            Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
-      val dataModelAndCollectionsUpdate = parseResults.map { res: ParseResults =>
-        if (res.run.uniqueId != uniqueId)
-          throw new UnprocessableEntityError(s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
+          val dataModelAndCollectionsUpdate = parseResults
+            .map { res: ParseResults =>
+              if (res.run.uniqueId != uniqueId)
+                throw new UnprocessableEntityError(
+                  s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
 
-        val collectionsUpdate = res.collections.map(c => collectionMetadata.insertOrUpdate(c))
-        val dataModelUpdate = dataModels.insertOrUpdate(DataModelAndUniqueId(res.run.dataModel, uniqueId))
-        collectionsUpdate :+ dataModelUpdate
-      }.getOrElse(Nil)
+              val collectionsUpdate =
+                res.collections.map(c => collectionMetadata.insertOrUpdate(c))
+              val dataModelUpdate = dataModels.insertOrUpdate(
+                DataModelAndUniqueId(res.run.dataModel, uniqueId))
+              collectionsUpdate :+ dataModelUpdate
+            }
+            .getOrElse(Nil)
 
-      DBIO.sequence(summaryUpdate ++ dataModelAndCollectionsUpdate).map(_ => summary)
-    }
+          DBIO
+            .sequence(summaryUpdate ++ dataModelAndCollectionsUpdate)
+            .map(_ => summary)
+      }
 
     db.run(action.transactionally)
   }
 
   override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
-    var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] = runSummaries
+    var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] =
+      runSummaries
 
     if (criteria.name.isDefined)
       query = query.filter(_.name === criteria.name.get)
 
     if (criteria.substring.isDefined)
       query = query.filter { r =>
-        (r.name.indexOf(criteria.substring.get) >= 0).||(r.summary.getOrElse("").indexOf(criteria.substring.get) >= 0)
+        (r.name.indexOf(criteria.substring.get) >= 0)
+          .||(r.summary.getOrElse("").indexOf(criteria.substring.get) >= 0)
       }
 
     if (criteria.createdBy.isDefined)
-      query = query.filter(_.createdBy.isDefined).filter(_.createdBy === criteria.createdBy)
+      query = query
+        .filter(_.createdBy.isDefined)
+        .filter(_.createdBy === criteria.createdBy)
 
     if (criteria.reserved.isDefined)
       query = query.filter(_.reserved === criteria.reserved.get)
@@ -79,49 +102,62 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
     val summary = runSummaries.filter(_.uniqueId === id)
     val model = dataModels.filter(_.uniqueId === id)
     val run = summary.join(model).result.headOption.map { opt =>
-      opt.map { res =>
-        res._1.withDataModel(res._2.dataModel)
-      }.getOrElse {
-        throw new ResourceNotFoundError(s"Unable to find resource $id")
-      }
+      opt
+        .map { res =>
+          res._1.withDataModel(res._2.dataModel)
+        }
+        .getOrElse {
+          throw new ResourceNotFoundError(s"Unable to find resource $id")
+        }
     }
-    
+
     db.run(run)
   }
 
   override def createRun(create: RunCreate): Future[RunSummary] =
-    Future(parser(create.dataModel)).flatMap { r => updateOrCreate(r.run.uniqueId, update = false, Some(r)) }
+    Future(parser(create.dataModel)).flatMap { r =>
+      updateOrCreate(r.run.uniqueId, update = false, Some(r))
+    }
 
   override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
-    Future(update.dataModel.map(parser.apply)).flatMap { r => updateOrCreate(id, update = true, r, update.reserved) }
+    Future(update.dataModel.map(parser.apply)).flatMap { r =>
+      updateOrCreate(id, update = true, r, update.reserved)
+    }
 
   override def deleteRun(id: UUID): Future[MessageResponse] = {
-    val action = DBIO.seq(
-      collectionMetadata.filter(_.runId === id).delete,
-      dataModels.filter(_.uniqueId === id).delete,
-      runSummaries.filter(_.uniqueId === id).delete
-    ).map(_ => MessageResponse(s"Successfully deleted run design $id"))
+    val action = DBIO
+      .seq(
+        collectionMetadata.filter(_.runId === id).delete,
+        dataModels.filter(_.uniqueId === id).delete,
+        runSummaries.filter(_.uniqueId === id).delete
+      )
+      .map(_ => MessageResponse(s"Successfully deleted run design $id"))
     db.run(action.transactionally)
   }
 
-  override def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
+  override def getCollectionMetadatas(
+      runId: UUID): Future[Seq[CollectionMetadata]] =
     db.run(collectionMetadata.filter(_.runId === runId).result)
 
-  override def getCollectionMetadata(runId: UUID, uniqueId: UUID): Future[CollectionMetadata] = {
+  override def getCollectionMetadata(
+      runId: UUID,
+      uniqueId: UUID): Future[CollectionMetadata] = {
     db.run {
-      collectionMetadata
-        .filter(_.runId === runId)
-        .filter(_.uniqueId === uniqueId)
-        .result
-        .headOption
-    }.map(_.getOrElse(throw new ResourceNotFoundError(s"No collection with id $uniqueId found in run $runId")))
+        collectionMetadata
+          .filter(_.runId === runId)
+          .filter(_.uniqueId === uniqueId)
+          .result
+          .headOption
+      }
+      .map(_.getOrElse(throw new ResourceNotFoundError(
+        s"No collection with id $uniqueId found in run $runId")))
 
   }
 }
 
 /**
- * Provides a DatabaseRunDao.
- */
+  * Provides a DatabaseRunDao.
+  */
 trait DatabaseRunDaoProvider extends RunDaoProvider {
   this: DalProvider with DataModelParserProvider =>
 

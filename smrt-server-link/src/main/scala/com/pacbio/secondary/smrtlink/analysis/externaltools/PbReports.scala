@@ -5,9 +5,8 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import java.nio.file.Path
 
 /**
- * External Call To pbreports
- */
-
+  * External Call To pbreports
+  */
 case class PbReport(outputJson: Path, taskId: String)
 
 trait CallPbReport extends Python {
@@ -17,21 +16,24 @@ trait CallPbReport extends Python {
   def apply(stsXml: Path, outputJson: Path): Option[ExternalCmdFailure] = {
     val cmd = Seq(
       EXE,
-      "-m", s"pbreports.report.${reportModule}",
+      "-m",
+      s"pbreports.report.${reportModule}",
       stsXml.toAbsolutePath.toString,
       outputJson.toAbsolutePath.toString
     )
     runSimpleCmd(cmd)
   }
 
-  def run(stsXml: Path, outputJson: Path): Either[ExternalCmdFailure, PbReport] = {
+  def run(stsXml: Path,
+          outputJson: Path): Either[ExternalCmdFailure, PbReport] = {
     apply(stsXml, outputJson) match {
       case Some(e) => Left(e)
       case _ => Right(PbReport(outputJson, reportTaskId))
     }
   }
 
-  def canProcess(dst: DataSetMetaTypes.DataSetMetaType, hasStatsXml: Boolean = false): Boolean
+  def canProcess(dst: DataSetMetaTypes.DataSetMetaType,
+                 hasStatsXml: Boolean = false): Boolean
 }
 
 object PbReports {

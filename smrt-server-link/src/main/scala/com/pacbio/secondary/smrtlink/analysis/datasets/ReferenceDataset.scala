@@ -11,54 +11,50 @@ import org.joda.time.{DateTime => JodaDateTime}
  * Reference Dataset
  */
 
-case class ReferenceContig(
-    name: String,
-    description: String,
-    length: Int,
-    md5: String)
+case class ReferenceContig(name: String,
+                           description: String,
+                           length: Int,
+                           md5: String)
 
 // This is an abstraction representation and has nothing to do
 // with the file source (i.e., IO layers)
-case class ReferenceDataset(
-    organism: String,
-    ploidy: String,
-    contigs: Seq[ReferenceContig],
-    metadata: DataSetMetaData)
+case class ReferenceDataset(organism: String,
+                            ploidy: String,
+                            contigs: Seq[ReferenceContig],
+                            metadata: DataSetMetaData)
 
-case class ReferenceDatasetIO(
-    fastaFile: String,
-    dataset: ReferenceDataset,
-    indexFiles: Seq[DatasetIndexFile])
+case class ReferenceDatasetIO(fastaFile: String,
+                              dataset: ReferenceDataset,
+                              indexFiles: Seq[DatasetIndexFile])
 
 // The path of the actual dataset file isn't necessarily known when the object is created
 // Need to better define the indexFiles absolute path or relative path consistency
 // Not thrilled about this
-case class ReferenceDatasetFileIO(
-    path: Path,
-    fastaFile: String,
-    dataset: ReferenceDataset,
-    indexFiles: Seq[DatasetIndexFile])
-
+case class ReferenceDatasetFileIO(path: Path,
+                                  fastaFile: String,
+                                  dataset: ReferenceDataset,
+                                  indexFiles: Seq[DatasetIndexFile])
 
 trait ReferenceDataSetWriter extends PacBioFileWriter[ReferenceDatasetIO] {
 
   /**
-   * Write the Reference DataSet XML. If the path provided is relative to the index files, the files will be
-   * written as relative paths, otherwise they'll be written as absolute paths. This keeps the reference self-contained
-   * and move-able.
-   *
-   * FIXME. This ******NEEDS******* to be converted to use the jaxb API for consistency
-   *
-   * @param ds
-   * @param path
-   * @return
-   */
+    * Write the Reference DataSet XML. If the path provided is relative to the index files, the files will be
+    * written as relative paths, otherwise they'll be written as absolute paths. This keeps the reference self-contained
+    * and move-able.
+    *
+    * FIXME. This ******NEEDS******* to be converted to use the jaxb API for consistency
+    *
+    * @param ds
+    * @param path
+    * @return
+    */
   def writeFile(ds: ReferenceDatasetIO, path: Path): Path = {
 
-    def toC(c: ReferenceContig) = <pbbase:Contig Name={c.name} Description={c.name} Length={c.length.toString} Digest={c.md5}/>
+    def toC(c: ReferenceContig) =
+      <pbbase:Contig Name={c.name} Description={c.name} Length={c.length.toString} Digest={c.md5}/>
     def toIndex(d: DatasetIndexFile) = {
       val u = UUID.randomUUID()
-        <pbbase:FileIndex UniqueId={u.toString} TimeStampedName={"tsn_" + u.toString} MetaType={d.indexType} ResourceId={d.url}/>
+      <pbbase:FileIndex UniqueId={u.toString} TimeStampedName={"tsn_" + u.toString} MetaType={d.indexType} ResourceId={d.url}/>
     }
 
     val createdAt = JodaDateTime.now().toString
@@ -103,7 +99,6 @@ trait ReferenceDataSetWriter extends PacBioFileWriter[ReferenceDatasetIO] {
       </pbds:ReferenceSet>
     }
 
-
     scala.xml.XML.save(path.toAbsolutePath.toString, s, "UTF-8", true, null)
 
     // This is really what the function should return, but the base trait
@@ -112,6 +107,5 @@ trait ReferenceDataSetWriter extends PacBioFileWriter[ReferenceDatasetIO] {
     path
   }
 }
-
 
 object ReferenceDataset extends ReferenceDataSetWriter

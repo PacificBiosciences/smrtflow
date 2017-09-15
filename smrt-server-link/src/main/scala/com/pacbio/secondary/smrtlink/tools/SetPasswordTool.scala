@@ -10,9 +10,15 @@ import spray.json._
 import DefaultJsonProtocol._
 
 import com.pacbio.logging.LoggerConfig
-import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure}
+import com.pacbio.secondary.smrtlink.analysis.tools.{
+  CommandLineToolRunner,
+  ToolFailure
+}
 
-case class SetPasswordArgs(credsJson: File = null, user: String = null, pass: String = null) extends LoggerConfig
+case class SetPasswordArgs(credsJson: File = null,
+                           user: String = null,
+                           pass: String = null)
+    extends LoggerConfig
 
 object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
   override val VERSION = "0.1.1"
@@ -50,16 +56,15 @@ object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
 
     opt[Unit]("version")
       .action { (x, c) =>
-          showVersion
-          sys.exit(0)
+        showVersion
+        sys.exit(0)
       }
       .text("Show tool version and exit")
   }
 
   def writeCreds(user: String, password: String, credsFile: File): File = {
-    val jx: Map[String, JsValue] = Map(
-      "wso2User" -> JsString(user),
-      "wso2Password" -> JsString(password))
+    val jx: Map[String, JsValue] =
+      Map("wso2User" -> JsString(user), "wso2Password" -> JsString(password))
 
     val sx = JsObject(jx).toJson.prettyPrint
     FileUtils.write(credsFile, sx, "UTF-8")
@@ -67,15 +72,14 @@ object SetPasswordToolParser extends CommandLineToolRunner[SetPasswordArgs] {
   }
 
   override def runTool(opts: SetPasswordArgs): Try[String] = {
-    Try { writeCreds(opts.user, opts.pass, opts.credsJson)}
-        .map(f => s"Successfully Wrote credentials to $f")
+    Try { writeCreds(opts.user, opts.pass, opts.credsJson) }
+      .map(f => s"Successfully Wrote credentials to $f")
   }
 
   // Legacy interface
   def run(c: SetPasswordArgs) = Left(ToolFailure(toolId, 1, "NOT SUPPORTED"))
 
 }
-
 
 object SetPasswordToolApp extends App {
   import SetPasswordToolParser._

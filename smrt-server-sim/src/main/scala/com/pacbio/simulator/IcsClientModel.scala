@@ -10,28 +10,29 @@ import spray.json.DefaultJsonProtocol
   */
 object ICSModel {
 
-  case class RunObj(dataModel :String, uniqueId : UUID, summary : String)
-  case class ICSRun(startedby : String, run : RunObj)
+  case class RunObj(dataModel: String, uniqueId: UUID, summary: String)
+  case class ICSRun(startedby: String, run: RunObj)
 
-  case class RunResponse(createdAt : Option[String]=null,
-                        createdBy : Option[String]=null,
-                        dataModel: String,
-                        instrumentSerialNumber : Option[String]=null,
-                        name : String,
-                        reserved : Boolean,
-                        status: Int,
-                        summary:String,
-                        totalCells : Int,
-                        uniqueId : Option[String] = null)
+  case class RunResponse(createdAt: Option[String] = null,
+                         createdBy: Option[String] = null,
+                         dataModel: String,
+                         instrumentSerialNumber: Option[String] = null,
+                         name: String,
+                         reserved: Boolean,
+                         status: Int,
+                         summary: String,
+                         totalCells: Int,
+                         uniqueId: Option[String] = null)
 
   //NOTE : this is just a subset of InstrumentState elements. We do not need to deserialize the entire json
-  case class InstrumentState (runState : Int, state : Int)
+  case class InstrumentState(runState: Int, state: Int)
 
   // NOTE : this is just a subset of RunRequirements elements. We do not need to deserialize the entire json
-  case class RunRequirements (hasSufficientInventory : Boolean, hasValidDataTransferLocations : Boolean)
+  case class RunRequirements(hasSufficientInventory: Boolean,
+                             hasValidDataTransferLocations: Boolean)
 }
 
-trait ICSJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol{
+trait ICSJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
   import ICSModel._
 
   implicit val runObjF = jsonFormat3(RunObj)

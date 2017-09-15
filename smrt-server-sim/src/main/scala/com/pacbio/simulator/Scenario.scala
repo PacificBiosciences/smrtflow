@@ -29,7 +29,7 @@ trait ScenarioLoader {
   protected def getPort(c: Config) = getInt(c, ScenarioConstants.PORT)
 }
 
-trait Scenario extends LazyLogging{
+trait Scenario extends LazyLogging {
   import StepResult._
 
   implicit val system: ActorSystem = ActorSystem("sim")
@@ -54,9 +54,11 @@ trait Scenario extends LazyLogging{
     println(sx)
 
   }
-  private def stepPrintln(i: Int, s: String) = printAndLog(s"Step #${i+1}: ${steps(i).name} - $s")
+  private def stepPrintln(i: Int, s: String) =
+    printAndLog(s"Step #${i + 1}: ${steps(i).name} - $s")
   private def scenePrintln(s: String) = printAndLog(s"Scenario: $name - $s")
-  private def diffMillis(startNanos: Long, timeNanos: Long) = (timeNanos - startNanos) / 1000000
+  private def diffMillis(startNanos: Long, timeNanos: Long) =
+    (timeNanos - startNanos) / 1000000
 
   def run(): Future[ScenarioResult] = {
     require(steps.nonEmpty)
@@ -76,10 +78,13 @@ trait Scenario extends LazyLogging{
         case SUPPRESSED => "suppressed"
         case FAILED(_, _) => "failed"
         case EXCEPTION(_, _) => "threw exception"
-        case SKIPPED => throw new IllegalStateException("Called stepCompleted on SKIPPED step")
+        case SKIPPED =>
+          throw new IllegalStateException(
+            "Called stepCompleted on SKIPPED step")
       }
       results(i) = StepResult(steps(i).name, runTimeMillis, result)
-      stepPrintln(i, s"$resultStr after $runTimeMillis millis\n${result.longMsg}")
+      stepPrintln(i,
+                  s"$resultStr after $runTimeMillis millis\n${result.longMsg}")
     }
 
     def runStep(i: Int): Future[Result] = {
@@ -131,11 +136,7 @@ trait Scenario extends LazyLogging{
       val timeNanos = System.nanoTime()
       val runTimeMillis = diffMillis(totalStartNanos, timeNanos)
       scenePrintln(s"completed after $runTimeMillis millis\n")
-      ScenarioResult(
-        name,
-        runTimeMillis,
-        results,
-        JodaDateTime.now())
+      ScenarioResult(name, runTimeMillis, results, JodaDateTime.now())
     }
   }
 }

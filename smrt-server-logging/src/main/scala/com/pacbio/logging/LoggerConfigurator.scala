@@ -4,7 +4,6 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.Configurator
 import ch.qos.logback.core.spi.ContextAwareBase
 
-
 class DefaultConfiguration extends LoggerConfig
 
 class LoggerConfigurator extends ContextAwareBase with Configurator {

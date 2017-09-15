@@ -17,7 +17,8 @@ trait ServiceComposer extends RouteConcatenation with RouteProvider {
     m
   }
 
-  def addManifests(ms: Set[PacBioComponentManifest]): Set[PacBioComponentManifest] = {
+  def addManifests(
+      ms: Set[PacBioComponentManifest]): Set[PacBioComponentManifest] = {
     _manifests ++= ms
     ms
   }
@@ -33,10 +34,11 @@ trait ServiceComposer extends RouteConcatenation with RouteProvider {
   // This is a clumsy way to create a Set with 'id' being the
   // single component to compute equality
   def manifests(): Set[PacBioComponentManifest] = {
-    (services.map(_().manifest).toSet ++ _manifests)
-      .toList
+    (services.map(_().manifest).toSet ++ _manifests).toList
       .map(x => (x.id, x))
-      .toMap.values.toSet
+      .toMap
+      .values
+      .toSet
   }
 
 }

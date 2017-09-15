@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import org.apache.commons.io.FileUtils
 
 import scala.sys.process._
-import scala.util.{Try,Success,Failure}
+import scala.util.{Try, Success, Failure}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -28,9 +28,12 @@ package object externaltools {
     val runTime: Long
   }
 
-  case class ExternalCmdSuccess(cmd: Seq[String], runTime: Long) extends ExternalCmdResult
+  case class ExternalCmdSuccess(cmd: Seq[String], runTime: Long)
+      extends ExternalCmdResult
 
-  case class ExternalCmdFailure(cmd: Seq[String], runTime: Long, msg: String) extends Exception(msg) with ExternalCmdResult
+  case class ExternalCmdFailure(cmd: Seq[String], runTime: Long, msg: String)
+      extends Exception(msg)
+      with ExternalCmdResult
 
   trait ExternalToolsUtils extends LazyLogging with timeUtils {
 
@@ -41,7 +44,8 @@ package object externaltools {
       }
     }
 
-    def runCmd(cmd: Seq[String]): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+    def runCmd(
+        cmd: Seq[String]): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
       val jobId = UUID.randomUUID()
       // Add a cleanup if the cmd was successful
       val fout = Files.createTempFile(s"cmd-$jobId", "stdout")
@@ -58,7 +62,11 @@ package object externaltools {
       * @param extraEnv Env to be added to the process env
       * @return
       */
-    def runUnixCmd(cmd: Seq[String], stdout: Path, stderr: Path, extraEnv: Option[Map[String, String]] = None): (Int, String) = {
+    def runUnixCmd(
+        cmd: Seq[String],
+        stdout: Path,
+        stderr: Path,
+        extraEnv: Option[Map[String, String]] = None): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
       val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
@@ -80,17 +88,21 @@ package object externaltools {
 
       logger.info(s"Starting cmd $cmd")
 
-      val px = extraEnv.map(x => Process(cmd, cwd = None, extraEnv = x.toSeq:_*)).getOrElse(Process(cmd))
+      val px = extraEnv
+        .map(x => Process(cmd, cwd = None, extraEnv = x.toSeq: _*))
+        .getOrElse(Process(cmd))
 
       val rcode = px.!(pxl)
 
       val completedAt = JodaDateTime.now()
       val runTime = computeTimeDelta(completedAt, startedAt)
-      logger.info(s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
+      logger.info(
+        s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
 
       if (rcode != 0) {
         val emsg = s"Cmd $cmd failed with exit code $rcode"
-        logger.error(s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
+        logger.error(
+          s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
         ferr.write(emsg)
         errStr.append(emsg + "\n")
       }
@@ -102,7 +114,10 @@ package object externaltools {
 
     }
 
-    def runCmd(cmd: Seq[String], stdout: Path, stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+    def runCmd(
+        cmd: Seq[String],
+        stdout: Path,
+        stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
       val startedAt = JodaDateTime.now()
       val (exitCode, errorMessage) = runUnixCmd(cmd, stdout, stderr)
       val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
@@ -112,19 +127,19 @@ package object externaltools {
       }
     }
 
-
     /**
-     * Resolve commandline exe path to absolute path.
-     *
-     * Filters out "." from path.
-     *
-     * @param cmd base name of exe (Example "samtools")
-     * @return
-     */
+      * Resolve commandline exe path to absolute path.
+      *
+      * Filters out "." from path.
+      *
+      * @param cmd base name of exe (Example "samtools")
+      * @return
+      */
     def which(cmd: String): Option[Path] = {
       // The runCmd needs to resolve the Exe to provide a good error
       // If the external tool is not found in the path
-      System.getenv("PATH")
+      System
+        .getenv("PATH")
         .split(":")
         .filter(_ != ".")
         .map(a => Paths.get(a).toAbsolutePath.resolve(cmd))

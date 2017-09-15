@@ -3,7 +3,11 @@ package com.pacbio.secondary.smrtlink.tools
 import java.io.File
 
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.smrtlink.analysis.tools.{CommandLineToolRunner, ToolFailure, ToolSuccess}
+import com.pacbio.secondary.smrtlink.analysis.tools.{
+  CommandLineToolRunner,
+  ToolFailure,
+  ToolSuccess
+}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.models._
 import org.joda.time.{DateTime => JodaDateTime}
@@ -19,7 +23,7 @@ import scala.util.{Failure, Success, Try}
   */
 case class BundlerConfigOptions(file: File) extends LoggerConfig
 
-object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
+object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions] {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
 
@@ -35,7 +39,11 @@ object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
   val parser = new OptionParser[BundlerConfigOptions]("bundler-config") {
     head("Bundler Config Validator")
     note(DESCRIPTION)
-    arg[File]("config").action {(x, c) => c.copy(file = x)}.text("Path to Bundler Config JSON schema version 2")
+    arg[File]("config")
+      .action { (x, c) =>
+        c.copy(file = x)
+      }
+      .text("Path to Bundler Config JSON schema version 2")
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
@@ -55,18 +63,19 @@ object BundlerConfigTool extends CommandLineToolRunner[BundlerConfigOptions]{
   def validate(c: RootSmrtflowConfig): RootSmrtflowConfig = c
 
   def loadConfig(file: File): RootSmrtflowConfig = {
-    scala.io.Source.fromFile(file)
-        .mkString
-        .parseJson
-        .convertTo[RootSmrtflowConfig]
+    scala.io.Source
+      .fromFile(file)
+      .mkString
+      .parseJson
+      .convertTo[RootSmrtflowConfig]
   }
 
   def run(c: BundlerConfigOptions): Either[ToolFailure, ToolSuccess] = {
     val startedAt = JodaDateTime.now()
 
     val tx = for {
-      a <- Try { loadConfig(c.file)}
-      b <- Try { validate(a)}
+      a <- Try { loadConfig(c.file) }
+      b <- Try { validate(a) }
     } yield b
 
     val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)

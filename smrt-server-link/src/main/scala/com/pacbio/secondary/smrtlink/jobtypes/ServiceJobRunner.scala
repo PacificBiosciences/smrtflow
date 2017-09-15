@@ -9,7 +9,11 @@ import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  FileJobResultsWriter,
+  JobResultWriter
+}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
@@ -25,7 +29,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-
 /**
   *
   * Interface for running jobs
@@ -33,55 +36,69 @@ import scala.util.{Failure, Success, Try}
   * @param dao Persistence layer for interfacing with the db
   * @param config System Job Config
   */
-class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils with LazyLogging with JobRunnerUtils {
+class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
+    extends timeUtils
+    with LazyLogging
+    with JobRunnerUtils {
   import CommonModelImplicits._
   import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
   def host = config.host
 
   def loadDataStoreFiles(ds: PacBioDataStore): Seq[DataStoreFile] = {
-    ds.files.filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
-        .foldLeft[Seq[DataStoreFile]](ds.files) { (f, dsf) =>
-          val datastore = loadDataStoreFrom(Paths.get(dsf.path).toFile)
-          f ++ datastore.files
-        }
+    ds.files
+      .filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
+      .foldLeft[Seq[DataStoreFile]](ds.files) { (f, dsf) =>
+        val datastore = loadDataStoreFrom(Paths.get(dsf.path).toFile)
+        f ++ datastore.files
+      }
   }
 
   def loadDataStoreFrom(file: File): PacBioDataStore = {
     //logger.info(s"Loading raw DataStore from $file")
     val sx = FileUtils.readFileToString(file, "UTF-8")
     val ds = sx.parseJson.convertTo[PacBioDataStore]
-    val files = loadDataStoreFiles(ds).map(f => f.uniqueId -> f).toMap.values.toSeq
+    val files =
+      loadDataStoreFiles(ds).map(f => f.uniqueId -> f).toMap.values.toSeq
     ds.copy(files = files)
   }
 
-  private def importDataStoreFile(ds: DataStoreFile, jobUUID: UUID):Future[MessageResponse] = {
+  private def importDataStoreFile(ds: DataStoreFile,
+                                  jobUUID: UUID): Future[MessageResponse] = {
     if (ds.isChunked) {
-      Future.successful(MessageResponse(s"skipping import of intermediate chunked file $ds"))
+      Future.successful(
+        MessageResponse(s"skipping import of intermediate chunked file $ds"))
     } else {
       dao.insertDataStoreFileById(ds, jobUUID)
     }
   }
 
-  private def importDataStore(dataStore: PacBioDataStore, jobUUID:UUID)(implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
+  private def importDataStore(dataStore: PacBioDataStore, jobUUID: UUID)(
+      implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     // Filter out non-chunked files. The are presumed to be intermediate files
     val files = loadDataStoreFiles(dataStore).filter(!_.isChunked)
     Future.sequence(files.map(x => importDataStoreFile(x, jobUUID)))
   }
 
-  private def importAbleFile(x: ImportAble, jobUUID: UUID)(implicit ec: ExecutionContext ): Future[Seq[MessageResponse]] = {
+  private def importAbleFile(x: ImportAble, jobUUID: UUID)(
+      implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     x match {
       case x: DataStoreFile => importDataStoreFile(x, jobUUID).map(List(_))
       case x: PacBioDataStore => importDataStore(x, jobUUID)
     }
   }
 
-  private def updateJobState(uuid: UUID, state: AnalysisJobStates.JobStates, message: Option[String]): Future[EngineJob] = {
-    dao.updateJobState(uuid, state, message.getOrElse(s"Updating Job $uuid state to $state"))
+  private def updateJobState(uuid: UUID,
+                             state: AnalysisJobStates.JobStates,
+                             message: Option[String]): Future[EngineJob] = {
+    dao.updateJobState(
+      uuid,
+      state,
+      message.getOrElse(s"Updating Job $uuid state to $state"))
   }
 
-
-  private def convertAndSetup[T >: ServiceJobOptions](engineJob: EngineJob): Try[(T, FileJobResultsWriter, JobResource)] = {
+  private def convertAndSetup[T >: ServiceJobOptions](
+      engineJob: EngineJob): Try[(T, FileJobResultsWriter, JobResource)] = {
     Try {
       val opts = Converters.convertServiceCoreJobOption(engineJob)
       val (writer, resource) = setupResources(engineJob)
@@ -90,10 +107,12 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
   }
 
   // Returns the Updated EngineJob
-  private def updateJobStateBlock(uuid: UUID, state: AnalysisJobStates.JobStates, message: Option[String], timeout: FiniteDuration): Try[EngineJob] = {
-    Try{Await.result(updateJobState(uuid, state, message), timeout)}
+  private def updateJobStateBlock(uuid: UUID,
+                                  state: AnalysisJobStates.JobStates,
+                                  message: Option[String],
+                                  timeout: FiniteDuration): Try[EngineJob] = {
+    Try { Await.result(updateJobState(uuid, state, message), timeout) }
   }
-
 
   /**
     * Import the result from a Job
@@ -103,37 +122,64 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     * @param timeout timeout for the entire importing process (file IO + db insert)
     * @return
     */
-  private def importer(jobId: UUID, x: Any, timeout: FiniteDuration): Try[String] = {
+  private def importer(jobId: UUID,
+                       x: Any,
+                       timeout: FiniteDuration): Try[String] = {
     x match {
       case ds: ImportAble =>
-        Try(Await.result(importAbleFile(ds, jobId).map(messages => messages.map(_.message).reduce(_ + "\n" + _)), timeout))
+        Try(
+          Await.result(importAbleFile(ds, jobId).map(messages =>
+                         messages.map(_.message).reduce(_ + "\n" + _)),
+                       timeout))
       case _ => Success("No ImportAble. Skipping importing")
     }
   }
 
   // This takes a lot of args and is a bit clumsy, however it's explicit and straightforward
-  private def runJobAndImport[T <: ServiceJobOptions](jobIntId: Int, opts: T, resource: JobResourceBase, writer: JobResultWriter, dao: JobsDao, config: SystemJobConfig, startedAt: JodaDateTime, timeout: FiniteDuration): Try[ResultSuccess] = {
+  private def runJobAndImport[T <: ServiceJobOptions](
+      jobIntId: Int,
+      opts: T,
+      resource: JobResourceBase,
+      writer: JobResultWriter,
+      dao: JobsDao,
+      config: SystemJobConfig,
+      startedAt: JodaDateTime,
+      timeout: FiniteDuration): Try[ResultSuccess] = {
 
     val jobId = resource.jobId
 
     def toSuccess(msg: String) =
-      ResultSuccess(jobId, opts.jobTypeId.id, msg, computeTimeDeltaFromNow(startedAt), AnalysisJobStates.SUCCESSFUL, host)
+      ResultSuccess(jobId,
+                    opts.jobTypeId.id,
+                    msg,
+                    computeTimeDeltaFromNow(startedAt),
+                    AnalysisJobStates.SUCCESSFUL,
+                    host)
 
     def andWrite(msg: String) = Try(writer.writeLine(msg))
 
     val tx = for {
-      results <- opts.toJob().runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
+      results <- opts
+        .toJob()
+        .runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
       _ <- andWrite(s"Successfully completed running core job. $results")
       msg <- importer(jobId, results, timeout)
       _ <- andWrite(msg)
-      updatedEngineJob <- updateJobStateBlock(jobId, AnalysisJobStates.SUCCESSFUL, Some(s"Successfully run job $jobId"), timeout)
-      _ <- andWrite(s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
-      _ <- andWrite(s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
+      updatedEngineJob <- updateJobStateBlock(
+        jobId,
+        AnalysisJobStates.SUCCESSFUL,
+        Some(s"Successfully run job $jobId"),
+        timeout)
+      _ <- andWrite(
+        s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
+      _ <- andWrite(
+        s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
     } yield toSuccess(msg)
 
     // This is a little clumsy to get the error message written to the correct place
     // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
-    tx.recoverWith(writeError(writer, Some(s"Failed to run and import $jobIntId")))
+    tx.recoverWith(
+      writeError(writer, Some(s"Failed to run and import $jobIntId")))
   }
 
   /**
@@ -143,8 +189,10 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     * @param writer output writer
     * @return
     */
-  private def validateOpts[T <: ServiceJobOptions](opts: T, writer: JobResultWriter): Try[T] = {
-    Try { opts.validate(dao, config)}.flatMap {
+  private def validateOpts[T <: ServiceJobOptions](
+      opts: T,
+      writer: JobResultWriter): Try[T] = {
+    Try { opts.validate(dao, config) }.flatMap {
       case Some(errors) =>
         val msg = s"Failed to validate Job options $opts Error $errors"
         writer.writeLineError(msg)
@@ -158,12 +206,19 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     }
   }
 
-
   // This should probably have some re-try mechanism
-  def recoverAndUpdateToFailed(jobId: UUID, timeout: FiniteDuration, toFailed: String => ResultFailed): PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
+  def recoverAndUpdateToFailed(jobId: UUID,
+                               timeout: FiniteDuration,
+                               toFailed: String => ResultFailed)
+    : PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
     case NonFatal(ex) =>
-      updateJobStateBlock(jobId, AnalysisJobStates.FAILED, Some(ex.getMessage), timeout)
-          .map(engineJob => Left(toFailed(s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
+      updateJobStateBlock(jobId,
+                          AnalysisJobStates.FAILED,
+                          Some(ex.getMessage),
+                          timeout)
+        .map(engineJob =>
+          Left(toFailed(
+            s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
   }
 
   /**
@@ -181,24 +236,37 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig) extends timeUtils 
     * @param engineJob Engine Job to Run
     * @return
     */
-  def run(engineJob: EngineJob)(implicit timeout: FiniteDuration = 30.seconds): Either[ResultFailed, ResultSuccess] = {
+  def run(engineJob: EngineJob)(implicit timeout: FiniteDuration = 30.seconds)
+    : Either[ResultFailed, ResultSuccess] = {
 
     val startedAt = JodaDateTime.now()
 
     def toFailed(msg: String) =
-      ResultFailed(engineJob.uuid, engineJob.jobTypeId, msg, computeTimeDeltaFromNow(startedAt), AnalysisJobStates.FAILED, host)
+      ResultFailed(engineJob.uuid,
+                   engineJob.jobTypeId,
+                   msg,
+                   computeTimeDeltaFromNow(startedAt),
+                   AnalysisJobStates.FAILED,
+                   host)
 
     val tx = for {
       rxs <- convertAndSetup(engineJob)
       _ <- validateOpts(rxs._1, rxs._2)
-      results <- runJobAndImport(engineJob.id, rxs._1, rxs._3, rxs._2, dao, config, startedAt, timeout)
+      results <- runJobAndImport(engineJob.id,
+                                 rxs._1,
+                                 rxs._3,
+                                 rxs._2,
+                                 dao,
+                                 config,
+                                 startedAt,
+                                 timeout)
     } yield Right(results)
-
 
     tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout, toFailed)) match {
       case Success(either) => either
       case Failure(ex) =>
-        logger.error(s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}")
+        logger.error(
+          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}")
         // this should log the stacktrace. This needs access to the job writer
         Left(toFailed(ex.getMessage))
     }

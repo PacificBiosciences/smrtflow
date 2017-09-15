@@ -9,20 +9,20 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateAlignm
 import com.pacificbiosciences.pacbiodatasets.ConsensusReadSet
 
 /**
- * Created by mkocher on 12/1/15.
- */
-object ValidateConsensusReadSet extends ValidateDataSet{
+  * Created by mkocher on 12/1/15.
+  */
+object ValidateConsensusReadSet extends ValidateDataSet {
 
   type DsType = ConsensusReadSet
 
-  val supportedFileTypes:Set[FileType] = Set(FileTypes.BAM_CCS)
+  val supportedFileTypes: Set[FileType] = Set(FileTypes.BAM_CCS)
 
   /**
-   * Custom SubreadSet Validation
-   *
-   * @param ds
-   * @return
-   */
+    * Custom SubreadSet Validation
+    *
+    * @param ds
+    * @return
+    */
   override def validateCustom(ds: ConsensusReadSet): ValidateDataSetE = {
     ds.successNel
   }

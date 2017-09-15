@@ -10,7 +10,10 @@ import scala.concurrent.Future
 /**
   * Created by mkocher on 9/11/17.
   */
-class V6__AddMultiJobFieldsToEngineJob  extends JdbcMigration with SlickMigration with LazyLogging{
+class V6__AddMultiJobFieldsToEngineJob
+    extends JdbcMigration
+    with SlickMigration
+    with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(
@@ -18,6 +21,6 @@ class V6__AddMultiJobFieldsToEngineJob  extends JdbcMigration with SlickMigratio
         sqlu"""ALTER TABLE engine_jobs ADD COLUMN is_multi_job BOOLEAN DEFAULT FALSE NOT NULL """,
         sqlu"""ALTER TABLE engine_jobs ADD COLUMN json_workflow TEXT DEFAULT '{}' NOT NULL """,
         sqlu"""ALTER TABLE engine_jobs ADD COLUMN parent_multi_job_id INTEGER DEFAULT NULL"""
-    ))
+      ))
   }
 }

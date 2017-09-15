@@ -6,8 +6,8 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 
 /**
- * Loader for resources located in an external bundle of known structure
- */
+  * Loader for resources located in an external bundle of known structure
+  */
 trait BundleResourceLoader[T]
     extends EnvResourceLoader[T]
     with SmrtLinkJsonProtocols
@@ -15,13 +15,13 @@ trait BundleResourceLoader[T]
   val BUNDLE_ENV_VAR: String
   val ROOT_DIR_PREFIX: String
 
-  def loadResourcesFromBundle: Seq[T] ={
+  def loadResourcesFromBundle: Seq[T] = {
     scala.util.Properties
-        .envOrNone(BUNDLE_ENV_VAR)
-        .map(v => Paths.get(v))
-        .map(p => p.resolve(ROOT_DIR_PREFIX).toAbsolutePath.toString)
-        .map(parseValue)
-        .getOrElse(Seq.empty[T])
+      .envOrNone(BUNDLE_ENV_VAR)
+      .map(v => Paths.get(v))
+      .map(p => p.resolve(ROOT_DIR_PREFIX).toAbsolutePath.toString)
+      .map(parseValue)
+      .getOrElse(Seq.empty[T])
   }
 
   def loadResources: Seq[T] = loadResourcesFromEnv ++ loadResourcesFromBundle

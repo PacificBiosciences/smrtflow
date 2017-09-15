@@ -4,11 +4,10 @@ import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.models.ReportViewRule
 import spray.json._
 
-
 /**
- *
- * Created by mkocher on 9/25/15.
- */
+  *
+  * Created by mkocher on 9/25/15.
+  */
 trait ReportViewRulesResourceLoader
     extends BundleResourceLoader[ReportViewRule] {
 

@@ -19,4 +19,3 @@ trait PipelineTemplateResourceLoader
 
 }
 object PipelineTemplateResourceLoader extends PipelineTemplateResourceLoader
-

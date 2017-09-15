@@ -1,4 +1,3 @@
-
 package com.pacbio.simulator.scenarios
 
 import java.net.URL
@@ -12,19 +11,29 @@ import scala.collection._
 import com.typesafe.config.Config
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PbReports
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
+import com.pacbio.secondary.smrtlink.client.{
+  ClientUtils,
+  SmrtLinkServiceAccessLayer
+}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
 object ChemistryBundleScenarioLoader extends ScenarioLoader {
-  override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
-    require(config.isDefined, "Path to config file must be specified for ChemistryBundleScenario")
-    require(PacBioTestData.isAvailable, "PacBioTestData must be configured for ChemistryBundleScenario")
+  override def load(config: Option[Config])(
+      implicit system: ActorSystem): Scenario = {
+    require(
+      config.isDefined,
+      "Path to config file must be specified for ChemistryBundleScenario")
+    require(PacBioTestData.isAvailable,
+            "PacBioTestData must be configured for ChemistryBundleScenario")
     val c: Config = config.get
 
     new ChemistryBundleScenario(getHost(c), getPort(c))
@@ -54,7 +63,8 @@ class ChemistryBundleScenario(host: String, port: Int)
 
   val subreads = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
-  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(DataSetMetaTypes.Subread)
+  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(
+    DataSetMetaTypes.Subread)
   val bundle: Var[PacBioDataBundle] = Var()
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
@@ -64,12 +74,15 @@ class ChemistryBundleScenario(host: String, port: Int)
     PbSmrtPipeServiceOptions(
       "chemistry-bundle-test",
       "pbsmrtpipe.pipelines.dev_verify_chemistry",
-      Seq(BoundServiceEntryPoint("eid_subread",
-                                 FileTypes.DS_SUBREADS.fileTypeId,
-                                 subreadsUuid.get)),
-      Seq(ServiceTaskStrOption("pbsmrtpipe.task_options.chemistry_version",
-                               version)),
-      Seq[ServiceTaskOptionBase]())
+      Seq(
+        BoundServiceEntryPoint("eid_subread",
+                               FileTypes.DS_SUBREADS.fileTypeId,
+                               subreadsUuid.get)),
+      Seq(
+        ServiceTaskStrOption("pbsmrtpipe.task_options.chemistry_version",
+                             version)),
+      Seq[ServiceTaskOptionBase]()
+    )
   }
 
   val setupSteps = Seq(
@@ -81,8 +94,10 @@ class ChemistryBundleScenario(host: String, port: Int)
   )
   val pbsmrtpipeSteps = Seq(
     bundle := GetBundle(Var("chemistry")),
-    jobId := RunAnalysisPipeline(bundle.mapWith(b => getPipelineOpts(b.version))),
+    jobId := RunAnalysisPipeline(
+      bundle.mapWith(b => getPipelineOpts(b.version))),
     jobStatus := WaitForJob(jobId),
-    fail("pbsmrtpipe job failed") IF jobStatus !=? EXIT_SUCCESS)
+    fail("pbsmrtpipe job failed") IF jobStatus !=? EXIT_SUCCESS
+  )
   override val steps = setupSteps ++ pbsmrtpipeSteps
 }

@@ -2,14 +2,18 @@ package com.pacbio.secondary.smrtlink.analysis.externaltools
 
 import java.nio.file.{Files, Path, Paths}
 
-
 import spray.json._
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes, MockDataSetUtils}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes,
+  MockDataSetUtils
+}
 import org.apache.commons.io.FileUtils
 
-
-case class TestDataFile(id: String, path: String, fileTypeId: String,
+case class TestDataFile(id: String,
+                        path: String,
+                        fileTypeId: String,
                         description: String)
 
 trait TestDataJsonProtocol extends DefaultJsonProtocol {
@@ -42,12 +46,14 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
                      tmpDirBase: String = "dataset-contents"): Path = {
     val path = getFile(id)
     val dst = getDataSetMiniMeta(path).metatype
-    MockDataSetUtils.makeTmpDataset(path, dst, copyFiles = copyFiles,
+    MockDataSetUtils.makeTmpDataset(path,
+                                    dst,
+                                    copyFiles = copyFiles,
                                     tmpDirBase = tmpDirBase)
   }
 }
 
-object PacBioTestData extends TestDataJsonProtocol with ConfigLoader{
+object PacBioTestData extends TestDataJsonProtocol with ConfigLoader {
 
   //Can be set via export PB_TEST_DATA_FILES=$(readlink -f PacBioTestData/data/files.json)
   final val PB_TEST_ID = "smrtflow.test.test-files"
@@ -60,20 +66,21 @@ object PacBioTestData extends TestDataJsonProtocol with ConfigLoader{
   // FIXME. This method doesn't make sense when the instance is created from the raw constructor.
   def isAvailable: Boolean = Files.isRegularFile(getFilesJson)
 
-  val errorMessage = s"Unable to find PacbioTestData files.json from $testFileDir. Set $PB_TEST_ID or env var 'PB_TEST_DATA_FILES' to /path/PacBioTestData/data/files.json"
+  val errorMessage =
+    s"Unable to find PacbioTestData files.json from $testFileDir. Set $PB_TEST_ID or env var 'PB_TEST_DATA_FILES' to /path/PacBioTestData/data/files.json"
 
   /**
     * Load files.json from the application.conf file
     * @return
     */
-  def apply():PacBioTestData = apply(getFilesJson)
+  def apply(): PacBioTestData = apply(getFilesJson)
 
   /**
     * Load a PacBioTest Data from files.json
     * @param filesJson Absolute path to the files.json
     * @return
     */
-  def apply(filesJson: Path):PacBioTestData = {
+  def apply(filesJson: Path): PacBioTestData = {
     val json = FileUtils.readFileToString(filesJson.toFile).parseJson
     val files = json.convertTo[Seq[TestDataFile]]
     new PacBioTestData(files, filesJson.toAbsolutePath.getParent)

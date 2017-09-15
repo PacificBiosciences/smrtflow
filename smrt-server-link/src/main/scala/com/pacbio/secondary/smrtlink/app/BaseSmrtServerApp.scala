@@ -8,8 +8,15 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.{AuthenticatorImplProvider, JwtUtilsImplProvider}
-import com.pacbio.secondary.smrtlink.dependency.{DefaultConfigProvider, SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.auth.{
+  AuthenticatorImplProvider,
+  JwtUtilsImplProvider
+}
+import com.pacbio.secondary.smrtlink.dependency.{
+  DefaultConfigProvider,
+  SetBindings,
+  Singleton
+}
 import com.pacbio.secondary.smrtlink.file.JavaFileSystemUtilProvider
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
@@ -33,62 +40,70 @@ import scala.util.control.ControlThrowable
 object BaseSmrtServerApp
 
 class StartupFailedException(cause: Throwable)
-  extends RuntimeException("Startup failed", cause)
-  with ControlThrowable
+    extends RuntimeException("Startup failed", cause)
+    with ControlThrowable
 
 // TODO(smcclellan): This is getting too monolithic, break it up into modules
-trait CoreProviders extends
-  ActorSystemProvider with
-  SetBindings with
-  DefaultConfigProvider with
-  ServiceRoutesProvider with
-  ServiceManifestsProvider with
-  ManifestServiceProvider with
-  StatusServiceProvider with
-  StatusGeneratorProvider with
-  UserServiceProvider with
-  CommonFilesServiceProvider with
-  DiskSpaceServiceProvider with
-  MimeTypeDetectors with
-  JwtUtilsImplProvider with
-  AuthenticatorImplProvider with
-  JavaFileSystemUtilProvider with
-  SystemClockProvider with ConfigLoader{
+trait CoreProviders
+    extends ActorSystemProvider
+    with SetBindings
+    with DefaultConfigProvider
+    with ServiceRoutesProvider
+    with ServiceManifestsProvider
+    with ManifestServiceProvider
+    with StatusServiceProvider
+    with StatusGeneratorProvider
+    with UserServiceProvider
+    with CommonFilesServiceProvider
+    with DiskSpaceServiceProvider
+    with MimeTypeDetectors
+    with JwtUtilsImplProvider
+    with AuthenticatorImplProvider
+    with JavaFileSystemUtilProvider
+    with SystemClockProvider
+    with ConfigLoader {
 
-  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
-  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
+  val serverPort: Singleton[Int] = Singleton(
+    () => conf.getInt("smrtflow.server.port"))
+  val serverHost: Singleton[String] = Singleton(
+    () => conf.getString("smrtflow.server.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 
-  override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+  override val buildPackage: Singleton[Package] = Singleton(
+    getClass.getPackage)
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 
 }
 
-trait AuthenticatedCoreProviders extends
-  ActorSystemProvider with
-  SetBindings with
-  DefaultConfigProvider with
-  ServiceComposer with
-  ManifestServiceProviderx with
-  StatusServiceProviderx with
-  StatusGeneratorProvider with
-  UserServiceProviderx with
-  CommonFilesServiceProviderx with
-  DiskSpaceServiceProviderx with
-  MimeTypeDetectors with
-  JwtUtilsImplProvider with
-  AuthenticatorImplProvider with
-  JavaFileSystemUtilProvider with
-  SystemClockProvider with ConfigLoader{
+trait AuthenticatedCoreProviders
+    extends ActorSystemProvider
+    with SetBindings
+    with DefaultConfigProvider
+    with ServiceComposer
+    with ManifestServiceProviderx
+    with StatusServiceProviderx
+    with StatusGeneratorProvider
+    with UserServiceProviderx
+    with CommonFilesServiceProviderx
+    with DiskSpaceServiceProviderx
+    with MimeTypeDetectors
+    with JwtUtilsImplProvider
+    with AuthenticatorImplProvider
+    with JavaFileSystemUtilProvider
+    with SystemClockProvider
+    with ConfigLoader {
 
-  val serverPort: Singleton[Int] = Singleton(() => conf.getInt("smrtflow.server.port"))
-  val serverHost: Singleton[String] = Singleton(() => conf.getString("smrtflow.server.host"))
+  val serverPort: Singleton[Int] = Singleton(
+    () => conf.getInt("smrtflow.server.port"))
+  val serverHost: Singleton[String] = Singleton(
+    () => conf.getString("smrtflow.server.host"))
 
   override val actorSystemName = Some("base-smrt-server")
 
-  override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+  override val buildPackage: Singleton[Package] = Singleton(
+    getClass.getPackage)
 
   override val baseServiceId: Singleton[String] = Singleton("smrtlink_common")
 }
@@ -107,16 +122,16 @@ trait BaseApi {
 
   lazy val system = providers.actorSystem()
   lazy val routes = providers.routes()
-  lazy val rootService = system.actorOf(Props(new ServiceActor(routes)), name = "ServiceActor")
+  lazy val rootService =
+    system.actorOf(Props(new ServiceActor(routes)), name = "ServiceActor")
 
-    // This is needed with Mixin routes from traits that only extend HttpService
+  // This is needed with Mixin routes from traits that only extend HttpService
   def actorRefFactory: ActorRefFactory = system
 
   sys.addShutdownHook(system.shutdown())
 }
 
-trait BaseServer extends LazyLogging with OSUtils{
-  this: BaseApi =>
+trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -126,15 +141,20 @@ trait BaseServer extends LazyLogging with OSUtils{
   def start = {
     logger.info(s"Starting App using smrtflow ${Constants.SMRTFLOW_VERSION}")
     logger.info(s"Running on OS ${getOsVersion()}")
-    logger.info(s"Number of Available Processors ${Runtime.getRuntime().availableProcessors()}")
+    logger.info(
+      s"Number of Available Processors ${Runtime.getRuntime().availableProcessors()}")
     logger.info("Java Version: " + System.getProperty("java.version"))
     logger.info("Java Home: " + System.getProperty("java.home"))
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean
     val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.mkString(" "))
 
-    val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(rootService, host, port = port)) map {
-      case r: Http.CommandFailed => Some(new BindException(s"Failed to bind to $host:$port"))
+    val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(
+      rootService,
+      host,
+      port = port)) map {
+      case r: Http.CommandFailed =>
+        Some(new BindException(s"Failed to bind to $host:$port"))
       case r => None
     }
 
@@ -147,8 +167,8 @@ trait BaseServer extends LazyLogging with OSUtils{
 }
 
 /**
- * This is used for spray-can http server which can be started via 'sbt run'
- */
+  * This is used for spray-can http server which can be started via 'sbt run'
+  */
 object BaseSmrtServer extends App with BaseServer with BaseApi {
   override val providers: CoreProviders = new CoreProviders {}
   override val host = providers.serverHost()

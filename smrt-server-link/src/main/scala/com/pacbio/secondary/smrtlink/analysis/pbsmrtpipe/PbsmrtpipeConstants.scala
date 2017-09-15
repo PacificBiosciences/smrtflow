@@ -1,12 +1,16 @@
 package com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{PipelineStrOption, PipelineIntOption, PipelineBaseOption}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  PipelineStrOption,
+  PipelineIntOption,
+  PipelineBaseOption
+}
 
 /**
- * This is ported from pbsmrtpipe. This should really be a case class of
- * the Pipeline Engine Options (i.e., the workflow level options)
- */
+  * This is ported from pbsmrtpipe. This should really be a case class of
+  * the Pipeline Engine Options (i.e., the workflow level options)
+  */
 object PbsmrtpipeConstants {
 
   // pbsmrtpipe ENV vars
@@ -76,21 +80,26 @@ object PbsmrtpipeConstants {
     ("eid_barcode", DataSetMetaTypes.Barcode),
     ("eid_gmapref_dataset", DataSetMetaTypes.GmapReference),
     ("eid_align", DataSetMetaTypes.Alignment),
-    ("eid_ccs", DataSetMetaTypes.CCS))
+    ("eid_ccs", DataSetMetaTypes.CCS)
+  )
 
   /**
-   * Get the dataset metatype (e.g. PacBio.DataSet.SubreadSet) associated
-   * with a pbsmrtpipe entry point ID (e.g. eid_subread)
-   */
-  def entryIdToMetaType(eid: String): Option[DataSetMetaTypes.DataSetMetaType] =
+    * Get the dataset metatype (e.g. PacBio.DataSet.SubreadSet) associated
+    * with a pbsmrtpipe entry point ID (e.g. eid_subread)
+    */
+  def entryIdToMetaType(
+      eid: String): Option[DataSetMetaTypes.DataSetMetaType] =
     entryPointDatasetTypes.toMap.get(eid)
 
   /**
-   * Get the pbsmrtpipe entry point ID (e.g. eid_subread) given a dataset
-   * metatype string (e.g. PacBio.DataSet.SubreadSet)
-   */
+    * Get the pbsmrtpipe entry point ID (e.g. eid_subread) given a dataset
+    * metatype string (e.g. PacBio.DataSet.SubreadSet)
+    */
   def metaTypeToEntryId(metaType: String): Option[String] =
-    entryPointDatasetTypes.map{
-      case (e, t) => (t.toString, e)
-    }.toMap.get(metaType)
+    entryPointDatasetTypes
+      .map {
+        case (e, t) => (t.toString, e)
+      }
+      .toMap
+      .get(metaType)
 }

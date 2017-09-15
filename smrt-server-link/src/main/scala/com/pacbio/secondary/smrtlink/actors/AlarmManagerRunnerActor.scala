@@ -9,7 +9,10 @@ import com.pacbio.secondary.smrtlink.file.FileSystemUtilProvider
 import com.pacbio.secondary.smrtlink.models.{AlarmSeverity, AlarmStatus}
 import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmDaoActor.UpdateAlarmStatus
-import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.{RunAlarmById, RunAlarms}
+import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.{
+  RunAlarmById,
+  RunAlarms
+}
 import com.pacbio.secondary.smrtlink.alarms.{AlarmRunner, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
@@ -18,18 +21,21 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.util.{Failure, Success}
 import concurrent.duration._
 
-
 object AlarmManagerRunnerActor {
   case object RunAlarms
   case class RunAlarmById(id: String)
 }
 
-class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) extends Actor with LazyLogging{
+class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef)
+    extends Actor
+    with LazyLogging {
 
   context.system.scheduler.scheduleOnce(5.seconds, self, RunAlarms)
 
   override def preStart() = {
-    logger.info(s"Starting $self with ${runners.length} Alarm Runners. Runner Ids:${runners.map(_.alarm.id)}")
+    logger.info(
+      s"Starting $self with ${runners.length} Alarm Runners. Runner Ids:${runners
+        .map(_.alarm.id)}")
   }
 
   /**
@@ -39,8 +45,15 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
   def runAlarm(runner: AlarmRunner): Unit = {
     logger.info(s"Running Alarm ${runner.alarm.id} $runner")
     runner.run() onComplete {
-      case Success(alarmStatus) => daoActor ! UpdateAlarmStatus(runner.alarm.id, alarmStatus)
-      case Failure(ex) => daoActor ! UpdateAlarmStatus(runner.alarm.id, AlarmStatus(runner.alarm.id, 1.0, Some(ex.getMessage), AlarmSeverity.ERROR, JodaDateTime.now()))
+      case Success(alarmStatus) =>
+        daoActor ! UpdateAlarmStatus(runner.alarm.id, alarmStatus)
+      case Failure(ex) =>
+        daoActor ! UpdateAlarmStatus(runner.alarm.id,
+                                     AlarmStatus(runner.alarm.id,
+                                                 1.0,
+                                                 Some(ex.getMessage),
+                                                 AlarmSeverity.ERROR,
+                                                 JodaDateTime.now()))
     }
   }
 
@@ -49,13 +62,17 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
       logger.debug(s"Running All (${runners.length}) Alarm Runners")
       // Returns MessageResponse
       runners.foreach(runAlarm)
-      sender ! MessageResponse(s"Triggered running ${runners.length} Alarm Runners with ids ${runners.map(_.alarm.id).reduce(_ + "," + _)}")
+      sender ! MessageResponse(
+        s"Triggered running ${runners.length} Alarm Runners with ids ${runners
+          .map(_.alarm.id)
+          .reduce(_ + "," + _)}")
     case RunAlarmById(id) =>
       // Returns Some(MessageResponse) if the runner is found
       runners.find(_.alarm.id == id) match {
         case Some(runner) =>
           runAlarm(runner)
-          sender ! Some(MessageResponse(s"Triggered Alarm Runner ${runner.alarm.id}"))
+          sender ! Some(
+            MessageResponse(s"Triggered Alarm Runner ${runner.alarm.id}"))
         case _ =>
           logger.error(s"Unable to find Alarm Runner '$id'")
           sender ! None
@@ -71,29 +88,40 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner], daoActor: ActorRef) ext
   *
   */
 trait AlarmRunnerLoaderProvider {
-  this: SmrtLinkConfigProvider with ActorSystemProvider with FileSystemUtilProvider =>
+  this: SmrtLinkConfigProvider
+    with ActorSystemProvider
+    with FileSystemUtilProvider =>
 
   val alarmRunners: Singleton[Seq[AlarmRunner]] = Singleton { () =>
     implicit val system = actorSystem()
 
-    val tmpDirAlarmRunner = new TmpDirectoryAlarmRunner(smrtLinkTempDir(), fileSystemUtil())
-    val jobDirAlarmRunner = new JobDirectoryAlarmRunner(jobEngineConfig().pbRootJobDir, fileSystemUtil())
+    val tmpDirAlarmRunner =
+      new TmpDirectoryAlarmRunner(smrtLinkTempDir(), fileSystemUtil())
+    val jobDirAlarmRunner =
+      new JobDirectoryAlarmRunner(jobEngineConfig().pbRootJobDir,
+                                  fileSystemUtil())
 
-    val chemistryAlarmRunner = externalBundleUrl().map(url => new ExternalChemistryServerAlarmRunner(url))
-    val eveAlarmRunner = externalEveUrl().map(url => new ExternalEveServerAlarmRunner(url, apiSecret()))
+    val chemistryAlarmRunner = externalBundleUrl().map(url =>
+      new ExternalChemistryServerAlarmRunner(url))
+    val eveAlarmRunner = externalEveUrl().map(url =>
+      new ExternalEveServerAlarmRunner(url, apiSecret()))
 
-    Seq(Some(tmpDirAlarmRunner), Some(jobDirAlarmRunner), chemistryAlarmRunner, eveAlarmRunner).flatten
+    Seq(Some(tmpDirAlarmRunner),
+        Some(jobDirAlarmRunner),
+        chemistryAlarmRunner,
+        eveAlarmRunner).flatten
   }
 
 }
 
 trait AlarmManagerRunnerProvider {
   this: ActorRefFactoryProvider
-      with AlarmDaoActorProvider
-      with FileSystemUtilProvider
-      with AlarmRunnerLoaderProvider =>
+    with AlarmDaoActorProvider
+    with FileSystemUtilProvider
+    with AlarmRunnerLoaderProvider =>
 
-  val alarmManagerRunnerActor: Singleton[ActorRef] = Singleton {
-    () => actorRefFactory().actorOf(Props(classOf[AlarmManagerRunnerActor], alarmRunners(), alarmDaoActor()))
+  val alarmManagerRunnerActor: Singleton[ActorRef] = Singleton { () =>
+    actorRefFactory().actorOf(
+      Props(classOf[AlarmManagerRunnerActor], alarmRunners(), alarmDaoActor()))
   }
 }

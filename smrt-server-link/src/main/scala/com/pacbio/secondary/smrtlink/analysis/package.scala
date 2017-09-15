@@ -6,7 +6,6 @@ import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 
-
 package object analysis {
 
   trait PacBioFileReader[T] extends LazyLogging {

@@ -12,7 +12,6 @@ import scala.util.control.NonFatal
   */
 trait SmrtServerIdUtils {
 
-
   private def computeUUID(): UUID = {
     val host = java.net.InetAddress.getLocalHost().getHostName()
     UUID.nameUUIDFromBytes(host.map(_.toByte).toArray)
@@ -20,9 +19,12 @@ trait SmrtServerIdUtils {
 
   def getSystemUUID(conf: Config): UUID = {
 
-    val tx = Try {UUID.fromString(conf.getString("pacBioSystem.smrtLinkSystemId"))}
+    val tx = Try {
+      UUID.fromString(conf.getString("pacBioSystem.smrtLinkSystemId"))
+    }
 
-    tx.recoverWith {case NonFatal(_) => Try {computeUUID()}}.getOrElse(UUID.randomUUID())
+    tx.recoverWith { case NonFatal(_) => Try { computeUUID() } }
+      .getOrElse(UUID.randomUUID())
 
   }
 }

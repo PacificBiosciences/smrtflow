@@ -18,15 +18,16 @@ class StatusGenerator(clock: Clock,
 
   val startedAt: JodaInstant = clock.now()
 
-  private def uptimeMillis: Long = new JodaDuration(startedAt, clock.now()).getMillis
+  private def uptimeMillis: Long =
+    new JodaDuration(startedAt, clock.now()).getMillis
 
   private def uptimeString(uptimeMillis: Long): String = {
     val period = new Period(uptimeMillis)
     val formatter = new PeriodFormatterBuilder()
       .printZeroRarelyLast()
-        .appendDays()
-        .appendSuffix(" days", "days")
-        .appendSeparator(", ", " and ")
+      .appendDays()
+      .appendSuffix(" days", "days")
+      .appendSeparator(", ", " and ")
       .appendHours()
       .appendSuffix(" hour", " hours")
       .appendSeparator(", ", " and ")
@@ -41,36 +42,37 @@ class StatusGenerator(clock: Clock,
 
   def getStatus: ServiceStatus = {
     val up = uptimeMillis
-    ServiceStatus(
-      baseServiceId,
-      s"Services have been up for ${uptimeString(up)}.",
-      up,
-      uuid,
-      buildVersion,
-      System.getenv("USER"))
+    ServiceStatus(baseServiceId,
+                  s"Services have been up for ${uptimeString(up)}.",
+                  up,
+                  uuid,
+                  buildVersion,
+                  System.getenv("USER"))
   }
 }
 
-trait StatusGeneratorProvider extends ConfigLoader with SmrtServerIdUtils{
+trait StatusGeneratorProvider extends ConfigLoader with SmrtServerIdUtils {
   this: ClockProvider =>
 
   /**
-   * Should be initialized at the top-level with
-   * {{{override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)}}}
-   */
+    * Should be initialized at the top-level with
+    * {{{override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)}}}
+    */
   val buildPackage: Singleton[Package]
 
   /**
-   * Should be initialized at the top-level with a base id for the total set of services. For instance, if you want your
-   * service package to have id "pacbio.smrtservices.smrtlink_analysis", you would initialize this like so:
-   * {{{override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")}}}
-   */
+    * Should be initialized at the top-level with a base id for the total set of services. For instance, if you want your
+    * service package to have id "pacbio.smrtservices.smrtlink_analysis", you would initialize this like so:
+    * {{{override val baseServiceId: Singleton[String] = Singleton("smrtlink_analysis")}}}
+    */
   val baseServiceId: Singleton[String]
 
   val uuid: Singleton[UUID] = Singleton(getSystemUUID(conf))
 
-  val buildVersion: Singleton[String] = Singleton(() => Constants.SMRTFLOW_VERSION)
+  val buildVersion: Singleton[String] = Singleton(
+    () => Constants.SMRTFLOW_VERSION)
 
   val statusGenerator: Singleton[StatusGenerator] =
-    Singleton(() => new StatusGenerator(clock(), baseServiceId(), uuid(), buildVersion()))
+    Singleton(() =>
+      new StatusGenerator(clock(), baseServiceId(), uuid(), buildVersion()))
 }

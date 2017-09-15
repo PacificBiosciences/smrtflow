@@ -21,7 +21,6 @@ import scala.concurrent.duration._
 import scala.util.Random
 import scala.xml._
 
-
 trait ApiManagerClientBase {
   val ADMIN_PORT = 9443
   val API_PORT = 8243
@@ -29,10 +28,10 @@ trait ApiManagerClientBase {
   implicit val sslContext = {
     // Create a trust manager that does not validate certificate chains.
     val permissiveTrustManager: TrustManager = new X509TrustManager() {
-      override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = {
-      }
-      override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = {
-      }
+      override def checkClientTrusted(chain: Array[X509Certificate],
+                                      authType: String): Unit = {}
+      override def checkServerTrusted(chain: Array[X509Certificate],
+                                      authType: String): Unit = {}
       override def getAcceptedIssuers(): Array[X509Certificate] = {
         null
       }
@@ -47,11 +46,10 @@ trait ApiManagerClientBase {
 }
 
 class ApiManagerAccessLayer(
-      host: String,
-      portOffset: Int = 0,
-      user: String,
-      password: String)
-    (implicit actorSystem: ActorSystem)
+    host: String,
+    portOffset: Int = 0,
+    user: String,
+    password: String)(implicit actorSystem: ActorSystem)
     extends ApiManagerClientBase
     with LazyLogging {
 
@@ -78,24 +76,29 @@ class ApiManagerAccessLayer(
   }
 
   protected def getWso2Connection(portNumber: Int) = {
-    IO(Http) ? Http.HostConnectorSetup(host, port = portNumber + portOffset, sslEncryption = true)
+    IO(Http) ? Http.HostConnectorSetup(host,
+                                       port = portNumber + portOffset,
+                                       sslEncryption = true)
   }
 
   // request pipeline for the API port
   val apiPipe: Future[SendReceive] = {
-    for (
-      Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT)
-    ) yield sendReceive(connector)
+    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT))
+      yield sendReceive(connector)
   }
 
   // request pipeline for the admin port
   val adminPipe: Future[SendReceive] =
-    for (
-      Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT)
-    ) yield sendReceive(connector)
+    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT))
+      yield sendReceive(connector)
 
   def register(): Future[ClientRegistrationResponse] = {
-    val body = ClientRegistrationRequest("foo", Random.alphanumeric.take(20).mkString, "Production", user, "password refresh_token", true)
+    val body = ClientRegistrationRequest("foo",
+                                         Random.alphanumeric.take(20).mkString,
+                                         "Production",
+                                         user,
+                                         "password refresh_token",
+                                         true)
 
     val request = (
       Post(s"/client-registration/v0.10/register", body)
@@ -111,12 +114,13 @@ class ApiManagerAccessLayer(
   def login(consumerKey: String,
             consumerSecret: String,
             scopes: Set[String]): Future[OauthToken] = {
-    val body = FormData(Map(
-      "grant_type" -> "password",
-      "username" -> user,
-      "password" -> password,
-      "scope" -> scopes.mkString(" ")
-    ))
+    val body = FormData(
+      Map(
+        "grant_type" -> "password",
+        "username" -> user,
+        "password" -> password,
+        "scope" -> scopes.mkString(" ")
+      ))
 
     val request = (
       Post(s"/token", body)
@@ -125,52 +129,65 @@ class ApiManagerAccessLayer(
     apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
   }
 
-  def waitForStart(tries: Int = 40, delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
+  def waitForStart(
+      tries: Int = 40,
+      delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
     implicit val timeout = tries * delay
 
     // Wait for token, store, and publisher APIs to start.
     // Before they're started, there'll be a failed connection attempt,
     // a 500 status response, or a 404 status response
-    val requests = List(
-      (Get("/token"), apiPipe),
-      (Get("/api/am/store/v0.10/applications"), adminPipe),
-      (Get("/api/am/publisher/v0.10/apis"), adminPipe))
+    val requests = List((Get("/token"), apiPipe),
+                        (Get("/api/am/store/v0.10/applications"), adminPipe),
+                        (Get("/api/am/publisher/v0.10/apis"), adminPipe))
 
-    Future.sequence(requests.map(req => waitForRequest(req._1, req._2, tries, delay)))
+    Future.sequence(
+      requests.map(req => waitForRequest(req._1, req._2, tries, delay)))
   }
 
-  def waitForRequest(request: HttpRequest, pipeline: Future[SendReceive], tries: Int = 40, delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
+  def waitForRequest(
+      request: HttpRequest,
+      pipeline: Future[SendReceive],
+      tries: Int = 40,
+      delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
     implicit val timeout: Timeout = tries * delay
 
     val fut = pipeline.flatMap(_(request))
-    def retry = akka.pattern.after(delay, using = actorSystem.scheduler)(waitForRequest(request, pipeline, tries - 1, delay))
+    def retry =
+      akka.pattern.after(delay, using = actorSystem.scheduler)(
+        waitForRequest(request, pipeline, tries - 1, delay))
 
     val expectedStatuses: Set[StatusCode] =
-      Set(StatusCodes.OK, StatusCodes.Unauthorized, StatusCodes.MethodNotAllowed)
+      Set(StatusCodes.OK,
+          StatusCodes.Unauthorized,
+          StatusCodes.MethodNotAllowed)
 
-    fut.recoverWith({
-      case exc: Http.ConnectionAttemptFailedException => {
-        if (tries > 1) {
-          retry
-        } else {
-          Future.failed(exc)
+    fut
+      .recoverWith({
+        case exc: Http.ConnectionAttemptFailedException => {
+          if (tries > 1) {
+            retry
+          } else {
+            Future.failed(exc)
+          }
         }
-      }
-    }).flatMap(response => {
-      if (expectedStatuses.contains(response.status)) {
-        Future.successful(response)
-      } else {
-        if (tries > 1) {
-          retry
+      })
+      .flatMap(response => {
+        if (expectedStatuses.contains(response.status)) {
+          Future.successful(response)
         } else {
-          Future.failed(new Exception("server didn't come up in time"))
+          if (tries > 1) {
+            retry
+          } else {
+            Future.failed(new Exception("server didn't come up in time"))
+          }
         }
-      }
-    })
+      })
   }
 
   // Store APIs
-  def putApplication(app: store.models.Application, token: OauthToken): Future[HttpResponse] = {
+  def putApplication(app: store.models.Application,
+                     token: OauthToken): Future[HttpResponse] = {
     val request = (
       Put(s"/api/am/store/v0.10/applications/${app.applicationId.get}", app)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -178,7 +195,8 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request))
   }
 
-  def getApplication(applicationId: String, token: OauthToken): Future[store.models.Application] = {
+  def getApplication(applicationId: String,
+                     token: OauthToken): Future[store.models.Application] = {
     val request = (
       Get(s"/api/am/store/v0.10/applications/${applicationId}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -186,7 +204,9 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[store.models.Application])
   }
 
-  def searchApplications(name: String, token: OauthToken): Future[store.models.ApplicationList] = {
+  def searchApplications(
+      name: String,
+      token: OauthToken): Future[store.models.ApplicationList] = {
     val request = (
       Get(s"/api/am/store/v0.10/applications?query=${name}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -194,7 +214,10 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[store.models.ApplicationList])
   }
 
-  def subscribe(apiId: String, applicationId: String, tier: String, token: OauthToken): Future[store.models.Subscription] = {
+  def subscribe(apiId: String,
+                applicationId: String,
+                tier: String,
+                token: OauthToken): Future[store.models.Subscription] = {
     val subscription = store.models.Subscription(
       subscriptionId = None,
       tier = tier,
@@ -210,9 +233,9 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[store.models.Subscription])
   }
 
-
   // publisher APIs
-  def searchApis(name: String, token: OauthToken): Future[publisher.models.APIList] = {
+  def searchApis(name: String,
+                 token: OauthToken): Future[publisher.models.APIList] = {
     val request = (
       Get(s"/api/am/publisher/v0.10/apis?query=${name}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -220,7 +243,8 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.APIList])
   }
 
-  def getApiDetails(id: String, token: OauthToken): Future[publisher.models.API] = {
+  def getApiDetails(id: String,
+                    token: OauthToken): Future[publisher.models.API] = {
     val request = (
       Get(s"/api/am/publisher/v0.10/apis/${id}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -228,7 +252,8 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
   }
 
-  def putApiDetails(api: publisher.models.API, token: OauthToken): Future[publisher.models.API] = {
+  def putApiDetails(api: publisher.models.API,
+                    token: OauthToken): Future[publisher.models.API] = {
     val request = (
       Put(s"/api/am/publisher/v0.10/apis/${api.id.get}", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -236,7 +261,8 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
   }
 
-  def postApiDetails(api: publisher.models.API, token: OauthToken): Future[publisher.models.API] = {
+  def postApiDetails(api: publisher.models.API,
+                     token: OauthToken): Future[publisher.models.API] = {
     val request = (
       Post(s"/api/am/publisher/v0.10/apis", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
@@ -244,20 +270,27 @@ class ApiManagerAccessLayer(
     adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
   }
 
-  def apiChangeLifecycle(apiId: String, action: ApiLifecycleAction, token: OauthToken): Future[HttpResponse] = {
+  def apiChangeLifecycle(apiId: String,
+                         action: ApiLifecycleAction,
+                         token: OauthToken): Future[HttpResponse] = {
     val request = (
-      Post(s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}")
+      Post(
+        s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe.flatMap(_(request))
   }
 
-
   // User Store admin API
-  val userStoreUrl = "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
+  val userStoreUrl =
+    "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
 
-  def soapCall(action: String, content: Elem, user: String, password: String): Future[NodeSeq] = {
-    val body = <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
+  def soapCall(action: String,
+               content: Elem,
+               user: String,
+               password: String): Future[NodeSeq] = {
+    val body =
+      <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
                  <soap-env:Body>
                    {content}
                  </soap-env:Body>
@@ -267,35 +300,46 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(user, password))
         ~> addHeader("SOAPAction", action)
     )
-    adminPipe.flatMap(_(request))
+    adminPipe
+      .flatMap(_(request))
       .map(unmarshal[NodeSeq])
   }
 
   def getRoleNames(user: String, password: String): Future[Seq[String]] = {
-    val params = <wso2um:getRoleNames xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+    val params =
+      <wso2um:getRoleNames xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                  </wso2um:getRoleNames>
     soapCall("urn:getRoleNames", params, user, password)
       .map(x => (x \ "Body" \ "getRoleNamesResponse" \ "return").map(_.text))
   }
 
   def addRole(user: String, password: String, role: String): Future[NodeSeq] = {
-    val params = <wso2um:addRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+    val params =
+      <wso2um:addRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                  </wso2um:addRole>
     soapCall("urn:addRole", params, user, password)
   }
 
-  def getUserListOfRole(user: String, password: String, role: String): Future[Seq[String]] = {
-    val params = <wso2um:getUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+  def getUserListOfRole(user: String,
+                        password: String,
+                        role: String): Future[Seq[String]] = {
+    val params =
+      <wso2um:getUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                  </wso2um:getUserListOfRole>
     soapCall("urn:getUserListOfRole", params, user, password)
-      .map(x => (x \ "Body" \ "getUserListOfRoleResponse" \ "return").map(_.text))
+      .map(x =>
+        (x \ "Body" \ "getUserListOfRoleResponse" \ "return").map(_.text))
   }
 
-  def updateUserListOfRole(user: String, password: String, role: String, users: Seq[String]): Future[NodeSeq] = {
+  def updateUserListOfRole(user: String,
+                           password: String,
+                           role: String,
+                           users: Seq[String]): Future[NodeSeq] = {
     val newUserList = users.map(u => <wso2um:newUsers>{u}</wso2um:newUsers>)
-    val params = <wso2um:updateUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+    val params =
+      <wso2um:updateUserListOfRole xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
                    <wso2um:roleName>{role}</wso2um:roleName>
                    {newUserList}
                  </wso2um:updateUserListOfRole>

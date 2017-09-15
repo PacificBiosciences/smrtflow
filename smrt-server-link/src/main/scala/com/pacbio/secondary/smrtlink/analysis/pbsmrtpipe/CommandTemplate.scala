@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe
 
 import java.nio.file.Path
 
-
 trait RenderCommandTemplate {
 
   // Allowed Values in the cluster template
@@ -13,7 +12,8 @@ trait RenderCommandTemplate {
   val CMD = "CMD"
 
   def renderTemplate(template: String, datum: Map[String, String]): String = {
-    datum.foldLeft(template)((s:String, x:(String, String)) => ( """\$\{""" + x._1 + "\\}" ).r.replaceAllIn( s, x._2 ))
+    datum.foldLeft(template)((s: String, x: (String, String)) =>
+      ("""\$\{""" + x._1 + "\\}").r.replaceAllIn(s, x._2))
   }
   def renderCommandTemplate(template: String, job: CommandTemplateJob) = {
     val datum = Map(
@@ -30,13 +30,13 @@ trait RenderCommandTemplate {
 object RenderCommandTemplate extends RenderCommandTemplate
 
 /**
- * Simple Template mechanism to Generate a job.sh "command"
- *
- * The template has 5 supported values.
- *
- *
- * @param template
- */
+  * Simple Template mechanism to Generate a job.sh "command"
+  *
+  * The template has 5 supported values.
+  *
+  *
+  * @param template
+  */
 case class CommandTemplate(template: String) {
 
   def render(job: CommandTemplateJob): String = {
@@ -45,5 +45,8 @@ case class CommandTemplate(template: String) {
   }
 }
 
-case class CommandTemplateJob(jobId: String, nproc: Int, stdout: Path, stderr: Path, cmd: String)
-
+case class CommandTemplateJob(jobId: String,
+                              nproc: Int,
+                              stdout: Path,
+                              stderr: Path,
+                              cmd: String)

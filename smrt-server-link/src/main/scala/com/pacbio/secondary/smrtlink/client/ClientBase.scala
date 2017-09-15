@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * Base Client trait for
   *
   */
-trait ClientBase extends Retrying{
+trait ClientBase extends Retrying {
 
   // This starts to tangle up specific JSON conversion with the Client
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
@@ -27,9 +27,13 @@ trait ClientBase extends Retrying{
 
   // This should really return a URL instance, not a string
   def toUrl(segment: String): String =
-    new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, baseUrl.getPath + segment).toString
+    new URL(baseUrl.getProtocol,
+            baseUrl.getHost,
+            baseUrl.getPort,
+            baseUrl.getPath + segment).toString
 
-  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = sendReceive ~> unmarshal[ServiceStatus]
+  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] =
+    sendReceive ~> unmarshal[ServiceStatus]
 
   val statusUrl = toUrl("/status")
 
@@ -42,7 +46,11 @@ trait ClientBase extends Retrying{
   def getStatus: Future[ServiceStatus] = serviceStatusPipeline {
     Get(statusUrl)
   }
-  def getStatusWithRetry(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second): Future[ServiceStatus] =
-    retry[ServiceStatus](getStatus, retryDelay, maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
+  def getStatusWithRetry(
+      maxRetries: Int = 3,
+      retryDelay: FiniteDuration = 1.second): Future[ServiceStatus] =
+    retry[ServiceStatus](getStatus, retryDelay, maxRetries)(
+      actorSystem.dispatcher,
+      actorSystem.scheduler)
 
 }

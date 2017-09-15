@@ -8,7 +8,10 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import scala.concurrent.Future
 
 // scalastyle:off
-class V4__ResetSubreadSetCellIdAndInstCtrl extends JdbcMigration with SlickMigration with LazyLogging{
+class V4__ResetSubreadSetCellIdAndInstCtrl
+    extends JdbcMigration
+    with SlickMigration
+    with LazyLogging {
 
   /**
     * This will update the hardcoded values to "unknown"
@@ -24,9 +27,10 @@ class V4__ResetSubreadSetCellIdAndInstCtrl extends JdbcMigration with SlickMigra
     *
     */
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    db.run(DBIO.seq(
-      sqlu"""UPDATE dataset_subreads SET cell_id = 'unknown' WHERE cell_id = 'cell-id'""",
-      sqlu"""UPDATE dataset_subreads SET instrument_control_version = 'unknown' WHERE cell_id = 'instrument-ctr-version'"""
-    ))
+    db.run(
+      DBIO.seq(
+        sqlu"""UPDATE dataset_subreads SET cell_id = 'unknown' WHERE cell_id = 'cell-id'""",
+        sqlu"""UPDATE dataset_subreads SET instrument_control_version = 'unknown' WHERE cell_id = 'instrument-ctr-version'"""
+      ))
   }
 }

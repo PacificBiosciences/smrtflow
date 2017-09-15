@@ -20,31 +20,31 @@ import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 /**
- * Pure scala mock pbsmrtpipe layer that mocks out the required outputs of a pbsmrtpipe job useful for testing.
- *
- * The pipline id and entry points are not required to be strictly valid. The
- *
- * @param pipelineId
- * @param entryPoints
- * @param taskOptions
- * @param workflowOptions
- * @param envPath
- */
+  * Pure scala mock pbsmrtpipe layer that mocks out the required outputs of a pbsmrtpipe job useful for testing.
+  *
+  * The pipline id and entry points are not required to be strictly valid. The
+  *
+  * @param pipelineId
+  * @param entryPoints
+  * @param taskOptions
+  * @param workflowOptions
+  * @param envPath
+  */
 case class MockPbSmrtPipeJobOptions(
     pipelineId: String,
     entryPoints: Seq[BoundEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
     envPath: Option[Path] = None,
-    override val projectId: Int = GENERAL_PROJECT_ID) extends BaseJobOptions {
+    override val projectId: Int = GENERAL_PROJECT_ID)
+    extends BaseJobOptions {
 
   def toJob = new PbSmrtpipeMockJob(this)
 }
 
-
 // Put all the general utils for writing a mock pbsmrtpipe jobOptions, then refactor
 // into real "jobOptions" level utils (e.g., progress updating, writing entry points, settings, options, etc...)
-trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
+trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
 
   def setupJobResourcesAndCreateDirs(outputDir: Path): AnalysisJobResources = {
 
@@ -52,7 +52,7 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       logger.error(s"output dir is not a Dir ${outputDir.toString}")
     }
 
-    def toPx(x: Path, name: String):Path = {
+    def toPx(x: Path, name: String): Path = {
       val p = x.resolve(name)
       if (!Files.exists(p)) {
         logger.info(s"Creating dir $p")
@@ -61,7 +61,7 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       p
     }
 
-    def toFx(x: Path, name: String):Path = {
+    def toFx(x: Path, name: String): Path = {
       val p = x.resolve(name)
 //      if (!Files.exists(p)) {
 //        Files.createFile(p)
@@ -89,10 +89,11 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       htmlPath,
       toFx(workflowPath, "datastore.json"),
       toFx(workflowPath, "entry-points.json"),
-      toFx(workflowPath, "jobOptions-report.json"))
+      toFx(workflowPath, "jobOptions-report.json")
+    )
 
-      logger.info(s"Successfully created resources")
-      r
+    logger.info(s"Successfully created resources")
+    r
   }
 
   /**
@@ -103,7 +104,9 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
     * @param description Custom description of the DataStore file
     * @return
     */
-  def toMasterDataStoreFile(path: Path, description: String = s"Job Master Log"): DataStoreFile = {
+  def toMasterDataStoreFile(
+      path: Path,
+      description: String = s"Job Master Log"): DataStoreFile = {
     val now = JodaDateTime.now()
     DataStoreFile(
       UUID.randomUUID(),
@@ -117,12 +120,12 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       path.toString,
       isChunked = false,
       "Job Master Log",
-      description)
+      description
+    )
   }
 
-  def toDatastore(
-      jobResources: AnalysisJobResources,
-      files: Seq[DataStoreFile]): PacBioDataStore = {
+  def toDatastore(jobResources: AnalysisJobResources,
+                  files: Seq[DataStoreFile]): PacBioDataStore = {
 
     val version = "0.2.1"
     val createdAt = JodaDateTime.now()
@@ -141,10 +144,10 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
   }
 
   /**
-   * This will a real fasta file that can be used
- *
-   * @return
-   */
+    * This will a real fasta file that can be used
+    *
+    * @return
+    */
   def toMockFastaDataStoreFile(rootDir: Path): DataStoreFile = {
     val createdAt = JodaDateTime.now()
     val uuid = UUID.randomUUID()
@@ -161,7 +164,8 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
       p.toAbsolutePath.toString,
       isChunked = false,
       "Mock Fasta",
-      s"Mock Fasta file generated with $nrecords records")
+      s"Mock Fasta file generated with $nrecords records"
+    )
   }
 
   def toMockDataStoreFiles(rootDir: Path): Seq[DataStoreFile] = {
@@ -173,20 +177,23 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol{
   }
 }
 
-class PbSmrtpipeMockJob(opts: MockPbSmrtPipeJobOptions) extends BaseCoreJob(opts: MockPbSmrtPipeJobOptions)
-with MockJobUtils {
-
+class PbSmrtpipeMockJob(opts: MockPbSmrtPipeJobOptions)
+    extends BaseCoreJob(opts: MockPbSmrtPipeJobOptions)
+    with MockJobUtils {
 
   type Out = PacBioDataStore
   val jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
 
-  def run(job: JobResourceBase, resultsWriter: JobResultWriter): Either[ResultFailed, PacBioDataStore] = {
+  def run(job: JobResourceBase, resultsWriter: JobResultWriter)
+    : Either[ResultFailed, PacBioDataStore] = {
 
     val resources = setupJobResourcesAndCreateDirs(job.path)
     val dsFiles = toMockDataStoreFiles(job.path)
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(logPath, "Job Master log of the Import Dataset job")
+    val logFile = toMasterDataStoreFile(
+      logPath,
+      "Job Master log of the Import Dataset job")
 
     // This must follow the pbreport id format
     val reportId = "smrtflow_mock_job_report"
@@ -206,13 +213,15 @@ with MockJobUtils {
       reportPath.toAbsolutePath.toString,
       isChunked = false,
       "Mock Task Report",
-      "Mock Task Report for mock pbsmrtpipe job type")
+      "Mock Task Report for mock pbsmrtpipe job type"
+    )
 
     val dsFiles2 = dsFiles ++ Seq(reportDataStoreFile, logFile)
 
     val ds = toDatastore(resources, dsFiles2)
     writeDataStore(ds, resources.datastoreJson)
-    val report = ReportUtils.toMockTaskReport("smrtflow_mock_pbsmrtpipe_job", "smrtflow Mock Pbsmrtpipe Job")
+    val report = ReportUtils.toMockTaskReport("smrtflow_mock_pbsmrtpipe_job",
+                                              "smrtflow Mock Pbsmrtpipe Job")
     ReportUtils.writeReport(report, resources.jobReportJson)
     writeEntryPoints(opts.entryPoints, resources.entryPointsJson)
 

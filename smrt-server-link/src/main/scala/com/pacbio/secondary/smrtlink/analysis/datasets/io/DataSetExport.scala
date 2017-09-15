@@ -1,4 +1,3 @@
-
 package com.pacbio.secondary.smrtlink.analysis.datasets.io
 
 import java.nio.file.{Files, Path, Paths}
@@ -14,27 +13,30 @@ import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{InputOutputDataType, IndexedDataType}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  InputOutputDataType,
+  IndexedDataType
+}
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 
-
 /**
- * Miscellaneous functions essential for exporting datasets and other file
- * types.
- */
+  * Miscellaneous functions essential for exporting datasets and other file
+  * types.
+  */
 trait ExportUtils {
+
   /**
-   * Given a resource path of unknown form, a base path for the file(s)
-   * referencing this resource, and a root destination in the zip file,
-   * determine the appropriate relative resource path, and the path to write
-   * to the zip file.  This allows us to cope with cases where a dataset and
-   * its resources live in different directories under the directory being
-   * exported.
-   * @param resource  resourceId field from a DataSet, or similar
-   * @param basePath  directory from which this resource is being reference (i.e. directory of the current dataset)
-   * @param destPath  base destination path in the zip file
-   * @param archiveRoot  optional root directory for the entire export
-   */
+    * Given a resource path of unknown form, a base path for the file(s)
+    * referencing this resource, and a root destination in the zip file,
+    * determine the appropriate relative resource path, and the path to write
+    * to the zip file.  This allows us to cope with cases where a dataset and
+    * its resources live in different directories under the directory being
+    * exported.
+    * @param resource  resourceId field from a DataSet, or similar
+    * @param basePath  directory from which this resource is being reference (i.e. directory of the current dataset)
+    * @param destPath  base destination path in the zip file
+    * @param archiveRoot  optional root directory for the entire export
+    */
   protected def relativizeResourcePath(
       resource: Path,
       basePath: Path,
@@ -47,7 +49,8 @@ trait ExportUtils {
         val finalPath = basePath.relativize(resource)
         (finalPath, destPath.resolve(finalPath))
       } else if (archiveRoot.isDefined && resource.startsWith(archiveRoot.get)) {
-        (basePath.relativize(resource), archiveRoot.get.relativize(resource).normalize())
+        (basePath.relativize(resource),
+         archiveRoot.get.relativize(resource).normalize())
       } else {
         val finalPath = Paths.get(s".${resource}")
         (finalPath, destPath.resolve(finalPath).normalize())
@@ -59,30 +62,35 @@ trait ExportUtils {
   }
 
   private def getIndices(res: IndexedDataType): Seq[InputOutputDataType] = {
-    Option(res.getFileIndices).map { fi =>
-      fi.getFileIndex.toSeq
-    }.getOrElse(Seq.empty[InputOutputDataType])
+    Option(res.getFileIndices)
+      .map { fi =>
+        fi.getFileIndex.toSeq
+      }
+      .getOrElse(Seq.empty[InputOutputDataType])
   }
 
   protected def getResources(ds: DataSetType): Seq[InputOutputDataType] = {
-    Option(ds.getExternalResources).map { extRes =>
-      extRes.getExternalResource.map { er => Seq(er) ++
-        Option(er.getExternalResources).map { extRes2 =>
-          extRes2.getExternalResource.map { rr =>
-            Seq(rr) ++ getIndices(rr)
-          }.flatten
-        }.getOrElse(Seq.empty[InputOutputDataType]) ++ getIndices(er)
-      }.flatten
-    }.getOrElse(Seq.empty[InputOutputDataType])
+    Option(ds.getExternalResources)
+      .map { extRes =>
+        extRes.getExternalResource.map { er =>
+          Seq(er) ++
+            Option(er.getExternalResources)
+              .map { extRes2 =>
+                extRes2.getExternalResource.map { rr =>
+                  Seq(rr) ++ getIndices(rr)
+                }.flatten
+              }
+              .getOrElse(Seq.empty[InputOutputDataType]) ++ getIndices(er)
+        }.flatten
+      }
+      .getOrElse(Seq.empty[InputOutputDataType])
   }
 }
 
 /**
- * Core zip export machinery, independent of input type
- */
-abstract class ExportBase(zipPath: Path)
-    extends ExportUtils
-    with LazyLogging {
+  * Core zip export machinery, independent of input type
+  */
+abstract class ExportBase(zipPath: Path) extends ExportUtils with LazyLogging {
   // XXX note that because of this mutable tracking variable, this trait should
   // always be used as a mixin for self-contained classes
   protected val haveFiles = mutable.Set.empty[String]
@@ -94,19 +102,18 @@ abstract class ExportBase(zipPath: Path)
   def close = out.close
 
   /**
-   * Low-level call for writing the contents of a file to an open zipfile
-   * @param path  actual path to input file
-   * @param zipOutPut  path to write to the zipfile
-   */
-  protected def writeFile(path: Path,
-                          zipOutPath: String): Long = {
+    * Low-level call for writing the contents of a file to an open zipfile
+    * @param path  actual path to input file
+    * @param zipOutPut  path to write to the zipfile
+    */
+  protected def writeFile(path: Path, zipOutPath: String): Long = {
     val ze = new ZipEntry(zipOutPath)
     out.putNextEntry(ze)
     val input = new FileInputStream(path.toString)
     val data = new Array[Byte](BUFFER_SIZE)
     var nRead = -1
     var nWritten: Long = 0
-    while ({nRead = input.read(data); nRead > 0}) {
+    while ({ nRead = input.read(data); nRead > 0 }) {
       out.write(data, 0, nRead)
       nWritten += nRead
     }
@@ -114,14 +121,14 @@ abstract class ExportBase(zipPath: Path)
   }
 
   /**
-   * Wrapper for writeFile that guards against redundancy, relativizes the
-   * path, and optionally reads contents from an alternate path
-   * @param path  canonical path to exported file
-   * @param basePath  root directory to export from; paths in zipfile will be
-   *                  relative to this
-   * @param srcPath  optional path to read from, e.g. if we wrote a temporary
-   *                 copy with modifications
-   */
+    * Wrapper for writeFile that guards against redundancy, relativizes the
+    * path, and optionally reads contents from an alternate path
+    * @param path  canonical path to exported file
+    * @param basePath  root directory to export from; paths in zipfile will be
+    *                  relative to this
+    * @param srcPath  optional path to read from, e.g. if we wrote a temporary
+    *                 copy with modifications
+    */
   protected def exportFile(path: Path,
                            basePath: Path,
                            srcPath: Option[Path] = None): Long = {
@@ -137,9 +144,9 @@ abstract class ExportBase(zipPath: Path)
 }
 
 /**
- * Base class for exporting DataSet XML and all external resources to a zip
- * archive.  Used both here and in the job export in JobUtils.scala
- */
+  * Base class for exporting DataSet XML and all external resources to a zip
+  * archive.  Used both here and in the job export in JobUtils.scala
+  */
 abstract class DataSetExporter(zipPath: Path)
     extends ExportBase(zipPath)
     with LazyLogging {
@@ -156,13 +163,15 @@ abstract class DataSetExporter(zipPath: Path)
     } else {
       basePath.resolve(rawPath).normalize().toAbsolutePath
     }
-    if (! resourcePath.toFile.exists) {
+    if (!resourcePath.toFile.exists) {
       val msg = s"resource ${resourcePath.toString} is missing"
       logger.error(msg)
       throw new IOException(msg)
     } else {
-      val paths = relativizeResourcePath(rawPath, basePath, destPath, archiveRootPath)
-      val (finalPath, resourceDestPath) = (paths._1.toString, paths._2.toString)
+      val paths =
+        relativizeResourcePath(rawPath, basePath, destPath, archiveRootPath)
+      val (finalPath, resourceDestPath) =
+        (paths._1.toString, paths._2.toString)
       res.setResourceId(finalPath)
       if (haveFiles contains resourceDestPath) {
         logger.info(s"skipping duplicate file $resourceDestPath"); 0L
@@ -180,7 +189,8 @@ abstract class DataSetExporter(zipPath: Path)
                                dsType: DataSetMetaTypes.DataSetMetaType,
                                archiveRootPath: Option[Path]): Long = {
     val basePath = dsPath.getParent
-    val destPath = Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
+    val destPath =
+      Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
     val resources = getResources(ds)
@@ -200,11 +210,12 @@ abstract class DataSetExporter(zipPath: Path)
   }
 
   /**
-   * Identical to writeDataSet except the output path is automatically
-   * generated from the UUID and base file name.
-   */
-  protected def writeDataSetAuto(dsPath: Path,
-                                 dsType: DataSetMetaTypes.DataSetMetaType): Long = {
+    * Identical to writeDataSet except the output path is automatically
+    * generated from the UUID and base file name.
+    */
+  protected def writeDataSetAuto(
+      dsPath: Path,
+      dsType: DataSetMetaTypes.DataSetMetaType): Long = {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"

@@ -7,7 +7,8 @@ import ammonite.repl._
   */
 trait SmrtLinkReplTool {
 
-  val predef = """
+  val predef =
+    """
                  |import java.nio.file.{Files, Path, Paths}
                  |import java.util.UUID
                  |
@@ -57,8 +58,6 @@ trait SmrtLinkReplTool {
   val repl = ammonite.Main(predef = predef, welcomeBanner = welcomeBanner)
 
 }
-
-
 
 object SmrtLinkReplApp extends App with SmrtLinkReplTool {
 

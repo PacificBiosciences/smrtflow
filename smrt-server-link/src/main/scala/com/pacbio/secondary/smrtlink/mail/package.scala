@@ -11,7 +11,14 @@ import org.joda.time.{DateTime => JodaDateTime}
   */
 package object mail {
 
-  case class SmrtLinkEmailInput(emailAddress: InternetAddress, jobId: Int, jobName: String, jobState: AnalysisJobStates.JobStates, createdAt: JodaDateTime, completedAt: JodaDateTime, jobURL: URL, smrtLinkVersion: Option[String] = None)
+  case class SmrtLinkEmailInput(emailAddress: InternetAddress,
+                                jobId: Int,
+                                jobName: String,
+                                jobState: AnalysisJobStates.JobStates,
+                                createdAt: JodaDateTime,
+                                completedAt: JodaDateTime,
+                                jobURL: URL,
+                                smrtLinkVersion: Option[String] = None)
   case class EmailTemplateResult(subject: String, html: String)
 
 }

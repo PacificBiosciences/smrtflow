@@ -13,41 +13,55 @@ import scala.language.higherKinds
 
 import com.pacbio.secondary.smrtlink.analysis.datasets
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
-import com.pacbio.secondary.smrtlink.analysis.datasets.{BarcodeSetIO, ConsensusReadSetIO, ContigSetIO, DataSetIO, DataSetType => _, _}
-import com.pacificbiosciences.pacbiobasedatamodel.{ExternalResource, ExternalResources}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  BarcodeSetIO,
+  ConsensusReadSetIO,
+  ContigSetIO,
+  DataSetIO,
+  DataSetType => _,
+  _
+}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  ExternalResource,
+  ExternalResources
+}
 import com.pacificbiosciences.pacbiodatasets.{DataSetType, _}
 
 /**
- * Load datasets from XML
- *
- * Created by mkocher on 5/15/15.
- */
-object DataSetLoader extends LazyLogging{
+  * Load datasets from XML
+  *
+  * Created by mkocher on 5/15/15.
+  */
+object DataSetLoader extends LazyLogging {
 
   private def toUnMarshaller(context: JAXBContext, path: Path) = {
     val unmarshaller = context.createUnmarshaller()
     unmarshaller.unmarshal(path.toFile)
   }
 
-  private def toAbsolute(px : Path, root: Path): Path = {
+  private def toAbsolute(px: Path, root: Path): Path = {
     if (px.isAbsolute) px else root.resolve(px).toAbsolutePath
   }
 
   private def resourceToAbsolutePath(resource: String, rootDir: Path): Path = {
     val uri = URI.create(resource.replaceAll(" ", "%20"))
-    val path = if (uri.getScheme == null) Paths.get(resource) else Paths.get(uri)
-    val realPath = if (path.isAbsolute) path.toAbsolutePath else rootDir.resolve(path).normalize().toAbsolutePath
+    val path =
+      if (uri.getScheme == null) Paths.get(resource) else Paths.get(uri)
+    val realPath =
+      if (path.isAbsolute) path.toAbsolutePath
+      else rootDir.resolve(path).normalize().toAbsolutePath
     realPath
   }
 
   /**
-   * Resolve ResourceId, externalResources and file indices
-   *
-   * @param externalResource
-   * @param path
-   * @return
-   */
-  def resolveExternalResource(externalResource: ExternalResource, path: Path): ExternalResource = {
+    * Resolve ResourceId, externalResources and file indices
+    *
+    * @param externalResource
+    * @param path
+    * @return
+    */
+  def resolveExternalResource(externalResource: ExternalResource,
+                              path: Path): ExternalResource = {
 
     if (externalResource.getFileIndices != null) {
       val indexFiles = externalResource.getFileIndices.getFileIndex.map { x =>
@@ -56,7 +70,8 @@ object DataSetLoader extends LazyLogging{
         x
       }
 
-      val uniqueIndexFiles = (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList
+      val uniqueIndexFiles =
+        (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList
 
       val fs = new FileIndices()
       fs.getFileIndex.addAll(uniqueIndexFiles)
@@ -75,16 +90,20 @@ object DataSetLoader extends LazyLogging{
         }
       case _ => None
     }
-    externalResource.setResourceId(resourceToAbsolutePath(externalResource.getResourceId, path).toAbsolutePath.toString)
+    externalResource.setResourceId(resourceToAbsolutePath(
+      externalResource.getResourceId,
+      path).toAbsolutePath.toString)
     externalResource
   }
 
-  def resolveExternalResources(resources: ExternalResources, path: Path): ExternalResources = {
+  def resolveExternalResources(resources: ExternalResources,
+                               path: Path): ExternalResources = {
 
     if (resources != null) {
       val exs = new ExternalResources()
       val rx = resources.getExternalResource
-        .map(x => resolveExternalResource(x, path)).toList
+        .map(x => resolveExternalResource(x, path))
+        .toList
 
       exs.getExternalResource.addAll(rx)
       exs
@@ -94,22 +113,24 @@ object DataSetLoader extends LazyLogging{
   }
 
   /**
-   * Resolve relative Paths
-   *
-   * @param ds      DataSet
-   * @param rootDir root Path of resources (relative to the original DataSet XML)
-   * @tparam T
-   * @return
-   */
+    * Resolve relative Paths
+    *
+    * @param ds      DataSet
+    * @param rootDir root Path of resources (relative to the original DataSet XML)
+    * @tparam T
+    * @return
+    */
   def resolveDataSet[T <: DataSetType](ds: T, rootDir: Path): T = {
 
-    val resolvedExternalResources = resolveExternalResources(ds.getExternalResources, rootDir)
+    val resolvedExternalResources =
+      resolveExternalResources(ds.getExternalResources, rootDir)
     ds.setExternalResources(resolvedExternalResources)
     ds
   }
 
   def loadReferenceSet(path: Path): ReferenceSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[ReferenceSet]), path).asInstanceOf[ReferenceSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[ReferenceSet]), path)
+      .asInstanceOf[ReferenceSet]
 
   def loadAndResolveReferenceSet(path: Path): ReferenceSet =
     resolveDataSet(loadReferenceSet(path), path.toAbsolutePath.getParent)
@@ -118,56 +139,77 @@ object DataSetLoader extends LazyLogging{
     ReferenceSetIO(loadReferenceSet(path), path)
 
   def loadSubreadSet(path: Path): SubreadSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path).asInstanceOf[SubreadSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[SubreadSet]), path)
+      .asInstanceOf[SubreadSet]
 
-  def loadAndResolveSubreadSet(path: Path): SubreadSet = resolveDataSet(loadSubreadSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveSubreadSet(path: Path): SubreadSet =
+    resolveDataSet(loadSubreadSet(path), path.toAbsolutePath.getParent)
 
-  def loadSubreadSetIO(path: Path) = SubreadSetIO(loadAndResolveSubreadSet(path), path)
+  def loadSubreadSetIO(path: Path) =
+    SubreadSetIO(loadAndResolveSubreadSet(path), path)
 
   def loadHdfSubreadSet(path: Path): HdfSubreadSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[HdfSubreadSet]), path).asInstanceOf[HdfSubreadSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[HdfSubreadSet]), path)
+      .asInstanceOf[HdfSubreadSet]
 
-  def loadAndResolveHdfSubreadSet(path: Path) = resolveDataSet(loadHdfSubreadSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveHdfSubreadSet(path: Path) =
+    resolveDataSet(loadHdfSubreadSet(path), path.toAbsolutePath.getParent)
 
-  def loadHdfSubreadSetIO(path: Path) = HdfSubreadSetIO(loadHdfSubreadSet(path), path)
+  def loadHdfSubreadSetIO(path: Path) =
+    HdfSubreadSetIO(loadHdfSubreadSet(path), path)
 
   def loadAlignmentSet(path: Path): AlignmentSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[AlignmentSet]), path).asInstanceOf[AlignmentSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[AlignmentSet]), path)
+      .asInstanceOf[AlignmentSet]
 
-  def loadAndResolveAlignmentSet(path: Path) = resolveDataSet(loadAlignmentSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveAlignmentSet(path: Path) =
+    resolveDataSet(loadAlignmentSet(path), path.toAbsolutePath.getParent)
 
-  def loadAlignmentSetIO(path: Path) = AlignmentSetIO(loadAlignmentSet(path), path)
+  def loadAlignmentSetIO(path: Path) =
+    AlignmentSetIO(loadAlignmentSet(path), path)
 
   def loadBarcodeSet(path: Path): BarcodeSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[BarcodeSet]), path).asInstanceOf[BarcodeSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[BarcodeSet]), path)
+      .asInstanceOf[BarcodeSet]
 
-  def loadAndResolveBarcodeSet(path: Path) = resolveDataSet(loadBarcodeSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveBarcodeSet(path: Path) =
+    resolveDataSet(loadBarcodeSet(path), path.toAbsolutePath.getParent)
 
   def loadBarcodeSetIO(path: Path) = BarcodeSetIO(loadBarcodeSet(path), path)
 
   def loadConsensusReadSet(path: Path): ConsensusReadSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusReadSet]), path).asInstanceOf[ConsensusReadSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusReadSet]), path)
+      .asInstanceOf[ConsensusReadSet]
 
-  def loadAndResolveConsensusReadSet(path: Path) = resolveDataSet(loadConsensusReadSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveConsensusReadSet(path: Path) =
+    resolveDataSet(loadConsensusReadSet(path), path.toAbsolutePath.getParent)
 
-  def loadConsensusReadSetIO(path: Path) = ConsensusReadSetIO(loadConsensusReadSet(path), path)
+  def loadConsensusReadSetIO(path: Path) =
+    ConsensusReadSetIO(loadConsensusReadSet(path), path)
 
   def loadConsensusAlignmentSet(path: Path): ConsensusAlignmentSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusAlignmentSet]), path).asInstanceOf[ConsensusAlignmentSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[ConsensusAlignmentSet]),
+                   path).asInstanceOf[ConsensusAlignmentSet]
 
-  def loadAndResolveConsensusAlignmentSet(path: Path) = resolveDataSet(loadConsensusAlignmentSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveConsensusAlignmentSet(path: Path) =
+    resolveDataSet(loadConsensusAlignmentSet(path),
+                   path.toAbsolutePath.getParent)
 
-  def loadConsensusAlignmentSetIO(path: Path) = ConsensusAlignmentSetIO(loadConsensusAlignmentSet(path), path)
+  def loadConsensusAlignmentSetIO(path: Path) =
+    ConsensusAlignmentSetIO(loadConsensusAlignmentSet(path), path)
 
   def loadContigSet(path: Path): ContigSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[ContigSet]), path).asInstanceOf[ContigSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[ContigSet]), path)
+      .asInstanceOf[ContigSet]
 
-  def loadAndResolveContigSet(path: Path) = resolveDataSet(loadContigSet(path), path.toAbsolutePath.getParent)
+  def loadAndResolveContigSet(path: Path) =
+    resolveDataSet(loadContigSet(path), path.toAbsolutePath.getParent)
 
   def loadContigSetIO(path: Path) = ContigSetIO(loadContigSet(path), path)
 
   def loadGmapReferenceSet(path: Path): GmapReferenceSet =
-    toUnMarshaller(JAXBContext.newInstance(classOf[GmapReferenceSet]), path).asInstanceOf[GmapReferenceSet]
+    toUnMarshaller(JAXBContext.newInstance(classOf[GmapReferenceSet]), path)
+      .asInstanceOf[GmapReferenceSet]
 
   def loadAndResolveGmapReferenceSet(path: Path): GmapReferenceSet =
     resolveDataSet(loadGmapReferenceSet(path), path.toAbsolutePath.getParent)
@@ -175,7 +217,8 @@ object DataSetLoader extends LazyLogging{
   def loadGmapReferenceSetIO(path: Path): GmapReferenceSetIO =
     GmapReferenceSetIO(loadGmapReferenceSet(path), path)
 
-  def loadType(dst: DataSetMetaTypes.DataSetMetaType, input: Path): DataSetType = {
+  def loadType(dst: DataSetMetaTypes.DataSetMetaType,
+               input: Path): DataSetType = {
     dst match {
       case DataSetMetaTypes.Subread => loadSubreadSet(input)
       case DataSetMetaTypes.HdfSubread => loadHdfSubreadSet(input)
@@ -210,7 +253,8 @@ object ImplicitDataSetLoader {
     def load(path: Path) = loadAlignmentSet(path)
   }
 
-  implicit object ConsensusAlignmentSetLoader extends DataSetLoader[ConsensusAlignmentSet] {
+  implicit object ConsensusAlignmentSetLoader
+      extends DataSetLoader[ConsensusAlignmentSet] {
     def load(path: Path) = loadConsensusAlignmentSet(path)
   }
 
@@ -222,7 +266,8 @@ object ImplicitDataSetLoader {
     def load(path: Path) = loadBarcodeSet(path)
   }
 
-  implicit object ConsensusReadSetLoader extends DataSetLoader[ConsensusReadSet] {
+  implicit object ConsensusReadSetLoader
+      extends DataSetLoader[ConsensusReadSet] {
     def load(path: Path) = loadConsensusReadSet(path)
   }
 
@@ -230,28 +275,33 @@ object ImplicitDataSetLoader {
     def load(path: Path) = loadContigSet(path)
   }
 
-  implicit object GmapReferenceSetLoader extends DataSetLoader[GmapReferenceSet] {
+  implicit object GmapReferenceSetLoader
+      extends DataSetLoader[GmapReferenceSet] {
     def load(path: Path) = loadGmapReferenceSet(path)
   }
 
   def loader[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
     lx.load(path)
 
-  def loaderAndResolve[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
+  def loaderAndResolve[T <: DataSetType](path: Path)(
+      implicit lx: DataSetLoader[T]) =
     resolveDataSet[T](lx.load(path), path.toAbsolutePath.getParent)
 
   def loaderAndResolveType(dst: DataSetMetaTypes.DataSetMetaType,
                            input: Path): DataSetType = {
     dst match {
       case DataSetMetaTypes.Subread => loaderAndResolve[SubreadSet](input)
-      case DataSetMetaTypes.HdfSubread => loaderAndResolve[HdfSubreadSet](input)
+      case DataSetMetaTypes.HdfSubread =>
+        loaderAndResolve[HdfSubreadSet](input)
       case DataSetMetaTypes.Reference => loaderAndResolve[ReferenceSet](input)
       case DataSetMetaTypes.Alignment => loaderAndResolve[AlignmentSet](input)
       case DataSetMetaTypes.CCS => loaderAndResolve[ConsensusReadSet](input)
-      case DataSetMetaTypes.AlignmentCCS => loaderAndResolve[ConsensusAlignmentSet](input)
+      case DataSetMetaTypes.AlignmentCCS =>
+        loaderAndResolve[ConsensusAlignmentSet](input)
       case DataSetMetaTypes.Contig => loaderAndResolve[ContigSet](input)
       case DataSetMetaTypes.Barcode => loaderAndResolve[BarcodeSet](input)
-      case DataSetMetaTypes.GmapReference => loaderAndResolve[GmapReferenceSet](input)
+      case DataSetMetaTypes.GmapReference =>
+        loaderAndResolve[GmapReferenceSet](input)
     }
   }
 
@@ -266,22 +316,26 @@ object ImplicitDataSetIOLoader {
   }
 
   implicit object SubreadSetIOLoader extends DataSetIOLoader[SubreadSetIO] {
-    def load(path: Path):SubreadSetIO = loadSubreadSetIO(path)
+    def load(path: Path): SubreadSetIO = loadSubreadSetIO(path)
   }
 
-  implicit object HdfSubreadSetIOLoader extends DataSetIOLoader[HdfSubreadSetIO] {
+  implicit object HdfSubreadSetIOLoader
+      extends DataSetIOLoader[HdfSubreadSetIO] {
     def load(path: Path) = loadHdfSubreadSetIO(path)
   }
 
-  implicit object AlignmentSetIOLoader extends DataSetIOLoader[AlignmentSetIO] {
+  implicit object AlignmentSetIOLoader
+      extends DataSetIOLoader[AlignmentSetIO] {
     def load(path: Path) = loadAlignmentSetIO(path)
   }
 
-  implicit object ConsensusAlignmentSetIOLoader extends DataSetIOLoader[ConsensusAlignmentSetIO] {
+  implicit object ConsensusAlignmentSetIOLoader
+      extends DataSetIOLoader[ConsensusAlignmentSetIO] {
     def load(path: Path) = loadConsensusAlignmentSetIO(path)
   }
 
-  implicit object ReferenceSetIOLoader extends DataSetIOLoader[ReferenceSetIO] {
+  implicit object ReferenceSetIOLoader
+      extends DataSetIOLoader[ReferenceSetIO] {
     def load(path: Path) = loadReferenceSetIO(path)
   }
 
@@ -289,7 +343,8 @@ object ImplicitDataSetIOLoader {
     def load(path: Path) = loadBarcodeSetIO(path)
   }
 
-  implicit object ConsensusReadSetIOLoader extends DataSetIOLoader[ConsensusReadSetIO] {
+  implicit object ConsensusReadSetIOLoader
+      extends DataSetIOLoader[ConsensusReadSetIO] {
     def load(path: Path) = loadConsensusReadSetIO(path)
   }
 
@@ -297,7 +352,8 @@ object ImplicitDataSetIOLoader {
     def load(path: Path) = loadContigSetIO(path)
   }
 
-  implicit object GmapReferenceSetIOLoader extends DataSetIOLoader[GmapReferenceSetIO] {
+  implicit object GmapReferenceSetIOLoader
+      extends DataSetIOLoader[GmapReferenceSetIO] {
     def load(path: Path) = loadGmapReferenceSetIO(path)
   }
 
@@ -307,6 +363,5 @@ object ImplicitDataSetIOLoader {
   // This needs to used higher Kinded types to access the specific DataSet type from the DataSet IO wrapper?
 //  def loaderAndResolve[A <: DataSetIO](path: Path)(implicit lx: DataSetIOLoader[A]) =
 //    resolveDataSet[A.T](lx.load(path), path.toAbsolutePath.getParent)
-
 
 }

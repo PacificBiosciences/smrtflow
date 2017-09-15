@@ -14,7 +14,7 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Created by mkocher on 2/15/17.
   */
-package object dataintegrity extends LazyLogging{
+package object dataintegrity extends LazyLogging {
 
   trait BaseDataIntegrity {
 

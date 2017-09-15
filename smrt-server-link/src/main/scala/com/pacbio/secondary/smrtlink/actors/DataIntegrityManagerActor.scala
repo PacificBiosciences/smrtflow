@@ -11,8 +11,11 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.dataintegrity.{BaseDataIntegrity, DataSetIntegrityRunner, JobStateIntegrityRunner}
-
+import com.pacbio.secondary.smrtlink.dataintegrity.{
+  BaseDataIntegrity,
+  DataSetIntegrityRunner,
+  JobStateIntegrityRunner
+}
 
 object DataIntegrityManagerActor {
   case object RunIntegrityChecks
@@ -20,7 +23,12 @@ object DataIntegrityManagerActor {
   case class RunIntegrityCheckById(id: String)
 }
 
-class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], smrtLinkSystemVersion: Option[String]) extends Actor with LazyLogging with timeUtils{
+class DataIntegrityManagerActor(dao: JobsDao,
+                                runners: Seq[BaseDataIntegrity],
+                                smrtLinkSystemVersion: Option[String])
+    extends Actor
+    with LazyLogging
+    with timeUtils {
 
   import DataIntegrityManagerActor._
 
@@ -29,7 +37,8 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], s
   context.system.scheduler.scheduleOnce(20.seconds, self, RunIntegrityChecks)
 
   override def preStart() = {
-    logger.info(s"Starting $self with Runners:${runners.map(_.runnerId)} with SMRT Link System version $smrtLinkSystemVersion")
+    logger.info(
+      s"Starting $self with Runners:${runners.map(_.runnerId)} with SMRT Link System version $smrtLinkSystemVersion")
   }
 
   def andLog(m: String): String = {
@@ -37,16 +46,25 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], s
     m
   }
 
-  private def executeRunner(runner: BaseDataIntegrity): Future [MessageResponse] = {
+  private def executeRunner(
+      runner: BaseDataIntegrity): Future[MessageResponse] = {
     val f = for {
       startedAt <- Future.successful(JodaDateTime.now())
       _ <- Future.successful(s"Starting to run ${runner.runnerId}")
       result <- runner.run() // Wrap this in a Try
-      message <- Future {s"Completed running ${runner.runnerId} in ${computeTimeDelta(JodaDateTime.now(), startedAt)} sec"}
+      message <- Future {
+        s"Completed running ${runner.runnerId} in ${computeTimeDelta(JodaDateTime.now(), startedAt)} sec"
+      }
     } yield MessageResponse(s"${result.message} $message")
 
-    f.onSuccess { case MessageResponse(m) => s"Successfully ran ${runner.runnerId} $m"}
-    f.onFailure { case ex => logger.error(s"Failed run Integrity Runner ${runner.runnerId}. ${ex.getMessage}")}
+    f.onSuccess {
+      case MessageResponse(m) => s"Successfully ran ${runner.runnerId} $m"
+    }
+    f.onFailure {
+      case ex =>
+        logger.error(
+          s"Failed run Integrity Runner ${runner.runnerId}. ${ex.getMessage}")
+    }
     f
   }
 
@@ -55,7 +73,8 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], s
     // POST to smrt-link/data-integrity or POST to smrt-link/data-integrity/{runner-id} which will return a MessageResponse
     // But limit to only running one runner type at a time (make it impossible to run instances of the same DataIntegrityRunner)
     case RunIntegrityChecks => {
-      val successMessage = MessageResponse(s"Triggered run of SMRT Link DataIntegrity (${runners.length}) checks")
+      val successMessage = MessageResponse(
+        s"Triggered run of SMRT Link DataIntegrity (${runners.length}) checks")
       sender ! successMessage
       // Maybe this isn't the greatest idea. This should just run serially
       runners.foreach(executeRunner)
@@ -73,14 +92,22 @@ class DataIntegrityManagerActor(dao: JobsDao, runners: Seq[BaseDataIntegrity], s
 }
 
 trait DataIntegrityManagerActorProvider {
-  this: ActorRefFactoryProvider with JobsDaoProvider with SmrtLinkConfigProvider =>
+  this: ActorRefFactoryProvider
+    with JobsDaoProvider
+    with SmrtLinkConfigProvider =>
 
   val runners: Singleton[Seq[BaseDataIntegrity]] =
-    Singleton(() => Seq(
-      new DataSetIntegrityRunner(jobsDao()),
-      new JobStateIntegrityRunner(jobsDao(), smrtLinkVersion()))
-    )
+    Singleton(
+      () =>
+        Seq(new DataSetIntegrityRunner(jobsDao()),
+            new JobStateIntegrityRunner(jobsDao(), smrtLinkVersion())))
 
   val dataIntegrityManagerActor: Singleton[ActorRef] =
-    Singleton(() => actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor], jobsDao(), runners(), smrtLinkVersion()), "DataIntegrityManagerActor"))
+    Singleton(
+      () =>
+        actorRefFactory().actorOf(Props(classOf[DataIntegrityManagerActor],
+                                        jobsDao(),
+                                        runners(),
+                                        smrtLinkVersion()),
+                                  "DataIntegrityManagerActor"))
 }

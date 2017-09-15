@@ -26,15 +26,19 @@ trait UrlUtils {
 
 object UrlUtils extends UrlUtils
 
-
 // Lifted from https://gist.github.com/viktorklang/9414163
 trait Retrying {
-  def retry[T](f: => Future[T], delay: FiniteDuration, retries: Int)(implicit ec: ExecutionContext, s: Scheduler): Future[T] = {
-    f recoverWith { case _ if retries > 0 => after(delay, s)(retry(f, delay, retries - 1)) }
+  def retry[T](f: => Future[T], delay: FiniteDuration, retries: Int)(
+      implicit ec: ExecutionContext,
+      s: Scheduler): Future[T] = {
+    f recoverWith {
+      case _ if retries > 0 => after(delay, s)(retry(f, delay, retries - 1))
+    }
   }
 }
 
-class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) extends Retrying {
+class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem)
+    extends Retrying {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
@@ -62,10 +66,13 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
   // Pipelines and serialization
   protected def requestPipe: HttpRequest => Future[HttpResponse] = sendReceive
   protected def respPipeline: HttpRequest => Future[HttpResponse] = requestPipe
-  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] = requestPipe ~> unmarshal[Array[Byte]]
+  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] =
+    requestPipe ~> unmarshal[Array[Byte]]
   // XXX This is misnamed - it could just as easily be XML or plaintext
-  protected def rawJsonPipeline: HttpRequest => Future[String] = requestPipe ~> unmarshal[String]
-  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] = requestPipe ~> unmarshal[ServiceStatus]
+  protected def rawJsonPipeline: HttpRequest => Future[String] =
+    requestPipe ~> unmarshal[String]
+  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] =
+    requestPipe ~> unmarshal[ServiceStatus]
 
   // We should try to standardize on nomenclature here, 'Segment' for relative and
   // and 'Endpoint' for absolute URL?
@@ -85,9 +92,10 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
     Get(endpointUrl)
   }
 
-  def getServiceEndpoint(endpointPath: String): Future[HttpResponse] = respPipeline {
-    Get(toUrl(endpointPath))
-  }
+  def getServiceEndpoint(endpointPath: String): Future[HttpResponse] =
+    respPipeline {
+      Get(toUrl(endpointPath))
+    }
 
   /**
     * Checks an relative Endpoint for Success (HTTP 200) and returns non-zero
@@ -99,7 +107,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
     * @param timeOut     Max timeout for status request
     * @return
     */
-  def checkEndpoint(endpointUrl: String, timeOut: FiniteDuration = 20.seconds): Int = {
+  def checkEndpoint(endpointUrl: String,
+                    timeOut: FiniteDuration = 20.seconds): Int = {
 
     def statusToInt(status: StatusCode): Int = {
       status match {
@@ -131,7 +140,8 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
     * @param endpointPath Provided as Relative to the base url in Client.
     * @return
     */
-  def checkServiceEndpoint(endpointPath: String): Int = checkEndpoint(toUrl(endpointPath))
+  def checkServiceEndpoint(endpointPath: String): Int =
+    checkEndpoint(toUrl(endpointPath))
 
   /**
     * Check the UI webserver for "Status"
@@ -153,29 +163,44 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem) ex
     */
   def checkServiceEndpoints: Int = {
 
-    serviceStatusEndpoints.map(checkServiceEndpoint)
-        .foldLeft(0) { (a, v) => Seq(a, v).max}
+    serviceStatusEndpoints
+      .map(checkServiceEndpoint)
+      .foldLeft(0) { (a, v) =>
+        Seq(a, v).max
+      }
   }
 
-  def callWithBlockingRetry[A, B](f: (A => Future[B]), input: A, numRetries: Int = 3, timeOutPerCall: FiniteDuration): Try[B] = {
+  def callWithBlockingRetry[A, B](f: (A => Future[B]),
+                                  input: A,
+                                  numRetries: Int = 3,
+                                  timeOutPerCall: FiniteDuration): Try[B] = {
     Try {
       Await.result[B](f(input), timeOutPerCall)
     } match {
       case Success(r) => Success(r)
       case Failure(ex) =>
-        if (numRetries > 0) callWithBlockingRetry[A, B](f, input, numRetries - 1, timeOutPerCall)
+        if (numRetries > 0)
+          callWithBlockingRetry[A, B](f, input, numRetries - 1, timeOutPerCall)
         else Failure(ex)
     }
   }
 
-
   // This should have a backoff model to wait a few seconds before the retry. It should
   // also have a better error message that includes the total number of retries
-  def callWithRetry[A, B](f: (A => Future[B]), input: A, numRetries: Int): Future[B] = {
-    f(input).recoverWith { case NonFatal(_) if numRetries > 0 => callWithRetry[A, B](f, input, numRetries - 1) }
+  def callWithRetry[A, B](f: (A => Future[B]),
+                          input: A,
+                          numRetries: Int): Future[B] = {
+    f(input).recoverWith {
+      case NonFatal(_) if numRetries > 0 =>
+        callWithRetry[A, B](f, input, numRetries - 1)
+    }
   }
 
-  def getStatusWithRetry(maxRetries: Int = 3, retryDelay: FiniteDuration = 1.second): Future[ServiceStatus] =
-    retry[ServiceStatus](getStatus, retryDelay, maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
+  def getStatusWithRetry(
+      maxRetries: Int = 3,
+      retryDelay: FiniteDuration = 1.second): Future[ServiceStatus] =
+    retry[ServiceStatus](getStatus, retryDelay, maxRetries)(
+      actorSystem.dispatcher,
+      actorSystem.scheduler)
 
 }

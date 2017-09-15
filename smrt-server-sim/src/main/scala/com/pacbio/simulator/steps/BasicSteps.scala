@@ -6,8 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-trait BasicSteps extends LazyLogging {
-  this: Scenario =>
+trait BasicSteps extends LazyLogging { this: Scenario =>
 
   import StepResult._
 

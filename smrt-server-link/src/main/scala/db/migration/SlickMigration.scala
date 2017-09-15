@@ -24,7 +24,9 @@ class UnmanagedSession(database: DatabaseDef) extends BaseSession(database) {
 }
 
 class UnmanagedDatabase(conn: Connection)
-  extends DatabaseDef(new UnmanagedJdbcDataSource(conn), AsyncExecutor("UmanagedDatabase-AsyncExecutor", 1, -1)) {
+    extends DatabaseDef(
+      new UnmanagedJdbcDataSource(conn),
+      AsyncExecutor("UmanagedDatabase-AsyncExecutor", 1, -1)) {
 
   override def createSession() = new UnmanagedSession(this)
 }

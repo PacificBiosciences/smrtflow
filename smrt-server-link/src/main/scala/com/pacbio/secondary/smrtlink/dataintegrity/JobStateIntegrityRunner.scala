@@ -13,16 +13,17 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.common.models.CommonModelImplicits._
 
-
-
 /**
   * Created by mkocher on 4/27/17.
   */
-class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) extends BaseDataIntegrity with LazyLogging{
+class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String])
+    extends BaseDataIntegrity
+    with LazyLogging {
 
   override val runnerId = "smrtflow.dataintegrity.jobstate"
 
-  final val STUCK_STATES = Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING)
+  final val STUCK_STATES =
+    Seq(AnalysisJobStates.CREATED, AnalysisJobStates.RUNNING)
 
   /**
     * Only Interested in Jobs that are "stuck" in the Created, or Running state
@@ -40,12 +41,12 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
     * @param job             Engine Job
     * @return
     */
-  def filterByNotEqualVersion(expectedVersion: String, job: EngineJob): Boolean = {
+  def filterByNotEqualVersion(expectedVersion: String,
+                              job: EngineJob): Boolean = {
     job.smrtlinkVersion
-        .map(v => v != expectedVersion)
-        .getOrElse(false)
+      .map(v => v != expectedVersion)
+      .getOrElse(false)
   }
-
 
   /**
     * Core Job filter interface for detecting "STUCK" jobs.
@@ -56,8 +57,8 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
   def jobFilter(job: EngineJob): Boolean = {
     def filterWithVersion(j: EngineJob): Boolean = {
       smrtLinkVersion
-          .map(v => filterByNotEqualVersion(v, j))
-          .getOrElse(false)
+        .map(v => filterByNotEqualVersion(v, j))
+        .getOrElse(false)
     }
 
     filterWithVersion(job) && filterByState(job)
@@ -73,11 +74,14 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
     * @return
     */
   def updateJobStateToFail(engineJob: EngineJob): Future[EngineJob] = {
-    val m = s"Detected STUCK job ${engineJob.id} Type:${engineJob.jobTypeId} in state ${engineJob.state}. Marking as FAILED"
+    val m =
+      s"Detected STUCK job ${engineJob.id} Type:${engineJob.jobTypeId} in state ${engineJob.state}. Marking as FAILED"
     val errorMessage = engineJob.errorMessage.getOrElse("") + m
     logger.info(m)
     for {
-      _ <- dao.updateJobState(engineJob.uuid, AnalysisJobStates.FAILED, errorMessage)
+      _ <- dao.updateJobState(engineJob.uuid,
+                              AnalysisJobStates.FAILED,
+                              errorMessage)
       updatedJob <- dao.getJobById(engineJob.id)
     } yield updatedJob
   }
@@ -93,8 +97,12 @@ class JobStateIntegrityRunner(dao: JobsDao, smrtLinkVersion: Option[String]) ext
     for {
       jobs <- dao.getEngineCoreJobs(includeInactive = true)
       potentialJobs <- Future.successful(jobs.filter(jobFilter))
-      _ <- Future {logger.info(s"Detected ${potentialJobs.length} potentially STUCK jobs.")}
-      updatedJobs <- Future.sequence(potentialJobs.map(j => updateJobStateToFail(j)))
+      _ <- Future {
+        logger.info(
+          s"Detected ${potentialJobs.length} potentially STUCK jobs.")
+      }
+      updatedJobs <- Future.sequence(
+        potentialJobs.map(j => updateJobStateToFail(j)))
       m <- Future.successful(MessageResponse(toSummary(updatedJobs)))
     } yield m
   }

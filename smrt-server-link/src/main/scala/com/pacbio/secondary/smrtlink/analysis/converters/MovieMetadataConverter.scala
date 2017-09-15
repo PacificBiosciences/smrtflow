@@ -5,7 +5,10 @@ import java.nio.file.{Paths, Files, Path}
 import javax.xml.transform.stream.{StreamResult, StreamSource}
 import javax.xml.transform.{Result, Transformer, Source}
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetMerger, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetMerger,
+  DataSetLoader
+}
 import com.pacificbiosciences.pacbiodatasets.HdfSubreadSet
 import com.typesafe.scalalogging.LazyLogging
 import net.sf.saxon.TransformerFactoryImpl
@@ -14,11 +17,11 @@ import org.apache.commons.io.FilenameUtils
 import scala.io.{Source => SSource}
 
 /**
- * Converts a movie Metadata to HdfSubread DataSet
- *
- * Created by mkocher on 9/26/15.
- */
-object MovieMetadataConverter extends LazyLogging{
+  * Converts a movie Metadata to HdfSubread DataSet
+  *
+  * Created by mkocher on 9/26/15.
+  */
+object MovieMetadataConverter extends LazyLogging {
 
   // Default Name used in the SubreadSet if one is not
   // provided
@@ -27,15 +30,17 @@ object MovieMetadataConverter extends LazyLogging{
   val DATASET_SUBREAD_XSLT = "/HdfSubreadDatasetTransform.xslt"
 
   /**
-   * Convert RS-era MovieMeta XML file -> HdfSubread Dataset XML file
-   *
-   * @param path Path to a dataset XML file
-   * @return
-   */
-  def convertMovieMetaDataToSubread(path: Path): Either[DatasetConvertError, HdfSubreadSet] = {
+    * Convert RS-era MovieMeta XML file -> HdfSubread Dataset XML file
+    *
+    * @param path Path to a dataset XML file
+    * @return
+    */
+  def convertMovieMetaDataToSubread(
+      path: Path): Either[DatasetConvertError, HdfSubreadSet] = {
 
     val dsPath = Files.createTempFile("tmp", "hdfsubreadset.xml")
-    logger.debug(s"attempting to convert ${path.toString} to Dataset ${dsPath.toString}")
+    logger.debug(
+      s"attempting to convert ${path.toString} to Dataset ${dsPath.toString}")
 
     def buildTransformer(xslSource: Source): Transformer = {
       val transformerFactory = new TransformerFactoryImpl()
@@ -98,13 +103,15 @@ object MovieMetadataConverter extends LazyLogging{
         }
     }
   }
+
   /**
-   * Convert a list of RS-era Movie Metadata XML files to an HdfSubreadSet
-   *
-   * @param paths
-   * @return
-   */
-  def convertMovieMetadatasToHdfSubreadSet(paths: Seq[Path]): Either[DatasetConvertError, HdfSubreadSet] = {
+    * Convert a list of RS-era Movie Metadata XML files to an HdfSubreadSet
+    *
+    * @param paths
+    * @return
+    */
+  def convertMovieMetadatasToHdfSubreadSet(
+      paths: Seq[Path]): Either[DatasetConvertError, HdfSubreadSet] = {
 
     val xs = paths.map(x => convertMovieMetaDataToSubread(x))
     val subreadSets = xs.flatMap(_.right.toOption)
@@ -117,17 +124,21 @@ object MovieMetadataConverter extends LazyLogging{
   }
 
   /**
-   * Convert Movie Metadata XML or FOFN of Movie Metadata XML files to HdfSubreadSet
-   * @param movie
-   * @return
-   */
-  def convertMovieOrFofnToHdfSubread(movie: String): Either[DatasetConvertError, HdfSubreadSet] = {
+    * Convert Movie Metadata XML or FOFN of Movie Metadata XML files to HdfSubreadSet
+    * @param movie
+    * @return
+    */
+  def convertMovieOrFofnToHdfSubread(
+      movie: String): Either[DatasetConvertError, HdfSubreadSet] = {
     FilenameUtils.getExtension(movie) match {
-      case "fofn" => convertMovieMetadatasToHdfSubreadSet(Utils.fofnToFiles(Paths.get(movie)).toSet.toList)
+      case "fofn" =>
+        convertMovieMetadatasToHdfSubreadSet(
+          Utils.fofnToFiles(Paths.get(movie)).toSet.toList)
       case "xml" => convertMovieMetadatasToHdfSubreadSet(Seq(Paths.get(movie)))
-      case x => Left(DatasetConvertError(s"Unsupported file type. '$x'. Supported files types 'xml', 'fofn'"))
+      case x =>
+        Left(DatasetConvertError(
+          s"Unsupported file type. '$x'. Supported files types 'xml', 'fofn'"))
     }
   }
 
-  
 }

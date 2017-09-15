@@ -6,45 +6,43 @@ import java.io.File
 import scala.xml.Elem
 
 /**
- * Need fields
- *  - sampleName (from Run/Name)
- *  - collectionPathUri
- *  - cellId = eightPacBarcode + cellName
- *  - primaryResultsFOlder relative to the metadata XML
- *  - secondary* fields
- *  - instrCtrlVersion
- *
- *
- *  Cell Id from EightPac/Barcode + '.' + CellIndex
- *  For example, 10072114255000000182314640430157.4
- * <CollectionProtocol>MagBead OneCellPerWell v1</CollectionProtocol>
- * <CollectionNumber>5</CollectionNumber>
- * <CellIndex>4</CellIndex>
- * <SetNumber>1</SetNumber>
- * <EightPac>
- *  <PartNumber>0018</PartNumber>
- *  <LotNumber>231464</LotNumber>
- *  <Barcode>10072114255000000182314640430157</Barcode>
- *  <ExpirationDate>2015-04-30</ExpirationDate>
- * </EightPac>
- *
- */
-
-case class MovieMetaDataRecord(
-    cellId: String,
-    nCells: Int,
-    pooledSampleName: String,
-    sampleName: String,
-    plateName: String,
-    instrumentId: String,
-    instrumentName: String,
-    runId: String,
-    runName: String,
-    collectionProtocol: String,
-    primaryVersion: String,
-    primaryProtocol: String,
-    collectionPath: String,
-    primaryResultsFolder: String)
+  * Need fields
+  *  - sampleName (from Run/Name)
+  *  - collectionPathUri
+  *  - cellId = eightPacBarcode + cellName
+  *  - primaryResultsFOlder relative to the metadata XML
+  *  - secondary* fields
+  *  - instrCtrlVersion
+  *
+  *
+  *  Cell Id from EightPac/Barcode + '.' + CellIndex
+  *  For example, 10072114255000000182314640430157.4
+  * <CollectionProtocol>MagBead OneCellPerWell v1</CollectionProtocol>
+  * <CollectionNumber>5</CollectionNumber>
+  * <CellIndex>4</CellIndex>
+  * <SetNumber>1</SetNumber>
+  * <EightPac>
+  *  <PartNumber>0018</PartNumber>
+  *  <LotNumber>231464</LotNumber>
+  *  <Barcode>10072114255000000182314640430157</Barcode>
+  *  <ExpirationDate>2015-04-30</ExpirationDate>
+  * </EightPac>
+  *
+  */
+case class MovieMetaDataRecord(cellId: String,
+                               nCells: Int,
+                               pooledSampleName: String,
+                               sampleName: String,
+                               plateName: String,
+                               instrumentId: String,
+                               instrumentName: String,
+                               runId: String,
+                               runName: String,
+                               collectionProtocol: String,
+                               primaryVersion: String,
+                               primaryProtocol: String,
+                               collectionPath: String,
+                               primaryResultsFolder: String)
 
 object MovieMetaDataXml {
 
@@ -73,12 +71,27 @@ object MovieMetaDataXml {
     val collectionPathUri = (root \ "Primary" \ "CollectionPathUri").text
     val primaryResultsFolder = (root \ "Primary" \ "ResultsFolder").text
 
-    MovieMetaDataRecord(cellId, nCells, pooledSampleName, sampleName, instrumentId, instrumentId, runId, runName,
-      collectionProtocol, primaryVersion, primaryProtocol, collectionPathUri, primaryResultsFolder, instControlVersion)
+    MovieMetaDataRecord(
+      cellId,
+      nCells,
+      pooledSampleName,
+      sampleName,
+      instrumentId,
+      instrumentId,
+      runId,
+      runName,
+      collectionProtocol,
+      primaryVersion,
+      primaryProtocol,
+      collectionPathUri,
+      primaryResultsFolder,
+      instControlVersion
+    )
   }
 
-  def loadFromFile(path: File): MovieMetaDataRecord = loadFromElement(scala.xml.XML.loadFile(path))
-  def loadFromUrl(url: URL): MovieMetaDataRecord = loadFromElement(scala.xml.XML.load(url))
-
+  def loadFromFile(path: File): MovieMetaDataRecord =
+    loadFromElement(scala.xml.XML.loadFile(path))
+  def loadFromUrl(url: URL): MovieMetaDataRecord =
+    loadFromElement(scala.xml.XML.load(url))
 
 }

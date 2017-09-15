@@ -6,7 +6,10 @@ import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, DataSetMetaTypes}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
@@ -26,11 +29,10 @@ import scala.util.{Failure => ScFailure, Success => ScSuccess, Try => ScTry}
   * There's also DataSet type specific validaiton in analysis.
   *
   */
-trait ValidateServiceDataSetUtils extends DataSetFileUtils{
+trait ValidateServiceDataSetUtils extends DataSetFileUtils {
 
   implicit val timeout = Timeout(12.seconds)
   import CommonModelImplicits._
-
 
   type ValidationErrorMsg = String
 
@@ -56,26 +58,29 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
     */
   def validateDataSetMetaData(opts: ImportDataSetOptions): ValidateOptError = {
     // This is naming is pretty terrible.
-    ScTry (getDataSetMiniMeta(Paths.get(opts.path))) match {
+    ScTry(getDataSetMiniMeta(Paths.get(opts.path))) match {
       case ScSuccess(_) => opts.successNel
-      case ScFailure(err) => s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failNel
+      case ScFailure(err) =>
+        s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failNel
     }
   }
 
   def validateOpts(opts: ImportDataSetOptions): ValidateOptError = {
-    (isPathExists(opts) |@| validateDataSetMetaType(opts) |@| validateDataSetMetaData(opts))((_, _, _) => opts)
+    (isPathExists(opts) |@| validateDataSetMetaType(opts) |@| validateDataSetMetaData(
+      opts))((_, _, _) => opts)
   }
 
   /**
-   * Run all Import DataSet Options validation.
-   *
-   * 1. Validate path exists
-   * 2. Validate
-   *
-   * @param opts Import dataset options
-   * @return
-   */
-  def validateDataSetImportOpts(opts: ImportDataSetOptions): Option[ValidationErrorMsg] = {
+    * Run all Import DataSet Options validation.
+    *
+    * 1. Validate path exists
+    * 2. Validate
+    *
+    * @param opts Import dataset options
+    * @return
+    */
+  def validateDataSetImportOpts(
+      opts: ImportDataSetOptions): Option[ValidationErrorMsg] = {
     validateOpts(opts).toEither match {
       case Right(_) => None
       case Left(er) => Some(s"Errors: ${er.list.reduce(_ + "," + _)}")
@@ -83,16 +88,22 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
   }
 
   // There's still one or two places this is used.
-  def validateDataSetType(datasetType: String): Future[DataSetMetaTypes.DataSetMetaType] = {
-    DataSetMetaTypes.toDataSetType(datasetType)
-        .map(d => Future.successful(d))
-        .getOrElse(Future.failed(new UnprocessableEntityError(s"Unsupported dataset type '$datasetType'")))
+  def validateDataSetType(
+      datasetType: String): Future[DataSetMetaTypes.DataSetMetaType] = {
+    DataSetMetaTypes
+      .toDataSetType(datasetType)
+      .map(d => Future.successful(d))
+      .getOrElse(Future.failed(new UnprocessableEntityError(
+        s"Unsupported dataset type '$datasetType'")))
   }
 
-  def validatePath(serviceDataSet: ServiceDataSetMetadata): Future[ServiceDataSetMetadata] = {
+  def validatePath(serviceDataSet: ServiceDataSetMetadata)
+    : Future[ServiceDataSetMetadata] = {
     val p = Paths.get(serviceDataSet.path)
     if (Files.exists(p) && p.toFile.isFile) Future.successful(serviceDataSet)
-    else Future.failed(new UnprocessableEntityError(s"Unable to find DataSet id:${serviceDataSet.id} UUID:${serviceDataSet.uuid} Path:$p"))
+    else
+      Future.failed(new UnprocessableEntityError(
+        s"Unable to find DataSet id:${serviceDataSet.id} UUID:${serviceDataSet.uuid} Path:$p"))
   }
 
   /**
@@ -104,7 +115,9 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
     * @param dsId DataSet Int
     * @return
     */
-  def resolveAndValidatePath(dsType: DataSetMetaTypes.DataSetMetaType, dsId: IdAble, dao: JobsDao): Future[ServiceDataSetMetadata] = {
+  def resolveAndValidatePath(dsType: DataSetMetaTypes.DataSetMetaType,
+                             dsId: IdAble,
+                             dao: JobsDao): Future[ServiceDataSetMetadata] = {
 
     import CommonModelImplicits._
 
@@ -115,10 +128,12 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
 
   }
 
-  def validateDataSetsExist(datasets: Seq[IdAble],
-                            dsType: DataSetMetaTypes.DataSetMetaType,
-                            dao: JobsDao): Future[Seq[ServiceDataSetMetadata]] = {
-    Future.sequence(datasets.map(id => resolveAndValidatePath(dsType, id, dao)))
+  def validateDataSetsExist(
+      datasets: Seq[IdAble],
+      dsType: DataSetMetaTypes.DataSetMetaType,
+      dao: JobsDao): Future[Seq[ServiceDataSetMetadata]] = {
+    Future.sequence(
+      datasets.map(id => resolveAndValidatePath(dsType, id, dao)))
   }
 
   /**
@@ -129,18 +144,22 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
     * @param dao    db DAO
     * @return
     */
-  def resolveInputs(dsType: DataSetMetaTypes.DataSetMetaType, ids: Seq[IdAble], dao: JobsDao): Future[Seq[ServiceDataSetMetadata]] =
-    Future.sequence(ids.map(x=> resolveAndValidatePath(dsType, x, dao)))
+  def resolveInputs(dsType: DataSetMetaTypes.DataSetMetaType,
+                    ids: Seq[IdAble],
+                    dao: JobsDao): Future[Seq[ServiceDataSetMetadata]] =
+    Future.sequence(ids.map(x => resolveAndValidatePath(dsType, x, dao)))
 
   /**
-   * Resolve DataSet By Dataset type and Int primary key
-   *
-   * @param datasetType DataSet Metdata type
-   * @param id Int id of the dataset
-   * @param dao Database interface
-   * @return
-   */
-  def resolveDataSet(datasetType: DataSetMetaTypes.DataSetMetaType, id: IdAble, dao: JobsDao): Future[ServiceDataSetMetadata] = {
+    * Resolve DataSet By Dataset type and Int primary key
+    *
+    * @param datasetType DataSet Metdata type
+    * @param id Int id of the dataset
+    * @param dao Database interface
+    * @return
+    */
+  def resolveDataSet(datasetType: DataSetMetaTypes.DataSetMetaType,
+                     id: IdAble,
+                     dao: JobsDao): Future[ServiceDataSetMetadata] = {
 
     val f1 = datasetType match {
       case DataSetMetaTypes.HdfSubread => dao.getHdfDataSetById(id)
@@ -149,13 +168,17 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils{
       case DataSetMetaTypes.Alignment => dao.getAlignmentDataSetById(id)
       case DataSetMetaTypes.Barcode => dao.getBarcodeDataSetById(id)
       case DataSetMetaTypes.CCS => dao.getConsensusReadDataSetById(id)
-      case DataSetMetaTypes.AlignmentCCS => dao.getConsensusAlignmentDataSetById(id)
+      case DataSetMetaTypes.AlignmentCCS =>
+        dao.getConsensusAlignmentDataSetById(id)
       case DataSetMetaTypes.Contig => dao.getContigDataSetById(id)
-      case DataSetMetaTypes.GmapReference => dao.getGmapReferenceDataSetById(id)
+      case DataSetMetaTypes.GmapReference =>
+        dao.getGmapReferenceDataSetById(id)
     }
 
-    f1.recoverWith { case _: ResourceNotFoundError =>
-      Future.failed(new UnprocessableEntityError(s"Could not resolve dataset $datasetType with id: ${id.toIdString}"))
+    f1.recoverWith {
+      case _: ResourceNotFoundError =>
+        Future.failed(new UnprocessableEntityError(
+          s"Could not resolve dataset $datasetType with id: ${id.toIdString}"))
     }
   }
 }

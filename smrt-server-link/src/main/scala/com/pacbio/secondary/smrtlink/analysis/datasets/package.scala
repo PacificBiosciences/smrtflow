@@ -4,11 +4,10 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.File
 
-
 import scala.xml.Elem
 import scala.util.{Failure, Success, Try}
 
-import org.apache.commons.io.{FileUtils,FilenameUtils}
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
@@ -17,15 +16,16 @@ import scala.xml.{Elem, XML}
 import scala.util.{Failure, Success, Try}
 
 /**
- *
- * Created by mkocher on 9/29/15.
- */
+  *
+  * Created by mkocher on 9/29/15.
+  */
 package object datasets {
 
   case class InValidDataSetError(msg: String) extends Exception(msg)
 
   // Mini metadata
-  case class DataSetMiniMeta(uuid: UUID, metatype: DataSetMetaTypes.DataSetMetaType)
+  case class DataSetMiniMeta(uuid: UUID,
+                             metatype: DataSetMetaTypes.DataSetMetaType)
 
   trait DataSetFileUtils {
 
@@ -48,18 +48,22 @@ package object datasets {
 
       val uuid = UUID.fromString(uniqueId)
 
-      val errorMessage = s"Couldn't parse dataset MetaType from '$m' as an XML file: $path"
+      val errorMessage =
+        s"Couldn't parse dataset MetaType from '$m' as an XML file: $path"
 
-      val dsMeta = DataSetMetaTypes.toDataSetType(m)
-          .getOrElse(throw new IllegalArgumentException(errorMessage))
+      val dsMeta = DataSetMetaTypes
+        .toDataSetType(m)
+        .getOrElse(throw new IllegalArgumentException(errorMessage))
 
       DataSetMiniMeta(uuid, dsMeta)
     }
 
     private def parseXml(path: Path) = {
-      Try { scala.xml.XML.loadFile(path.toFile)} match {
+      Try { scala.xml.XML.loadFile(path.toFile) } match {
         case Success(x) => x
-        case Failure(err) => throw new IllegalArgumentException(s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
+        case Failure(err) =>
+          throw new IllegalArgumentException(
+            s"Couldn't parse ${path.toString} as an XML file: ${err.getMessage}")
       }
     }
 
@@ -70,9 +74,13 @@ package object datasets {
       * @return
       */
     def dsNameFromRsMetadata(path: Path): String = {
-      if (!path.toString.endsWith(".metadata.xml")) throw new Exception(s"File {p} lacks the expected extension (.metadata.xml)")
+      if (!path.toString.endsWith(".metadata.xml"))
+        throw new Exception(
+          s"File {p} lacks the expected extension (.metadata.xml)")
       val md = scala.xml.XML.loadFile(path.toFile)
-      if (md.label != "Metadata") throw new Exception(s"The file ${path.toString} does not appear to be an RS II metadata XML")
+      if (md.label != "Metadata")
+        throw new Exception(
+          s"The file ${path.toString} does not appear to be an RS II metadata XML")
       (md \ "Run" \ "Name").text
     }
   }
@@ -88,7 +96,9 @@ package object datasets {
     // copy all files associated with a dataset to the destination directory
     // based on file-name prefix, e.g. movie name.  if copyAll is true, it
     // will copy everything in the source directory.
-    private def copyResources(dsPath: Path, destDir: File, copyAll: Boolean = false) = {
+    private def copyResources(dsPath: Path,
+                              destDir: File,
+                              copyAll: Boolean = false) = {
       val dsDir = dsPath.getParent.toFile
       val prefix = FilenameUtils.getName(dsPath.toString).split('.')(0)
       for (f <- dsDir.listFiles) {
@@ -101,13 +111,14 @@ package object datasets {
     }
 
     /**
-     * copy a SubreadSet and BarcodeSet from PacBioTestData to a target dir,
-     * either passed as an option or a new temporary directory
-     * @param destDir  optional destination, defaults to temp dir
-     */
+      * copy a SubreadSet and BarcodeSet from PacBioTestData to a target dir,
+      * either passed as an option or a new temporary directory
+      * @param destDir  optional destination, defaults to temp dir
+      */
     def makeBarcodedSubreads(destDir: Option[Path]): (Path, Path) = {
       val pbdata = PacBioTestData()
-      val targetDir = destDir.getOrElse(Files.createTempDirectory("dataset-contents"))
+      val targetDir =
+        destDir.getOrElse(Files.createTempDirectory("dataset-contents"))
       val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
       val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
       val subreadsSrc = pbdata.getFile("barcoded-subreadset")
@@ -118,9 +129,11 @@ package object datasets {
       // for an empty directory
       copyResources(subreadsSrc, subreadsDestDir)
       FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
-      val subreads = Paths.get(subreadsDestDir.toString + "/" +
+      val subreads = Paths.get(
+        subreadsDestDir.toString + "/" +
           FilenameUtils.getName(subreadsSrc.toString))
-      var barcodes = Paths.get(barcodesDestDir.toString + "/" +
+      var barcodes = Paths.get(
+        barcodesDestDir.toString + "/" +
           FilenameUtils.getName(barcodesSrc.toString))
       val dsSubreads = DataSetLoader.loadSubreadSet(subreads)
       val dsBarcodes = DataSetLoader.loadBarcodeSet(barcodes)
@@ -141,7 +154,8 @@ package object datasets {
                        tmpDirBase: String = "dataset-contents"): Path = {
       // XXX The space in the pathname is deliberate (see SL-1586)
       val targetDir = Files.createTempDirectory(tmpDirBase)
-      val dsTmp = Paths.get(targetDir.toString + "/" +
+      val dsTmp = Paths.get(
+        targetDir.toString + "/" +
           FilenameUtils.getName(dsPath.toString))
       val ds = if (!copyFiles) {
         ImplicitDataSetLoader.loaderAndResolveType(metaType, dsPath)

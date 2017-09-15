@@ -11,7 +11,6 @@ import org.apache.commons.io.FileUtils
 import spray.json._
 import DefaultJsonProtocol._
 
-
 object ReportModels {
 
   // This is the version of the report data model schema
@@ -23,25 +22,34 @@ object ReportModels {
     val value: Any
   }
 
-  case class ReportLongAttribute(id: String, name: String, value: Long) extends ReportAttribute
+  case class ReportLongAttribute(id: String, name: String, value: Long)
+      extends ReportAttribute
 
-  case class ReportStrAttribute(id: String, name: String, value: String) extends ReportAttribute
+  case class ReportStrAttribute(id: String, name: String, value: String)
+      extends ReportAttribute
 
-  case class ReportDoubleAttribute(id: String, name: String, value: Double) extends ReportAttribute
+  case class ReportDoubleAttribute(id: String, name: String, value: Double)
+      extends ReportAttribute
 
-  case class ReportBooleanAttribute(id: String, name: String, value: Boolean) extends ReportAttribute
+  case class ReportBooleanAttribute(id: String, name: String, value: Boolean)
+      extends ReportAttribute
 
-  case class ReportPlot(id: String, image: String, caption: Option[String] = None)
+  case class ReportPlot(id: String,
+                        image: String,
+                        caption: Option[String] = None)
 
-  case class ReportTable(id: String, title: Option[String] = None, columns: Seq[ReportTableColumn])
+  case class ReportTable(id: String,
+                         title: Option[String] = None,
+                         columns: Seq[ReportTableColumn])
 
-  case class ReportTableColumn(id: String, header: Option[String] = None, values: Seq[Any])
+  case class ReportTableColumn(id: String,
+                               header: Option[String] = None,
+                               values: Seq[Any])
 
-  case class ReportPlotGroup(
-      id: String,
-      title: Option[String] = None,
-      legend: Option[String] = None,
-      plots: List[ReportPlot])
+  case class ReportPlotGroup(id: String,
+                             title: Option[String] = None,
+                             legend: Option[String] = None,
+                             plots: List[ReportPlot])
 
   // Tools outside of pbreports are generating reports, so tools should use a report id scheme
   // of {tool}_{report_base_id} such as smrtflow_examplereport as the base id
@@ -58,15 +66,14 @@ object ReportModels {
     * @param uuid         Report UUID If `uuid` is not present in the JSON, a random value will be generated
     * @param datasetUuids Dataset UUIDs used to generate the reports
     */
-  case class Report(
-      id: String,
-      title: String,
-      version: String = REPORT_SCHEMA_VERSION,
-      attributes: List[ReportAttribute],
-      plotGroups: List[ReportPlotGroup],
-      tables: List[ReportTable],
-      uuid: UUID,
-      datasetUuids: Set[UUID] = Set.empty[UUID]) {
+  case class Report(id: String,
+                    title: String,
+                    version: String = REPORT_SCHEMA_VERSION,
+                    attributes: List[ReportAttribute],
+                    plotGroups: List[ReportPlotGroup],
+                    tables: List[ReportTable],
+                    uuid: UUID,
+                    datasetUuids: Set[UUID] = Set.empty[UUID]) {
 
     def getAttributeValue(attrId: String): Option[Any] =
       attributes.map(a => (a.id, a.value)).toMap.get(attrId)
@@ -81,8 +88,8 @@ object ReportModels {
 
     def getPlot(plotGroupId: String, plotId: String): Option[ReportPlot] = {
       plotGroups
-          .find(_.id == plotGroupId)
-          .flatMap(_.plots.find(_.id == plotId))
+        .find(_.id == plotGroupId)
+        .flatMap(_.plots.find(_.id == plotId))
     }
 
     /**
@@ -94,10 +101,10 @@ object ReportModels {
       */
     def getTableValueFromColumn(tableId: String, columnId: String): Seq[Any] = {
       tables
-          .find(_.id == tableId)
-          .flatMap(_.columns.find(_.id == columnId))
-          .map(_.values)
-          .getOrElse(Nil)
+        .find(_.id == tableId)
+        .flatMap(_.columns.find(_.id == columnId))
+        .map(_.values)
+        .getOrElse(Nil)
     }
 
     /**
@@ -107,7 +114,8 @@ object ReportModels {
       * @param columnId Report column Id
       * @return
       */
-    def getFirstValueFromTableColumn(tableId: String, columnId: String): Option[Any] =
+    def getFirstValueFromTableColumn(tableId: String,
+                                     columnId: String): Option[Any] =
       getTableValueFromColumn(tableId, columnId).headOption
 
   }
@@ -121,7 +129,6 @@ object ReportModels {
   case class ReportIO(report: Report, path: Path)
 
 }
-
 
 /**
   * Report Serialization Utils
@@ -163,20 +170,24 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
       JsObject(
         "id" -> JsString(c.id),
         "header" -> c.header.toJson,
-        "values" -> JsArray(c.values.map((v) => v match {
-              case x: Double => JsNumber(x)
-              case f: Float => JsNumber(f)
-              case i: Int => JsNumber(i)
-              case l: Long => JsNumber(l)
-              case s: String => JsString(s)
-              case b: Boolean => JsBoolean(b)
-              case _ => JsNull
-          }).toList:_* // expand sequence
+        "values" -> JsArray(
+          c.values
+            .map((v) =>
+              v match {
+                case x: Double => JsNumber(x)
+                case f: Float => JsNumber(f)
+                case i: Int => JsNumber(i)
+                case l: Long => JsNumber(l)
+                case s: String => JsString(s)
+                case b: Boolean => JsBoolean(b)
+                case _ => JsNull
+            })
+            .toList: _* // expand sequence
         )
       )
     }
 
-    def read(jsColumn: JsValue):  ReportTableColumn = {
+    def read(jsColumn: JsValue): ReportTableColumn = {
       val jsObj = jsColumn.asJsObject
       jsObj.getFields("id", "values") match {
         case Seq(JsString(id), JsArray(jsValues)) => {
@@ -184,14 +195,16 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
             case Seq(JsString(h)) => Some(h)
             case _ => None
           }
-          val values = (for (value <- jsValues) yield value match {
-            case JsNumber(x) =>
-              // FIXME. This could be an Int
-              x.doubleValue
-            case JsString(s) => s
-            case JsBoolean(b) => b
-            case _ => null
-          }).toList
+          val values = (for (value <- jsValues)
+            yield
+              value match {
+                case JsNumber(x) =>
+                  // FIXME. This could be an Int
+                  x.doubleValue
+                case JsString(s) => s
+                case JsBoolean(b) => b
+                case _ => null
+              }).toList
           ReportTableColumn(id, header, values)
         }
         case x => deserializationError(s"Expected Column, got $x")
@@ -216,20 +229,25 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
         "plotGroups" -> r.plotGroups.toJson,
         "tables" -> r.tables.toJson,
         "uuid" -> r.uuid.toJson,
-        "dataset_uuids" -> r.datasetUuids.toJson)
+        "dataset_uuids" -> r.datasetUuids.toJson
+      )
     }
     def read(value: JsValue) = {
       val jsObj = value.asJsObject
       jsObj.getFields("id", "attributes", "plotGroups", "tables") match {
-        case Seq(JsString(id), JsArray(jsAttr), JsArray(jsPlotGroups), JsArray(jsTables)) => {
+        case Seq(JsString(id),
+                 JsArray(jsAttr),
+                 JsArray(jsPlotGroups),
+                 JsArray(jsTables)) => {
 
           val version = jsObj.getFields("version") match {
             case Seq(JsString(v)) => v
             // fallback to support pbcommand model
-            case _ => jsObj.getFields("_version") match {
-              case Seq(JsString(v)) => v
-              case _ => REPORT_SCHEMA_VERSION
-            }
+            case _ =>
+              jsObj.getFields("_version") match {
+                case Seq(JsString(v)) => v
+                case _ => REPORT_SCHEMA_VERSION
+              }
           }
 
           // If the UUID is not preset in the report JSON,
@@ -250,9 +268,17 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           }
 
           val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
-          val plotGroups = jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
+          val plotGroups =
+            jsPlotGroups.map(_.convertTo[ReportPlotGroup]).toList
           val tables = jsTables.map(_.convertTo[ReportTable]).toList
-          Report(id, title, version, attributes, plotGroups, tables, uuid, datasetUuids)
+          Report(id,
+                 title,
+                 version,
+                 attributes,
+                 plotGroups,
+                 tables,
+                 uuid,
+                 datasetUuids)
         }
         case x => deserializationError(s"Expected Report, got $x")
       }
@@ -269,7 +295,9 @@ object ReportUtils extends ReportJsonProtocol {
     // This is very awkward. Each Column should be a single consistent type, e.g., Option[T], not Option[Any]
     // These test values are perhaps not very useful or representative of reports generated in the current system.
     // If this really is the case, then the reports should be tightened up and adhere to a schema.
-    val column = ReportTableColumn("col1", Some("Column 1"), Seq[Any](10, null, 5.931, "asdf"))
+    val column = ReportTableColumn("col1",
+                                   Some("Column 1"),
+                                   Seq[Any](10, null, 5.931, "asdf"))
     ReportTable("report_table", Some("report title"), Seq(column))
   }
 
@@ -285,15 +313,24 @@ object ReportUtils extends ReportJsonProtocol {
   def toMockTaskReport(reportId: String, title: String): Report = {
     def toI(x: String) = s"$reportId.$x"
     def toRa(i: String, n: String, v: Int) = ReportLongAttribute(i, n, v)
-    val xs = Seq(("host", "Host ", 1234),
+    val xs = Seq(
+      ("host", "Host ", 1234),
       ("task_id", "pbscala.pipelines.mock_dev", 1234),
-      ("run_time", "Run Time", 1234), ("exit_code", "Exit code", 0),
+      ("run_time", "Run Time", 1234),
+      ("exit_code", "Exit code", 0),
       ("error_msg", "Error Message", 1234),
-      ("warning_msg", "Warning Message", -1))
+      ("warning_msg", "Warning Message", -1)
+    )
     val attrs = xs.map(x => toRa(toI(x._1), x._2, x._3)).toList
     val plots = List[ReportPlotGroup]()
     val tables = List[ReportTable]()
-    Report("workflow_task", title, REPORT_SCHEMA_VERSION, attrs, plots, tables, UUID.randomUUID())
+    Report("workflow_task",
+           title,
+           REPORT_SCHEMA_VERSION,
+           attrs,
+           plots,
+           tables,
+           UUID.randomUUID())
   }
 
   /**
@@ -305,8 +342,10 @@ object ReportUtils extends ReportJsonProtocol {
   def mockReport(baseId: String, title: String): Report = {
 
     def toI(n: String) = s"$baseId.$n"
-    def toP(n: Int, id: String) = ReportPlot(toI(id), s"$id.png", Some(s"Caption $id"))
-    def toPg(id: String, plots: List[ReportPlot]) = ReportPlotGroup(toI(id), Some(s"title $id"), Some(s"legend $id"), plots)
+    def toP(n: Int, id: String) =
+      ReportPlot(toI(id), s"$id.png", Some(s"Caption $id"))
+    def toPg(id: String, plots: List[ReportPlot]) =
+      ReportPlotGroup(toI(id), Some(s"title $id"), Some(s"legend $id"), plots)
 
     // Now that reports are generated outside of pbreports, the id format needs to be expanded.
     // the format should evolve to have the base id of {tool}.reports.{base-id}
@@ -321,9 +360,16 @@ object ReportUtils extends ReportJsonProtocol {
       ReportLongAttribute("nfiles", "Number of Files ", 7),
       ReportDoubleAttribute("run_time", "Run Time", 123.4),
       ReportStrAttribute("job_name", "Job Name", "Report test"),
-      ReportBooleanAttribute("was_successful", "Job Succeeded", true))
+      ReportBooleanAttribute("was_successful", "Job Succeeded", true)
+    )
 
-    Report(baseId, title, REPORT_SCHEMA_VERSION, attrs.toList, List(plotGroup), List(toReportTable), UUID.randomUUID)
+    Report(baseId,
+           title,
+           REPORT_SCHEMA_VERSION,
+           attrs.toList,
+           List(plotGroup),
+           List(toReportTable),
+           UUID.randomUUID)
   }
 
   /**
@@ -345,6 +391,9 @@ object ReportUtils extends ReportJsonProtocol {
     * @return
     */
   def loadReport(path: Path): Report =
-    FileUtils.readFileToString(path.toFile, "UTF-8").parseJson.convertTo[Report]
+    FileUtils
+      .readFileToString(path.toFile, "UTF-8")
+      .parseJson
+      .convertTo[Report]
 
 }

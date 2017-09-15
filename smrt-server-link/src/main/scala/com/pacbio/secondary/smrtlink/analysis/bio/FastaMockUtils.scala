@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
-
 object FastaMockUtils extends FastaWriter {
   val DNA = Seq('A', 'C', 'G', 'T')
 
@@ -17,7 +16,9 @@ object FastaMockUtils extends FastaWriter {
     def mockDnaSequence = (0 until maxSequenceLength).map(i => randomDna)
 
     val uuid = UUID.randomUUID()
-    FastaRecord(s"record_${uuid.toString}", s"header record ${uuid.toString}", mockDnaSequence)
+    FastaRecord(s"record_${uuid.toString}",
+                s"header record ${uuid.toString}",
+                mockDnaSequence)
   }
 
   def mockRecords(n: Int): Seq[FastaRecord] = {

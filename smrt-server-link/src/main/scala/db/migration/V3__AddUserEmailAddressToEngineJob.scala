@@ -8,11 +8,13 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import scala.concurrent.Future
 
 // scalastyle:off
-class V3__AddUserEmailAddressToEngineJob extends JdbcMigration with SlickMigration with LazyLogging{
+class V3__AddUserEmailAddressToEngineJob
+    extends JdbcMigration
+    with SlickMigration
+    with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(DBIO.seq(
-      sqlu"""ALTER TABLE engine_jobs ADD COLUMN created_by_email VARCHAR(256) DEFAULT NULL""")
-    )
+      sqlu"""ALTER TABLE engine_jobs ADD COLUMN created_by_email VARCHAR(256) DEFAULT NULL"""))
   }
 }

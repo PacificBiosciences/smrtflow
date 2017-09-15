@@ -18,14 +18,18 @@ import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 
-
 trait ClientUtils extends timeUtils with DataSetFileUtils {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   def listFilesByExtension(f: File, ext: String): Array[File] = {
-    if (! f.isDirectory) throw new IllegalArgumentException(s"${f.toString} is not a directory")
-    f.listFiles.filter((fn) => fn.toString.endsWith(ext)).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(d => listFilesByExtension(d, ext))
+    if (!f.isDirectory)
+      throw new IllegalArgumentException(s"${f.toString} is not a directory")
+    f.listFiles
+      .filter((fn) => fn.toString.endsWith(ext))
+      .toArray ++ f.listFiles
+      .filter(_.isDirectory)
+      .flatMap(d => listFilesByExtension(d, ext))
   }
 
   def toDataSetInfoSummary(ds: DataSetMetaDataSet): String = {
@@ -80,13 +84,13 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
         |          path: ${job.path}
       """.stripMargin
 
-    val errorMessage = if (AnalysisJobStates.FAILURE_STATES contains job.state) {
-      job.errorMessage.getOrElse("Unknown")
-    } else {""}
+    val errorMessage =
+      if (AnalysisJobStates.FAILURE_STATES contains job.state) {
+        job.errorMessage.getOrElse("Unknown")
+      } else { "" }
 
     Seq(header, body, errorMessage).reduce(_ + "\n" + _)
   }
-
 
   def printJobInfo(job: EngineJob,
                    asJson: Boolean = false,
@@ -113,21 +117,24 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     0
   }
 
-
   // Create a Table as String. This should be better model with a streaming
   // solution that passes in the "printer"
   def toTable(table: Seq[Seq[String]], headers: Seq[String]): String = {
 
     val columns = table.transpose
-    val widths = (columns zip headers).map{ case (col, header) =>
-      max(header.length, col.map(_.length).max)
+    val widths = (columns zip headers).map {
+      case (col, header) =>
+        max(header.length, col.map(_.length).max)
     }
 
-    val mkline = (row: Seq[String]) => (row zip widths).map{ case (c,w) => c.padTo(w, ' ') }
+    val mkline = (row: Seq[String]) =>
+      (row zip widths).map { case (c, w) => c.padTo(w, ' ') }
 
     mkline(headers).mkString(" ") ++ "\n" ++
-        table.map(row => mkline(row).mkString(" ") + "\n")
-            .reduceLeftOption(_ + _).getOrElse("NO DATA FOUND")
+      table
+        .map(row => mkline(row).mkString(" ") + "\n")
+        .reduceLeftOption(_ + _)
+        .getOrElse("NO DATA FOUND")
   }
 
   def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
@@ -152,12 +159,15 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     */
   private def versionGte(v1: SemVersion, v2: SemVersion): Future[SemVersion] = {
     if (v1.gte(v2)) Future.successful(v1)
-    else Future.failed(throw new Exception(s"Incompatible versions ${v1.toSemVerString()} < ${v2.toSemVerString}"))
+    else
+      Future.failed(throw new Exception(
+        s"Incompatible versions ${v1.toSemVerString()} < ${v2.toSemVerString}"))
   }
 
-  def isVersionGte(status: ServiceStatus, v:SemVersion): Future[SemVersion] = {
+  def isVersionGte(status: ServiceStatus, v: SemVersion): Future[SemVersion] = {
     for {
-      remoteSystemVersion <- Future.successful(SemVersion.fromString(status.version))
+      remoteSystemVersion <- Future.successful(
+        SemVersion.fromString(status.version))
       validatedRemoteSystemVersion <- versionGte(remoteSystemVersion, v)
     } yield validatedRemoteSystemVersion
   }

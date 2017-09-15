@@ -5,7 +5,6 @@ import java.io.FileWriter
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-
 trait JobResultWriter {
 
   /**
@@ -36,7 +35,7 @@ trait JobResultWriter {
 /**
   * Don't Write any outputs
   */
-class NullJobResultsWriter extends JobResultWriter{
+class NullJobResultsWriter extends JobResultWriter {
   def write(msg: String) = {}
   def writeError(msg: String) = {}
 }
@@ -53,7 +52,7 @@ class PrinterJobResultsWriter extends JobResultWriter {
 /**
   * Write stdout and stderr to Log
   */
-class LogJobResultsWriter extends JobResultWriter with LazyLogging{
+class LogJobResultsWriter extends JobResultWriter with LazyLogging {
   def write(msg: String): Unit = logger.info(msg)
   def writeError(msg: String): Unit = logger.error(msg)
 }
@@ -64,7 +63,8 @@ class LogJobResultsWriter extends JobResultWriter with LazyLogging{
   * @param stdout
   * @param stderr
   */
-class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobResultWriter {
+class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter)
+    extends JobResultWriter {
 
   // This is a temporary hacky logging-ish model.
   private def toTimeStampMessage(msg: String, level: String = "INFO"): String =
@@ -74,7 +74,6 @@ class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter) extends JobRe
     stdout.append(toTimeStampMessage(msg))
     stdout.flush()
   }
-
 
   override def writeError(msg: String) = {
     val logMsg = toTimeStampMessage(msg, level = "ERROR")

@@ -11,15 +11,13 @@ import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.converters.FastaToReferenceConverter
 
-
-case class FastaToReferenceConfig(
-    fastaFile: String,
-    outputDir: String,
-    name: String,
-    organism: String,
-    ploidy: String,
-    skipNgmlr: Boolean = false) extends LoggerConfig
-
+case class FastaToReferenceConfig(fastaFile: String,
+                                  outputDir: String,
+                                  name: String,
+                                  organism: String,
+                                  ploidy: String,
+                                  skipNgmlr: Boolean = false)
+    extends LoggerConfig
 
 object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
 
@@ -46,7 +44,7 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
     head("Convert a Fasta file to a PacBio ReferenceSet DataSet XML ", VERSION)
     note(DESCRIPTION)
 
-    arg[String]("fasta-file") required() action { (x, c) =>
+    arg[String]("fasta-file") required () action { (x, c) =>
       c.copy(fastaFile = x)
     } text "Path to Fasta file"
 
@@ -81,7 +79,9 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
     } text "Show tool version and exit"
 
     opt[Unit]("debug") action { (_, c) =>
-      c.asInstanceOf[LoggerConfig].configure(c.logbackFile, c.logFile, true, c.logLevel).asInstanceOf[FastaToReferenceConfig]
+      c.asInstanceOf[LoggerConfig]
+        .configure(c.logbackFile, c.logFile, true, c.logLevel)
+        .asInstanceOf[FastaToReferenceConfig]
     } text "Display debugging log output"
 
     // add the shared `--debug` and logging options
@@ -97,13 +97,20 @@ object FastaToReference extends CommandLineToolRunner[FastaToReferenceConfig] {
     val ploidy = Option(c.ploidy)
     val organism = Option(c.organism)
 
-    FastaToReferenceConverter(c.name, organism, ploidy, fastaPath, outputDir,
+    FastaToReferenceConverter(c.name,
+                              organism,
+                              ploidy,
+                              fastaPath,
+                              outputDir,
                               skipNgmlr = c.skipNgmlr) match {
       case Right(rio) =>
-        logger.info(s"Successfully converted Fasta to dataset ${rio.dataset.getName} ${rio.dataset.getUniqueId}")
-        logger.info(s"TotalLength:${rio.dataset.getDataSetMetadata.getTotalLength} nrecords:${rio.dataset.getDataSetMetadata.getNumRecords}")
+        logger.info(
+          s"Successfully converted Fasta to dataset ${rio.dataset.getName} ${rio.dataset.getUniqueId}")
+        logger.info(
+          s"TotalLength:${rio.dataset.getDataSetMetadata.getTotalLength} nrecords:${rio.dataset.getDataSetMetadata.getNumRecords}")
         Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
-      case Left(ex) => Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.msg))
+      case Left(ex) =>
+        Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), ex.msg))
     }
   }
 }

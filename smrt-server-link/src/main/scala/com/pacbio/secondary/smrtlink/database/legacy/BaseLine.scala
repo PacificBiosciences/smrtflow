@@ -9,7 +9,10 @@ import slick.driver.PostgresDriver.api._
 // This is a potential problem
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat
 // This is a problem
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedAcquisitionStates,
+  SupportedRunStates
+}
 
 /**
   * Baseline Postgres Data Models and TableModels.
@@ -57,16 +60,23 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     }
 
     // sugar
-    val VALID_STATES = Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
+    val VALID_STATES =
+      Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
 
     val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED)
 
-    def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state
+    def isCompleted(state: JobStates): Boolean =
+      COMPLETED_STATES contains state
 
-    def intToState(i: Int): Option[JobStates] = VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
+    def intToState(i: Int): Option[JobStates] =
+      VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
 
     // This is NOT case sensitive
-    def toState(s: String): Option[JobStates] = VALID_STATES.map(x => (x.toString.toLowerCase, x)).toMap.get(s.toLowerCase)
+    def toState(s: String): Option[JobStates] =
+      VALID_STATES
+        .map(x => (x.toString.toLowerCase, x))
+        .toMap
+        .get(s.toLowerCase)
 
   }
 
@@ -119,35 +129,33 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   }
 
   // This is a terrible name
-  case class JobResource(
-                            jobId: UUID,
-                            path: Path,
-                            state: AnalysisJobStates.JobStates) extends JobResourceBase
+  case class JobResource(jobId: UUID,
+                         path: Path,
+                         state: AnalysisJobStates.JobStates)
+      extends JobResourceBase
 
-  case class JobEvent(
-                         eventId: UUID,
-                         jobId: Int,
-                         state: AnalysisJobStates.JobStates,
-                         message: String,
-                         createdAt: JodaDateTime,
-                         eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
+  case class JobEvent(eventId: UUID,
+                      jobId: Int,
+                      state: AnalysisJobStates.JobStates,
+                      message: String,
+                      createdAt: JodaDateTime,
+                      eventTypeId: String = JobConstants.EVENT_TYPE_JOB_STATUS)
 
-  case class EngineJob(
-                          id: Int,
-                          uuid: UUID,
-                          name: String,
-                          comment: String,
-                          createdAt: JodaDateTime,
-                          updatedAt: JodaDateTime,
-                          state: AnalysisJobStates.JobStates,
-                          jobTypeId: String,
-                          path: String,
-                          jsonSettings: String,
-                          createdBy: Option[String],
-                          smrtlinkVersion: Option[String],
-                          isActive: Boolean = true,
-                          errorMessage: Option[String] = None,
-                          projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
+  case class EngineJob(id: Int,
+                       uuid: UUID,
+                       name: String,
+                       comment: String,
+                       createdAt: JodaDateTime,
+                       updatedAt: JodaDateTime,
+                       state: AnalysisJobStates.JobStates,
+                       jobTypeId: String,
+                       path: String,
+                       jsonSettings: String,
+                       createdBy: Option[String],
+                       smrtlinkVersion: Option[String],
+                       isActive: Boolean = true,
+                       errorMessage: Option[String] = None,
+                       projectId: Int = JobConstants.GENERAL_PROJECT_ID) {
 
     def isComplete: Boolean = AnalysisJobStates.isCompleted(this.state)
 
@@ -155,27 +163,40 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def isRunning: Boolean = this.state == AnalysisJobStates.RUNNING
 
-    def apply(
-                 id: Int,
-                 uuid: UUID,
-                 name: String,
-                 comment: String,
-                 createdAt: JodaDateTime,
-                 updatedAt: JodaDateTime,
-                 stateId: Int,
-                 jobTypeId: String,
-                 path: String,
-                 jsonSettings: String,
-                 createdBy: Option[String],
-                 smrtlinkVersion: Option[String],
-                 isActive: Boolean = true,
-                 errorMessage: Option[String] = None,
-                 projectId: Int = 1) = {
+    def apply(id: Int,
+              uuid: UUID,
+              name: String,
+              comment: String,
+              createdAt: JodaDateTime,
+              updatedAt: JodaDateTime,
+              stateId: Int,
+              jobTypeId: String,
+              path: String,
+              jsonSettings: String,
+              createdBy: Option[String],
+              smrtlinkVersion: Option[String],
+              isActive: Boolean = true,
+              errorMessage: Option[String] = None,
+              projectId: Int = 1) = {
 
       // This might not be the best idea.
       val state = AnalysisJobStates.intToState(stateId) getOrElse AnalysisJobStates.UNKNOWN
 
-      EngineJob(id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtlinkVersion, isActive, errorMessage, projectId)
+      EngineJob(id,
+                uuid,
+                name,
+                comment,
+                createdAt,
+                updatedAt,
+                state,
+                jobTypeId,
+                path,
+                jsonSettings,
+                createdBy,
+                smrtlinkVersion,
+                isActive,
+                errorMessage,
+                projectId)
     }
   }
 
@@ -204,140 +225,146 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   trait ImportAble
 
-  case class DataStoreFile(
-                              uniqueId: UUID,
-                              sourceId: String,
-                              fileTypeId: String,
-                              fileSize: Long,
-                              createdAt: JodaDateTime,
-                              modifiedAt: JodaDateTime,
-                              path: String,
-                              isChunked: Boolean = false,
-                              name: String,
-                              description: String) extends ImportAble {
+  case class DataStoreFile(uniqueId: UUID,
+                           sourceId: String,
+                           fileTypeId: String,
+                           fileSize: Long,
+                           createdAt: JodaDateTime,
+                           modifiedAt: JodaDateTime,
+                           path: String,
+                           isChunked: Boolean = false,
+                           name: String,
+                           description: String)
+      extends ImportAble {
 
     def fileExists: Boolean = Paths.get(path).toFile.exists
   }
 
   // Container for file created from a Job
-  case class DataStoreJobFile(
-                                 jobId: UUID,
-                                 dataStoreFile: DataStoreFile)
+  case class DataStoreJobFile(jobId: UUID, dataStoreFile: DataStoreFile)
 
-  case class MigrationStatusRow(timestamp: String, success: Boolean, error: Option[String] = None)
+  case class MigrationStatusRow(timestamp: String,
+                                success: Boolean,
+                                error: Option[String] = None)
 
   case class RunCreate(dataModel: String)
 
-  case class RunUpdate(dataModel: Option[String] = None, reserved: Option[Boolean] = None)
+  case class RunUpdate(dataModel: Option[String] = None,
+                       reserved: Option[Boolean] = None)
 
-  case class RunSummary(
-                           uniqueId: UUID,
-                           name: String,
-                           summary: Option[String],
-                           createdBy: Option[String],
-                           createdAt: Option[JodaDateTime],
-                           startedAt: Option[JodaDateTime],
-                           transfersCompletedAt: Option[JodaDateTime],
-                           completedAt: Option[JodaDateTime],
-                           status: SupportedRunStates,
-                           totalCells: Int,
-                           numCellsCompleted: Int,
-                           numCellsFailed: Int,
-                           instrumentName: Option[String],
-                           instrumentSerialNumber: Option[String],
-                           instrumentSwVersion: Option[String],
-                           primaryAnalysisSwVersion: Option[String],
-                           context: Option[String],
-                           terminationInfo: Option[String],
-                           reserved: Boolean) {
+  case class RunSummary(uniqueId: UUID,
+                        name: String,
+                        summary: Option[String],
+                        createdBy: Option[String],
+                        createdAt: Option[JodaDateTime],
+                        startedAt: Option[JodaDateTime],
+                        transfersCompletedAt: Option[JodaDateTime],
+                        completedAt: Option[JodaDateTime],
+                        status: SupportedRunStates,
+                        totalCells: Int,
+                        numCellsCompleted: Int,
+                        numCellsFailed: Int,
+                        instrumentName: Option[String],
+                        instrumentSerialNumber: Option[String],
+                        instrumentSwVersion: Option[String],
+                        primaryAnalysisSwVersion: Option[String],
+                        context: Option[String],
+                        terminationInfo: Option[String],
+                        reserved: Boolean) {
 
-    def withDataModel(dataModel: String) = Run(
-      dataModel,
-      uniqueId,
-      name,
-      summary,
-      createdBy,
-      createdAt,
-      startedAt,
-      transfersCompletedAt,
-      completedAt,
-      status,
-      totalCells,
-      numCellsCompleted,
-      numCellsFailed,
-      instrumentName,
-      instrumentSerialNumber,
-      instrumentSwVersion,
-      primaryAnalysisSwVersion,
-      context,
-      terminationInfo,
-      reserved)
+    def withDataModel(dataModel: String) =
+      Run(
+        dataModel,
+        uniqueId,
+        name,
+        summary,
+        createdBy,
+        createdAt,
+        startedAt,
+        transfersCompletedAt,
+        completedAt,
+        status,
+        totalCells,
+        numCellsCompleted,
+        numCellsFailed,
+        instrumentName,
+        instrumentSerialNumber,
+        instrumentSwVersion,
+        primaryAnalysisSwVersion,
+        context,
+        terminationInfo,
+        reserved
+      )
   }
 
-  case class Run(
-                    dataModel: String,
-                    uniqueId: UUID,
-                    name: String,
-                    summary: Option[String],
-                    createdBy: Option[String],
-                    createdAt: Option[JodaDateTime],
-                    startedAt: Option[JodaDateTime],
-                    transfersCompletedAt: Option[JodaDateTime],
-                    completedAt: Option[JodaDateTime],
-                    status: SupportedRunStates,
-                    totalCells: Int,
-                    numCellsCompleted: Int,
-                    numCellsFailed: Int,
-                    instrumentName: Option[String],
-                    instrumentSerialNumber: Option[String],
-                    instrumentSwVersion: Option[String],
-                    primaryAnalysisSwVersion: Option[String],
-                    context: Option[String],
-                    terminationInfo: Option[String],
-                    reserved: Boolean) {
+  case class Run(dataModel: String,
+                 uniqueId: UUID,
+                 name: String,
+                 summary: Option[String],
+                 createdBy: Option[String],
+                 createdAt: Option[JodaDateTime],
+                 startedAt: Option[JodaDateTime],
+                 transfersCompletedAt: Option[JodaDateTime],
+                 completedAt: Option[JodaDateTime],
+                 status: SupportedRunStates,
+                 totalCells: Int,
+                 numCellsCompleted: Int,
+                 numCellsFailed: Int,
+                 instrumentName: Option[String],
+                 instrumentSerialNumber: Option[String],
+                 instrumentSwVersion: Option[String],
+                 primaryAnalysisSwVersion: Option[String],
+                 context: Option[String],
+                 terminationInfo: Option[String],
+                 reserved: Boolean) {
 
-    def summarize = RunSummary(
-      uniqueId,
-      name,
-      summary,
-      createdBy,
-      createdAt,
-      startedAt,
-      transfersCompletedAt,
-      completedAt,
-      status,
-      totalCells,
-      numCellsCompleted,
-      numCellsFailed,
-      instrumentName,
-      instrumentSerialNumber,
-      instrumentSwVersion,
-      primaryAnalysisSwVersion,
-      context,
-      terminationInfo,
-      reserved)
+    def summarize =
+      RunSummary(
+        uniqueId,
+        name,
+        summary,
+        createdBy,
+        createdAt,
+        startedAt,
+        transfersCompletedAt,
+        completedAt,
+        status,
+        totalCells,
+        numCellsCompleted,
+        numCellsFailed,
+        instrumentName,
+        instrumentSerialNumber,
+        instrumentSwVersion,
+        primaryAnalysisSwVersion,
+        context,
+        terminationInfo,
+        reserved
+      )
   }
 
-  case class CollectionMetadata(
-                                   runId: UUID,
-                                   uniqueId: UUID,
-                                   well: String,
-                                   name: String,
-                                   summary: Option[String],
-                                   context: Option[String],
-                                   collectionPathUri: Option[Path],
-                                   status: SupportedAcquisitionStates,
-                                   instrumentId: Option[String],
-                                   instrumentName: Option[String],
-                                   movieMinutes: Double,
-                                   createdBy: Option[String],
-                                   startedAt: Option[JodaDateTime],
-                                   completedAt: Option[JodaDateTime],
-                                   terminationInfo: Option[String])
+  case class CollectionMetadata(runId: UUID,
+                                uniqueId: UUID,
+                                well: String,
+                                name: String,
+                                summary: Option[String],
+                                context: Option[String],
+                                collectionPathUri: Option[Path],
+                                status: SupportedAcquisitionStates,
+                                instrumentId: Option[String],
+                                instrumentName: Option[String],
+                                movieMinutes: Double,
+                                createdBy: Option[String],
+                                startedAt: Option[JodaDateTime],
+                                completedAt: Option[JodaDateTime],
+                                terminationInfo: Option[String])
 
   // Samples
 
-  case class Sample(details: String, uniqueId: UUID, name: String, createdBy: String, createdAt: JodaDateTime)
+  case class Sample(details: String,
+                    uniqueId: UUID,
+                    name: String,
+                    createdBy: String,
+                    createdAt: JodaDateTime)
 
   case class SampleCreate(details: String, uniqueId: UUID, name: String)
 
@@ -347,14 +374,24 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   // Registry
 
-  case class RegistryResource(createdAt: JodaDateTime, uuid: UUID, host: String, port: Int, resourceId: String, updatedAt: JodaDateTime)
+  case class RegistryResource(createdAt: JodaDateTime,
+                              uuid: UUID,
+                              host: String,
+                              port: Int,
+                              resourceId: String,
+                              updatedAt: JodaDateTime)
 
-  case class RegistryResourceCreate(host: String, port: Int, resourceId: String)
+  case class RegistryResourceCreate(host: String,
+                                    port: Int,
+                                    resourceId: String)
 
   case class RegistryResourceUpdate(host: Option[String], port: Option[Int])
 
-  case class RegistryProxyRequest(path: String, method: String, data: Option[Array[Byte]], headers: Option[Map[String, String]], params: Option[Map[String, String]])
-
+  case class RegistryProxyRequest(path: String,
+                                  method: String,
+                                  data: Option[Array[Byte]],
+                                  headers: Option[Map[String, String]],
+                                  params: Option[Map[String, String]])
 
   // Jobs
 
@@ -367,10 +404,14 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   // Entry point use to create jobs from the Service layer. This will then be translated to a
   // BoundEntryPoint with the resolved path of the DataSet
-  case class BoundServiceEntryPoint(entryId: String, fileTypeId: String, datasetId: Either[Int, UUID])
+  case class BoundServiceEntryPoint(entryId: String,
+                                    fileTypeId: String,
+                                    datasetId: Either[Int, UUID])
 
   // Entry points that are have dataset types
-  case class EngineJobEntryPoint(jobId: Int, datasetUUID: UUID, datasetType: String)
+  case class EngineJobEntryPoint(jobId: Int,
+                                 datasetUUID: UUID,
+                                 datasetType: String)
 
   case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
 
@@ -391,7 +432,10 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                                  name: String,
                                  createdAt: JodaDateTime)
 
-  case class UpdateJobTaskRecord(uuid: UUID, state: String, message: String, errorMessage: Option[String])
+  case class UpdateJobTaskRecord(uuid: UUID,
+                                 state: String,
+                                 message: String,
+                                 errorMessage: Option[String])
 
   // Need to find a better way to do this
   case class PacBioSchema(id: String, content: String)
@@ -409,80 +453,126 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     val isActive: Boolean
   }
 
-  case class DataSetMetaDataSet(id: Int, uuid: UUID, name: String, path: String, createdAt: JodaDateTime, updatedAt: JodaDateTime, numRecords: Long, totalLength: Long, tags: String, version: String, comments: String, md5: String, createdBy: Option[String], jobId: Int, projectId: Int, isActive: Boolean) extends UniqueIdAble with ProjectAble
+  case class DataSetMetaDataSet(id: Int,
+                                uuid: UUID,
+                                name: String,
+                                path: String,
+                                createdAt: JodaDateTime,
+                                updatedAt: JodaDateTime,
+                                numRecords: Long,
+                                totalLength: Long,
+                                tags: String,
+                                version: String,
+                                comments: String,
+                                md5: String,
+                                createdBy: Option[String],
+                                jobId: Int,
+                                projectId: Int,
+                                isActive: Boolean)
+      extends UniqueIdAble
+      with ProjectAble
 
-  case class SubreadServiceSet(id: Int, uuid: UUID, cellId: String, metadataContextId: String, wellSampleName: String, wellName: String, bioSampleName: String, cellIndex: Int, instrumentId: String, instrumentName: String, runName: String, instrumentControlVersion: String) extends UniqueIdAble
+  case class SubreadServiceSet(id: Int,
+                               uuid: UUID,
+                               cellId: String,
+                               metadataContextId: String,
+                               wellSampleName: String,
+                               wellName: String,
+                               bioSampleName: String,
+                               cellIndex: Int,
+                               instrumentId: String,
+                               instrumentName: String,
+                               runName: String,
+                               instrumentControlVersion: String)
+      extends UniqueIdAble
 
-  case class SubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: SubreadServiceSet)
+  case class SubreadServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                       dataset: SubreadServiceSet)
 
-  case class HdfSubreadServiceSet(
-                                     id: Int,
-                                     uuid: UUID,
-                                     cellId: String,
-                                     metadataContextId: String,
-                                     wellSampleName: String,
-                                     wellName: String,
-                                     bioSampleName: String,
-                                     cellIndex: Int,
-                                     instrumentId: String,
-                                     instrumentName: String,
-                                     runName: String,
-                                     instrumentControlVersion: String) extends UniqueIdAble
+  case class HdfSubreadServiceSet(id: Int,
+                                  uuid: UUID,
+                                  cellId: String,
+                                  metadataContextId: String,
+                                  wellSampleName: String,
+                                  wellName: String,
+                                  bioSampleName: String,
+                                  cellIndex: Int,
+                                  instrumentId: String,
+                                  instrumentName: String,
+                                  runName: String,
+                                  instrumentControlVersion: String)
+      extends UniqueIdAble
 
-  case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: HdfSubreadServiceSet)
+  case class HdfSubreadServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                          dataset: HdfSubreadServiceSet)
 
-  case class ReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
+  case class ReferenceServiceSet(id: Int,
+                                 uuid: UUID,
+                                 ploidy: String,
+                                 organism: String)
+      extends UniqueIdAble
 
-  case class ReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ReferenceServiceSet)
+  case class ReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                         dataset: ReferenceServiceSet)
 
   case class AlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-  case class AlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: AlignmentServiceSet)
+  case class AlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                         dataset: AlignmentServiceSet)
 
   case class BarcodeServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-  case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: BarcodeServiceSet)
+  case class BarcodeServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                       dataset: BarcodeServiceSet)
 
   case class ConsensusReadServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-  case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusReadServiceSet)
+  case class ConsensusReadServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                             dataset: ConsensusReadServiceSet)
 
-  case class GmapReferenceServiceSet(id: Int, uuid: UUID, ploidy: String, organism: String) extends UniqueIdAble
+  case class GmapReferenceServiceSet(id: Int,
+                                     uuid: UUID,
+                                     ploidy: String,
+                                     organism: String)
+      extends UniqueIdAble
 
-  case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: GmapReferenceServiceSet)
+  case class GmapReferenceServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                             dataset: GmapReferenceServiceSet)
 
-  case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
+  case class ConsensusAlignmentServiceSet(id: Int, uuid: UUID)
+      extends UniqueIdAble
 
-  case class ConsensusAlignmentServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ConsensusAlignmentServiceSet)
+  case class ConsensusAlignmentServiceMetaDataSet(
+      metadata: DataSetMetaDataSet,
+      dataset: ConsensusAlignmentServiceSet)
 
   case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
-  case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet, dataset: ContigServiceSet)
+  case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                      dataset: ContigServiceSet)
 
   // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
   // /datastore-files endpoint
-  case class DataStoreServiceFile(
-                                     uuid: UUID,
-                                     fileTypeId: String,
-                                     sourceId: String,
-                                     fileSize: Long,
-                                     createdAt: JodaDateTime,
-                                     modifiedAt: JodaDateTime,
-                                     importedAt: JodaDateTime,
-                                     path: String,
-                                     jobId: Int,
-                                     jobUUID: UUID,
-                                     name: String,
-                                     description: String,
-                                     isActive: Boolean = true) {
+  case class DataStoreServiceFile(uuid: UUID,
+                                  fileTypeId: String,
+                                  sourceId: String,
+                                  fileSize: Long,
+                                  createdAt: JodaDateTime,
+                                  modifiedAt: JodaDateTime,
+                                  importedAt: JodaDateTime,
+                                  path: String,
+                                  jobId: Int,
+                                  jobUUID: UUID,
+                                  name: String,
+                                  description: String,
+                                  isActive: Boolean = true) {
 
     def fileExists: Boolean = Paths.get(path).toFile.exists
   }
 
   // Files that have Reports
-  case class DataStoreReportFile(
-                                    dataStoreFile: DataStoreServiceFile,
-                                    reportTypeId: String)
+  case class DataStoreReportFile(dataStoreFile: DataStoreServiceFile,
+                                 reportTypeId: String)
 
   /**
     * Service DataSet metadata
@@ -496,13 +586,12 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     * @param updatedAt   last updated date in the database
     * @param shortName   short identifier (e.g., "subreads")
     */
-  case class ServiceDataSetMetaType(
-                                       id: String,
-                                       name: String,
-                                       description: String,
-                                       createdAt: JodaDateTime,
-                                       updatedAt: JodaDateTime,
-                                       shortName: String)
+  case class ServiceDataSetMetaType(id: String,
+                                    name: String,
+                                    description: String,
+                                    createdAt: JodaDateTime,
+                                    updatedAt: JodaDateTime,
+                                    shortName: String)
 
   trait ServiceDataSetMetadata {
     val id: Int
@@ -523,8 +612,33 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     val projectId: Int
   }
 
-  case class SubreadServiceDataSet(
-                                      id: Int,
+  case class SubreadServiceDataSet(id: Int,
+                                   uuid: UUID,
+                                   name: String,
+                                   path: String,
+                                   createdAt: JodaDateTime,
+                                   updatedAt: JodaDateTime,
+                                   numRecords: Long,
+                                   totalLength: Long,
+                                   version: String,
+                                   comments: String,
+                                   tags: String,
+                                   md5: String,
+                                   instrumentName: String,
+                                   metadataContextId: String,
+                                   wellSampleName: String,
+                                   wellName: String,
+                                   bioSampleName: String,
+                                   cellIndex: Int,
+                                   runName: String,
+                                   createdBy: Option[String],
+                                   jobId: Int,
+                                   projectId: Int,
+                                   datasetType: String =
+                                     "PacBio.DataSet.SubreadSet")
+      extends ServiceDataSetMetadata
+
+  case class HdfSubreadServiceDataSet(id: Int,
                                       uuid: UUID,
                                       name: String,
                                       path: String,
@@ -546,134 +660,11 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                                       createdBy: Option[String],
                                       jobId: Int,
                                       projectId: Int,
-                                      datasetType: String = "PacBio.DataSet.SubreadSet")
+                                      datasetType: String =
+                                        "PacBio.DataSet.HdfSubreadSet")
       extends ServiceDataSetMetadata
 
-  case class HdfSubreadServiceDataSet(
-                                         id: Int,
-                                         uuid: UUID,
-                                         name: String,
-                                         path: String,
-                                         createdAt: JodaDateTime,
-                                         updatedAt: JodaDateTime,
-                                         numRecords: Long,
-                                         totalLength: Long,
-                                         version: String,
-                                         comments: String,
-                                         tags: String,
-                                         md5: String,
-                                         instrumentName: String,
-                                         metadataContextId: String,
-                                         wellSampleName: String,
-                                         wellName: String,
-                                         bioSampleName: String,
-                                         cellIndex: Int,
-                                         runName: String,
-                                         createdBy: Option[String],
-                                         jobId: Int,
-                                         projectId: Int,
-                                         datasetType: String = "PacBio.DataSet.HdfSubreadSet")
-      extends ServiceDataSetMetadata
-
-  case class ReferenceServiceDataSet(
-                                        id: Int,
-                                        uuid: UUID,
-                                        name: String,
-                                        path: String,
-                                        createdAt: JodaDateTime,
-                                        updatedAt: JodaDateTime,
-                                        numRecords: Long,
-                                        totalLength: Long,
-                                        version: String,
-                                        comments: String,
-                                        tags: String,
-                                        md5: String,
-                                        createdBy: Option[String],
-                                        jobId: Int,
-                                        projectId: Int,
-                                        ploidy: String,
-                                        organism: String,
-                                        datasetType: String = "PacBio.DataSet.ReferenceSet")
-      extends ServiceDataSetMetadata
-
-  case class AlignmentServiceDataSet(
-                                        id: Int,
-                                        uuid: UUID,
-                                        name: String,
-                                        path: String,
-                                        createdAt: JodaDateTime,
-                                        updatedAt: JodaDateTime,
-                                        numRecords: Long,
-                                        totalLength: Long,
-                                        version: String,
-                                        comments: String,
-                                        tags: String,
-                                        md5: String,
-                                        createdBy: Option[String],
-                                        jobId: Int,
-                                        projectId: Int,
-                                        datasetType: String = "PacBio.DataSet.AlignmentSet")
-      extends ServiceDataSetMetadata
-
-  case class ConsensusReadServiceDataSet(
-                                            id: Int,
-                                            uuid: UUID,
-                                            name: String,
-                                            path: String,
-                                            createdAt: JodaDateTime,
-                                            updatedAt: JodaDateTime,
-                                            numRecords: Long,
-                                            totalLength: Long,
-                                            version: String,
-                                            comments: String,
-                                            tags: String,
-                                            md5: String,
-                                            createdBy: Option[String],
-                                            jobId: Int,
-                                            projectId: Int,
-                                            datasetType: String = "PacBio.DataSet.ConsensusReadSet")
-      extends ServiceDataSetMetadata
-
-  case class ConsensusAlignmentServiceDataSet(
-                                                 id: Int,
-                                                 uuid: UUID,
-                                                 name: String,
-                                                 path: String,
-                                                 createdAt: JodaDateTime,
-                                                 updatedAt: JodaDateTime,
-                                                 numRecords: Long,
-                                                 totalLength: Long,
-                                                 version: String,
-                                                 comments: String,
-                                                 tags: String,
-                                                 md5: String,
-                                                 createdBy: Option[String],
-                                                 jobId: Int,
-                                                 projectId: Int,
-                                                 datasetType: String = "PacBio.DataSet.ConsensusAlignmentSet")
-      extends ServiceDataSetMetadata
-
-  case class BarcodeServiceDataSet(
-                                      id: Int,
-                                      uuid: UUID,
-                                      name: String,
-                                      path: String,
-                                      createdAt: JodaDateTime,
-                                      updatedAt: JodaDateTime,
-                                      numRecords: Long,
-                                      totalLength: Long,
-                                      version: String,
-                                      comments: String,
-                                      tags: String,
-                                      md5: String,
-                                      createdBy: Option[String],
-                                      jobId: Int,
-                                      projectId: Int,
-                                      datasetType: String = "PacBio.DataSet.BarcodeSet")
-      extends ServiceDataSetMetadata
-
-  case class ContigServiceDataSet(
-                                     id: Int,
+  case class ReferenceServiceDataSet(id: Int,
                                      uuid: UUID,
                                      name: String,
                                      path: String,
@@ -688,28 +679,126 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                                      createdBy: Option[String],
                                      jobId: Int,
                                      projectId: Int,
-                                     datasetType: String = "PacBio.DataSet.ContigSet")
+                                     ploidy: String,
+                                     organism: String,
+                                     datasetType: String =
+                                       "PacBio.DataSet.ReferenceSet")
       extends ServiceDataSetMetadata
 
-  case class GmapReferenceServiceDataSet(
-                                            id: Int,
-                                            uuid: UUID,
-                                            name: String,
-                                            path: String,
-                                            createdAt: JodaDateTime,
-                                            updatedAt: JodaDateTime,
-                                            numRecords: Long,
-                                            totalLength: Long,
-                                            version: String,
-                                            comments: String,
-                                            tags: String,
-                                            md5: String,
-                                            createdBy: Option[String],
-                                            jobId: Int,
-                                            projectId: Int,
-                                            ploidy: String,
-                                            organism: String,
-                                            datasetType: String = "PacBio.DataSet.GmapReferenceSet")
+  case class AlignmentServiceDataSet(id: Int,
+                                     uuid: UUID,
+                                     name: String,
+                                     path: String,
+                                     createdAt: JodaDateTime,
+                                     updatedAt: JodaDateTime,
+                                     numRecords: Long,
+                                     totalLength: Long,
+                                     version: String,
+                                     comments: String,
+                                     tags: String,
+                                     md5: String,
+                                     createdBy: Option[String],
+                                     jobId: Int,
+                                     projectId: Int,
+                                     datasetType: String =
+                                       "PacBio.DataSet.AlignmentSet")
+      extends ServiceDataSetMetadata
+
+  case class ConsensusReadServiceDataSet(id: Int,
+                                         uuid: UUID,
+                                         name: String,
+                                         path: String,
+                                         createdAt: JodaDateTime,
+                                         updatedAt: JodaDateTime,
+                                         numRecords: Long,
+                                         totalLength: Long,
+                                         version: String,
+                                         comments: String,
+                                         tags: String,
+                                         md5: String,
+                                         createdBy: Option[String],
+                                         jobId: Int,
+                                         projectId: Int,
+                                         datasetType: String =
+                                           "PacBio.DataSet.ConsensusReadSet")
+      extends ServiceDataSetMetadata
+
+  case class ConsensusAlignmentServiceDataSet(
+      id: Int,
+      uuid: UUID,
+      name: String,
+      path: String,
+      createdAt: JodaDateTime,
+      updatedAt: JodaDateTime,
+      numRecords: Long,
+      totalLength: Long,
+      version: String,
+      comments: String,
+      tags: String,
+      md5: String,
+      createdBy: Option[String],
+      jobId: Int,
+      projectId: Int,
+      datasetType: String = "PacBio.DataSet.ConsensusAlignmentSet")
+      extends ServiceDataSetMetadata
+
+  case class BarcodeServiceDataSet(id: Int,
+                                   uuid: UUID,
+                                   name: String,
+                                   path: String,
+                                   createdAt: JodaDateTime,
+                                   updatedAt: JodaDateTime,
+                                   numRecords: Long,
+                                   totalLength: Long,
+                                   version: String,
+                                   comments: String,
+                                   tags: String,
+                                   md5: String,
+                                   createdBy: Option[String],
+                                   jobId: Int,
+                                   projectId: Int,
+                                   datasetType: String =
+                                     "PacBio.DataSet.BarcodeSet")
+      extends ServiceDataSetMetadata
+
+  case class ContigServiceDataSet(id: Int,
+                                  uuid: UUID,
+                                  name: String,
+                                  path: String,
+                                  createdAt: JodaDateTime,
+                                  updatedAt: JodaDateTime,
+                                  numRecords: Long,
+                                  totalLength: Long,
+                                  version: String,
+                                  comments: String,
+                                  tags: String,
+                                  md5: String,
+                                  createdBy: Option[String],
+                                  jobId: Int,
+                                  projectId: Int,
+                                  datasetType: String =
+                                    "PacBio.DataSet.ContigSet")
+      extends ServiceDataSetMetadata
+
+  case class GmapReferenceServiceDataSet(id: Int,
+                                         uuid: UUID,
+                                         name: String,
+                                         path: String,
+                                         createdAt: JodaDateTime,
+                                         updatedAt: JodaDateTime,
+                                         numRecords: Long,
+                                         totalLength: Long,
+                                         version: String,
+                                         comments: String,
+                                         tags: String,
+                                         md5: String,
+                                         createdBy: Option[String],
+                                         jobId: Int,
+                                         projectId: Int,
+                                         ploidy: String,
+                                         organism: String,
+                                         datasetType: String =
+                                           "PacBio.DataSet.GmapReferenceSet")
       extends ServiceDataSetMetadata
 
   object ProjectState {
@@ -726,15 +815,18 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def fromString(s: String): ProjectState = {
       Seq(CREATED, ACTIVE, UPDATED)
-          .find(_.toString == s)
-          .getOrElse(throw new IllegalArgumentException(s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
+        .find(_.toString == s)
+        .getOrElse(throw new IllegalArgumentException(
+          s"Unknown project state $s, acceptable values are $CREATED, $ACTIVE"))
     }
   }
 
   object ProjectUserRole {
 
-    sealed abstract class ProjectUserRole(private val ordinal: Int) extends Ordered[ProjectUserRole] {
-      override def compare(that: ProjectUserRole) = ordinal.compare(that.ordinal)
+    sealed abstract class ProjectUserRole(private val ordinal: Int)
+        extends Ordered[ProjectUserRole] {
+      override def compare(that: ProjectUserRole) =
+        ordinal.compare(that.ordinal)
     }
 
     case object OWNER extends ProjectUserRole(ordinal = 3)
@@ -746,50 +838,50 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     def fromString(r: String): ProjectUserRole = {
       Seq(OWNER, CAN_EDIT, CAN_VIEW)
         .find(_.toString == r)
-        .getOrElse(throw new IllegalArgumentException(s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
+        .getOrElse(throw new IllegalArgumentException(
+          s"Unknown project user role $r, acceptable values are $OWNER, $CAN_EDIT, $CAN_VIEW"))
     }
   }
 
   // We have a simpler (cheaper to query) project case class for the API
   // response that lists many projects,
-  case class Project(
-                        id: Int,
-                        name: String,
-                        description: String,
-                        state: ProjectState.ProjectState,
-                        createdAt: JodaDateTime,
-                        updatedAt: JodaDateTime,
-                        // isActive: false if the project has been deleted, true otherwise
-                        isActive: Boolean,
-                        grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] = None) {
+  case class Project(id: Int,
+                     name: String,
+                     description: String,
+                     state: ProjectState.ProjectState,
+                     createdAt: JodaDateTime,
+                     updatedAt: JodaDateTime,
+                     // isActive: false if the project has been deleted, true otherwise
+                     isActive: Boolean,
+                     grantRoleToAll: Option[ProjectUserRole.ProjectUserRole] =
+                       None) {
 
-    def makeFull(datasets: Seq[DataSetMetaDataSet], members: Seq[ProjectRequestUser]): FullProject =
-      FullProject(
-        id,
-        name,
-        description,
-        state,
-        createdAt,
-        updatedAt,
-        isActive,
-        grantRoleToAll,
-        datasets,
-        members)
+    def makeFull(datasets: Seq[DataSetMetaDataSet],
+                 members: Seq[ProjectRequestUser]): FullProject =
+      FullProject(id,
+                  name,
+                  description,
+                  state,
+                  createdAt,
+                  updatedAt,
+                  isActive,
+                  grantRoleToAll,
+                  datasets,
+                  members)
   }
 
   // and a more detailed case class for the API responses involving
   // individual projects.
-  case class FullProject(
-                            id: Int,
-                            name: String,
-                            description: String,
-                            state: ProjectState.ProjectState,
-                            createdAt: JodaDateTime,
-                            updatedAt: JodaDateTime,
-                            isActive: Boolean,
-                            grantToAll: Option[ProjectUserRole.ProjectUserRole],
-                            datasets: Seq[DataSetMetaDataSet],
-                            members: Seq[ProjectRequestUser]) {
+  case class FullProject(id: Int,
+                         name: String,
+                         description: String,
+                         state: ProjectState.ProjectState,
+                         createdAt: JodaDateTime,
+                         updatedAt: JodaDateTime,
+                         isActive: Boolean,
+                         grantToAll: Option[ProjectUserRole.ProjectUserRole],
+                         datasets: Seq[DataSetMetaDataSet],
+                         members: Seq[ProjectRequestUser]) {
 
     def asRequest: ProjectRequest =
       ProjectRequest(
@@ -803,35 +895,49 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   // the json structures required in client requests are a subset of the
   // FullProject structure (the FullProject is a valid request, but many
   // fields are optional in requests).
-  case class ProjectRequest(
-                               name: String,
-                               description: String,
-                               // if any of these are None in a PUT request, the corresponding
-                               // value will stay the same (i.e., the update will be skipped).
-                               state: Option[ProjectState.ProjectState],
-                               datasets: Option[Seq[RequestId]],
-                               members: Option[Seq[ProjectRequestUser]]) {
+  case class ProjectRequest(name: String,
+                            description: String,
+                            // if any of these are None in a PUT request, the corresponding
+                            // value will stay the same (i.e., the update will be skipped).
+                            state: Option[ProjectState.ProjectState],
+                            datasets: Option[Seq[RequestId]],
+                            members: Option[Seq[ProjectRequestUser]]) {
 
     // this returns a copy!
     def appendDataSet(dsId: Int): ProjectRequest = {
-      val allDatasets = datasets.map(ds => ds ++ Seq(RequestId(dsId))).getOrElse(Seq(RequestId(dsId)))
+      val allDatasets = datasets
+        .map(ds => ds ++ Seq(RequestId(dsId)))
+        .getOrElse(Seq(RequestId(dsId)))
       this.copy(datasets = Some(allDatasets))
     }
   }
 
   case class RequestId(id: Int)
 
-  case class ProjectRequestUser(login: String, role: ProjectUserRole.ProjectUserRole)
+  case class ProjectRequestUser(login: String,
+                                role: ProjectUserRole.ProjectUserRole)
 
-  case class ProjectUser(projectId: Int, login: String, role: ProjectUserRole.ProjectUserRole)
+  case class ProjectUser(projectId: Int,
+                         login: String,
+                         role: ProjectUserRole.ProjectUserRole)
 
-  case class EulaRecord(user: String, acceptedAt: JodaDateTime, smrtlinkVersion: String, osVersion: String, enableInstallMetrics: Boolean, enableJobMetrics: Boolean)
+  case class EulaRecord(user: String,
+                        acceptedAt: JodaDateTime,
+                        smrtlinkVersion: String,
+                        osVersion: String,
+                        enableInstallMetrics: Boolean,
+                        enableJobMetrics: Boolean)
 
   // Table Models
 
-  implicit val jobStateType = MappedColumnType.base[AnalysisJobStates.JobStates, String](
-    { s => s.toString }, { s => AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN) }
-  )
+  implicit val jobStateType =
+    MappedColumnType.base[AnalysisJobStates.JobStates, String](
+      { s =>
+        s.toString
+      }, { s =>
+        AnalysisJobStates.toState(s).getOrElse(AnalysisJobStates.UNKNOWN)
+      }
+    )
 
   class JobEventsT(tag: Tag) extends Table[JobEvent](tag, "job_events") {
 
@@ -839,7 +945,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def eventTypeId: Rep[String] = column[String]("event_type_id")
 
-    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
+    def state: Rep[AnalysisJobStates.JobStates] =
+      column[AnalysisJobStates.JobStates]("state")
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
@@ -851,7 +958,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def jobJoin = engineJobs.filter(_.id === jobId)
 
-    def * = (id, jobId, state, message, createdAt, eventTypeId) <> (JobEvent.tupled, JobEvent.unapply)
+    def * =
+      (id, jobId, state, message, createdAt, eventTypeId) <> (JobEvent.tupled, JobEvent.unapply)
 
     def idx = index("job_events_job_id", jobId)
   }
@@ -885,14 +993,23 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     // mean the task has started to run. It can be waiting in the Scheduler (e.g., SGE) queue
 
     // Optional Error Message
-    def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
+    def errorMessage: Rep[Option[String]] =
+      column[Option[String]]("error_message")
 
-    def * = (uuid, jobId, taskId, taskTypeId, name, state, createdAt, updatedAt, errorMessage) <> (JobTask.tupled, JobTask.unapply)
+    def * =
+      (uuid,
+       jobId,
+       taskId,
+       taskTypeId,
+       name,
+       state,
+       createdAt,
+       updatedAt,
+       errorMessage) <> (JobTask.tupled, JobTask.unapply)
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
 
     def jobJoin = engineJobs.filter(_.id === jobId)
-
 
   }
 
@@ -908,7 +1025,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def name: Rep[String] = column[String]("name")
 
-    def state: Rep[AnalysisJobStates.JobStates] = column[AnalysisJobStates.JobStates]("state")
+    def state: Rep[AnalysisJobStates.JobStates] =
+      column[AnalysisJobStates.JobStates]("state")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
@@ -917,7 +1035,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
-    def path: Rep[String] = column[String]("path", O.Length(500, varying = true))
+    def path: Rep[String] =
+      column[String]("path", O.Length(500, varying = true))
 
     // This should be stored as JSON within slick-pg
     // https://github.com/tminglei/slick-pg
@@ -925,12 +1044,14 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
-    def smrtLinkVersion: Rep[Option[String]] = column[Option[String]]("smrtlink_version")
+    def smrtLinkVersion: Rep[Option[String]] =
+      column[Option[String]]("smrtlink_version")
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
     // Optional Error Message
-    def errorMessage: Rep[Option[String]] = column[Option[String]]("error_message")
+    def errorMessage: Rep[Option[String]] =
+      column[Option[String]]("error_message")
 
     def projectId: Rep[Int] = column[Int]("project_id")
 
@@ -938,7 +1059,22 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def findById(i: Int) = engineJobs.filter(_.id === i)
 
-    def * = (id, uuid, name, comment, createdAt, updatedAt, state, jobTypeId, path, jsonSettings, createdBy, smrtLinkVersion, isActive, errorMessage, projectId) <> (EngineJob.tupled, EngineJob.unapply)
+    def * =
+      (id,
+       uuid,
+       name,
+       comment,
+       createdAt,
+       updatedAt,
+       state,
+       jobTypeId,
+       path,
+       jsonSettings,
+       createdBy,
+       smrtLinkVersion,
+       isActive,
+       errorMessage,
+       projectId) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid)
 
@@ -947,12 +1083,22 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
 
-  implicit val projectStateType = MappedColumnType.base[ProjectState.ProjectState, String](
-    { s => s.toString }, { s => ProjectState.fromString(s) }
-  )
-  implicit val projectUserRoleType = MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
-  { r => r.toString }, { r => ProjectUserRole.fromString(r) }
-  )
+  implicit val projectStateType =
+    MappedColumnType.base[ProjectState.ProjectState, String](
+      { s =>
+        s.toString
+      }, { s =>
+        ProjectState.fromString(s)
+      }
+    )
+  implicit val projectUserRoleType =
+    MappedColumnType.base[ProjectUserRole.ProjectUserRole, String](
+      { r =>
+        r.toString
+      }, { r =>
+        ProjectUserRole.fromString(r)
+      }
+    )
 
   class ProjectsT(tag: Tag) extends Table[Project](tag, "projects") {
 
@@ -965,7 +1111,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def description: Rep[String] = column[String]("description")
 
-    def state: Rep[ProjectState.ProjectState] = column[ProjectState.ProjectState]("state")
+    def state: Rep[ProjectState.ProjectState] =
+      column[ProjectState.ProjectState]("state")
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
@@ -973,34 +1120,48 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def grantRoleToAll: Rep[Option[ProjectUserRole.ProjectUserRole]] = column[Option[ProjectUserRole.ProjectUserRole]]("grant_role_to_all")
+    def grantRoleToAll: Rep[Option[ProjectUserRole.ProjectUserRole]] =
+      column[Option[ProjectUserRole.ProjectUserRole]]("grant_role_to_all")
 
-    def * = (id, name, description, state, createdAt, updatedAt, isActive, grantRoleToAll) <> (Project.tupled, Project.unapply)
+    def * =
+      (id,
+       name,
+       description,
+       state,
+       createdAt,
+       updatedAt,
+       isActive,
+       grantRoleToAll) <> (Project.tupled, Project.unapply)
   }
 
-  class ProjectsUsersT(tag: Tag) extends Table[ProjectUser](tag, "projects_users") {
+  class ProjectsUsersT(tag: Tag)
+      extends Table[ProjectUser](tag, "projects_users") {
     def projectId: Rep[Int] = column[Int]("project_id")
 
     def login: Rep[String] = column[String]("login")
 
-    def role: Rep[ProjectUserRole.ProjectUserRole] = column[ProjectUserRole.ProjectUserRole]("role")
+    def role: Rep[ProjectUserRole.ProjectUserRole] =
+      column[ProjectUserRole.ProjectUserRole]("role")
 
     def projectFK = foreignKey("project_fk", projectId, projects)(a => a.id)
 
-    def * = (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
+    def * =
+      (projectId, login, role) <> (ProjectUser.tupled, ProjectUser.unapply)
 
     def loginIdx = index("projects_users_login", login)
 
     def projectIdIdx = index("projects_users_project_id", projectId)
   }
 
-  abstract class IdAbleTable[T](tag: Tag, tableName: String) extends Table[T](tag, tableName) {
+  abstract class IdAbleTable[T](tag: Tag, tableName: String)
+      extends Table[T](tag, tableName) {
     def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
 
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag) extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
+  class DataSetTypesT(tag: Tag)
+      extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
 
     def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
 
@@ -1016,7 +1177,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def shortName: Rep[String] = column[String]("short_name")
 
-    def * = (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
+    def * =
+      (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
   }
 
   /*
@@ -1025,7 +1187,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   - Job has many datasets
   - DataSet may belong to one or many jobs
    */
-  class EngineJobDataSetT(tag: Tag) extends Table[EngineJobEntryPoint](tag, "engine_jobs_datasets") {
+  class EngineJobDataSetT(tag: Tag)
+      extends Table[EngineJobEntryPoint](tag, "engine_jobs_datasets") {
 
     def jobId: Rep[Int] = column[Int]("job_id")
 
@@ -1033,7 +1196,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def datasetType: Rep[String] = column[String]("dataset_type")
 
-    def * = (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
+    def * =
+      (jobId, datasetUUID, datasetType) <> (EngineJobEntryPoint.tupled, EngineJobEntryPoint.unapply)
 
     def idx = index("engine_jobs_datasets_job_id", jobId)
   }
@@ -1045,11 +1209,13 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     *
     * @param tag
     */
-  class DataSetMetaT(tag: Tag) extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
+  class DataSetMetaT(tag: Tag)
+      extends IdAbleTable[DataSetMetaDataSet](tag, "dataset_metadata") {
 
     def name: Rep[String] = column[String]("name")
 
-    def path: Rep[String] = column[String]("path", O.Length(500, varying = true))
+    def path: Rep[String] =
+      column[String]("path", O.Length(500, varying = true))
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
 
@@ -1078,14 +1244,31 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (id, uuid, name, path, createdAt, updatedAt, numRecords, totalLength, tags, version, comments, md5, createdBy, jobId, projectId, isActive) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+    def * =
+      (id,
+       uuid,
+       name,
+       path,
+       createdAt,
+       updatedAt,
+       numRecords,
+       totalLength,
+       tags,
+       version,
+       comments,
+       md5,
+       createdBy,
+       jobId,
+       projectId,
+       isActive) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
     def uuidIdx = index("dataset_metadata_uuid", uuid)
 
     def projectIdIdx = index("dataset_metadata_project_id", projectId)
   }
 
-  class SubreadDataSetT(tag: Tag) extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
+  class SubreadDataSetT(tag: Tag)
+      extends IdAbleTable[SubreadServiceSet](tag, "dataset_subreads") {
 
     def cellId: Rep[String] = column[String]("cell_id")
 
@@ -1105,12 +1288,26 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def runName: Rep[String] = column[String]("run_name")
 
-    def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
+    def instrumentControlVersion: Rep[String] =
+      column[String]("instrument_control_version")
 
-    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <> (SubreadServiceSet.tupled, SubreadServiceSet.unapply)
+    def * =
+      (id,
+       uuid,
+       cellId,
+       metadataContextId,
+       wellSampleName,
+       wellName,
+       bioSampleName,
+       cellIndex,
+       instrumentId,
+       instrumentName,
+       runName,
+       instrumentControlVersion) <> (SubreadServiceSet.tupled, SubreadServiceSet.unapply)
   }
 
-  class HdfSubreadDataSetT(tag: Tag) extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
+  class HdfSubreadDataSetT(tag: Tag)
+      extends IdAbleTable[HdfSubreadServiceSet](tag, "dataset_hdfsubreads") {
 
     def cellId: Rep[String] = column[String]("cell_id")
 
@@ -1130,46 +1327,74 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def runName: Rep[String] = column[String]("run_name")
 
-    def instrumentControlVersion: Rep[String] = column[String]("instrument_control_version")
+    def instrumentControlVersion: Rep[String] =
+      column[String]("instrument_control_version")
 
-    def * = (id, uuid, cellId, metadataContextId, wellSampleName, wellName, bioSampleName, cellIndex, instrumentId, instrumentName, runName, instrumentControlVersion) <> (HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
+    def * =
+      (id,
+       uuid,
+       cellId,
+       metadataContextId,
+       wellSampleName,
+       wellName,
+       bioSampleName,
+       cellIndex,
+       instrumentId,
+       instrumentName,
+       runName,
+       instrumentControlVersion) <> (HdfSubreadServiceSet.tupled, HdfSubreadServiceSet.unapply)
   }
 
-  class ReferenceDataSetT(tag: Tag) extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
+  class ReferenceDataSetT(tag: Tag)
+      extends IdAbleTable[ReferenceServiceSet](tag, "dataset_references") {
 
     def ploidy: Rep[String] = column[String]("ploidy")
 
     def organism: Rep[String] = column[String]("organism")
 
-    def * = (id, uuid, ploidy, organism) <> (ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
+    def * =
+      (id, uuid, ploidy, organism) <> (ReferenceServiceSet.tupled, ReferenceServiceSet.unapply)
   }
 
-  class GmapReferenceDataSetT(tag: Tag) extends IdAbleTable[GmapReferenceServiceSet](tag, "dataset_gmapreferences") {
+  class GmapReferenceDataSetT(tag: Tag)
+      extends IdAbleTable[GmapReferenceServiceSet](tag,
+                                                   "dataset_gmapreferences") {
 
     def ploidy: Rep[String] = column[String]("ploidy")
 
     def organism: Rep[String] = column[String]("organism")
 
-    def * = (id, uuid, ploidy, organism) <> (GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
+    def * =
+      (id, uuid, ploidy, organism) <> (GmapReferenceServiceSet.tupled, GmapReferenceServiceSet.unapply)
   }
 
-  class AlignmentDataSetT(tag: Tag) extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
-    def * = (id, uuid) <> (AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
+  class AlignmentDataSetT(tag: Tag)
+      extends IdAbleTable[AlignmentServiceSet](tag, "datasets_alignments") {
+    def * =
+      (id, uuid) <> (AlignmentServiceSet.tupled, AlignmentServiceSet.unapply)
   }
 
-  class BarcodeDataSetT(tag: Tag) extends IdAbleTable[BarcodeServiceSet](tag, "datasets_barcodes") {
+  class BarcodeDataSetT(tag: Tag)
+      extends IdAbleTable[BarcodeServiceSet](tag, "datasets_barcodes") {
     def * = (id, uuid) <> (BarcodeServiceSet.tupled, BarcodeServiceSet.unapply)
   }
 
-  class CCSreadDataSetT(tag: Tag) extends IdAbleTable[ConsensusReadServiceSet](tag, "datasets_ccsreads") {
-    def * = (id, uuid) <> (ConsensusReadServiceSet.tupled, ConsensusReadServiceSet.unapply)
+  class CCSreadDataSetT(tag: Tag)
+      extends IdAbleTable[ConsensusReadServiceSet](tag, "datasets_ccsreads") {
+    def * =
+      (id, uuid) <> (ConsensusReadServiceSet.tupled, ConsensusReadServiceSet.unapply)
   }
 
-  class ConsensusAlignmentDataSetT(tag: Tag) extends IdAbleTable[ConsensusAlignmentServiceSet](tag, "datasets_ccsalignments") {
-    def * = (id, uuid) <> (ConsensusAlignmentServiceSet.tupled, ConsensusAlignmentServiceSet.unapply)
+  class ConsensusAlignmentDataSetT(tag: Tag)
+      extends IdAbleTable[ConsensusAlignmentServiceSet](
+        tag,
+        "datasets_ccsalignments") {
+    def * =
+      (id, uuid) <> (ConsensusAlignmentServiceSet.tupled, ConsensusAlignmentServiceSet.unapply)
   }
 
-  class ContigDataSetT(tag: Tag) extends IdAbleTable[ContigServiceSet](tag, "datasets_contigs") {
+  class ContigDataSetT(tag: Tag)
+      extends IdAbleTable[ContigServiceSet](tag, "datasets_contigs") {
     def * = (id, uuid) <> (ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
@@ -1180,7 +1405,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     *
     * @param tag
     */
-  class PacBioDataStoreFileT(tag: Tag) extends Table[DataStoreServiceFile](tag, "datastore_files") {
+  class PacBioDataStoreFileT(tag: Tag)
+      extends Table[DataStoreServiceFile](tag, "datastore_files") {
     def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
 
     def fileTypeId: Rep[String] = column[String]("file_type_id")
@@ -1195,7 +1421,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
 
-    def path: Rep[String] = column[String]("path", O.Length(500, varying = true))
+    def path: Rep[String] =
+      column[String]("path", O.Length(500, varying = true))
 
     // job id output datastore. Perhaps need to define input for jobs that have datastore's as input
     // This needs to be rethought.
@@ -1209,7 +1436,20 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
-    def * = (uuid, fileTypeId, sourceId, fileSize, createdAt, modifiedAt, importedAt, path, jobId, jobUUID, name, description, isActive) <> (DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
+    def * =
+      (uuid,
+       fileTypeId,
+       sourceId,
+       fileSize,
+       createdAt,
+       modifiedAt,
+       importedAt,
+       path,
+       jobId,
+       jobUUID,
+       name,
+       description,
+       isActive) <> (DataStoreServiceFile.tupled, DataStoreServiceFile.unapply)
 
     def uuidIdx = index("datastore_files_uuid", uuid)
 
@@ -1218,11 +1458,17 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     def jobUuidIdx = index("datastore_files_job_uuid", jobUUID)
   }
 
-  implicit val runStatusType = MappedColumnType.base[SupportedRunStates, String](
-    { s => s.value() }, { s => SupportedRunStates.fromValue(s) }
-  )
+  implicit val runStatusType =
+    MappedColumnType.base[SupportedRunStates, String](
+      { s =>
+        s.value()
+      }, { s =>
+        SupportedRunStates.fromValue(s)
+      }
+    )
 
-  class RunSummariesT(tag: Tag) extends Table[RunSummary](tag, "run_summaries") {
+  class RunSummariesT(tag: Tag)
+      extends Table[RunSummary](tag, "run_summaries") {
 
     def uniqueId: Rep[UUID] = column[UUID]("unique_id", O.PrimaryKey)
 
@@ -1232,13 +1478,17 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
-    def createdAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("created_at")
+    def createdAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("created_at")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("started_at")
+    def startedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("started_at")
 
-    def transfersCompletedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("transfers_completed_at")
+    def transfersCompletedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("transfers_completed_at")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("completed_at")
+    def completedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("completed_at")
 
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("status")
 
@@ -1248,59 +1498,71 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def numCellsFailed: Rep[Int] = column[Int]("num_cells_failed")
 
-    def instrumentName: Rep[Option[String]] = column[Option[String]]("instrument_name")
+    def instrumentName: Rep[Option[String]] =
+      column[Option[String]]("instrument_name")
 
-    def instrumentSerialNumber: Rep[Option[String]] = column[Option[String]]("instrument_serial_number")
+    def instrumentSerialNumber: Rep[Option[String]] =
+      column[Option[String]]("instrument_serial_number")
 
-    def instrumentSwVersion: Rep[Option[String]] = column[Option[String]]("instrument_sw_version")
+    def instrumentSwVersion: Rep[Option[String]] =
+      column[Option[String]]("instrument_sw_version")
 
-    def primaryAnalysisSwVersion: Rep[Option[String]] = column[Option[String]]("primary_analysis_sw_version")
+    def primaryAnalysisSwVersion: Rep[Option[String]] =
+      column[Option[String]]("primary_analysis_sw_version")
 
     def context: Rep[Option[String]] = column[Option[String]]("context")
 
-    def terminationInfo: Rep[Option[String]] = column[Option[String]]("termination_info")
+    def terminationInfo: Rep[Option[String]] =
+      column[Option[String]]("termination_info")
 
     def reserved: Rep[Boolean] = column[Boolean]("reserved")
 
-    def * = (
-        uniqueId,
-        name,
-        summary,
-        createdBy,
-        createdAt,
-        startedAt,
-        transfersCompletedAt,
-        completedAt,
-        status,
-        totalCells,
-        numCellsCompleted,
-        numCellsFailed,
-        instrumentName,
-        instrumentSerialNumber,
-        instrumentSwVersion,
-        primaryAnalysisSwVersion,
-        context,
-        terminationInfo,
-        reserved) <> (RunSummary.tupled, RunSummary.unapply)
+    def * =
+      (uniqueId,
+       name,
+       summary,
+       createdBy,
+       createdAt,
+       startedAt,
+       transfersCompletedAt,
+       completedAt,
+       status,
+       totalCells,
+       numCellsCompleted,
+       numCellsFailed,
+       instrumentName,
+       instrumentSerialNumber,
+       instrumentSwVersion,
+       primaryAnalysisSwVersion,
+       context,
+       terminationInfo,
+       reserved) <> (RunSummary.tupled, RunSummary.unapply)
   }
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)
 
-  class DataModelsT(tag: Tag) extends Table[DataModelAndUniqueId](tag, "pb_data_models") {
+  class DataModelsT(tag: Tag)
+      extends Table[DataModelAndUniqueId](tag, "pb_data_models") {
     def uniqueId: Rep[UUID] = column[UUID]("unique_id", O.PrimaryKey)
 
-    def dataModel: Rep[String] = column[String]("data_model", O.SqlType("TEXT"))
+    def dataModel: Rep[String] =
+      column[String]("data_model", O.SqlType("TEXT"))
 
-    def * = (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
+    def * =
+      (dataModel, uniqueId) <> (DataModelAndUniqueId.tupled, DataModelAndUniqueId.unapply)
 
     def summary = foreignKey("summary_fk", uniqueId, runSummaries)(_.uniqueId)
   }
 
-  implicit val pathType = MappedColumnType.base[Path, String](_.toString, Paths.get(_))
+  implicit val pathType =
+    MappedColumnType.base[Path, String](_.toString, Paths.get(_))
   implicit val collectionStatusType =
-    MappedColumnType.base[SupportedAcquisitionStates, String](_.value(), SupportedAcquisitionStates.fromValue)
+    MappedColumnType.base[SupportedAcquisitionStates, String](
+      _.value(),
+      SupportedAcquisitionStates.fromValue)
 
-  class CollectionMetadataT(tag: Tag) extends Table[CollectionMetadata](tag, "collection_metadata") {
+  class CollectionMetadataT(tag: Tag)
+      extends Table[CollectionMetadata](tag, "collection_metadata") {
     def runId: Rep[UUID] = column[UUID]("run_id")
 
     def run = foreignKey("run_fk", runId, runSummaries)(_.uniqueId)
@@ -1315,40 +1577,47 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def context: Rep[Option[String]] = column[Option[String]]("context")
 
-    def collectionPathUri: Rep[Option[Path]] = column[Option[Path]]("collection_path_uri")
+    def collectionPathUri: Rep[Option[Path]] =
+      column[Option[Path]]("collection_path_uri")
 
-    def status: Rep[SupportedAcquisitionStates] = column[SupportedAcquisitionStates]("status")
+    def status: Rep[SupportedAcquisitionStates] =
+      column[SupportedAcquisitionStates]("status")
 
-    def instrumentId: Rep[Option[String]] = column[Option[String]]("instrument_id")
+    def instrumentId: Rep[Option[String]] =
+      column[Option[String]]("instrument_id")
 
-    def instrumentName: Rep[Option[String]] = column[Option[String]]("instrument_name")
+    def instrumentName: Rep[Option[String]] =
+      column[Option[String]]("instrument_name")
 
     def movieMinutes: Rep[Double] = column[Double]("movie_minutes")
 
     def createdBy: Rep[Option[String]] = column[Option[String]]("created_by")
 
-    def startedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("started_at")
+    def startedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("started_at")
 
-    def completedAt: Rep[Option[JodaDateTime]] = column[Option[JodaDateTime]]("completed_at")
+    def completedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("completed_at")
 
-    def terminationInfo: Rep[Option[String]] = column[Option[String]]("termination_info")
+    def terminationInfo: Rep[Option[String]] =
+      column[Option[String]]("termination_info")
 
-    def * = (
-        runId,
-        uniqueId,
-        name,
-        well,
-        summary,
-        context,
-        collectionPathUri,
-        status,
-        instrumentId,
-        instrumentName,
-        movieMinutes,
-        createdBy,
-        startedAt,
-        completedAt,
-        terminationInfo) <> (CollectionMetadata.tupled, CollectionMetadata.unapply)
+    def * =
+      (runId,
+       uniqueId,
+       name,
+       well,
+       summary,
+       context,
+       collectionPathUri,
+       status,
+       instrumentId,
+       instrumentName,
+       movieMinutes,
+       createdBy,
+       startedAt,
+       completedAt,
+       terminationInfo) <> (CollectionMetadata.tupled, CollectionMetadata.unapply)
 
     def idx = index("collection_metadata_run_id", runId)
   }
@@ -1365,24 +1634,32 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
     def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("CREATED_AT")
 
-    def * = (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
+    def * =
+      (details, uniqueId, name, createdBy, createdAt) <> (Sample.tupled, Sample.unapply)
   }
-
 
   class EulaRecordT(tag: Tag) extends Table[EulaRecord](tag, "eula_record") {
     def user: Rep[String] = column[String]("user")
 
     def acceptedAt: Rep[JodaDateTime] = column[JodaDateTime]("accepted_at")
 
-    def smrtlinkVersion: Rep[String] = column[String]("smrtlink_version", O.PrimaryKey)
+    def smrtlinkVersion: Rep[String] =
+      column[String]("smrtlink_version", O.PrimaryKey)
 
-    def enableInstallMetrics: Rep[Boolean] = column[Boolean]("enable_install_metrics")
+    def enableInstallMetrics: Rep[Boolean] =
+      column[Boolean]("enable_install_metrics")
 
     def enableJobMetrics: Rep[Boolean] = column[Boolean]("enable_job_metrics")
 
     def osVersion: Rep[String] = column[String]("os_version")
 
-    def * = (user, acceptedAt, smrtlinkVersion, osVersion, enableInstallMetrics, enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
+    def * =
+      (user,
+       acceptedAt,
+       smrtlinkVersion,
+       osVersion,
+       enableInstallMetrics,
+       enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
   }
 
   // DataSet types
@@ -1443,32 +1720,84 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eulas)
+    eulas
+  )
 
-  lazy val runTables: Set[SlickTable] = Set(runSummaries, dataModels, collectionMetadata, samples)
+  lazy val runTables: Set[SlickTable] =
+    Set(runSummaries, dataModels, collectionMetadata, samples)
 
   lazy val allTables: Set[SlickTable] = serviceTables ++ runTables
 
   lazy val schema = allTables.map(_.schema).reduce(_ ++ _)
 
-
   // Note, the project name is a unique identifier
-  val generalProject = Project(1, "General Project", "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project", ProjectState.CREATED, JodaDateTime.now(), JodaDateTime.now(), isActive = true, grantRoleToAll = Some(ProjectUserRole.CAN_VIEW))
+  val generalProject = Project(
+    1,
+    "General Project",
+    "General SMRT Link project. By default all imported datasets and analysis jobs will be assigned to this project",
+    ProjectState.CREATED,
+    JodaDateTime.now(),
+    JodaDateTime.now(),
+    isActive = true,
+    grantRoleToAll = Some(ProjectUserRole.CAN_VIEW)
+  )
   // This is "admin" from the wso2 model
-  val projectUser = ProjectUser(generalProject.id, "admin", ProjectUserRole.OWNER)
+  val projectUser =
+    ProjectUser(generalProject.id, "admin", ProjectUserRole.OWNER)
 
   // Is this even used?
   private val datasetTypeDatum = List(
-    ("PacBio.DataSet.ReferenceSet", "Display name for PacBio.DataSet.ReferenceSet", "Description for PacBio.DataSet.ReferenceSet", JodaDateTime.now(), JodaDateTime.now(), "references"),
-    ("PacBio.DataSet.ConsensusReadSet", "Display name for PacBio.DataSet.ConsensusReadSet", "Description for PacBio.DataSet.ConsensusReadSet", JodaDateTime.now(), JodaDateTime.now(), "ccsreads"),
-    ("PacBio.DataSet.ContigSet", "Display name for PacBio.DataSet.ContigSet", "Description for PacBio.DataSet.ContigSet", JodaDateTime.now(), JodaDateTime.now(), "contigs"),
-    ("PacBio.DataSet.SubreadSet", "Display name for PacBio.DataSet.SubreadSet", "Description for PacBio.DataSet.SubreadSet", JodaDateTime.now(), JodaDateTime.now(), "subreads"),
-    ("PacBio.DataSet.BarcodeSet", "Display name for PacBio.DataSet.BarcodeSet", "Description for PacBio.DataSet.BarcodeSet", JodaDateTime.now(), JodaDateTime.now(), "barcodes"),
-    ("PacBio.DataSet.ConsensusAlignmentSet", "Display name for PacBio.DataSet.ConsensusAlignmentSet", "Description for PacBio.DataSet.ConsensusAlignmentSet", JodaDateTime.now(), JodaDateTime.now(), "ccsalignments"),
-    ("PacBio.DataSet.HdfSubreadSet", "Display name for PacBio.DataSet.HdfSubreadSet", "Description for PacBio.DataSet.HdfSubreadSet", JodaDateTime.now(), JodaDateTime.now(), "hdfsubreads"),
-    ("PacBio.DataSet.AlignmentSet", "Display name for PacBio.DataSet.AlignmentSet", "Description for PacBio.DataSet.AlignmentSet", JodaDateTime.now(), JodaDateTime.now(), "alignments")
+    ("PacBio.DataSet.ReferenceSet",
+     "Display name for PacBio.DataSet.ReferenceSet",
+     "Description for PacBio.DataSet.ReferenceSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "references"),
+    ("PacBio.DataSet.ConsensusReadSet",
+     "Display name for PacBio.DataSet.ConsensusReadSet",
+     "Description for PacBio.DataSet.ConsensusReadSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "ccsreads"),
+    ("PacBio.DataSet.ContigSet",
+     "Display name for PacBio.DataSet.ContigSet",
+     "Description for PacBio.DataSet.ContigSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "contigs"),
+    ("PacBio.DataSet.SubreadSet",
+     "Display name for PacBio.DataSet.SubreadSet",
+     "Description for PacBio.DataSet.SubreadSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "subreads"),
+    ("PacBio.DataSet.BarcodeSet",
+     "Display name for PacBio.DataSet.BarcodeSet",
+     "Description for PacBio.DataSet.BarcodeSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "barcodes"),
+    ("PacBio.DataSet.ConsensusAlignmentSet",
+     "Display name for PacBio.DataSet.ConsensusAlignmentSet",
+     "Description for PacBio.DataSet.ConsensusAlignmentSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "ccsalignments"),
+    ("PacBio.DataSet.HdfSubreadSet",
+     "Display name for PacBio.DataSet.HdfSubreadSet",
+     "Description for PacBio.DataSet.HdfSubreadSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "hdfsubreads"),
+    ("PacBio.DataSet.AlignmentSet",
+     "Display name for PacBio.DataSet.AlignmentSet",
+     "Description for PacBio.DataSet.AlignmentSet",
+     JodaDateTime.now(),
+     JodaDateTime.now(),
+     "alignments")
   )
 
-  val coreDataSetMetaTypes = datasetTypeDatum.map(ServiceDataSetMetaType.tupled)
+  val coreDataSetMetaTypes =
+    datasetTypeDatum.map(ServiceDataSetMetaType.tupled)
 
 }

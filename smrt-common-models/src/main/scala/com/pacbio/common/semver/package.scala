@@ -11,7 +11,11 @@ package object semver {
 
   // There doesn't appear to be well supported scala semver lib.
   // Adding a simple wrapper on top of the java one here
-  case class SemVersion(major: Int, minor: Int, patch: Int, metadata: Option[String] = None, prereleaseTag: Option[String] = None) {
+  case class SemVersion(major: Int,
+                        minor: Int,
+                        patch: Int,
+                        metadata: Option[String] = None,
+                        prereleaseTag: Option[String] = None) {
 
     private def toJVersion(): Version = {
       val builder = new Version.Builder(s"$major.$minor.$patch")
@@ -48,7 +52,8 @@ package object semver {
   object SemVersion {
 
     // This isn't completely correct with the spec
-    val orderBySemVersion:Ordering[SemVersion] = Ordering.by((v: SemVersion) => (v.major, v.minor, v.patch))
+    val orderBySemVersion: Ordering[SemVersion] =
+      Ordering.by((v: SemVersion) => (v.major, v.minor, v.patch))
 
     def fromString(sx: String): SemVersion = {
       val semver = Version.valueOf(sx)
@@ -58,7 +63,8 @@ package object semver {
         semver.getMinorVersion,
         semver.getPatchVersion,
         metadata = Some(semver.getBuildMetadata),
-        prereleaseTag = Some(semver.getPreReleaseVersion))
+        prereleaseTag = Some(semver.getPreReleaseVersion)
+      )
 
     }
   }
