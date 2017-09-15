@@ -78,6 +78,7 @@ start-smrt-server-link-jar:
 	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
 test: validate-pacbio-manifests
+	sbt scalafmt::test
 	sbt -batch "test-only -- junitxml html console"
 
 test-int-clean: db-reset-prod

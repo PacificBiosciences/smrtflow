@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.File
-import java.nio.file.Paths
+import java.io.{File, FileNotFoundException, IOError}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
@@ -17,7 +17,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
-
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -45,22 +44,34 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
 
   def host = config.host
 
-  def loadDataStoreFiles(ds: PacBioDataStore): Seq[DataStoreFile] = {
-    ds.files
+  def resolvePath(f: Path, root: Path): Path = {
+    if (f.isAbsolute) f
+    else root.resolve(f)
+  }
+
+  def resolve(root: Path, files: Seq[DataStoreFile]): Seq[DataStoreFile] =
+    files.map(f =>
+      f.copy(path = resolvePath(Paths.get(f.path), root).toString))
+
+  def loadFiles(files: Seq[DataStoreFile],
+                root: Option[Path]): Seq[DataStoreFile] = {
+    val resolvedFiles = root.map(r => resolve(r, files)).getOrElse(files)
+    resolvedFiles
       .filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
-      .foldLeft[Seq[DataStoreFile]](ds.files) { (f, dsf) =>
-        val datastore = loadDataStoreFrom(Paths.get(dsf.path).toFile)
-        f ++ datastore.files
+      .foldLeft(resolvedFiles) { (f, dsf) =>
+        f ++ loadDataStoreFilesFromDataStore(Paths.get(dsf.path).toFile)
       }
   }
 
-  def loadDataStoreFrom(file: File): PacBioDataStore = {
+  def loadDataStoreFilesFromDataStore(file: File): Seq[DataStoreFile] = {
     //logger.info(s"Loading raw DataStore from $file")
     val sx = FileUtils.readFileToString(file, "UTF-8")
     val ds = sx.parseJson.convertTo[PacBioDataStore]
-    val files =
-      loadDataStoreFiles(ds).map(f => f.uniqueId -> f).toMap.values.toSeq
-    ds.copy(files = files)
+    loadFiles(ds.files, Some(file.toPath.getParent))
+      .map(f => f.uniqueId -> f)
+      .toMap
+      .values
+      .toSeq
   }
 
   private def importDataStoreFile(ds: DataStoreFile,
@@ -73,11 +84,28 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
+  private def validateDsFile(
+      dataStoreFile: DataStoreFile): Future[DataStoreFile] = {
+    if (Files.exists(Paths.get(dataStoreFile.path)))
+      Future.successful(dataStoreFile)
+    else
+      Future.failed(new FileNotFoundException(
+        s"DatastoreFile ${dataStoreFile.uniqueId} name:${dataStoreFile.name} Unable to find path: ${dataStoreFile.path}"))
+  }
+
   private def importDataStore(dataStore: PacBioDataStore, jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
+    // When a datastore instance is provided, the files must all be resolved to
+    // absolute paths.
     // Filter out non-chunked files. The are presumed to be intermediate files
-    val files = loadDataStoreFiles(dataStore).filter(!_.isChunked)
-    Future.sequence(files.map(x => importDataStoreFile(x, jobUUID)))
+
+    for {
+      files <- Future.successful(
+        loadFiles(dataStore.files, None).filter(!_.isChunked))
+      validFiles <- Future.sequence(files.map(validateDsFile))
+      results <- Future.sequence(
+        validFiles.map(x => importDataStoreFile(x, jobUUID)))
+    } yield results
   }
 
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(
