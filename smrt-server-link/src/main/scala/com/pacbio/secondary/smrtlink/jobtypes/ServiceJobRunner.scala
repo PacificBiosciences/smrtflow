@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.File
-import java.nio.file.{Path, Paths}
+import java.io.{File, FileNotFoundException, IOError}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.CommonModelImplicits
@@ -9,11 +9,7 @@ import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  AnalysisJobStates,
-  FileJobResultsWriter,
-  JobResultWriter
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, FileJobResultsWriter, JobResultWriter}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
@@ -84,13 +80,22 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
+  private def validateDsFile(dataStoreFile: DataStoreFile): Future[DataStoreFile] = {
+    if (Files.exists(Paths.get(dataStoreFile.path))) Future.successful(dataStoreFile)
+    else  Future.failed(new FileNotFoundException(s"DatastoreFile ${dataStoreFile.uniqueId} name:${dataStoreFile.name} Unable to find path: ${dataStoreFile.path}"))
+  }
+
   private def importDataStore(dataStore: PacBioDataStore, jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     // When a datastore instance is provided, the files must all be resolved to
     // absolute paths.
     // Filter out non-chunked files. The are presumed to be intermediate files
-    val files = loadFiles(dataStore.files, None).filter(!_.isChunked)
-    Future.sequence(files.map(x => importDataStoreFile(x, jobUUID)))
+
+    for {
+      files <- Future.successful(loadFiles(dataStore.files, None).filter(!_.isChunked))
+      validFiles <- Future.sequence(files.map(validateDsFile))
+      results <- Future.sequence(validFiles.map(x => importDataStoreFile(x, jobUUID)))
+    } yield results
   }
 
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(
