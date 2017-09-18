@@ -14,8 +14,10 @@ class V8__ExtendSubreadTable
     with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
-    db.run(DBIO.seq(
-      sqlu"""ALTER TABLE dataset_subreads ADD COLUMN dna_barcode_name VARCHAR(256) DEFAULT NULL""",
-      sqlu"""ALTER TABLE dataset_metadata ADD COLUMN parent_uuid UUID DEFAULT NULL"""))
+    db.run(
+      DBIO.seq(
+        sqlu"""ALTER TABLE dataset_subreads ADD COLUMN dna_barcode_name VARCHAR(256) DEFAULT NULL""",
+        sqlu"""ALTER TABLE dataset_metadata ADD COLUMN parent_uuid UUID DEFAULT NULL"""
+      ))
   }
 }

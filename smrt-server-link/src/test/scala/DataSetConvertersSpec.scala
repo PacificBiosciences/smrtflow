@@ -42,6 +42,7 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.instrumentControlVersion === "2.3.0.0.140640"
       sds.totalLength === 500000
       sds.numRecords === 500
+      sds.dnaBarcodeName === None // FIXME update once XSDs and Java code are updated
     }
   }
 }
