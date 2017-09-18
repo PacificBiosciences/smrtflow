@@ -3980,8 +3980,8 @@
           "title": "DNA Barcode Name",
           "description": "Barcode labels (may be null or multiple)"
         },
-	"parentUuid": {
-	  "type": ["string", "null"],
+        "parentUuid": {
+          "type": ["string", "null"],
           "title": "Parent dataset UUID",
           "description": "UUID of parent, if any"
         },
