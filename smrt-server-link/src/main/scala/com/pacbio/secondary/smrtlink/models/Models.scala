@@ -410,7 +410,8 @@ case class DataSetMetaDataSet(id: Int,
                               createdBy: Option[String],
                               jobId: Int,
                               projectId: Int,
-                              isActive: Boolean)
+                              isActive: Boolean,
+                              parentUuid: Option[UUID])
     extends UniqueIdAble
     with ProjectAble
 
@@ -425,7 +426,8 @@ case class SubreadServiceSet(id: Int,
                              instrumentId: String,
                              instrumentName: String,
                              runName: String,
-                             instrumentControlVersion: String)
+                             instrumentControlVersion: String,
+                             dnaBarcodeName: Option[String])
     extends UniqueIdAble
 
 case class HdfSubreadServiceSet(id: Int,
@@ -549,6 +551,7 @@ trait ServiceDataSetMetadata {
   val createdBy: Option[String]
   val jobId: Int
   val projectId: Int
+  val parentUuid: Option[UUID]
 }
 
 case class SubreadServiceDataSet(
@@ -576,6 +579,8 @@ case class SubreadServiceDataSet(
     createdBy: Option[String],
     jobId: Int,
     projectId: Int,
+    dnaBarcodeName: Option[String],
+    parentUuid: Option[UUID],
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -602,6 +607,7 @@ case class HdfSubreadServiceDataSet(
     createdBy: Option[String],
     jobId: Int,
     projectId: Int,
+    parentUuid: Option[UUID] = None,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -622,6 +628,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    projectId: Int,
                                    ploidy: String,
                                    organism: String,
+                                   parentUuid: Option[UUID] = None,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -640,6 +647,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    createdBy: Option[String],
                                    jobId: Int,
                                    projectId: Int,
+                                   parentUuid: Option[UUID] = None,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -658,6 +666,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        createdBy: Option[String],
                                        jobId: Int,
                                        projectId: Int,
+                                       parentUuid: Option[UUID] = None,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -676,6 +685,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             createdBy: Option[String],
                                             jobId: Int,
                                             projectId: Int,
+                                            parentUuid: Option[UUID] = None,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -695,6 +705,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  createdBy: Option[String],
                                  jobId: Int,
                                  projectId: Int,
+                                 parentUuid: Option[UUID] = None,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -713,6 +724,7 @@ case class ContigServiceDataSet(id: Int,
                                 createdBy: Option[String],
                                 jobId: Int,
                                 projectId: Int,
+                                parentUuid: Option[UUID] = None,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -733,6 +745,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        projectId: Int,
                                        ploidy: String,
                                        organism: String,
+                                       parentUuid: Option[UUID] = None,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata

@@ -386,6 +386,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def isActive: Rep[Boolean] = column[Boolean]("is_active")
 
+    def parentUuid: Rep[Option[UUID]] =
+      column[Option[UUID]]("parent_uuid")
+
     def * =
       (id,
        uuid,
@@ -402,7 +405,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        createdBy,
        jobId,
        projectId,
-       isActive) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+       isActive,
+       parentUuid) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
     def uuidIdx = index("dataset_metadata_uuid", uuid, unique = true)
 
@@ -433,6 +437,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def instrumentControlVersion: Rep[String] =
       column[String]("instrument_control_version")
 
+    def dnaBarcodeName: Rep[Option[String]] =
+      column[Option[String]]("dna_barcode_name")
+
     def * =
       (id,
        uuid,
@@ -445,7 +452,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        instrumentId,
        instrumentName,
        runName,
-       instrumentControlVersion) <> (SubreadServiceSet.tupled, SubreadServiceSet.unapply)
+       instrumentControlVersion,
+       dnaBarcodeName) <> (SubreadServiceSet.tupled, SubreadServiceSet.unapply)
   }
 
   class HdfSubreadDataSetT(tag: Tag)

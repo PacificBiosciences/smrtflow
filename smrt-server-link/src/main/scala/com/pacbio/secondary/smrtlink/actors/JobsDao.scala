@@ -1195,7 +1195,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       ds.createdBy,
       ds.jobId,
       ds.projectId,
-      isActive = true
+      isActive = true,
+      parentUuid = None // TODO how does this get set?
     )
   }
 
@@ -1267,7 +1268,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           ds.instrumentName,
           ds.instrumentName,
           ds.runName,
-          ds.instrumentControlVersion
+          ds.instrumentControlVersion,
+          ds.dnaBarcodeName
         )
       }
     )
@@ -1405,7 +1407,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t2.runName,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      t2.dnaBarcodeName,
+      t1.parentUuid
     )
 
   /**
