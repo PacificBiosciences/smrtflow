@@ -26,7 +26,8 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
       uniqueId: UUID,
       update: Boolean,
       parseResults: Option[ParseResults] = None,
-      setReserved: Option[Boolean] = None): Future[RunSummary] = {
+      setReserved: Option[Boolean] = None,
+      multiJobId: Option[Int] = None): Future[RunSummary] = {
 
     require(update || parseResults.isDefined,
             "Cannot create a run without ParseResults")
@@ -47,8 +48,10 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
             .map(_.run.summarize)
             .orElse(prev)
             .get
-            .copy(reserved = reserved)
+            .copy(reserved = reserved, multiJobId = multiJobId)
 
+          println("Run Summary")
+          println(s"$summary")
           val summaryUpdate =
             Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
@@ -116,12 +119,16 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
 
   override def createRun(create: RunCreate): Future[RunSummary] =
     Future(parser(create.dataModel)).flatMap { r =>
-      updateOrCreate(r.run.uniqueId, update = false, Some(r))
+      updateOrCreate(r.run.uniqueId, update = false, Some(r), None)
     }
 
   override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
     Future(update.dataModel.map(parser.apply)).flatMap { r =>
-      updateOrCreate(id, update = true, r, update.reserved)
+      updateOrCreate(id,
+                     update = true,
+                     r,
+                     update.reserved,
+                     multiJobId = update.multiJobId)
     }
 
   override def deleteRun(id: UUID): Future[MessageResponse] = {

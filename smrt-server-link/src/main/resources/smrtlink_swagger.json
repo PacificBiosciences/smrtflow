@@ -4949,6 +4949,12 @@
           "type": "string",
           "title": "Summary",
           "description": "Run Summary"
+        },
+        "multiJobId": {
+          "default": null,
+          "type": ["integer", "null"],
+          "title": "MultiJob Id",
+          "description": "Multi-Job Id if configured to run Analysis jobs when the Run collections/subreadsets has successfully been imported into SL"
         }
       },
       "required": [
@@ -5022,6 +5028,12 @@
           "type": "boolean",
           "title": "Reserved",
           "description": "Flag for reserved run"
+        },
+        "multiJobId": {
+          "default": null,
+          "type": ["integer", "null"],
+          "title": "MultiJob Id",
+          "description": "Multi-Job Id if configured to run Analysis jobs when the Run collections/subreadsets has successfully been imported into SL"
         }
       }
     },
