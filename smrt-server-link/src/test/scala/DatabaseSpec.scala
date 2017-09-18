@@ -118,7 +118,7 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "instrument-name",
         "run-name",
         "instrument-control-version",
-        "dna-barcode-name")
+        Some("dna-barcode-name"))
       val hdf = HdfSubreadServiceSet(
         id = -1,
         UUID.randomUUID(),
