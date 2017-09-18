@@ -1,43 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="xs3p.xsl"?>
-<!-- edited with XMLSpy v2015 rel. 3 (x64) (http://www.altova.com) by efayad@pacificbiosciences.com (Pacific Biosciences) -->
+<!-- edited with XMLSpy v2015 rel. 3 sp1 (x64) (http://www.altova.com) by Lakhvir Rai (Pacific Biosciences) -->
 <?xml-stylesheet type="application/xml" href="metadata2html.xslt"?>
-<xs:schema xmlns="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd"  targetNamespace="http://pacificbiosciences.com/PacBioSampleInfo.xsd" elementFormDefault="qualified" id="PacBioSampleInfo">
+<xs:schema xmlns="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" targetNamespace="http://pacificbiosciences.com/PacBioSampleInfo.xsd" elementFormDefault="qualified" id="PacBioSampleInfo">
 	<xs:import namespace="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" schemaLocation="PacBioBaseDataModel.xsd"/>
 	<!-- The root element for the metadata structure -->
-	<xs:complexType name="BarcodedSampleType">
-		<xs:annotation>
-			<xs:documentation>This is a data type to hold a barcoded biological sample, or a raw biological sample - so, barcode is optional.</xs:documentation>
-		</xs:annotation>
-		<xs:complexContent>
-			<xs:extension base="BioSampleType">
-				<xs:sequence>
-					<xs:element name="Barcodes" minOccurs="0">
-						<xs:annotation>
-							<xs:documentation>A list of barcodes associated with the biological sample</xs:documentation>
-						</xs:annotation>
-						<xs:complexType>
-							<xs:sequence>
-								<xs:element name="Barcode" type="pbbase:DNABarcode" minOccurs="0" maxOccurs="unbounded">
-									<xs:annotation>
-										<xs:documentation>A sequence of barcodes associated with the biological sample</xs:documentation>
-									</xs:annotation>
-								</xs:element>
-							</xs:sequence>
-						</xs:complexType>
-					</xs:element>
-				</xs:sequence>
-			</xs:extension>
-		</xs:complexContent>
-	</xs:complexType>
 	<xs:complexType name="BioSampleType">
 		<xs:annotation>
 			<xs:documentation>The actual biological sample; this could be prep'd, or in original form; could be bound, or annealed...</xs:documentation>
 		</xs:annotation>
 		<xs:complexContent>
-			<xs:extension base="pbbase:StrictEntityType">
+			<xs:extension base="pbbase:BaseEntityType">
 				<xs:sequence>
-					<xs:element ref="BioSamples" minOccurs="0"/>
+					<xs:element name="DNABarcodes" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>A list of barcodes associated with the biological sample</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:complexContent>
+								<xs:extension base="pbbase:BaseEntityType">
+									<xs:sequence>
+										<xs:element name="DNABarcode" type="pbbase:DNABarcode" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>A sequence of barcodes associated with the biological sample</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:extension>
+							</xs:complexContent>
+						</xs:complexType>
+					</xs:element>
 				</xs:sequence>
 				<xs:attribute name="DateReceived" type="xs:dateTime">
 					<xs:annotation>
@@ -132,11 +124,18 @@
 		</xs:complexType>
 	</xs:element>
 	<xs:element name="BioSamples">
+		<xs:annotation>
+			<xs:documentation>List of biological samples.</xs:documentation>
+		</xs:annotation>
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="BioSample" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="BioSample" maxOccurs="unbounded"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
-	<xs:element name="BioSample" type="BioSampleType"/>
+	<xs:element name="BioSample" type="BioSampleType">
+		<xs:annotation>
+			<xs:documentation>An individual biological sample.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
 </xs:schema>

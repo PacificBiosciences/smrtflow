@@ -270,7 +270,7 @@ This should support a wildcard specification, such that an entire hierarchy can 
 		<xs:annotation>
 			<xs:documentation>A project is of type AccessRight and can be defined the same way, defined by a URI (ResoureId attribute) and access controlled by using the AccessDisabled attribute, set to 'false' to grant users access.
 
-A user (with a role, which has access rights) has one more projects with which they’re associated.  Via this association, one or more users may own a project, and one or more users may be granted access to a project, simply by being associated with it.
+A user (with a role, which has access rights) has one more projects with which they are associated.  Via this association, one or more users may own a project, and one or more users may be granted access to a project, simply by being associated with it.
 </xs:documentation>
 		</xs:annotation>
 	</xs:element>

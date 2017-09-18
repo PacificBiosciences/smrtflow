@@ -398,6 +398,14 @@
   -->
 	<xs:element name="BaselineLevelFiducialDist" type="pbbase:StatsContinuousDistType"/>
 	<!--
+  DmeAngleEst Distribution - productive holes
+  -->
+ 	<xs:element name="DmeAngleEstDist" type="pbbase:StatsContinuousDistType"/>
+  	<!--
+  BaselineLevelScatteringMetrology Distribution - productive holes
+  -->
+  	<xs:element name="BaselineLevelScatteringMetrologyDist" type="pbbase:StatsContinuousDistType"/>
+ 	<!--
   Subsystem Failure Metrics, Added in Software v1.3.1
   -->
 	<xs:element name="MaxPauseFractionVsT" type="xs:double"/>
@@ -480,6 +488,8 @@
 				<xs:element ref="BaselineLevelAntiholeDist" minOccurs="4" maxOccurs="4"/>
 				<xs:element ref="BaselineLevelAntimirrorDist" minOccurs="4" maxOccurs="4"/>
 				<xs:element ref="BaselineLevelFiducialDist" minOccurs="4" maxOccurs="4"/>
+				<xs:element ref="DmeAngleEstDist" minOccurs="4" maxOccurs="4"/>
+				<xs:element ref="BaselineLevelScatteringMetrologyDist" minOccurs="4" maxOccurs="4"/>
 				<xs:element ref="SpectralDiagRRDist" minOccurs="4" maxOccurs="4"/>
 				<xs:element ref="MaxPauseFractionVsT" minOccurs="1" maxOccurs="1"/>
 				<xs:element ref="TMaxPauseFraction" minOccurs="1" maxOccurs="1"/>
