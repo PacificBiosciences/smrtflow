@@ -662,7 +662,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def reserved: Rep[Boolean] = column[Boolean]("reserved")
 
-    def multiJobId: Rep[Option[Int]] = column[Option[Int]]("multi_job_id", O.Default(None))
+    def multiJobId: Rep[Option[Int]] =
+      column[Option[Int]]("multi_job_id", O.Default(None))
 
     def * =
       (uniqueId,
@@ -684,7 +685,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        chemistrySwVersion,
        context,
        terminationInfo,
-       reserved, multiJobId) <> (RunSummary.tupled, RunSummary.unapply)
+       reserved,
+       multiJobId) <> (RunSummary.tupled, RunSummary.unapply)
   }
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)

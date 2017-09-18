@@ -11,14 +11,14 @@ import scala.concurrent.Future
   * Created by mkocher on 9/18/17.
   */
 class V7__AddJobIdToRun
-  extends JdbcMigration
-  with SlickMigration
-  with LazyLogging {
+    extends JdbcMigration
+    with SlickMigration
+    with LazyLogging {
 
-    override def slickMigrate(db: DatabaseDef): Future[Any] = {
-      db.run(
-        DBIO.seq(
-          sqlu"""ALTER TABLE run_summaries ADD COLUMN multi_job_id INTEGER DEFAULT NULL"""
-        ))
-    }
+  override def slickMigrate(db: DatabaseDef): Future[Any] = {
+    db.run(
+      DBIO.seq(
+        sqlu"""ALTER TABLE run_summaries ADD COLUMN multi_job_id INTEGER DEFAULT NULL"""
+      ))
+  }
 }
