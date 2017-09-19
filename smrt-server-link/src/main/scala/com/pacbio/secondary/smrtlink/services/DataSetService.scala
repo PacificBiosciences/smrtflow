@@ -188,16 +188,24 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
     dao.getContigDataSetDetailsById(i)
 
   def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
-    if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
-      dao.updateSubreadSetDetails(id,
-                                  sopts.bioSampleName,
-                                  sopts.wellSampleName)
-    } else if (sopts.isActive.getOrElse(false)) {
+    val f1 = if (sopts.isActive.getOrElse(false)) {
       Future.failed(throw new MethodNotImplementedError(
         "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-    } else {
+    } else if (!sopts.isActive.getOrElse(true)) {
       dao.deleteDataSetById(id)
-    }
+    } else Future.successful(MessageResponse(""))
+
+    val f2 =
+      if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
+        dao.updateSubreadSetDetails(id,
+                                    sopts.bioSampleName,
+                                    sopts.wellSampleName)
+      } else Future.successful(MessageResponse(""))
+
+    for {
+      resp1 <- f1
+      resp2 <- f2
+    } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
   def datasetRoutes[R <: ServiceDataSetMetadata](
