@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pbds:SubreadSet xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbdm="http://pacificbiosciences.com/PacBioDataModel.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" Name="alice_bob" Description="Merged dataset from 2 files from 2 original files using DatasetMerger 0.3.0" Tags="subreads,testdata,merged" Version="4.0.1" CreatedAt="2017-09-19T12:07:38.445-07:00" UniqueId="6d2c5198-c0fb-4749-b349-c1817b35b464" MetaType="PacBio.DataSet.SubreadSet">
+   <pbbase:ExternalResources>
+      <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam" UniqueId="3c536b76-c1b1-4a1c-a287-a138c84678cf" MetaType="PacBio.SubreadFile.SubreadBamFile" TimeStampedName="pacbio_subreadfile_subreadbamfile-170516_223848456">
+         <pbbase:FileIndices>
+            <pbbase:FileIndex ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam.pbi" UniqueId="61b45e94-f090-4a46-902b-aa35c9c41b1f" MetaType="PacBio.Index.PacBioIndex" TimeStampedName="pacbio_index_pacbioindex-170516_223848457"/>
+         </pbbase:FileIndices>
+         <pbbase:ExternalResources>
+            <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.scraps.bam" UniqueId="c1a2cd6c-9182-45a5-8642-cddda43f4b40" MetaType="PacBio.SubreadFile.ScrapsBamFile" TimeStampedName="pacbio_subreadfile_scrapsbamfile-170516_223848456"/>
+         </pbbase:ExternalResources>
+      </pbbase:ExternalResource>
+   </pbbase:ExternalResources>
+   <pbds:DataSets>
+      <pbds:DataSet Name="Bob" Tags="subreads,testdata" Version="3.0.1" CreatedAt="2017-05-16T15:38:48" UniqueId="7f435030-483c-508c-4396-34be16dcd769" MetaType="PacBio.DataSet.SubreadSet" TimeStampedName="pacbio_dataset_subreadset-170516_223848457">
+         <pbbase:ExternalResources>
+            <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam" UniqueId="3c536b76-c1b1-4a1c-a287-a138c84678cf" MetaType="PacBio.SubreadFile.SubreadBamFile" TimeStampedName="pacbio_subreadfile_subreadbamfile-170516_223848456">
+               <pbbase:FileIndices>
+                  <pbbase:FileIndex ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam.pbi" UniqueId="61b45e94-f090-4a46-902b-aa35c9c41b1f" MetaType="PacBio.Index.PacBioIndex" TimeStampedName="pacbio_index_pacbioindex-170516_223848457"/>
+               </pbbase:FileIndices>
+               <pbbase:ExternalResources>
+                  <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.scraps.bam" UniqueId="c1a2cd6c-9182-45a5-8642-cddda43f4b40" MetaType="PacBio.SubreadFile.ScrapsBamFile" TimeStampedName="pacbio_subreadfile_scrapsbamfile-170516_223848456"/>
+               </pbbase:ExternalResources>
+            </pbbase:ExternalResource>
+         </pbbase:ExternalResources>
+         <pbds:DataSetMetadata>
+            <pbds:TotalLength>33882</pbds:TotalLength>
+            <pbds:NumRecords>18</pbds:NumRecords>
+            <pbmeta:Collections>
+               <pbmeta:CollectionMetadata UniqueId="653ab1d4-ae7a-4ea1-85c9-d5959678d6a8" MetaType="PacBio.Collection" TimeStampedName="m140918_150013_42139_c100697631700000001823144703261565_s1_p0" Context="m2" InstrumentId="1" InstrumentName="42139">
+                  <pbmeta:InstCtrlVer>2.3.0.0.140018</pbmeta:InstCtrlVer>
+                  <pbmeta:SigProcVer>NRT@172.31.128.10:8082, SwVer=2300.140018, HwVer=1.0</pbmeta:SigProcVer>
+                  <pbmeta:RunDetails>
+                     <pbmeta:TimeStampedName>r002018_42139_140918</pbmeta:TimeStampedName>
+                     <pbmeta:Name>Alice_Bob</pbmeta:Name>
+                  </pbmeta:RunDetails>
+                  <pbmeta:WellSample Name="Bob Sample 1">
+                     <pbmeta:WellName>B02</pbmeta:WellName>
+                     <pbmeta:Concentration>0.0</pbmeta:Concentration>
+                     <pbmeta:InsertSize>2000</pbmeta:InsertSize>
+                     <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+                     <pbmeta:StageHotstartEnabled>true</pbmeta:StageHotstartEnabled>
+                     <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+                     <pbmeta:UseCount>1</pbmeta:UseCount>
+                     <pbsample:BioSamples>
+                        <pbsample:BioSample Name="Bob">
+                          <pbsample:DNABarcodes>
+                            <pbsample:DNABarcode Name="F2--R2"/>
+                          </pbsample:DNABarcodes>
+                        </pbsample:BioSample>
+                     </pbsample:BioSamples>
+                  </pbmeta:WellSample>
+                  <pbmeta:Automation>
+                     <pbbase:AutomationParameters>
+                        <pbbase:AutomationParameter/>
+                     </pbbase:AutomationParameters>
+                     <pbbase:Defaults xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+                  </pbmeta:Automation>
+                  <pbmeta:CollectionNumber>3</pbmeta:CollectionNumber>
+                  <pbmeta:CellIndex>5</pbmeta:CellIndex>
+                  <pbmeta:Primary>
+                     <pbmeta:AutomationName>BasecallerV1</pbmeta:AutomationName>
+                     <pbmeta:ConfigFileName>2-3-0_P6-C4.xml</pbmeta:ConfigFileName>
+                     <pbmeta:SequencingCondition></pbmeta:SequencingCondition>
+                     <pbmeta:OutputOptions>
+                        <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+                        <pbmeta:CollectionPathUri>rsy://mp-rsync/vol54//RS_DATA_STAGING/42139/P6C4_barcodes_42139_091714_2018/G12_1/</pbmeta:CollectionPathUri>
+                        <pbmeta:CopyFiles>
+                           <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+                        </pbmeta:CopyFiles>
+                        <pbmeta:Readout>Bases</pbmeta:Readout>
+                        <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+                     </pbmeta:OutputOptions>
+                  </pbmeta:Primary>
+               </pbmeta:CollectionMetadata>
+            </pbmeta:Collections>
+         </pbds:DataSetMetadata>
+      </pbds:DataSet>
+      <pbds:DataSet Name="Alice" Tags="subreads,testdata" Version="3.0.1" CreatedAt="2017-05-16T15:38:48" UniqueId="818ebaa5-8b13-003f-0c49-9e1664f66a2a" MetaType="PacBio.DataSet.SubreadSet" TimeStampedName="pacbio_dataset_subreadset-170516_223848457">
+         <pbbase:ExternalResources>
+            <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam" UniqueId="3c536b76-c1b1-4a1c-a287-a138c84678cf" MetaType="PacBio.SubreadFile.SubreadBamFile" TimeStampedName="pacbio_subreadfile_subreadbamfile-170516_223848456">
+               <pbbase:FileIndices>
+                  <pbbase:FileIndex ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam.pbi" UniqueId="61b45e94-f090-4a46-902b-aa35c9c41b1f" MetaType="PacBio.Index.PacBioIndex" TimeStampedName="pacbio_index_pacbioindex-170516_223848457"/>
+               </pbbase:FileIndices>
+               <pbbase:ExternalResources>
+                  <pbbase:ExternalResource ResourceId="/pbi/dept/secondary/siv/testdata/PacBioTestData/data/SubreadSet/m140918_150013_42139_c100697631700000001823144703261565_s1_p0.scraps.bam" UniqueId="c1a2cd6c-9182-45a5-8642-cddda43f4b40" MetaType="PacBio.SubreadFile.ScrapsBamFile" TimeStampedName="pacbio_subreadfile_scrapsbamfile-170516_223848456"/>
+               </pbbase:ExternalResources>
+            </pbbase:ExternalResource>
+         </pbbase:ExternalResources>
+         <pbds:DataSetMetadata>
+            <pbds:TotalLength>33882</pbds:TotalLength>
+            <pbds:NumRecords>18</pbds:NumRecords>
+            <pbmeta:Collections>
+               <pbmeta:CollectionMetadata UniqueId="247fa721-b554-4cf1-b5e1-ee1c68b9b055" MetaType="PacBio.Collection" TimeStampedName="m140918_150013_42139_c100697631700000001823144703261565_s1_p0" Context="m1" InstrumentId="1" InstrumentName="42139">
+                  <pbmeta:InstCtrlVer>2.3.0.0.140018</pbmeta:InstCtrlVer>
+                  <pbmeta:SigProcVer>NRT@172.31.128.10:8082, SwVer=2300.140018, HwVer=1.0</pbmeta:SigProcVer>
+                  <pbmeta:RunDetails>
+                     <pbmeta:TimeStampedName>r002018_42139_140918</pbmeta:TimeStampedName>
+                     <pbmeta:Name>Alice_Bob</pbmeta:Name>
+                  </pbmeta:RunDetails>
+                  <pbmeta:WellSample Name="Alice_Sample_1">
+                     <pbmeta:WellName>A01</pbmeta:WellName>
+                     <pbmeta:Concentration>0.0</pbmeta:Concentration>
+                     <pbmeta:InsertSize>2000</pbmeta:InsertSize>
+                     <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+                     <pbmeta:StageHotstartEnabled>true</pbmeta:StageHotstartEnabled>
+                     <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+                     <pbmeta:UseCount>1</pbmeta:UseCount>
+                     <pbsample:BioSamples>
+                        <pbsample:BioSample Name="Alice">
+                          <pbsample:DNABarcodes>
+                            <pbsample:DNABarcode Name="F1--R1"/>
+                          </pbsample:DNABarcodes>
+                        </pbsample:BioSample>
+                     </pbsample:BioSamples>
+                  </pbmeta:WellSample>
+                  <pbmeta:Automation>
+                     <pbbase:AutomationParameters>
+                        <pbbase:AutomationParameter/>
+                     </pbbase:AutomationParameters>
+                     <pbbase:Defaults xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+                  </pbmeta:Automation>
+                  <pbmeta:CollectionNumber>3</pbmeta:CollectionNumber>
+                  <pbmeta:CellIndex>5</pbmeta:CellIndex>
+                  <pbmeta:Primary>
+                     <pbmeta:AutomationName>BasecallerV1</pbmeta:AutomationName>
+                     <pbmeta:ConfigFileName>2-3-0_P6-C4.xml</pbmeta:ConfigFileName>
+                     <pbmeta:SequencingCondition></pbmeta:SequencingCondition>
+                     <pbmeta:OutputOptions>
+                        <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+                        <pbmeta:CollectionPathUri>rsy://mp-rsync/vol54//RS_DATA_STAGING/42139/P6C4_barcodes_42139_091714_2018/G12_1/</pbmeta:CollectionPathUri>
+                        <pbmeta:CopyFiles>
+                           <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+                        </pbmeta:CopyFiles>
+                        <pbmeta:Readout>Bases</pbmeta:Readout>
+                        <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+                     </pbmeta:OutputOptions>
+                  </pbmeta:Primary>
+               </pbmeta:CollectionMetadata>
+            </pbmeta:Collections>
+         </pbds:DataSetMetadata>
+      </pbds:DataSet>
+   </pbds:DataSets>
+   <pbds:DataSetMetadata>
+      <pbds:TotalLength>67764</pbds:TotalLength>
+      <pbds:NumRecords>36</pbds:NumRecords>
+      <pbmeta:Collections>
+         <pbmeta:CollectionMetadata UniqueId="653ab1d4-ae7a-4ea1-85c9-d5959678d6a8" MetaType="PacBio.Collection" TimeStampedName="m140918_150013_42139_c100697631700000001823144703261565_s1_p0" Context="m2" InstrumentId="1" InstrumentName="42139">
+            <pbmeta:InstCtrlVer>2.3.0.0.140018</pbmeta:InstCtrlVer>
+            <pbmeta:SigProcVer>NRT@172.31.128.10:8082, SwVer=2300.140018, HwVer=1.0</pbmeta:SigProcVer>
+            <pbmeta:RunDetails>
+               <pbmeta:TimeStampedName>r002018_42139_140918</pbmeta:TimeStampedName>
+               <pbmeta:Name>Alice_Bob</pbmeta:Name>
+            </pbmeta:RunDetails>
+            <pbmeta:WellSample Name="Bob Sample 1">
+               <pbmeta:WellName>B02</pbmeta:WellName>
+               <pbmeta:Concentration>0.0</pbmeta:Concentration>
+               <pbmeta:InsertSize>2000</pbmeta:InsertSize>
+               <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+               <pbmeta:StageHotstartEnabled>true</pbmeta:StageHotstartEnabled>
+               <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+               <pbmeta:UseCount>1</pbmeta:UseCount>
+               <pbsample:BioSamples>
+                  <pbsample:BioSample Name="Bob">
+                     <pbsample:DNABarcodes>
+                        <pbsample:DNABarcode Name="F2--R2"/>
+                     </pbsample:DNABarcodes>
+                  </pbsample:BioSample>
+               </pbsample:BioSamples>
+            </pbmeta:WellSample>
+            <pbmeta:Automation>
+               <pbbase:AutomationParameters>
+                  <pbbase:AutomationParameter/>
+               </pbbase:AutomationParameters>
+               <pbbase:Defaults xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+            </pbmeta:Automation>
+            <pbmeta:CollectionNumber>3</pbmeta:CollectionNumber>
+            <pbmeta:CellIndex>5</pbmeta:CellIndex>
+            <pbmeta:Primary>
+               <pbmeta:AutomationName>BasecallerV1</pbmeta:AutomationName>
+               <pbmeta:ConfigFileName>2-3-0_P6-C4.xml</pbmeta:ConfigFileName>
+               <pbmeta:SequencingCondition></pbmeta:SequencingCondition>
+               <pbmeta:OutputOptions>
+                  <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+                  <pbmeta:CollectionPathUri>rsy://mp-rsync/vol54//RS_DATA_STAGING/42139/P6C4_barcodes_42139_091714_2018/G12_1/</pbmeta:CollectionPathUri>
+                  <pbmeta:CopyFiles>
+                     <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+                  </pbmeta:CopyFiles>
+                  <pbmeta:Readout>Bases</pbmeta:Readout>
+                  <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+               </pbmeta:OutputOptions>
+            </pbmeta:Primary>
+         </pbmeta:CollectionMetadata>
+         <pbmeta:CollectionMetadata UniqueId="247fa721-b554-4cf1-b5e1-ee1c68b9b055" MetaType="PacBio.Collection" TimeStampedName="m140918_150013_42139_c100697631700000001823144703261565_s1_p0" Context="m1" InstrumentId="1" InstrumentName="42139">
+            <pbmeta:InstCtrlVer>2.3.0.0.140018</pbmeta:InstCtrlVer>
+            <pbmeta:SigProcVer>NRT@172.31.128.10:8082, SwVer=2300.140018, HwVer=1.0</pbmeta:SigProcVer>
+            <pbmeta:RunDetails>
+               <pbmeta:TimeStampedName>r002018_42139_140918</pbmeta:TimeStampedName>
+               <pbmeta:Name>Alice_Bob</pbmeta:Name>
+            </pbmeta:RunDetails>
+            <pbmeta:WellSample Name="Alice_Sample_1">
+               <pbmeta:WellName>A01</pbmeta:WellName>
+               <pbmeta:Concentration>0.0</pbmeta:Concentration>
+               <pbmeta:InsertSize>2000</pbmeta:InsertSize>
+               <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+               <pbmeta:StageHotstartEnabled>true</pbmeta:StageHotstartEnabled>
+               <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+               <pbmeta:UseCount>1</pbmeta:UseCount>
+               <pbsample:BioSamples>
+                  <pbsample:BioSample Name="Alice">
+                    <pbsample:DNABarcodes>
+                      <pbsample:DNABarcode Name="F1--R1"/>
+                    </pbsample:DNABarcodes>
+                 </pbsample:BioSample>
+               </pbsample:BioSamples>
+            </pbmeta:WellSample>
+            <pbmeta:Automation>
+               <pbbase:AutomationParameters>
+                  <pbbase:AutomationParameter/>
+               </pbbase:AutomationParameters>
+               <pbbase:Defaults xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+            </pbmeta:Automation>
+            <pbmeta:CollectionNumber>3</pbmeta:CollectionNumber>
+            <pbmeta:CellIndex>5</pbmeta:CellIndex>
+            <pbmeta:Primary>
+               <pbmeta:AutomationName>BasecallerV1</pbmeta:AutomationName>
+               <pbmeta:ConfigFileName>2-3-0_P6-C4.xml</pbmeta:ConfigFileName>
+               <pbmeta:SequencingCondition></pbmeta:SequencingCondition>
+               <pbmeta:OutputOptions>
+                  <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+                  <pbmeta:CollectionPathUri>rsy://mp-rsync/vol54//RS_DATA_STAGING/42139/P6C4_barcodes_42139_091714_2018/G12_1/</pbmeta:CollectionPathUri>
+                  <pbmeta:CopyFiles>
+                     <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+                  </pbmeta:CopyFiles>
+                  <pbmeta:Readout>Bases</pbmeta:Readout>
+                  <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+               </pbmeta:OutputOptions>
+            </pbmeta:Primary>
+         </pbmeta:CollectionMetadata>
+      </pbmeta:Collections>
+   </pbds:DataSetMetadata>
+</pbds:SubreadSet>
