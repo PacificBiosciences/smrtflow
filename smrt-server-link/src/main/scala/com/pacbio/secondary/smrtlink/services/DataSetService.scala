@@ -189,7 +189,9 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
     if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
-      dao.updateSubreadSetDetails(id, sopts.bioSampleName, sopts.wellSampleName)
+      dao.updateSubreadSetDetails(id,
+                                  sopts.bioSampleName,
+                                  sopts.wellSampleName)
     } else if (sopts.isActive.getOrElse(false)) {
       Future.failed(throw new MethodNotImplementedError(
         "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))

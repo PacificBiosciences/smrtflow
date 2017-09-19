@@ -1375,14 +1375,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       val newWellSample = wellSampleName.getOrElse(ds.wellSampleName)
       db.run {
         DBIO.seq(
-          dsSubread2.filter(_.id === ds.id)
-                    .map(s => (s.bioSampleName, s.wellSampleName))
-                    .update(newBioSample, newWellSample),
-          qDsMetaDataById(id).map(d => Tuple1(d.updatedAt))
-                             .update(Tuple1(JodaDateTime.now()))
+          dsSubread2
+            .filter(_.id === ds.id)
+            .map(s => (s.bioSampleName, s.wellSampleName))
+            .update(newBioSample, newWellSample),
+          qDsMetaDataById(id)
+            .map(d => Tuple1(d.updatedAt))
+            .update(Tuple1(JodaDateTime.now()))
         )
       } map { _ =>
-        val msg = s"Set bioSampleName=$newBioSample and wellSampleName=$newWellSample"
+        val msg =
+          s"Set bioSampleName=$newBioSample and wellSampleName=$newWellSample"
         MessageResponse(msg)
       }
     }
