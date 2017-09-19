@@ -105,22 +105,8 @@ trait DataSetMerger extends LazyLogging {
     val collections = new Collections()
     collections.getCollectionMetadata.addAll(uniqueCollectionMetadata)
 
-    // merge Bio samples
-    val uniqueBioSampleList = ms
-      .flatMap(m => Option(m.getBioSamples))
-      .flatMap(_.getBioSample)
-      .toList
-      .map(bs => (bs.getUniqueId, bs))
-      .toMap
-      .values
-    // there's a duplication of this definition in pacbioinfo ?
-    val bioSamples = new BioSamples()
-    bioSamples.getBioSample.addAll(uniqueBioSampleList)
-
-    //
     val metadata = new ReadSetMetadataType()
     metadata.setCollections(collections)
-    metadata.setBioSamples(bioSamples)
 
     metadata
   }

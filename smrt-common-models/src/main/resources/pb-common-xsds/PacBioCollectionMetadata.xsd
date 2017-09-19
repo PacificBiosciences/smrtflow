@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="xs3p.xsl"?>
-<!-- edited with XMLSpy v2016 (x64) (http://www.altova.com) by efayad@pacificbiosciences.com (Pacific Biosciences) -->
+<!-- edited with XMLSpy v2015 rel. 3 sp1 (x64) (http://www.altova.com) by Lakhvir Rai (Pacific Biosciences) -->
 <?xml-stylesheet type="application/xml" href="metadata2html.xslt"?>
 <xs:schema xmlns="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" targetNamespace="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" elementFormDefault="qualified" id="PacBioCollectionMetadata">
 	<xs:import namespace="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" schemaLocation="PacBioBaseDataModel.xsd"/>
@@ -107,6 +107,11 @@ If multiple collections are utilizing the same physical plate well, all these co
 								<xs:documentation>The sequencing kit supply information. </xs:documentation>
 							</xs:annotation>
 						</xs:element>
+						<xs:element name="WashKitPlate" type="pbrk:SupplyKitSequencing" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>The wash kit supply information. </xs:documentation>
+							</xs:annotation>
+						</xs:element>
 						<xs:element ref="Primary" minOccurs="0">
 							<xs:annotation>
 								<xs:documentation>The primary analysis-specific information. </xs:documentation>
@@ -138,7 +143,7 @@ If multiple collections are utilizing the same physical plate well, all these co
 											<xs:documentation>Each component should list its name and version attribute</xs:documentation>
 										</xs:annotation>
 									</xs:element>
-					            </xs:sequence>
+								</xs:sequence>
 							</xs:complexType>
 						</xs:element>
 					</xs:sequence>
@@ -322,18 +327,7 @@ If multiple collections are utilizing the same physical plate well, all these co
 								<xs:documentation>Indicating what kind (if any) control was used. </xs:documentation>
 							</xs:annotation>
 						</xs:element>
-						<xs:element name="SampleBarcodeInfo" type="pbbase:DataEntityType" minOccurs="0">
-							<xs:annotation>
-								<xs:documentation>When utilizing DNA barcoding, store the list of smaple barcodes in this element.</xs:documentation>
-							</xs:annotation>
-						</xs:element>
-						<xs:element ref="pbsample:BioSamplePointers" minOccurs="0">
-							<xs:annotation>
-								<xs:documentation>Back references to other sample object UniqueIds
- 
-This is optional since we will likely not have a link back to samples created in the calculator.</xs:documentation>
-							</xs:annotation>
-						</xs:element>
+						<xs:element ref="pbsample:BioSamples" minOccurs="0"/>
 					</xs:sequence>
 				</xs:extension>
 			</xs:complexContent>

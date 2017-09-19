@@ -17,14 +17,14 @@ Delete old XSDs and copy XSDs into smrt-common-models
 
 ```bash
 # delete the old bindings
-rm -fr smrt-common-model/src/main/java/*
+rm -fr smrt-common-models/src/main/java/*
 
 # delete all XSDs
-rm -rf smrt-common-modelsrc/main/resources/pb-common-xsds
+rm -rf smrt-common-models/src/main/resources/pb-common-xsds
 
 # Perhaps need to delete PacBioDeclData.xsd or other non-namespaced files used by ICS
 # Update the XSDs stored within smrtflow
-cp xsd-datamodels/*.xsd smrt-common-model/src/main/resources/pb-common-xsds
+cp xsd-datamodels/*.xsd smrt-common-models/src/main/resources/pb-common-xsds
 ```
 
 ## Step #2
@@ -33,7 +33,7 @@ Generate Java classes
 
 ```bash
 # generate the new
-xjc smrt-common-model/src/main/resources/pb-common-xsds/ -d smrt-common-model/src/main/java
+xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
 
 ````
 ## Step #3

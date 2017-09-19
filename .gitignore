@@ -53,3 +53,6 @@ db/*
 
 # node
 node_modules/*
+
+# test detritus
+pg/
