@@ -10,10 +10,12 @@ import scala.collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType,DNABarcode}
-import com.pacificbiosciences.pacbiocollectionmetadata.{CollectionMetadata => XsdMetadata, WellSample}
+import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
+import com.pacificbiosciences.pacbiocollectionmetadata.{
+  CollectionMetadata => XsdMetadata,
+  WellSample
+}
 import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
-
 
 /**
   * Utils for converting DataSet XML-ized objects to "Service" DataSets
@@ -23,14 +25,15 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
   *
   * Created by mkocher on 5/26/15.
   */
-
 // TODO this should be migrated to analysis.datasets and combined with setter
 // functions (TBD)
 trait DataSetMetadataUtils {
 
-  protected def getCollectionsMetadata(ds: ReadSetType): Option[Seq[XsdMetadata]] = Try {
-    Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-  }.getOrElse(None).map(_.toSeq)
+  protected def getCollectionsMetadata(
+      ds: ReadSetType): Option[Seq[XsdMetadata]] =
+    Try {
+      Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
+    }.getOrElse(None).map(_.toSeq)
 
   protected def getWellSamples(ds: ReadSetType): Try[Seq[WellSample]] = Try {
     getCollectionsMetadata(ds)
@@ -45,8 +48,7 @@ trait DataSetMetadataUtils {
     getNames(getWellSamples(ds).toOption)
 
   protected def getBioSamples(ds: ReadSetType): Try[Seq[BioSampleType]] = Try {
-    getWellSamples(ds)
-      .toOption
+    getWellSamples(ds).toOption
       .map(_.map(ws => Option(ws.getBioSamples.getBioSample).map(_.toSeq)))
       .map(_.map(bs => bs.getOrElse(Seq.empty[BioSampleType])).flatten)
       .getOrElse(Seq.empty[BioSampleType])
@@ -55,11 +57,11 @@ trait DataSetMetadataUtils {
   protected def getBioSampleNames(ds: ReadSetType): Seq[String] =
     getNames(getBioSamples(ds).toOption)
 
-  protected def getDnaBarcodeNames(ds: ReadSetType): Seq[String] = getNames(
-    getBioSamples(ds)
-      .toOption
-      .map(_.map(bs => Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)))
-      .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
+  protected def getDnaBarcodeNames(ds: ReadSetType): Seq[String] =
+    getNames(
+      getBioSamples(ds).toOption
+        .map(_.map(bs => Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)))
+        .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
 }
 
 object Converters extends DataSetMetadataUtils {
@@ -138,16 +140,19 @@ object Converters extends DataSetMetadataUtils {
       metadata.map(_.head.getRunDetails.getCreatedBy)
     } getOrElse None
     val contextId = Try {
-      metadata.map(_.head.getContext)
-              .getOrElse(DEFAULT_CONTEXT)
+      metadata
+        .map(_.head.getContext)
+        .getOrElse(DEFAULT_CONTEXT)
     } getOrElse DEFAULT_CONTEXT
     val instrumentName = Try {
-      metadata.map(_.head.getInstrumentName)
-              .getOrElse(DEFAULT_INST)
+      metadata
+        .map(_.head.getInstrumentName)
+        .getOrElse(DEFAULT_INST)
     } getOrElse DEFAULT_INST
     val instrumentControlVersion = Try {
-      metadata.map(_.head.getInstCtrlVer)
-              .getOrElse(DEFAULT_INST_CTL_VERSION)
+      metadata
+        .map(_.head.getInstCtrlVer)
+        .getOrElse(DEFAULT_INST_CTL_VERSION)
     } getOrElse (DEFAULT_INST_CTL_VERSION)
 
     // This one is slightly messier because we need to handle the case of
