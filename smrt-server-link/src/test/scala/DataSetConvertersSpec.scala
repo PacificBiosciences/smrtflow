@@ -8,53 +8,13 @@ import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.smrtlink.models.{Converters, DataSetMetadataUtils}
+import com.pacbio.secondary.smrtlink.models.Converters
 
 
-class DataSetConvertersSpec extends Specification with DataSetMetadataUtils with LazyLogging {
+class DataSetConvertersSpec extends Specification with LazyLogging {
 
   private def getPath(name: String) =
     Paths.get(getClass.getResource(name).toURI)
-
-  private def getSubreads(name: String) =
-    DataSetLoader.loadSubreadSet(getPath(name))
-
-  "Extract metadata from SubreadSet" should {
-    "Get biological sample names" in {
-      var ds = getSubreads("/dataset-subreads/example_01.xml")
-      getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
-      ds = getSubreads("/dataset-subreads/sample1.subreadset.xml")
-      getBioSampleNames(ds) must beEqualTo(Seq("Alice"))
-      ds = getSubreads("/dataset-subreads/multi_sample.subreadset.xml")
-      getBioSampleNames(ds) must beEqualTo(Seq("Alice", "Bob"))
-      ds = getSubreads("/dataset-subreads/merged.dataset.xml")
-      getBioSampleNames(ds) must beEqualTo(Seq("Alice", "Bob"))
-      ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
-      getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
-    }
-    "Get well sample names" in {
-      var ds = getSubreads("/dataset-subreads/example_01.xml")
-      getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
-      ds = getSubreads("/dataset-subreads/merged.dataset.xml")
-      getWellSampleNames(ds) must beEqualTo(Seq("Alice_Sample_1", "Bob Sample 1"))
-      ds = getSubreads("/dataset-subreads/multi_sample.subreadset.xml")
-      getWellSampleNames(ds) must beEqualTo(Seq("Alice_Bob_Pooled"))
-      ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
-      getWellSampleNames(ds) must beEqualTo(Seq.empty[String])
-    }
-    "Get DNA Barcode names" in {
-      var ds = getSubreads("/dataset-subreads/example_01.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq.empty[String])
-      ds = getSubreads("/dataset-subreads/sample1.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1"))
-      ds = getSubreads("/dataset-subreads/multi_sample.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1", "F2--R2"))
-      ds = getSubreads("/dataset-subreads/merged.dataset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1", "F2--R2"))
-      ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq.empty[String])
-    }
-  }
 
   private def convertSubreads(name: String) = {
     val p = getPath(name)
@@ -109,6 +69,10 @@ class DataSetConvertersSpec extends Specification with DataSetMetadataUtils with
       sds.bioSampleName === Converters.UNKNOWN
       sds.wellSampleName === Converters.UNKNOWN
       sds.dnaBarcodeName must beNone
+    }
+    "SubreadSet with missing run name" in {
+      val sds = convertSubreads("/dataset-subreads/bug31820.subreadset.xml")
+      sds.runName === Converters.UNKNOWN
     }
   }
 }

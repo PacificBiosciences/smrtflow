@@ -10,12 +10,7 @@ import scala.collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
-import com.pacificbiosciences.pacbiocollectionmetadata.{
-  CollectionMetadata => XsdMetadata,
-  WellSample
-}
-import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetadataUtils
 
 /**
   * Utils for converting DataSet XML-ized objects to "Service" DataSets
@@ -25,51 +20,6 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
   *
   * Created by mkocher on 5/26/15.
   */
-// TODO this should be migrated to analysis.datasets and combined with setter
-// functions (TBD)
-trait DataSetMetadataUtils {
-
-  protected def getCollectionsMetadata(
-      ds: ReadSetType): Option[Seq[XsdMetadata]] =
-    Try {
-      Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-    }.getOrElse(None).map(_.toSeq)
-
-  protected def getWellSamples(ds: ReadSetType): Try[Seq[WellSample]] = Try {
-    getCollectionsMetadata(ds)
-      .map(_.map(md => md.getWellSample))
-      .getOrElse(Seq.empty[WellSample])
-  }
-
-  private def getNames(entities: Option[Seq[BaseEntityType]]): Seq[String] =
-    entities.map(e => e.map(_.getName)).getOrElse(Seq.empty[String]).sorted
-
-  protected def getWellSampleNames(ds: ReadSetType): Seq[String] =
-    getNames(getWellSamples(ds).toOption)
-
-  protected def getBioSamples(ds: ReadSetType): Try[Seq[BioSampleType]] = Try {
-    getWellSamples(ds).toOption
-      .map(_.map(ws =>
-        Try {
-          Option(ws.getBioSamples.getBioSample).map(_.toSeq)
-        }.toOption.getOrElse(None)))
-      .map(_.map(bs => bs.getOrElse(Seq.empty[BioSampleType])).flatten)
-      .getOrElse(Seq.empty[BioSampleType])
-  }
-
-  protected def getBioSampleNames(ds: ReadSetType): Seq[String] =
-    getNames(getBioSamples(ds).toOption)
-
-  protected def getDnaBarcodeNames(ds: ReadSetType): Seq[String] =
-    getNames(
-      getBioSamples(ds).toOption
-        .map(_.map(bs =>
-          Try {
-            Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)
-          }.toOption.getOrElse(None)))
-        .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
-}
-
 object Converters extends DataSetMetadataUtils {
 
   // Default values for dataset attributes/elements that are Not found or are valid
@@ -132,16 +82,14 @@ object Converters extends DataSetMetadataUtils {
     val cellIndex = Try {
       metadata.map(_.head.getCellIndex.toInt).getOrElse(-1)
     } getOrElse -1
-    val wellName = Try {
-      metadata
-        .map(_.head.getWellSample.getWellName)
-        .getOrElse(DEFAULT_WELL_NAME)
-    } getOrElse DEFAULT_WELL_NAME
-    val runName = Try {
-      metadata
-        .map(_.head.getRunDetails.getName)
-        .getOrElse(DEFAULT_RUN_NAME)
-    } getOrElse DEFAULT_RUN_NAME
+    val wellName = metadata
+      .map(m => Option(m.head.getWellSample.getWellName))
+      .map(_.getOrElse(DEFAULT_WELL_NAME))
+      .getOrElse(DEFAULT_WELL_NAME)
+    val runName = metadata
+      .map(m => Option(m.head.getRunDetails.getName))
+      .map(_.getOrElse(DEFAULT_RUN_NAME))
+      .getOrElse(DEFAULT_RUN_NAME)
     val metadataCreatedBy = Try {
       metadata.map(_.head.getRunDetails.getCreatedBy)
     } getOrElse None
