@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SubreadSet CreatedAt="2017-05-16T15:38:48" MetaType="PacBio.DataSet.SubreadSet" Name="no_metadata" Tags="subreads,testdata" TimeStampedName="pacbio_dataset_subreadset-170516_223848457" UniqueId="084606aa-d3f8-416d-b2b6-15b1d44dccef" Version="3.0.1" xmlns="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pacificbiosciences.com/PacBioDataModel.xsd">
+	<pbbase:ExternalResources>
+		<pbbase:ExternalResource MetaType="PacBio.SubreadFile.SubreadBamFile" ResourceId="m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-170516_223848456" UniqueId="3c536b76-c1b1-4a1c-a287-a138c84678cf">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="m140918_150013_42139_c100697631700000001823144703261565_s1_p0.subreads.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-170516_223848457" UniqueId="61b45e94-f090-4a46-902b-aa35c9c41b1f"/>
+			</pbbase:FileIndices>
+			<pbbase:ExternalResources>
+				<pbbase:ExternalResource MetaType="PacBio.SubreadFile.ScrapsBamFile" ResourceId="m140918_150013_42139_c100697631700000001823144703261565_s1_p0.scraps.bam" TimeStampedName="pacbio_subreadfile_scrapsbamfile-170516_223848456" UniqueId="c1a2cd6c-9182-45a5-8642-cddda43f4b40"/>
+			</pbbase:ExternalResources>
+		</pbbase:ExternalResource>
+	</pbbase:ExternalResources>
+	<DataSetMetadata>
+		<TotalLength>33882</TotalLength>
+		<NumRecords>18</NumRecords>
+	</DataSetMetadata>
+</SubreadSet>

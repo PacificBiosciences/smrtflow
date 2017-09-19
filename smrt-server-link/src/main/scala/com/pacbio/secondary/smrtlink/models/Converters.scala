@@ -49,7 +49,9 @@ trait DataSetMetadataUtils {
 
   protected def getBioSamples(ds: ReadSetType): Try[Seq[BioSampleType]] = Try {
     getWellSamples(ds).toOption
-      .map(_.map(ws => Option(ws.getBioSamples.getBioSample).map(_.toSeq)))
+      .map(_.map(ws => Try {
+          Option(ws.getBioSamples.getBioSample).map(_.toSeq)
+        }.toOption.getOrElse(None)))
       .map(_.map(bs => bs.getOrElse(Seq.empty[BioSampleType])).flatten)
       .getOrElse(Seq.empty[BioSampleType])
   }
@@ -60,7 +62,9 @@ trait DataSetMetadataUtils {
   protected def getDnaBarcodeNames(ds: ReadSetType): Seq[String] =
     getNames(
       getBioSamples(ds).toOption
-        .map(_.map(bs => Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)))
+        .map(_.map(bs => Try {
+            Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)
+          }.toOption.getOrElse(None)))
         .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
 }
 
