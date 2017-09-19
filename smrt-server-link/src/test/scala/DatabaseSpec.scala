@@ -103,7 +103,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         createdBy = Some("testuser"),
         jobId = -1,
         projectId = -1,
-        isActive = true)
+        isActive = true,
+        parentUuid = None)
       val subread = SubreadServiceSet(
         id = -1,
         UUID.randomUUID(),
@@ -116,7 +117,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "instrument-id",
         "instrument-name",
         "run-name",
-        "instrument-control-version")
+        "instrument-control-version",
+        Some("dna-barcode-name"))
       val hdf = HdfSubreadServiceSet(
         id = -1,
         UUID.randomUUID(),

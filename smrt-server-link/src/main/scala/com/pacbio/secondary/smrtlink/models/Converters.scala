@@ -127,6 +127,10 @@ object Converters {
         .getOrElse(DEFAULT_CELL_ID)
     }.getOrElse(DEFAULT_CELL_ID)
 
+    // XXX These are required by the data model but require additional machinery to populate
+    // (and may be null in many/most cases)
+    val dnaBarcodeName = None // FIXME requires XSD update
+
     val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
     val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
 
@@ -154,7 +158,9 @@ object Converters {
       runName,
       createdBy.orElse(metadataCreatedBy),
       jobId,
-      projectId
+      projectId,
+      dnaBarcodeName,
+      parentUuid = None
     )
   }
 

@@ -287,7 +287,7 @@ trait SmrtLinkJsonProtocols
   implicit val engineJobEntryPointsFormat = jsonFormat3(EngineJobEntryPoint)
 
   // DataSet
-  implicit val dataSetMetadataFormat = jsonFormat16(DataSetMetaDataSet)
+  implicit val dataSetMetadataFormat = jsonFormat17(DataSetMetaDataSet)
   implicit val datasetTypeFormat = jsonFormat6(ServiceDataSetMetaType)
   implicit val subreadDataSetFormat: RootJsonFormat[SubreadServiceDataSet] =
     cachedImplicit
