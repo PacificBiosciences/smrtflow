@@ -3,13 +3,15 @@ package com.pacbio.secondary.smrtlink.analysis.externaltools
 import java.nio.file.{Files, Path, Paths}
 
 import spray.json._
+import org.apache.commons.io.FileUtils
+
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
   DataSetMetaTypes,
   MockDataSetUtils
 }
-import org.apache.commons.io.FileUtils
 
 case class TestDataFile(id: String,
                         path: String,
@@ -33,6 +35,9 @@ trait TestDataJsonProtocol extends DefaultJsonProtocol {
 case class PacBioTestData(files: Seq[TestDataFile], base: Path)
     extends DataSetFileUtils {
   private val fileLookup = files.map(f => (f.id, f)).toMap
+
+  def getFilesByType(ft: FileTypes.FileType) =
+    files.filter(_.fileTypeId == ft.fileTypeId).map(f => getFile(f.id))
 
   def getFile(id: String): Path = {
     val relPath = fileLookup(id).path

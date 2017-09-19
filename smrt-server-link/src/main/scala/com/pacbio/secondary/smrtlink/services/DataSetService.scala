@@ -187,6 +187,27 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
   def getContigDataSetDetails(i: IdAble): Future[String] =
     dao.getContigDataSetDetailsById(i)
 
+  def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
+    val f1 = if (sopts.isActive.getOrElse(false)) {
+      Future.failed(throw new MethodNotImplementedError(
+        "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
+    } else if (!sopts.isActive.getOrElse(true)) {
+      dao.deleteDataSetById(id)
+    } else Future.successful(MessageResponse(""))
+
+    val f2 =
+      if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
+        dao.updateSubreadSetDetails(id,
+                                    sopts.bioSampleName,
+                                    sopts.wellSampleName)
+      } else Future.successful(MessageResponse(""))
+
+    for {
+      resp1 <- f1
+      resp2 <- f2
+    } yield MessageResponse(s"${resp1.message} ${resp2.message}")
+  }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
       GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
@@ -225,12 +246,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                   entity(as[DataSetUpdateRequest]) { sopts =>
                     complete {
                       ok {
-                        if (sopts.isActive) {
-                          Future.failed(throw new MethodNotImplementedError(
-                            "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-                        } else {
-                          dao.deleteDataSetById(id)
-                        }
+                        updateDataSet(id, sopts)
                       }
                     }
                   }
@@ -302,12 +318,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
               entity(as[DataSetUpdateRequest]) { sopts =>
                 complete {
                   ok {
-                    if (sopts.isActive) {
-                      Future.failed(throw new MethodNotImplementedError(
-                        "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-                    } else {
-                      dao.deleteDataSetById(id)
-                    }
+                    updateDataSet(id, sopts)
                   }
                 }
               }
