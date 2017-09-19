@@ -274,7 +274,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getMessageResponsePipeline {
       logger.debug(s"Soft-deleting dataset ${datasetId.toIdString}")
       Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
-          DataSetUpdateRequest(false))
+          DataSetUpdateRequest(Some(false)))
     }
 
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] =

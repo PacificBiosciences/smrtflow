@@ -916,7 +916,9 @@ case class EulaRecord(user: String,
 
 case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
 
-case class DataSetUpdateRequest(isActive: Boolean)
+case class DataSetUpdateRequest(isActive: Option[Boolean] = None,
+                                bioSampleName: Option[String] = None,
+                                wellSampleName: Option[String] = None)
 case class DataStoreFileUpdateRequest(isActive: Boolean,
                                       path: Option[String] = None,
                                       fileSize: Option[Long] = None)

@@ -1229,6 +1229,7 @@
         "x-throttling-tier": "Unlimited"
       },
       "put": {
+        "description": "Update a dataset record",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1244,6 +1245,15 @@
             "type": "string",
             "name": "typeOrId",
             "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset update request (all fields optional)",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DataSetUpdateRequest"
+            }
           }
         ],
         "consumes": [
@@ -6504,6 +6514,21 @@
           "description": "Associate a Multi-Job with a Project",
           "title": "Project Id",
           "type": "integer"
+        }
+      }
+    },
+    "DataSetUpdateRequest": {
+      "description": "Encapsulates multiple independent update parameters, all optional",
+      "properties": {
+        "isActive": {
+          "description": "If False, set dataset to inactive (hidden)",
+          "type": ["string", "null"],
+          "title": "Is active"
+        },
+        "bioSampleName": {
+          "description": "Applies to SubreadSets only",
+          "type": ["string", "null"],
+          "title": "Biological sample name"
         }
       }
     }

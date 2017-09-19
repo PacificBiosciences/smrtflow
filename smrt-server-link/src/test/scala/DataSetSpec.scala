@@ -120,6 +120,19 @@ with JobServiceConstants with TestUtils{
         subread.jobId === 1
       }
     }
+    "Update SubreadSet resource bioSampleName and wellSampleName" in {
+      val opts = DataSetUpdateRequest(bioSampleName=Some("hobbit"),
+                                      wellSampleName=Some("hobbit DNA"))
+      Put(s"/$ROOT_SA_PREFIX/datasets/subreads/1", opts) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+      }
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads/1") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val subread = responseAs[SubreadServiceDataSet]
+        subread.bioSampleName must beEqualTo("hobbit")
+        subread.wellSampleName must beEqualTo("hobbit DNA")
+      }
+    }
     "Secondary analysis Subread DataSet resource by id" in {
       Get(s"/$ROOT_SA_PREFIX/datasets/subreads/1/details") ~> totalRoutes ~> check {
         status.isSuccess must beTrue

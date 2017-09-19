@@ -187,6 +187,17 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
   def getContigDataSetDetails(i: IdAble): Future[String] =
     dao.getContigDataSetDetailsById(i)
 
+  def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
+    if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
+      dao.updateSubreadSetDetails(id, sopts.bioSampleName, sopts.wellSampleName)
+    } else if (sopts.isActive.getOrElse(false)) {
+      Future.failed(throw new MethodNotImplementedError(
+        "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
+    } else {
+      dao.deleteDataSetById(id)
+    }
+  }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
       GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
@@ -225,12 +236,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                   entity(as[DataSetUpdateRequest]) { sopts =>
                     complete {
                       ok {
-                        if (sopts.isActive) {
-                          Future.failed(throw new MethodNotImplementedError(
-                            "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-                        } else {
-                          dao.deleteDataSetById(id)
-                        }
+                        updateDataSet(id, sopts)
                       }
                     }
                   }
@@ -302,12 +308,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
               entity(as[DataSetUpdateRequest]) { sopts =>
                 complete {
                   ok {
-                    if (sopts.isActive) {
-                      Future.failed(throw new MethodNotImplementedError(
-                        "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-                    } else {
-                      dao.deleteDataSetById(id)
-                    }
+                    updateDataSet(id, sopts)
                   }
                 }
               }

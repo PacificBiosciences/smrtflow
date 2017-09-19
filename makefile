@@ -157,6 +157,20 @@ full-stress-run: test-data/smrtserver-testdata
 	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
 	done
 
+db-setup-test:
+ifndef PGPORT
+	$(error PGPORT is undefined)
+endif
+ifndef PGDATA
+	$(error PGDATA is undefined)
+endif
+	initdb
+	perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $(PGPORT)/" "$(PGDATA)/postgresql.conf"
+	pg_ctl -w -l "$(PGDATA)/postgresql.log" start
+	createdb smrtlinkdb
+	psql -d smrtlinkdb -f ./extras/db-init.sql
+	psql -d smrtlinkdb -f ./extras/test-db-init.sql
+
 db-reset-prod:
 	psql -f ./extras/db-drop.sql
 	psql -f ./extras/db-init.sql

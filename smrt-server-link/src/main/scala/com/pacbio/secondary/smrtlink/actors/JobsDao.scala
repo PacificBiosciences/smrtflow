@@ -1366,6 +1366,28 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .map(_ => MessageResponse(msg))
   }
 
+  def updateSubreadSetDetails(
+      id: IdAble,
+      bioSampleName: Option[String],
+      wellSampleName: Option[String]): Future[MessageResponse] = {
+    getSubreadDataSetById(id).flatMap { ds =>
+      val newBioSample = bioSampleName.getOrElse(ds.bioSampleName)
+      val newWellSample = wellSampleName.getOrElse(ds.wellSampleName)
+      db.run {
+        DBIO.seq(
+          dsSubread2.filter(_.id === ds.id)
+                    .map(s => (s.bioSampleName, s.wellSampleName))
+                    .update(newBioSample, newWellSample),
+          qDsMetaDataById(id).map(d => Tuple1(d.updatedAt))
+                             .update(Tuple1(JodaDateTime.now()))
+        )
+      } map { _ =>
+        val msg = s"Set bioSampleName=$newBioSample and wellSampleName=$newWellSample"
+        MessageResponse(msg)
+      }
+    }
+  }
+
   //FIXME. Make this IdAble
   def getDataSetJobsByUUID(id: UUID): Future[Seq[EngineJob]] = {
     val q = engineJobsDataSets.filter(_.datasetUUID === id) join engineJobs
