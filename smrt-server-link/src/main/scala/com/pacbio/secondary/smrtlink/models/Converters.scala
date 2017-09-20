@@ -61,7 +61,9 @@ object Converters extends DataSetMetadataUtils {
     val dsUUID = UUID.fromString(dataset.getUniqueId)
     val md5 = toMd5(dataset.getUniqueId)
 
-    val metadata = getCollectionsMetadata(dataset)
+    // XXX this is only the first collection!  we do not always want to use
+    // the values we extract from it as representative of the entire dataset
+    val metadata = getCollectionsMetadata(dataset).headOption
 
     //MK. I'm annoyed with all this null-mania datamodel nonsense. Wrapping every fucking thing in a Try Option
     // there's a more clever way to do this but I don't care.
@@ -80,34 +82,37 @@ object Converters extends DataSetMetadataUtils {
 
     // Plate Id doesn't exist, but keeping it so I don't have to update the db schema
     val cellIndex = Try {
-      metadata.map(_.head.getCellIndex.toInt).getOrElse(-1)
+      metadata.map(_.getCellIndex.toInt).getOrElse(-1)
     } getOrElse -1
-    val wellName = metadata
-      .map(m => Option(m.head.getWellSample.getWellName))
-      .map(_.getOrElse(DEFAULT_WELL_NAME))
-      .getOrElse(DEFAULT_WELL_NAME)
+    val wellName =
+      metadata
+        .map(m => Option(m.getWellSample).map(_.getWellName))
+        .flatten
+        .getOrElse(DEFAULT_WELL_NAME)
     val runName = metadata
-      .map(m => Option(m.head.getRunDetails.getName))
-      .map(_.getOrElse(DEFAULT_RUN_NAME))
+      .map(m => Option(m.getRunDetails).map(_.getName))
+      .flatten
+      .map(s => if (s == null) DEFAULT_RUN_NAME else s)
       .getOrElse(DEFAULT_RUN_NAME)
-    val metadataCreatedBy = Try {
-      metadata.map(_.head.getRunDetails.getCreatedBy)
-    } getOrElse None
-    val contextId = Try {
+    val metadataCreatedBy =
       metadata
-        .map(_.head.getContext)
+        .map(m => Option(m.getRunDetails).map(_.getCreatedBy))
+        .flatten
+    val contextId =
+      metadata
+        .map(m => Option(m.getContext))
+        .flatten
         .getOrElse(DEFAULT_CONTEXT)
-    } getOrElse DEFAULT_CONTEXT
-    val instrumentName = Try {
+    val instrumentName =
       metadata
-        .map(_.head.getInstrumentName)
+        .map(m => Option(m.getInstrumentName))
+        .flatten
         .getOrElse(DEFAULT_INST)
-    } getOrElse DEFAULT_INST
-    val instrumentControlVersion = Try {
+    val instrumentControlVersion =
       metadata
-        .map(_.head.getInstCtrlVer)
+        .map(m => Option(m.getInstCtrlVer))
+        .flatten
         .getOrElse(DEFAULT_INST_CTL_VERSION)
-    } getOrElse (DEFAULT_INST_CTL_VERSION)
 
     // This one is slightly messier because we need to handle the case of
     // multiple bio samples
