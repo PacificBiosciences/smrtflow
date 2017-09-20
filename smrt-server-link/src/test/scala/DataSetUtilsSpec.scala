@@ -23,6 +23,12 @@ class DataSetUtilsSpec
     DataSetLoader.loadSubreadSet(getPath(name))
 
   "Extract metadata from SubreadSet" should {
+    "Get well sample record" in {
+      var ds = getSubreads("/dataset-subreads/example_01.xml")
+      getWellSample(ds).toOption.get.getName === "Well Sample 1"
+      ds = getSubreads("/dataset-subreads/merged.dataset.xml")
+      getWellSample(ds).failed.get.getMessage === "multiple well sample records are present"
+    }
     "Get and set biological sample names" in {
       val updateMsg = Some("Set BioSample name to foo")
       var ds = getSubreads("/dataset-subreads/example_01.xml")

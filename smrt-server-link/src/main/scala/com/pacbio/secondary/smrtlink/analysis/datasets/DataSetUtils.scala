@@ -11,17 +11,21 @@ import com.pacificbiosciences.pacbiocollectionmetadata.{
 }
 import com.pacificbiosciences.pacbiosampleinfo.{BioSamples, BioSampleType}
 
+/**
+  * Utilities for accessing and manipulating dataset metadata items,
+  * especially sample info
+  */
 trait DataSetMetadataUtils {
 
   protected def getCollectionsMetadata(
       ds: ReadSetType): Option[Seq[XsdMetadata]] =
     Try {
       Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-    }.getOrElse(None).map(_.toSeq)
+    }.getOrElse(None).map(_.toList)
 
   protected def getWellSamples(ds: ReadSetType): Try[Seq[WellSample]] = Try {
     getCollectionsMetadata(ds)
-      .map(_.map(md => md.getWellSample))
+      .map(_.map(md => md.getWellSample).toList)
       .getOrElse(Seq.empty[WellSample])
   }
 
@@ -33,7 +37,7 @@ trait DataSetMetadataUtils {
 
   private def getWellBioSamples(ws: WellSample): Option[Seq[BioSampleType]] = {
     Try {
-      Option(ws.getBioSamples.getBioSample).map(_.toSeq)
+      Option(ws.getBioSamples.getBioSample).map(_.toList)
     }.toOption.getOrElse(None)
   }
 
@@ -52,20 +56,21 @@ trait DataSetMetadataUtils {
       getBioSamples(ds).toOption
         .map(_.map(bs =>
           Try {
-            Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)
+            Option(bs.getDNABarcodes.getDNABarcode).map(_.toList)
           }.toOption.getOrElse(None)))
         .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
 
-  private def getWellSample(ds: ReadSetType): Try[WellSample] = Try {
+  protected def getWellSample(ds: ReadSetType): Try[WellSample] = Try {
     getWellSamples(ds).toOption
-      .map { w =>
-        if (w.size > 1) {
-          throw new RuntimeException(
-            s"multiple well sample records are present")
-        } else if (w.size == 0) {
-          throw new RuntimeException(s"no well sample records are present")
-        } else {
-          w.head
+      .map { ws =>
+        ws match {
+          case Nil =>
+            throw new RuntimeException(s"no well sample records are present")
+          case value :: Nil => value
+          case value :: tail =>
+            throw new RuntimeException(
+              s"multiple well sample records are present")
+          case _ => throw new RuntimeException("Unexpected case")
         }
       }
       .getOrElse {
@@ -73,25 +78,28 @@ trait DataSetMetadataUtils {
       }
   }
 
+  private def setBioSample(ws: WellSample, name: String) = {
+    val bs = new BioSampleType()
+    bs.setName(name)
+    val bss = new BioSamples()
+    bss.getBioSample.add(bs)
+    ws.setBioSamples(bss)
+  }
+
   protected def setBioSampleName(ds: ReadSetType, name: String): Try[String] = {
     for {
       ws <- getWellSample(ds)
       msg <- Try {
         getWellBioSamples(ws) match {
-          case Some(bs) => {
-            if (bs.size > 1) {
-              throw new RuntimeException("Multiple BioSample records present")
-            } else {
-              bs.head.setName(name)
+          case Some(bs) =>
+            bs match {
+              case Nil => setBioSample(ws, name)
+              case value :: Nil => value.setName(name)
+              case value :: tail =>
+                throw new RuntimeException(
+                  "Multiple BioSample records present")
             }
-          }
-          case None => {
-            val bs = new BioSampleType()
-            bs.setName(name)
-            val bss = new BioSamples()
-            bss.getBioSample.add(bs)
-            ws.setBioSamples(bss)
-          }
+          case None => setBioSample(ws, name)
         }
         s"Set BioSample name to $name"
       }
