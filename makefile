@@ -106,6 +106,9 @@ jsontest:
 		python -m json.tool $$j >/dev/null || exit 1 ;\
 	done
 
+validate-run-xml:
+	xmllint --noout --schema ./smrt-common-models/src/main/resources/pb-common-xsds/PacBioDataModel.xsd ./smrt-server-link/src/test/resources/runCreate2.xml
+
 validate-pacbio-manifests:
 	$(eval JSON := `find . -name 'pacbio-manifest.json'`)
 	@for j in $(JSON); do \
