@@ -10,12 +10,7 @@ import scala.collection.JavaConversions._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
-import com.pacificbiosciences.pacbiocollectionmetadata.{
-  CollectionMetadata => XsdMetadata,
-  WellSample
-}
-import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetadataUtils
 
 /**
   * Utils for converting DataSet XML-ized objects to "Service" DataSets
@@ -25,51 +20,6 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType
   *
   * Created by mkocher on 5/26/15.
   */
-// TODO this should be migrated to analysis.datasets and combined with setter
-// functions (TBD)
-trait DataSetMetadataUtils {
-
-  protected def getCollectionsMetadata(
-      ds: ReadSetType): Option[Seq[XsdMetadata]] =
-    Try {
-      Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-    }.getOrElse(None).map(_.toSeq)
-
-  protected def getWellSamples(ds: ReadSetType): Try[Seq[WellSample]] = Try {
-    getCollectionsMetadata(ds)
-      .map(_.map(md => md.getWellSample))
-      .getOrElse(Seq.empty[WellSample])
-  }
-
-  private def getNames(entities: Option[Seq[BaseEntityType]]): Seq[String] =
-    entities.map(e => e.map(_.getName)).getOrElse(Seq.empty[String]).sorted
-
-  protected def getWellSampleNames(ds: ReadSetType): Seq[String] =
-    getNames(getWellSamples(ds).toOption)
-
-  protected def getBioSamples(ds: ReadSetType): Try[Seq[BioSampleType]] = Try {
-    getWellSamples(ds).toOption
-      .map(_.map(ws =>
-        Try {
-          Option(ws.getBioSamples.getBioSample).map(_.toSeq)
-        }.toOption.getOrElse(None)))
-      .map(_.map(bs => bs.getOrElse(Seq.empty[BioSampleType])).flatten)
-      .getOrElse(Seq.empty[BioSampleType])
-  }
-
-  protected def getBioSampleNames(ds: ReadSetType): Seq[String] =
-    getNames(getBioSamples(ds).toOption)
-
-  protected def getDnaBarcodeNames(ds: ReadSetType): Seq[String] =
-    getNames(
-      getBioSamples(ds).toOption
-        .map(_.map(bs =>
-          Try {
-            Option(bs.getDNABarcodes.getDNABarcode).map(_.toSeq)
-          }.toOption.getOrElse(None)))
-        .map(_.map(bc => bc.getOrElse(Seq.empty[DNABarcode])).flatten))
-}
-
 object Converters extends DataSetMetadataUtils {
 
   // Default values for dataset attributes/elements that are Not found or are valid
@@ -111,7 +61,9 @@ object Converters extends DataSetMetadataUtils {
     val dsUUID = UUID.fromString(dataset.getUniqueId)
     val md5 = toMd5(dataset.getUniqueId)
 
-    val metadata = getCollectionsMetadata(dataset)
+    // XXX this is only the first collection!  we do not always want to use
+    // the values we extract from it as representative of the entire dataset
+    val metadata = getCollectionsMetadata(dataset).headOption
 
     //MK. I'm annoyed with all this null-mania datamodel nonsense. Wrapping every fucking thing in a Try Option
     // there's a more clever way to do this but I don't care.
@@ -130,36 +82,37 @@ object Converters extends DataSetMetadataUtils {
 
     // Plate Id doesn't exist, but keeping it so I don't have to update the db schema
     val cellIndex = Try {
-      metadata.map(_.head.getCellIndex.toInt).getOrElse(-1)
+      metadata.map(_.getCellIndex.toInt).getOrElse(-1)
     } getOrElse -1
-    val wellName = Try {
+    val wellName =
       metadata
-        .map(_.head.getWellSample.getWellName)
+        .map(m => Option(m.getWellSample).map(_.getWellName))
+        .flatten
         .getOrElse(DEFAULT_WELL_NAME)
-    } getOrElse DEFAULT_WELL_NAME
-    val runName = Try {
+    val runName = metadata
+      .map(m => Option(m.getRunDetails).map(_.getName))
+      .flatten
+      .map(s => if (s == null) DEFAULT_RUN_NAME else s)
+      .getOrElse(DEFAULT_RUN_NAME)
+    val metadataCreatedBy =
       metadata
-        .map(_.head.getRunDetails.getName)
-        .getOrElse(DEFAULT_RUN_NAME)
-    } getOrElse DEFAULT_RUN_NAME
-    val metadataCreatedBy = Try {
-      metadata.map(_.head.getRunDetails.getCreatedBy)
-    } getOrElse None
-    val contextId = Try {
+        .map(m => Option(m.getRunDetails).map(_.getCreatedBy))
+        .flatten
+    val contextId =
       metadata
-        .map(_.head.getContext)
+        .map(m => Option(m.getContext))
+        .flatten
         .getOrElse(DEFAULT_CONTEXT)
-    } getOrElse DEFAULT_CONTEXT
-    val instrumentName = Try {
+    val instrumentName =
       metadata
-        .map(_.head.getInstrumentName)
+        .map(m => Option(m.getInstrumentName))
+        .flatten
         .getOrElse(DEFAULT_INST)
-    } getOrElse DEFAULT_INST
-    val instrumentControlVersion = Try {
+    val instrumentControlVersion =
       metadata
-        .map(_.head.getInstCtrlVer)
+        .map(m => Option(m.getInstCtrlVer))
+        .flatten
         .getOrElse(DEFAULT_INST_CTL_VERSION)
-    } getOrElse (DEFAULT_INST_CTL_VERSION)
 
     // This one is slightly messier because we need to handle the case of
     // multiple bio samples
