@@ -178,8 +178,7 @@ case class SubsystemResourceRecord(name: String,
 case class RunCreate(dataModel: String)
 
 case class RunUpdate(dataModel: Option[String] = None,
-                     reserved: Option[Boolean] = None,
-                     multiJobId: Option[Int] = None)
+                     reserved: Option[Boolean] = None)
 
 case class RunSummary(uniqueId: UUID,
                       name: String,
@@ -225,7 +224,8 @@ case class RunSummary(uniqueId: UUID,
       chemistrySwVersion,
       context,
       terminationInfo,
-      reserved
+      reserved,
+      multiJobId
     )
 }
 
@@ -249,7 +249,8 @@ case class Run(dataModel: String,
                chemistrySwVersion: Option[String],
                context: Option[String],
                terminationInfo: Option[String],
-               reserved: Boolean) {
+               reserved: Boolean,
+               multiJobId: Option[Int]) {
 
   def summarize =
     RunSummary(
@@ -272,7 +273,8 @@ case class Run(dataModel: String,
       chemistrySwVersion,
       context,
       terminationInfo,
-      reserved
+      reserved,
+      multiJobId
     )
 }
 
