@@ -30,7 +30,7 @@ trait ServiceJobTypeJsonProtocols
     ExportDataSetsJobOptions)
   implicit val exportAnalysisJobOptionsFormat = jsonFormat6(
     ExportSmrtLinkJobOptions)
-  implicit val importJobOptionsFormat = jsonFormat4(ImportSmrtLinkJobOptions)
+  implicit val importJobOptionsFormat = jsonFormat5(ImportSmrtLinkJobOptions)
   implicit val importBarcodeFastaJobOptionsJsonFormat = jsonFormat4(
     ImportBarcodeFastaJobOptions)
   implicit val importFastaJobOptionsJsonFormat = jsonFormat6(
