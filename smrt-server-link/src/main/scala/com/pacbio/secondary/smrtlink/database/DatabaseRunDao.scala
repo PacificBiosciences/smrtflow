@@ -50,8 +50,6 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
             .get
             .copy(reserved = reserved, multiJobId = multiJobId)
 
-          println("Run Summary")
-          println(s"$summary")
           val summaryUpdate =
             Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
