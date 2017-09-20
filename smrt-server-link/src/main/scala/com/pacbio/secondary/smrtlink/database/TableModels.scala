@@ -192,13 +192,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def importedAt: Rep[Option[JodaDateTime]] =
       column[Option[JodaDateTime]]("imported_at", O.Default(None))
 
-    def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
-
-    def findByState(state: AnalysisJobStates.JobStates) =
-      engineJobs.filter(_.state === state)
-
-    def findById(i: Int) = engineJobs.filter(_.id === i)
-
     def * =
       (id,
        uuid,
