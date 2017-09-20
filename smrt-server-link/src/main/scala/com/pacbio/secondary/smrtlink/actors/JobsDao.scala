@@ -553,6 +553,34 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     f
   }
 
+  def deleteMultiJob(jobId: IdAble): Future[MessageResponse] = {
+    logger.info(s"Attempting to delete job ${jobId.toIdString}")
+
+    val q = for {
+      job <- qEngineMultiJobById(jobId).result.head
+      _ <- jobEvents.filter(_.jobId === job.id).delete
+      _ <- qEngineJobById(jobId).delete
+    } yield MessageResponse(s"Successfully deleted ${jobId.toIdString}")
+
+    db.run(q.transactionally)
+  }
+
+  def updateMultiJob(jobId: IdAble, jsonSetting: JsObject, name: String, description: String, projectId: Int): Future[EngineJob] = {
+    val now = JodaDateTime.now()
+    logger.info(s"Updating multi-job ${jobId.toIdString} job settings ${jsonSetting.prettyPrint.toString}")
+
+    val action = for {
+      job <- qEngineJobById(jobId).result.head
+      _ <- DBIO.seq(
+        qEngineMultiJobById(jobId).map(j => (j.updatedAt, j.jsonSettings, j.name, j.comment, projectId))
+          .update(now, jsonSetting.toString(), name, description, projectId)
+      )
+      updatedJob <- qEngineMultiJobById(jobId).result.head
+    } yield updatedJob
+
+    db.run(action.transactionally)
+  }
+
   /**
     *
     * Update the workflow state of the Multi-Job
