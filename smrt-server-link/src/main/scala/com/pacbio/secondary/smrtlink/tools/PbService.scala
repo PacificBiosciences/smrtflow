@@ -398,7 +398,7 @@ object PbServiceParser extends CommandLineToolVersion {
     cmd(Modes.IMPORT_JOB.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.IMPORT_JOB)
     } children (
-      arg[File]("zip-path") required() action { (f, c) =>
+      arg[File]("zip-path") required () action { (f, c) =>
         c.copy(path = f.toPath)
       } text "Path to ZIP file exported by a SMRT Link server"
     ) text "Import a SMRT Link job from a ZIP file"
@@ -1907,11 +1907,12 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       _ <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
       children <- Try { Await.result(sal.getJobChildren(job.id), TIMEOUT) }
       imported <- Try {
-        children.headOption.getOrElse{
+        children.headOption.getOrElse {
           throw new RuntimeException("No job children found")
         }
       }
-    } yield s"Job ${imported.uuid} ('${imported.name}') imported with ID ${imported.id}"
+    } yield
+      s"Job ${imported.uuid} ('${imported.name}') imported with ID ${imported.id}"
   }
 
   def manifestSummary(m: PacBioComponentManifest) =

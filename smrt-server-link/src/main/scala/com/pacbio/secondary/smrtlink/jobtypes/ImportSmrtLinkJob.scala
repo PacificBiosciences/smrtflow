@@ -119,9 +119,12 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       }.toOption
     }
     val epDsFilesUnique: Seq[DataStoreJobFile] =
-      epDsFiles.zip(epExisting).map {
-        case (f, d) => if (d.isEmpty) Some(f) else None
-      }.flatten
+      epDsFiles
+        .zip(epExisting)
+        .map {
+          case (f, d) => if (d.isEmpty) Some(f) else None
+        }
+        .flatten
     val nPresent = epDsFiles.size - epDsFilesUnique.size
     logger.info(s"Filtered $nPresent entry points already present in database")
 
