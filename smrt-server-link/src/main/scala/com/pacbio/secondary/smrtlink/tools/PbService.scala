@@ -60,6 +60,7 @@ object Modes {
   case object TERMINATE_JOB extends Mode { val name = "terminate-job" } // This currently ONLY supports Analysis Jobs
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
   case object EXPORT_JOB extends Mode { val name = "export-job" }
+  case object IMPORT_JOB extends Mode { val name = "import-job" }
   case object DATASET extends Mode { val name = "get-dataset" }
   case object DATASETS extends Mode { val name = "get-datasets" }
   case object DELETE_DATASET extends Mode { val name = "delete-dataset" }
@@ -392,6 +393,15 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(includeEntryPoints = true)
       } text "Include input datasets in exported job ZIP file"
     ) text "Export a job to a ZIP file"
+
+    note("\nIMPORT JOB\n")
+    cmd(Modes.IMPORT_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.IMPORT_JOB)
+    } children (
+      arg[File]("zip-path") required() action { (f, c) =>
+        c.copy(path = f.toPath)
+      } text "Path to ZIP file exported by a SMRT Link server"
+    ) text "Import a SMRT Link job from a ZIP file"
 
     note("\nEMIT ANALYSIS JSON TEMPLATE\n")
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -1891,6 +1901,19 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
+  def runImportJob(path: Path): Try[String] = {
+    for {
+      job <- Try { Await.result(sal.importJob(path), TIMEOUT) }
+      _ <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
+      children <- Try { Await.result(sal.getJobChildren(job.id), TIMEOUT) }
+      imported <- Try {
+        children.headOption.getOrElse{
+          throw new RuntimeException("No job children found")
+        }
+      }
+    } yield s"Job ${imported.uuid} ('${imported.name}') imported with ID ${imported.id}"
+  }
+
   def manifestSummary(m: PacBioComponentManifest) =
     s"Component name:${m.name} id:${m.id} version:${m.version}"
 
@@ -2078,6 +2101,7 @@ object PbService extends LazyLogging {
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.EXPORT_JOB =>
           ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
+        case Modes.IMPORT_JOB => executeAndSummary(ps.runImportJob(c.path))
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS =>
           ps.runGetDataSets(c.datasetType,

@@ -30,7 +30,8 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.jobtypes.{
   DeleteSmrtLinkJobOptions,
   MergeDataSetJobOptions,
-  ExportSmrtLinkJobOptions
+  ExportSmrtLinkJobOptions,
+  ImportSmrtLinkJobOptions
 }
 import com.pacbio.secondary.smrtlink.models._
 
@@ -933,6 +934,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
                                   includeEntryPoints,
                                   name,
                                   description))
+  }
+
+  /**
+   * Start import of SMRT Link job from zip file
+   * @param zipPath pathname of ZIP file exported by SMRT Link
+   * @param mockJobId if true, job UUID will be re-generated
+   * @return new EngineJob object
+   */
+  def importJob(zipPath: Path,
+                mockJobId: Boolean = false) = runJobPipeline {
+    logger.debug("Submitting import-job job")
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_JOB.id),
+         ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId)))
   }
 
   def getAlarms() = getAlarmsPipeline { Get(toUrl(ROOT_ALARMS)) }
