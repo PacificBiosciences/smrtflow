@@ -20,7 +20,9 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   UnprocessableEntityError
 }
 import com.pacbio.common.models.CommonModelImplicits
+import CommonModelImplicits._
 import com.pacbio.common.models.CommonModelSpraySupport
+import com.pacbio.common.models.CommonModelSpraySupport.IdAbleMatcher
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
@@ -775,7 +777,135 @@ class MultiAnalysisJobService(override val dao: JobsDao,
     implicit val sm: Marshaller[MultiAnalysisJobOptions],
     implicit val jwriter: JsonWriter[MultiAnalysisJobOptions])
     extends CommonJobsRoutes[MultiAnalysisJobOptions] {
+
+  import SmrtLinkJsonProtocols._
+  import CommonModelSpraySupport._
+
   override def jobTypeId = JobTypeIds.MJOB_MULTI_ANALYSIS
+
+  def validateStateIsCreated(job: EngineJob, msg: String): Future[EngineJob] = {
+    if (job.state == AnalysisJobStates.CREATED) Future.successful(job)
+    else Future.failed(new UnprocessableEntityError(msg))
+  }
+
+  // Note, there's several explicit calls to toJson(jwriter) to avoid ambigous implicit issues.
+
+  // Change the state from CREATED to SUBMITTED. After this change the job is NO longer editable.
+  val submitJobRoute: Route = {
+    pathPrefix(IdAbleMatcher / "submit") { jobId =>
+      pathEndOrSingleSlash {
+        post {
+          complete {
+            ok {
+              for {
+                job <- dao.getJobById(jobId)
+                _ <- validateStateIsCreated(
+                  job,
+                  s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
+                msg <- Future.successful(
+                  s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                _ <- dao.updateMultiJobState(job.id,
+                                             AnalysisJobStates.SUBMITTED,
+                                             JsObject.empty,
+                                             msg,
+                                             None)
+              } yield MessageResponse(msg)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  val updateAndDeleteRoute: Route = {
+    pathPrefix(IdAbleMatcher) { jobId =>
+      pathEndOrSingleSlash {
+        put {
+          entity(as[MultiAnalysisJobOptions]) { opts =>
+            complete {
+              created {
+                for {
+                  job <- dao.getJobById(jobId)
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be updated.")
+                  msg <- Future.successful(
+                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                  _ <- dao.updateMultiJob(
+                    job.id,
+                    opts.toJson(jwriter).asJsObject,
+                    opts.name.getOrElse(job.name),
+                    opts.description.getOrElse(job.comment),
+                    opts.getProjectId())
+                } yield MessageResponse(msg)
+              }
+            }
+          }
+        } ~
+          delete {
+            complete {
+              ok {
+                for {
+                  job <- dao.getJobById(jobId)
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be DELETED.")
+                  msg <- dao.deleteMultiJob(job.id)
+                } yield msg
+              }
+            }
+          }
+      }
+    }
+  }
+
+  val deleteJobRoute: Route = {
+    pathPrefix(IdAbleMatcher) { jobId =>
+      pathEndOrSingleSlash {
+        put {
+          entity(as[MultiAnalysisJobOptions]) { opts =>
+            complete {
+              created {
+                for {
+                  job <- dao.getJobById(jobId)
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be updated.")
+                  msg <- Future.successful(
+                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                  _ <- dao.updateMultiJob(
+                    job.id,
+                    opts.toJson(jwriter).asJsObject,
+                    opts.name.getOrElse(job.name),
+                    opts.description.getOrElse(job.comment),
+                    opts.getProjectId())
+                } yield MessageResponse(msg)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // List of Core Jobs that the multi-analysis job has created
+  val childrenJobsRoute: Route = {
+    pathPrefix(IdAbleMatcher / "jobs") { jobId =>
+      pathEndOrSingleSlash {
+        get {
+          complete {
+            ok {
+              dao.getMultiJobChildren(jobId)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // If/When there are more multi-job types, this should be refactored out into it's own base.
+  override def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
+    super.allIdAbleJobRoutes(ec) ~ submitJobRoute ~ childrenJobsRoute ~ updateAndDeleteRoute
 }
 
 /**

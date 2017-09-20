@@ -189,13 +189,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def parentMultiJobId: Rep[Option[Int]] =
       column[Option[Int]]("parent_multi_job_id", O.Default(None))
 
-    def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
-
-    def findByState(state: AnalysisJobStates.JobStates) =
-      engineJobs.filter(_.state === state)
-
-    def findById(i: Int) = engineJobs.filter(_.id === i)
-
     def * =
       (id,
        uuid,
@@ -223,6 +216,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
+
+  def qGetEngineJobByState(state: AnalysisJobStates.JobStates) =
+    engineJobs.filter(_.state === state)
+
+  def qGetEngineJobsByStates(states: Set[AnalysisJobStates.JobStates]) =
+    engineJobs.filter(_.state inSet states)
 
   implicit val projectStateType =
     MappedColumnType.base[ProjectState.ProjectState, String](
