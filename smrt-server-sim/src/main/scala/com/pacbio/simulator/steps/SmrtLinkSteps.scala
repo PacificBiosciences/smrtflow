@@ -456,6 +456,14 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         .map(_.uuid)
   }
 
+  case class ImportJob(zipPath: Var[Path]) extends VarStep[UUID] {
+    override val name = "ImportJob"
+    override def runWith =
+      smrtLinkClient
+        .importJob(zipPath.get, mockJobId = true)
+        .map(_.uuid)
+  }
+
   case class RunAnalysisPipeline(
       pipelineOptions: Var[PbSmrtPipeServiceOptions])
       extends VarStep[UUID] {

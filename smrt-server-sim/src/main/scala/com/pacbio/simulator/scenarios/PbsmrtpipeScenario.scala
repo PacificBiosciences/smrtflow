@@ -200,6 +200,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
   override val smrtLinkClient =
     new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
 
+  private def getLastJob(jobs: Seq[EngineJob]) =
+    jobs.sortWith(_.id > _.id).head
+
   val diagnosticJobTests = Seq(
     projectId := CreateProject(projectName, projectDesc),
     jobId := RunAnalysisPipeline(diagnosticOpts),
@@ -243,6 +246,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
       _.count(_.eventTypeId == JobConstants.EVENT_TYPE_JOB_TASK_STATUS)) !=? 4,
     fail("Expected three SUCCESSFUL events") IF jobEvents.mapWith(
       _.count(_.state == AnalysisJobStates.SUCCESSFUL)) !=? 3,
+
     // Export job(s)
     jobId2 := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
     WaitForSuccessfulJob(jobId2),
@@ -254,6 +258,24 @@ class PbsmrtpipeScenario(host: String, port: Int)
         .toFile
         .isFile
     } !=? true,
+
+    // Import the job we just exported
+    jobId2 := ImportJob(dataStore.mapWith { ds =>
+      Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path)
+    }),
+    WaitForSuccessfulJob(jobId2),
+    dataStore := GetAnalysisJobDataStore(jobId2),
+    jobs := GetAnalysisJobs,
+    fail("Expected latest analysis job to have non-null importedAt") IF
+      jobs.mapWith { j => getLastJob(j).importedAt.isDefined } !=? true,
+    dataStore := GetAnalysisJobDataStore(jobs.mapWith(j => getLastJob(j).uuid)),
+    fail(s"job:${jobId} Expected four datastore files") IF dataStore.mapWith(
+      _.size) !=? 4,
+    jobReports := GetAnalysisJobReports(jobId),
+    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
+    entryPoints := GetAnalysisJobEntryPoints(jobs.mapWith(j => getLastJob(j).id)),
+    fail("Expected one entry point for imported job") IF entryPoints.mapWith(_.size) !=? 1,
+
     // Failure mode
     jobId2 := RunAnalysisPipeline(failOpts),
     jobStatus := WaitForJob(jobId2),
@@ -282,6 +304,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
       UnsuccessfulResponseException],
     DeleteJob(importJob.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[
       UnsuccessfulResponseException],
+
     // delete pbsmrtpipe jobs
     jobId2 := DeleteJob(jobId2, Var(false)),
     jobStatus := WaitForJob(jobId2),
@@ -299,7 +322,15 @@ class PbsmrtpipeScenario(host: String, port: Int)
     dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
     fail(s"Datastore files for ${job.mapWith(_.id)} Expected isActive=false") IF dataStore
       .mapWith(_.count(f => f.isActive)) !=? 0,
-    // now delete the ReferenceSet import job
+
+    // now delete the job we imported
+    jobId := DeleteJob(jobs.mapWith { j =>
+      getLastJob(j.filter(_.importedAt.isDefined)).uuid
+    }, Var(false)),
+    jobStatus := WaitForJob(jobId),
+    fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
+    // now delete the ReferenceSet import job, which should have no children
+    // left
     jobId := DeleteJob(importJob.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
