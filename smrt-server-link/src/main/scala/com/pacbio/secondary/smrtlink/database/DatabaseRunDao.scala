@@ -121,10 +121,7 @@ class DatabaseRunDao(db: Database, parser: DataModelParser) extends RunDao {
 
   override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
     Future(update.dataModel.map(parser.apply)).flatMap { r =>
-      updateOrCreate(id,
-                     update = true,
-                     r,
-                     update.reserved)
+      updateOrCreate(id, update = true, r, update.reserved)
     }
 
   override def deleteRun(id: UUID): Future[MessageResponse] = {

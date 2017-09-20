@@ -154,13 +154,14 @@ object DataModelParserImpl extends DataModelParser {
       def getComponentVersion(md: XsdCollectionMetadata,
                               componentId: String): Option[String] = {
         Option(md.getComponentVersions).flatMap { versions =>
-          versions.getValue.getVersionInfo.find(_.getName == componentId)
+          versions.getValue.getVersionInfo
+            .find(_.getName == componentId)
             .map(_.getVersion)
         }
       }
 
-      val multiJobId:Option[Int] = Option(runModel.getOutputs)
-          .flatMap(f => Option(f.getMultiJobId).map(_.toInt))
+      val multiJobId: Option[Int] = Option(runModel.getOutputs)
+        .flatMap(f => Option(f.getMultiJobId).map(_.toInt))
 
       val run = Run(
         dataModel,
