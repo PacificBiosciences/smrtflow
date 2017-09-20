@@ -61,8 +61,7 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
   def checkForWork(): Unit = {
     dao
-      .getEngineMultiJobs(includeInactive = true)
-      .map(jobs => jobs.filter(j => AnalysisJobStates.notCompleted(j.state)))
+      .getNextRunnableEngineMultiJobs()
       .map(jobs => jobs.map(_.id))
       .map(ids => ids.map(checkForWorkById(_)))
   }

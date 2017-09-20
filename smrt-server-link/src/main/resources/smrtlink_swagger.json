@@ -3253,8 +3253,95 @@
           }
         },
         "x-auth-type": "Application & Application User"
+      },
+      "put": {
+        "description": "Update the job settings for the `multi-analysis` Multi-Job type by job Id. Updating is ONLY supported for jobs in the CREATED state",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "delete": {
+        "description": "Delete an `multi-analysis` Multi-Job type by job Id. Delete is ONLY supported for jobs in the CREATED state",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
+      "get": {
+        "description": "Get the Child Core Jobs that are generated from the Multi-Job",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJobs"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
 
     "/secondary-analysis/datastore-files/{uuid}/download": {
       "get": {
@@ -5084,12 +5171,6 @@
           "type": "boolean",
           "title": "Reserved",
           "description": "Flag for reserved run"
-        },
-        "multiJobId": {
-          "default": null,
-          "type": ["integer", "null"],
-          "title": "MultiJob Id",
-          "description": "Multi-Job Id if configured to run Analysis jobs when the Run collections/subreadsets has successfully been imported into SL"
         }
       }
     },

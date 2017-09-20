@@ -221,6 +221,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def projectIdFK = foreignKey("project_id_fk", projectId, projects)(_.id)
   }
 
+  def qGetEngineJobByState(state: AnalysisJobStates.JobStates) =
+    engineJobs.filter(_.state === state)
+
+  def qGetEngineJobsByStates(states: Set[AnalysisJobStates.JobStates]) =
+    engineJobs.filter(_.state inSet states)
+
   implicit val projectStateType =
     MappedColumnType.base[ProjectState.ProjectState, String](
       { s =>
