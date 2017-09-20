@@ -189,6 +189,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def parentMultiJobId: Rep[Option[Int]] =
       column[Option[Int]]("parent_multi_job_id", O.Default(None))
 
+    def importedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("imported_at", O.Default(None))
+
     def findByUUID(uuid: UUID) = engineJobs.filter(_.uuid === uuid)
 
     def findByState(state: AnalysisJobStates.JobStates) =
@@ -215,7 +218,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        projectId,
        isMultiJob,
        workflow,
-       parentMultiJobId) <> (EngineJob.tupled, EngineJob.unapply)
+       parentMultiJobId,
+       importedAt) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 

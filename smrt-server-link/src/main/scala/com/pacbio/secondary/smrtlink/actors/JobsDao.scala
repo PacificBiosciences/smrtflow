@@ -406,6 +406,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(action.transactionally)
   }
 
+  def insertEntryPoint(ep: EngineJobEntryPoint): Future[EngineJobEntryPoint] =
+    db.run(engineJobsDataSets += ep).map(_ => ep)
+
   def getJobById(ix: IdAble): Future[EngineJob] =
     db.run(qEngineJobById(ix).result.headOption)
       .flatMap(failIfNone(s"Failed to find Job ${ix.toIdString}"))
@@ -667,7 +670,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       createdByEmail: Option[String] = None,
       smrtLinkVersion: Option[String] = None,
       projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      parentMultiJobId: Option[Int] = None): Future[EngineJob] = {
+      parentMultiJobId: Option[Int] = None,
+      importedAt: Option[JodaDateTime] = None): Future[EngineJob] = {
 
     val path = ""
     val createdAt = JodaDateTime.now()
@@ -687,10 +691,32 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       createdByEmail,
       smrtLinkVersion,
       projectId = projectId,
-      parentMultiJobId = parentMultiJobId
+      parentMultiJobId = parentMultiJobId,
+      importedAt = importedAt
     )
 
     insertEngineJob(engineJob, entryPoints)
+  }
+
+  /**
+    * Import a job from another SMRT Link system.
+    * @param job EngineJob from exported manifest
+    * @param parentJob the import-job job being run
+    * @param entryPoints entry point records
+    * @return new EngineJob object for the imported job
+    */
+  def importRawEngineJob(
+      job: EngineJob,
+      parentJob: EngineJob,
+      entryPoints: Seq[EngineJobEntryPointRecord] =
+        Seq.empty[EngineJobEntryPointRecord]): Future[EngineJob] = {
+    val importedJob = job.copy(id = -1,
+                               path = "",
+                               createdBy = parentJob.createdBy,
+                               createdByEmail = parentJob.createdByEmail,
+                               projectId = parentJob.projectId,
+                               importedAt = Some(JodaDateTime.now()))
+    insertEngineJob(importedJob, entryPoints)
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =

@@ -278,6 +278,7 @@ package object jobtypes {
         case JobTypeIds.EXPORT_DATASETS =>
           jx.convertTo[ExportDataSetsJobOptions]
         case JobTypeIds.EXPORT_JOBS => jx.convertTo[ExportSmrtLinkJobOptions]
+        case JobTypeIds.IMPORT_JOB => jx.convertTo[ImportSmrtLinkJobOptions]
         case JobTypeIds.CONVERT_FASTA_BARCODES =>
           jx.convertTo[ImportBarcodeFastaJobOptions]
         case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
