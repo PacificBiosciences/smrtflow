@@ -430,7 +430,6 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(qEngineMultiJobById(ix).result.headOption)
       .flatMap(failIfNone(s"Failed to find Multi-Job ${ix.toIdString}"))
 
-
   def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
 
     val q = multiJobId match {
@@ -456,9 +455,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     //logger.debug(s"Checking for next runnable isQuick? $isQuick EngineJobs")
 
     val quickJobTypeIds = JobTypeIds.ALL
-      .filter(_.isQuick).map(_.id).toSet
+      .filter(_.isQuick)
+      .map(_.id)
+      .toSet
 
-    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED).filter(_.isMultiJob === false)
+    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
+      .filter(_.isMultiJob === false)
     val q = if (isQuick) q0.filter(_.jobTypeId inSet quickJobTypeIds) else q0
     val q1 = q.sortBy(_.id).take(1)
 
@@ -467,8 +469,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val fx = for {
       job <- q1.result.head
       _ <- qEngineJobById(job.id)
-          .map(j => (j.state, j.updatedAt))
-          .update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
+        .map(j => (j.state, j.updatedAt))
+        .update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
       _ <- jobEvents += JobEvent(
         UUID.randomUUID(),
         job.id,
@@ -498,9 +500,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     * @return
     */
   def getNextRunnableEngineMultiJobs(): Future[Seq[EngineJob]] = {
-    val runnableStates:Set[AnalysisJobStates.JobStates] =
+    val runnableStates: Set[AnalysisJobStates.JobStates] =
       Set(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    val q = qGetEngineJobsByStates(runnableStates).filter(_.isMultiJob === true)
+    val q =
+      qGetEngineJobsByStates(runnableStates).filter(_.isMultiJob === true)
     db.run(q.result)
   }
 
@@ -565,14 +568,21 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(q.transactionally)
   }
 
-  def updateMultiJob(jobId: IdAble, jsonSetting: JsObject, name: String, description: String, projectId: Int): Future[EngineJob] = {
+  def updateMultiJob(jobId: IdAble,
+                     jsonSetting: JsObject,
+                     name: String,
+                     description: String,
+                     projectId: Int): Future[EngineJob] = {
     val now = JodaDateTime.now()
-    logger.info(s"Updating multi-job ${jobId.toIdString} job settings ${jsonSetting.prettyPrint.toString}")
+    logger.info(
+      s"Updating multi-job ${jobId.toIdString} job settings ${jsonSetting.prettyPrint.toString}")
 
     val action = for {
       job <- qEngineJobById(jobId).result.head
       _ <- DBIO.seq(
-        qEngineMultiJobById(jobId).map(j => (j.updatedAt, j.jsonSettings, j.name, j.comment, projectId))
+        qEngineMultiJobById(jobId)
+          .map(j =>
+            (j.updatedAt, j.jsonSettings, j.name, j.comment, projectId))
           .update(now, jsonSetting.toString(), name, description, projectId)
       )
       updatedJob <- qEngineMultiJobById(jobId).result.head

@@ -6,10 +6,19 @@ import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, ActorSystemProvider, JobsDao, JobsDaoProvider}
+import com.pacbio.secondary.smrtlink.actors.{
+  ActorRefFactoryProvider,
+  ActorSystemProvider,
+  JobsDao,
+  JobsDaoProvider
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.common.models.CommonModels._
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
+  MethodNotImplementedError,
+  ResourceNotFoundError,
+  UnprocessableEntityError
+}
 import com.pacbio.common.models.CommonModelImplicits
 import CommonModelImplicits._
 import com.pacbio.common.models.CommonModelSpraySupport
@@ -20,7 +29,10 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbsmrtpipeJobUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  Authenticator,
+  AuthenticatorProvider
+}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
@@ -787,9 +799,16 @@ class MultiAnalysisJobService(override val dao: JobsDao,
             ok {
               for {
                 job <- dao.getJobById(jobId)
-                _ <- validateStateIsCreated(job, s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
-                msg <- Future.successful(s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                _ <- dao.updateMultiJobState(job.id, AnalysisJobStates.SUBMITTED, JsObject.empty, msg, None)
+                _ <- validateStateIsCreated(
+                  job,
+                  s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
+                msg <- Future.successful(
+                  s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                _ <- dao.updateMultiJobState(job.id,
+                                             AnalysisJobStates.SUBMITTED,
+                                             JsObject.empty,
+                                             msg,
+                                             None)
               } yield MessageResponse(msg)
             }
           }
@@ -807,25 +826,35 @@ class MultiAnalysisJobService(override val dao: JobsDao,
               created {
                 for {
                   job <- dao.getJobById(jobId)
-                  _ <- validateStateIsCreated(job, "ONLY Jobs in the CREATED state can be updated.")
-                  msg <- Future.successful(s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                  _ <- dao.updateMultiJob(job.id, opts.toJson(jwriter).asJsObject, opts.name.getOrElse(job.name), opts.description.getOrElse(job.comment), opts.getProjectId())
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be updated.")
+                  msg <- Future.successful(
+                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                  _ <- dao.updateMultiJob(
+                    job.id,
+                    opts.toJson(jwriter).asJsObject,
+                    opts.name.getOrElse(job.name),
+                    opts.description.getOrElse(job.comment),
+                    opts.getProjectId())
                 } yield MessageResponse(msg)
               }
             }
           }
         } ~
-        delete {
-          complete {
-            ok {
-              for {
-                job <- dao.getJobById(jobId)
-                _ <- validateStateIsCreated(job, "ONLY Jobs in the CREATED state can be DELETED.")
-                msg <- dao.deleteMultiJob(job.id)
-              } yield msg
+          delete {
+            complete {
+              ok {
+                for {
+                  job <- dao.getJobById(jobId)
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be DELETED.")
+                  msg <- dao.deleteMultiJob(job.id)
+                } yield msg
+              }
             }
           }
-        }
       }
     }
   }
@@ -839,9 +868,17 @@ class MultiAnalysisJobService(override val dao: JobsDao,
               created {
                 for {
                   job <- dao.getJobById(jobId)
-                  _ <- validateStateIsCreated(job, "ONLY Jobs in the CREATED state can be updated.")
-                  msg <- Future.successful(s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                  _ <- dao.updateMultiJob(job.id, opts.toJson(jwriter).asJsObject, opts.name.getOrElse(job.name), opts.description.getOrElse(job.comment), opts.getProjectId())
+                  _ <- validateStateIsCreated(
+                    job,
+                    "ONLY Jobs in the CREATED state can be updated.")
+                  msg <- Future.successful(
+                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+                  _ <- dao.updateMultiJob(
+                    job.id,
+                    opts.toJson(jwriter).asJsObject,
+                    opts.name.getOrElse(job.name),
+                    opts.description.getOrElse(job.comment),
+                    opts.getProjectId())
                 } yield MessageResponse(msg)
               }
             }
@@ -853,7 +890,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
 
   // List of Core Jobs that the multi-analysis job has created
   val childrenJobsRoute: Route = {
-    pathPrefix(IdAbleMatcher / "jobs") {jobId =>
+    pathPrefix(IdAbleMatcher / "jobs") { jobId =>
       pathEndOrSingleSlash {
         get {
           complete {
@@ -867,7 +904,8 @@ class MultiAnalysisJobService(override val dao: JobsDao,
   }
 
   // If/When there are more multi-job types, this should be refactored out into it's own base.
-  override def allIdAbleJobRoutes(implicit ec: ExecutionContext):Route = super.allIdAbleJobRoutes(ec) ~ submitJobRoute ~ childrenJobsRoute ~ updateAndDeleteRoute
+  override def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
+    super.allIdAbleJobRoutes(ec) ~ submitJobRoute ~ childrenJobsRoute ~ updateAndDeleteRoute
 }
 
 /**

@@ -76,21 +76,26 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       entryPoints: Seq[BoundServiceEntryPoint],
       job: DeferredJob,
       parentJobId: Int,
-      smrtLinkVersion: Option[String], writer: JobResultWriter): Future[EngineJob] = {
-    dao.createCoreJob(
-      UUID.randomUUID(),
-      job.name.getOrElse("Job-Name"),
-      job.description.getOrElse("Job-Description"),
-      JobTypeIds.PBSMRTPIPE,
-      job.entryPoints.map(e =>
-        EngineJobEntryPointRecord(e.uuid, e.fileTypeId)),
-      toPbsmrtpipeOptions(job, entryPoints).toJson.asJsObject,
-      createdBy = None,
-      createdByEmail = None,
-      smrtLinkVersion = smrtLinkVersion,
-      parentMultiJobId = Some(parentJobId),
-      projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)).map { job =>
-        writer.writeLine(s"MultiJob id:$parentJobId Created Core ${job.jobTypeId} job id:${job.id}")
+      smrtLinkVersion: Option[String],
+      writer: JobResultWriter): Future[EngineJob] = {
+    dao
+      .createCoreJob(
+        UUID.randomUUID(),
+        job.name.getOrElse("Job-Name"),
+        job.description.getOrElse("Job-Description"),
+        JobTypeIds.PBSMRTPIPE,
+        job.entryPoints.map(e =>
+          EngineJobEntryPointRecord(e.uuid, e.fileTypeId)),
+        toPbsmrtpipeOptions(job, entryPoints).toJson.asJsObject,
+        createdBy = None,
+        createdByEmail = None,
+        smrtLinkVersion = smrtLinkVersion,
+        parentMultiJobId = Some(parentJobId),
+        projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+      )
+      .map { job =>
+        writer.writeLine(
+          s"MultiJob id:$parentJobId Created Core ${job.jobTypeId} job id:${job.id}")
         job
       }
   }
@@ -104,7 +109,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                      job: DeferredJob,
                      jobId: Option[Int],
                      parentJobId: Int,
-                     smrtLinkVersion: Option[String], writer: JobResultWriter): Future[EngineJob] = {
+                     smrtLinkVersion: Option[String],
+                     writer: JobResultWriter): Future[EngineJob] = {
     for {
       resolvedEntryPoints <- resolveEntryPoints(dao, job.entryPoints)
       engineJobEntryPoints <- Future.successful(resolvedEntryPoints.map(f =>
@@ -116,7 +122,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                               engineJobEntryPoints,
                               job,
                               parentJobId,
-                              smrtLinkVersion, writer))
+                              smrtLinkVersion,
+                              writer))
     } yield engineJob
   }
 
@@ -209,7 +216,12 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
     def runner(xs: (DeferredJob, Option[Int])): Future[Option[Int]] = {
       val (deferredJob, jobId) = xs
-      runJob(dao, deferredJob, jobId, engineJob.id, config.smrtLinkVersion, resultsWriter)
+      runJob(dao,
+             deferredJob,
+             jobId,
+             engineJob.id,
+             config.smrtLinkVersion,
+             resultsWriter)
         .map(createdJob => Some(createdJob.id))
         .recoverWith { case _ => Future.successful(noJobId) }
     }
@@ -217,15 +229,23 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     /**
       * If the workflow or the multi-job state has changed, then update the state in db
       */
-    def updateIfNecessary(state: AnalysisJobStates.JobStates, updatedWorkflow: MultiAnalysisWorkflow): Future[MessageResponse] = {
+    def updateIfNecessary(
+        state: AnalysisJobStates.JobStates,
+        updatedWorkflow: MultiAnalysisWorkflow): Future[MessageResponse] = {
       if ((state != engineJob.state) || (updatedWorkflow != workflow)) {
         for {
-          msg <- Future.successful(s"Updating multi-job state from ${engineJob.state} to $state")
-          _ <- dao.updateMultiJobState(engineJob.id, state, updatedWorkflow.toJson.asJsObject, msg, None)
+          msg <- Future.successful(
+            s"Updating multi-job state from ${engineJob.state} to $state")
+          _ <- dao.updateMultiJobState(engineJob.id,
+                                       state,
+                                       updatedWorkflow.toJson.asJsObject,
+                                       msg,
+                                       None)
           _ <- Future.successful(resultsWriter.writeLine(msg))
         } yield MessageResponse(msg)
       } else {
-        Future.successful(MessageResponse("Skipping update. No change in multi-job state or workflow state."))
+        Future.successful(MessageResponse(
+          "Skipping update. No change in multi-job state or workflow state."))
       }
     }
 
