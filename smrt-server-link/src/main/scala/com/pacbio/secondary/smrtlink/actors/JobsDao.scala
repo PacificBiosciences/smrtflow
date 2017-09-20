@@ -430,6 +430,20 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(qEngineMultiJobById(ix).result.headOption)
       .flatMap(failIfNone(s"Failed to find Multi-Job ${ix.toIdString}"))
 
+
+  def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
+
+    val q = multiJobId match {
+      case IntIdAble(i) => engineJobs.filter(_.parentMultiJobId === i)
+      case UUIDIdAble(u) =>
+        for {
+          job <- qEngineMultiJobById(multiJobId)
+          jobs <- engineJobs.filter(_.parentMultiJobId === job.id).sortBy(_.id)
+        } yield jobs
+    }
+    db.run(q.result)
+  }
+
   /**
     * Get next runnable job.
     *
@@ -440,38 +454,28 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     : Future[Either[NoAvailableWorkError, EngineJob]] = {
 
     //logger.debug(s"Checking for next runnable isQuick? $isQuick EngineJobs")
-    import com.pacbio.secondary.smrtlink.database.TableModels.jobStateType
-
-    //FIXME(mpkocher)(8-25-2017) I can't get this to work with AnalysisJobState type
-    //val q0 = engineJobs.filter(_.state === AnalysisJobStates.CREATED).sortBy(_.id).take(1)
 
     val quickJobTypeIds = JobTypeIds.ALL
-      .filter(_.isQuick)
-      .map(i => s"'${i.id}'")
-      .reduce(_ + "," + _)
+      .filter(_.isQuick).map(_.id).toSet
 
-    // This needs to be thought out a bit more. The entire table needs to be locked.
-    val q0 = if (isQuick) {
-      sql"SELECT job_id from engine_jobs WHERE is_multi_job = FALSE AND state = 'CREATED' AND job_type_id IN (#${quickJobTypeIds}) ORDER BY job_id LIMIT 1"
-        .as[Int]
-    } else {
-      sql"SELECT job_id from engine_jobs WHERE is_multi_job = FALSE AND state = 'CREATED'  ORDER BY job_id LIMIT 1"
-        .as[Int]
-    }
+    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED).filter(_.isMultiJob === false)
+    val q = if (isQuick) q0.filter(_.jobTypeId inSet quickJobTypeIds) else q0
+    val q1 = q.sortBy(_.id).take(1)
 
-    // This is NOT correct. This head will fail and caught in the recover. This needs to be be robust.
+    // This needs to be thought out a bit more. The entire engine job table needs to be locked in a worker-queue model
+    // This is using a head call that fail in the caught and recover block
     val fx = for {
-      jobId <- q0.head
-      _ <- qEngineJobById(jobId)
-        .map(j => (j.state, j.updatedAt))
-        .update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
+      job <- q1.result.head
+      _ <- qEngineJobById(job.id)
+          .map(j => (j.state, j.updatedAt))
+          .update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
       _ <- jobEvents += JobEvent(
         UUID.randomUUID(),
-        jobId,
+        job.id,
         AnalysisJobStates.SUBMITTED,
         s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)",
         JodaDateTime.now())
-      job <- qEngineJobById(jobId).result.head
+      job <- qEngineJobById(job.id).result.head
     } yield job
 
     db.run(fx.transactionally)
@@ -485,6 +489,19 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
           //logger.debug(s"No available work")
           Left(NO_WORK)
       }
+  }
+
+  /**
+    * Jobs that are in SUBMITTED, RUNNING state are eligible "runnable" jobs. These jobs will
+    * have their state (potentially) updated in an idempotent model.
+    *
+    * @return
+    */
+  def getNextRunnableEngineMultiJobs(): Future[Seq[EngineJob]] = {
+    val runnableStates:Set[AnalysisJobStates.JobStates] =
+      Set(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
+    val q = qGetEngineJobsByStates(runnableStates).filter(_.isMultiJob === true)
+    db.run(q.result)
   }
 
   /**
