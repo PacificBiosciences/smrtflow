@@ -767,8 +767,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         Seq.empty[EngineJobEntryPointRecord]): Future[EngineJob] = {
     val importedJob = job.copy(id = -1,
                                path = "",
-                               createdBy = parentJob.createdBy,
-                               createdByEmail = parentJob.createdByEmail,
+                               state = AnalysisJobStates.IMPORTED,
                                projectId = parentJob.projectId,
                                importedAt = Some(JodaDateTime.now()))
     insertEngineJob(importedJob, entryPoints)
