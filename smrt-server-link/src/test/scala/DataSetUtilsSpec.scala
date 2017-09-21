@@ -30,7 +30,7 @@ class DataSetUtilsSpec
       getWellSample(ds).failed.get.getMessage === "multiple well sample records are present"
     }
     "Get and set biological sample names" in {
-      val updateMsg = Some("Set BioSample name to foo")
+      val updateMsg = Some("Set 1 BioSample tag name(s) to foo")
       var ds = getSubreads("/dataset-subreads/example_01.xml")
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       setBioSampleName(ds, "foo").toOption === updateMsg
@@ -49,9 +49,12 @@ class DataSetUtilsSpec
       ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       setBioSampleName(ds, "foo").toOption must beNone
+      ds = getSubreads("/dataset-subreads/pooled_sample.subreadset.xml")
+      getBioSampleNames(ds) must beEqualTo(Seq("Alice"))
+      setBioSampleName(ds, "foo").toOption === Some("Set 2 BioSample tag name(s) to foo")
     }
     "Get and set well sample names" in {
-      val updateMsg = Some("Set WellSample name to foo")
+      val updateMsg = Some("Set 1 WellSample tag name(s) to foo")
       var ds = getSubreads("/dataset-subreads/example_01.xml")
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       setWellSampleName(ds, "foo").toOption === updateMsg
@@ -67,6 +70,9 @@ class DataSetUtilsSpec
       ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
       getWellSampleNames(ds) must beEqualTo(Seq.empty[String])
       setWellSampleName(ds, "foo").toOption must beNone
+      ds = getSubreads("/dataset-subreads/pooled_sample.subreadset.xml")
+      getWellSampleNames(ds) must beEqualTo(Seq("Alice Sample 1"))
+      setWellSampleName(ds, "foo").toOption === Some("Set 2 WellSample tag name(s) to foo")
     }
     "Get DNA Barcode names" in {
       var ds = getSubreads("/dataset-subreads/example_01.xml")
