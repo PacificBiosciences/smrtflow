@@ -42,22 +42,11 @@ object AnalysisJobStates {
     val stateId = 7
   }
 
-  case object IMPORTED extends JobStates {
-    val stateId = 8
-  }
-
   // sugar
   val VALID_STATES =
-    Seq(CREATED,
-        SUBMITTED,
-        RUNNING,
-        TERMINATED,
-        SUCCESSFUL,
-        FAILED,
-        UNKNOWN,
-        IMPORTED)
+    Seq(CREATED, SUBMITTED, RUNNING, TERMINATED, SUCCESSFUL, FAILED, UNKNOWN)
 
-  val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED, IMPORTED)
+  val COMPLETED_STATES = Seq(TERMINATED, SUCCESSFUL, FAILED)
   val FAILURE_STATES = Seq(TERMINATED, FAILED)
 
   def isCompleted(state: JobStates): Boolean = COMPLETED_STATES contains state

@@ -203,6 +203,11 @@ class PbsmrtpipeScenario(host: String, port: Int)
   private def getLastJob(jobs: Seq[EngineJob]) =
     jobs.sortWith(_.id > _.id).head
 
+  private def getExportedZip(dataStoreFiles: Var[Seq[DataStoreServiceFile]]) =
+    dataStoreFiles.mapWith { ds =>
+      Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path)
+    }
+
   val diagnosticJobTests = Seq(
     projectId := CreateProject(projectName, projectDesc),
     jobId := RunAnalysisPipeline(diagnosticOpts),
@@ -258,9 +263,11 @@ class PbsmrtpipeScenario(host: String, port: Int)
         .isFile
     } !=? true,
     // Import the job we just exported
-    jobId2 := ImportJob(dataStore.mapWith { ds =>
-      Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path)
-    }),
+    ImportJob(Var("/path/does/not/exist.zip")) SHOULD_RAISE classOf[
+      UnsuccessfulResponseException],
+    ImportJob(getExportedZip(dataStore), Var(false)) SHOULD_RAISE classOf[
+      UnsuccessfulResponseException], // duplicate UUID
+    jobId2 := ImportJob(getExportedZip(dataStore)),
     WaitForSuccessfulJob(jobId2),
     dataStore := GetAnalysisJobDataStore(jobId2),
     jobs := GetAnalysisJobs,

@@ -31,6 +31,32 @@ import com.pacbio.secondary.smrtlink.models.{
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
+trait ImportServiceUtils {
+  import com.pacbio.common.models.CommonModelImplicits._
+
+  protected def getOptionalRecord[T](fx: () => Future[T]): Future[Option[T]] =
+    fx().map(x => Some(x)).recover { case e: Exception => None }
+
+  protected def getUuid(id: UUID, mockJobId: Boolean) =
+    if (mockJobId) UUID.randomUUID() else id
+
+  protected def canImportJob(jobId: UUID, dao: JobsDao): Future[String] = {
+    getOptionalRecord(() => dao.getJobById(jobId))
+      .flatMap { jobOpt =>
+        jobOpt
+          .map { job =>
+            Future.failed(new UnprocessableEntityError(
+              s"Job ${jobId.toString} is already present in the database"))
+          }
+          .getOrElse {
+            Future.successful(s"Job ${jobId.toString} not found.")
+          }
+      }
+  }
+}
+
+object ImportUtils extends ImportServiceUtils with JobImportUtils {}
+
 case class ImportSmrtLinkJobOptions(zipPath: Path,
                                     mockJobId: Option[Boolean] = None,
                                     description: Option[String] = None,
@@ -38,7 +64,8 @@ case class ImportSmrtLinkJobOptions(zipPath: Path,
                                     projectId: Option[Int] = Some(
                                       JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions
-    with ValidateJobUtils {
+    with ValidateJobUtils
+    with ImportServiceUtils {
 
   override def jobTypeId = JobTypeIds.IMPORT_JOB
   override def toJob() = new ImportSmrtLinkJob(this)
@@ -49,7 +76,14 @@ case class ImportSmrtLinkJobOptions(zipPath: Path,
     if (!zipPath.toFile.exists) {
       Some(
         InvalidJobOptionError(s"The file ${zipPath.toString} does not exist"))
-    } else None
+    } else {
+      // verify that we can extract the manifest, and the job UUID is unique
+      Try {
+        val manifest = ImportUtils.getManifest(zipPath)
+        val uniqueId = getUuid(manifest.job.uuid, mockJobId.getOrElse(false))
+        Await.result(canImportJob(uniqueId, dao), DEFAULT_TIMEOUT)
+      }.failed.toOption.map(e => InvalidJobOptionError(e.getMessage))
+    }
   }
 }
 
@@ -58,14 +92,12 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     with MockJobUtils
     with JobImportUtils
     with DataSetFileUtils
+    with ImportServiceUtils
     with timeUtils {
 
   type Out = PacBioDataStore
 
   import com.pacbio.common.models.CommonModelImplicits._
-
-  private def getUuid(id: UUID) =
-    if (opts.mockJobId.getOrElse(false)) UUID.randomUUID() else id
 
   private def getEntryPointDataStoreFiles(
       jobId: UUID,
@@ -91,55 +123,74 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     }
   }
 
-  private def getExistingEntryPoints(dao: JobsDao,
-                                     entryPointFiles: Seq[DataStoreJobFile])
-    : Future[Seq[Option[DataSetMetaDataSet]]] = {
-    Future.sequence {
-      entryPointFiles.map { f =>
-        dao
-          .getDataSetMetaData(f.dataStoreFile.uniqueId)
-          .map(ds => Some(ds))
-          .recoverWith {
-            case e: Exception => Future.successful(None)
+  /**
+    * get dataset metadata for each entry point, importing any unknown datasets
+    * as part of the import-job job
+    */
+  private def getOrImportEntryPoint(
+      dao: JobsDao,
+      jobId: Int, // import-job job
+      entryPointFile: DataStoreJobFile): Future[DataSetMetaDataSet] = {
+    val uuid = entryPointFile.dataStoreFile.uniqueId
+    getOptionalRecord { () =>
+      dao.getDataSetMetaData(uuid)
+    }.flatMap { dsOpt =>
+      dsOpt
+        .map { ds =>
+          logger.info(
+            s"Entry point dataset ${uuid.toString} already present in database")
+          Future.successful(ds)
+        }
+        .getOrElse {
+          logger.info(s"Adding entry point dataset ${uuid.toString}")
+          dao.addDataStoreFile(entryPointFile).flatMap { _ =>
+            dao.getDataSetMetaData(uuid)
           }
-      }
+        }
     }
   }
 
-  private def getUniqueDataStoreFiles(
-      dataSets: Seq[Option[DataSetMetaDataSet]],
-      entryPointFiles: Seq[DataStoreJobFile]): Seq[DataStoreJobFile] = {
-    val epDsFilesUnique =
-      entryPointFiles
-        .zip(dataSets)
-        .map {
-          case (f, d) => if (d.isEmpty) Some(f) else None
-        }
-        .flatten
-    val nPresent = entryPointFiles.size - epDsFilesUnique.size
-    logger.info(s"Filtered $nPresent entry points already present in database")
-    epDsFilesUnique
-  }
+  private def getOrImportEntryPoints(dao: JobsDao,
+                                     jobId: Int, // import-job job
+                                     entryPointFiles: Seq[DataStoreJobFile]) =
+    Future.sequence {
+      entryPointFiles.map { f =>
+        getOrImportEntryPoint(dao, jobId, f)
+      }
+    }
 
   private def addImportedJobFiles(dao: JobsDao,
                                   importedJob: EngineJob,
-                                  datastore: Option[PacBioDataStore]) = {
-    datastore
-      .map { ds =>
-        ds.files.map { f =>
+                                  datastoreFiles: Seq[DataStoreFile]) = {
+    Future.sequence {
+      datastoreFiles
+        .map { f =>
           // this also may have the UUID mocked for testing
+          val path = Paths
+            .get(importedJob.path)
+            .resolve(f.path.toString)
+            .toString
+          val uniqueId = getUuid(f.uniqueId, opts.mockJobId.getOrElse(false))
           DataStoreJobFile(importedJob.uuid,
-                           f.copy(path = Paths
-                                    .get(importedJob.path)
-                                    .resolve(f.path.toString)
-                                    .toString,
-                                  uniqueId = getUuid(f.uniqueId)))
+                           f.copy(path = path, uniqueId = uniqueId))
         }
+        .map { f =>
+          dao.addDataStoreFile(f)
+        }
+    }
+  }
+
+  private def addEntryPoints(dao: JobsDao,
+                             jobId: Int, // unzipped job
+                             epDsFiles: Seq[DataStoreJobFile]) = {
+    Future.sequence {
+      epDsFiles.map { f =>
+        dao.insertEntryPoint(
+          EngineJobEntryPoint(jobId,
+                              f.dataStoreFile.uniqueId,
+                              f.dataStoreFile.fileTypeId))
       }
-      .getOrElse(Seq.empty[DataStoreJobFile])
-      .map { f =>
-        dao.addDataStoreFile(f)
-      }
+    }
   }
 
   override def run(
@@ -150,7 +201,8 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     val startedAt = JodaDateTime.now()
     val manifest = getManifest(opts.zipPath)
     // for testing we need to be able to swap in a new UUID
-    val exportedJob = manifest.job.copy(uuid = getUuid(manifest.job.uuid))
+    val exportedJob = manifest.job.copy(
+      uuid = getUuid(manifest.job.uuid, opts.mockJobId.getOrElse(false)))
 
     val fx1 = for {
       job <- dao.getJobById(resources.jobId)
@@ -159,44 +211,22 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     val (job, imported) = Await.result(fx1, 30.seconds)
     val importPath = Paths.get(imported.path)
     val summary = expandJob(opts.zipPath, importPath)
+    val jobDsFiles =
+      manifest.datastore.map(_.files).getOrElse(Seq.empty[DataStoreFile])
     val epDsFiles =
       getEntryPointDataStoreFiles(job.uuid, importPath, manifest.entryPoints)
 
     val fx2 = for {
-      epExisting <- getExistingEntryPoints(dao, epDsFiles)
-      epDsFilesUnique <- Future {
-        getUniqueDataStoreFiles(epExisting, epDsFiles)
-      }
-      _ <- Future.sequence {
-        addImportedJobFiles(dao, imported, manifest.datastore)
-      }
-      // import entry points as part of the import-job job, but only if they
-      // are not already in the database
-      _ <- Future.sequence {
-        epDsFilesUnique.map { f =>
-          dao.addDataStoreFile(f)
-        }
-      }
-      // get metadata for entry points
-      datasets <- Future.sequence {
-        epDsFiles.map { f =>
-          dao.getDataSetMetaData(f.dataStoreFile.uniqueId)
-        }
-      }
-      // finally insert entry points for imported job
-      entryPoints <- Future.sequence {
-        epDsFiles.zip(datasets).map {
-          case (f, d) =>
-            dao.insertEntryPoint(
-              EngineJobEntryPoint(imported.id,
-                                  d.uuid,
-                                  f.dataStoreFile.fileTypeId))
-        }
-      }
-    } yield epDsFilesUnique
-    val epDsFilesUnique = Await.result(fx2, 30.seconds)
+      entryPointDatasets <- getOrImportEntryPoints(dao, job.id, epDsFiles)
+      _ <- addEntryPoints(dao, imported.id, epDsFiles)
+      _ <- addImportedJobFiles(dao, imported, jobDsFiles)
+    } yield entryPointDatasets
+    val entryPointDatasets = Await.result(fx2, 30.seconds)
 
-    val dsFiles = epDsFilesUnique.map(_.dataStoreFile) ++ Seq(
+    val dsFiles = epDsFiles
+      .zip(entryPointDatasets)
+      .filter(_._2.jobId == job.id)
+      .map(_._1.dataStoreFile) ++ Seq(
       DataStoreFile(
         uniqueId = UUID.randomUUID(),
         sourceId = "import-job",

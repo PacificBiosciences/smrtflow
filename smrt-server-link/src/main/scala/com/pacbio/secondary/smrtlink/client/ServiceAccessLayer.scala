@@ -305,6 +305,15 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
                               JOB_REPORT_PREFIX))
     }
 
+  def updateSubreadSetDetails(dsId: IdAble,
+                              isActive: Option[Boolean] = None,
+                              bioSampleName: Option[String] = None,
+                              wellSampleName: Option[String] = None) =
+    getMessageResponsePipeline {
+      Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
+          DataSetUpdateRequest(isActive, bioSampleName, wellSampleName))
+    }
+
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] =
     getHdfSubreadSetsPipeline {
       logger.debug(s"Retrieving all active HdfSubreadSet records")
