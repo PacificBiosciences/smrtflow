@@ -209,10 +209,11 @@ trait DataSetMetadataUtils extends LazyLogging {
   * database to an XML dataset.
   */
 object DataSetUpdateUtils extends DataSetMetadataUtils {
-  // TODO what's the best way to handle failure modes here?  ideally we
-  // shouldn't be letting the database values be modified from defaults
-  // without checking that the dataset XML can be updated, but this isn't
-  // enfroced at the API level
+
+  /**
+    * Apply an optional update, with error handling
+    * @return None if successful, or Some(error)
+    */
   private def setNameIfDefined(
       sampleName: Option[String],
       fx: (String) => (Try[String])): Option[String] = {
@@ -223,46 +224,72 @@ object DataSetUpdateUtils extends DataSetMetadataUtils {
           case x => Some(fx(name))
         }
       }
-      .map { result =>
+      .flatMap { result =>
         result match {
-          case Success(msg) => logger.info(msg); msg
-          case Failure(err) => logger.warn(err.getMessage); err.getMessage
+          case Success(msg) => None
+          case Failure(err) => Some(err.getMessage)
         }
       }
   }
 
   /**
     * Apply metadata updates as needed.
+    * @return None if updates were successful or skipped, or Some(msg) if an
+    *         error occurred
     */
   def applyMetadataUpdates(
       ds: ReadSetType,
       bioSampleName: Option[String] = None,
-      wellSampleName: Option[String] = None): ReadSetType = {
-    setNameIfDefined(wellSampleName,
-                     (name: String) => setWellSampleName(ds, name))
-    setNameIfDefined(bioSampleName,
-                     (name: String) => setBioSampleName(ds, name))
-    ds
+      wellSampleName: Option[String] = None): Option[String] = {
+    Seq(
+      setNameIfDefined(wellSampleName,
+                       (name: String) => setWellSampleName(ds, name)),
+      setNameIfDefined(bioSampleName,
+                       (name: String) => setBioSampleName(ds, name))
+    ).flatten match {
+      case Nil => None
+      case (msgs: Seq[String]) => {
+        val msg =
+          s"Error(s) occurred applying metadata updates: ${msgs.mkString("; ")}"
+        logger.warn(msg)
+        Some(msg)
+      }
+    }
   }
 
   /**
     * Write a copy of a dataset to disk, applying metadata updates as needed.
-    * This only works for SubreadSets at present.
+    * This only works for SubreadSets at present.  Does not fail if the updates
+    * are unsuccessful, but will return the error message(s).
+    *
+    * @return Some(error) if metadata updates failed, otherwise None
     */
   def saveUpdatedCopy(dsFile: Path,
                       outputFile: Path,
                       bioSampleName: Option[String] = None,
                       wellSampleName: Option[String] = None,
-                      resolvePaths: Boolean = true) = {
+                      resolvePaths: Boolean = true): Option[String] = {
     val ds = if (resolvePaths) {
       DataSetLoader.loadAndResolveSubreadSet(dsFile)
     } else {
       DataSetLoader.loadSubreadSet(dsFile)
     }
     logger.info(s"Saving updated dataset XML to $outputFile")
-    DataSetWriter.writeDataSet(
-      DataSetMetaTypes.Subread,
-      applyMetadataUpdates(ds, bioSampleName, wellSampleName),
-      outputFile)
+    val errors = applyMetadataUpdates(ds, bioSampleName, wellSampleName)
+    DataSetWriter.writeDataSet(DataSetMetaTypes.Subread, ds, outputFile)
+    errors
+  }
+
+  /**
+    * Load a SubreadSet (without resolving resource paths) and attempt to
+    * apply the specified metadata changes without writing them to disk.
+    *
+    * @return Some(error) if unsuccessful, otherwise None
+    */
+  def testApplyEdits(dsFile: Path,
+                     bioSampleName: Option[String] = None,
+                     wellSampleName: Option[String] = None): Option[String] = {
+    val ds = DataSetLoader.loadSubreadSet(dsFile)
+    applyMetadataUpdates(ds, bioSampleName, wellSampleName)
   }
 }

@@ -110,25 +110,30 @@ class DataSetUtilsSpec
       var ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false)
+      DataSetUpdateUtils.testApplyEdits(dsFile, Some("foo"), Some("bar")) must beNone
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getBioSampleNames(ds) must beEqualTo(Seq("foo"))
       getWellSampleNames(ds) must beEqualTo(Seq("bar"))
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("unknown"), Some("[multiple]"), resolvePaths = false)
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some(UNKNOWN), Some(MULTIPLE_SAMPLES_NAME), resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       dsFile = getPath("/dataset-subreads/pooled_sample.subreadset.xml")
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false)
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getBioSampleNames(ds) must beEqualTo(Seq("foo"))
       getWellSampleNames(ds) must beEqualTo(Seq("bar"))
       // failure mode
       dsFile = getPath("/dataset-subreads/no_collections.subreadset.xml")
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false)
+      val ERR = Some("Error(s) occurred applying metadata updates: no well sample records are present; no well sample records are present")
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) === ERR
+      DataSetUpdateUtils.testApplyEdits(dsFile, Some("foo"), Some("bar")) === ERR
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq.empty[String])
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
+      dsFile = getPath("/dataset-subreads/multi_sample.subreadset.xml")
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) === Some("Error(s) occurred applying metadata updates: Multiple unique BioSample names already present")
     }
   }
 }
