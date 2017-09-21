@@ -105,4 +105,11 @@ object DataSetWriter {
         writeGmapReferenceSet(dataset.asInstanceOf[GmapReferenceSet], path)
     }
   }
+
+  def writeDataSet(dataset: DataSetType, path: Path): DataSetType = {
+    val dst = DataSetMetaTypes.fromString(dataset.getMetaType()).getOrElse {
+      throw new RuntimeException("Can't get dataset metatype")
+    }
+    writeDataSet(dst, dataset, path)
+  }
 }

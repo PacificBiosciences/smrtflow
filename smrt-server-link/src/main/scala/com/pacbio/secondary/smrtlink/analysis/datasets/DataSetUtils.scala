@@ -1,7 +1,11 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
-import scala.util.{Try, Failure}
+import java.nio.file.Path
+
+import scala.util.{Try, Failure, Success}
 import scala.collection.JavaConversions._
+
+import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
@@ -10,12 +14,19 @@ import com.pacificbiosciences.pacbiocollectionmetadata.{
   WellSample
 }
 import com.pacificbiosciences.pacbiosampleinfo.{BioSamples, BioSampleType}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetLoader,
+  DataSetWriter
+}
 
 /**
   * Utilities for accessing and manipulating dataset metadata items,
   * especially sample info
   */
-trait DataSetMetadataUtils {
+trait DataSetMetadataUtils extends LazyLogging {
+
+  val UNKNOWN = "unknown"
+  val MULTIPLE_SAMPLES_NAME = "[multiple]"
 
   protected def getCollectionsMetadata(ds: ReadSetType): Seq[XsdMetadata] =
     Try {
@@ -118,7 +129,7 @@ trait DataSetMetadataUtils {
     getWellSamples(ds) match {
       case Nil =>
         throw new RuntimeException(s"no well sample records are present")
-      case ws: Seq[WellSample] => {
+      case (ws: Seq[WellSample]) => {
         val bioSampleNames = getBioSampleNames(ds)
         def doUpdate = ws.map(s => setBioSampleName(s, name))
         val nRecords: Long = (bioSampleNames match {
@@ -153,7 +164,7 @@ trait DataSetMetadataUtils {
     getWellSamples(ds) match {
       case Nil =>
         throw new RuntimeException(s"no well sample records are present")
-      case ws: Seq[WellSample] => {
+      case (ws: Seq[WellSample]) => {
         val wellSampleNames = ws.map(_.getName).sorted.distinct
         def doUpdate = ws.map(_.setName(name))
         val nRecords: Long = (wellSampleNames match {
@@ -168,5 +179,90 @@ trait DataSetMetadataUtils {
         s"Set $nRecords WellSample tag name(s) to $name"
       }
     }
+  }
+
+  /**
+    * Return true if the dataset meets the conditions allowing the WellSample
+    * name to be set in the XML file.
+    */
+  protected def canEditWellSampleName(ds: ReadSetType): Boolean = {
+    getWellSamples(ds) match {
+      case Nil => false
+      case (ws: Seq[WellSample]) => ws.map(_.getName).sorted.distinct.size == 1
+    }
+  }
+
+  /**
+    * Return true if the dataset meets the conditions allowing the BioSample
+    * name to be set in the XML file.
+    */
+  protected def canEditBioSampleName(ds: ReadSetType): Boolean = {
+    getWellSamples(ds) match {
+      case Nil => false
+      case (ws: Seq[WellSample]) => getBioSampleNames(ds).size <= 1
+    }
+  }
+}
+
+/**
+  * Convenience methods for applying metadata fields from the SMRT Link
+  * database to an XML dataset.
+  */
+object DataSetUpdateUtils extends DataSetMetadataUtils {
+  // TODO what's the best way to handle failure modes here?  ideally we
+  // shouldn't be letting the database values be modified from defaults
+  // without checking that the dataset XML can be updated, but this isn't
+  // enfroced at the API level
+  private def setNameIfDefined(
+      sampleName: Option[String],
+      fx: (String) => (Try[String])): Option[String] = {
+    sampleName
+      .flatMap { name =>
+        name match {
+          case UNKNOWN | MULTIPLE_SAMPLES_NAME => None
+          case x => Some(fx(name))
+        }
+      }
+      .map { result =>
+        result match {
+          case Success(msg) => logger.info(msg); msg
+          case Failure(err) => logger.warn(err.getMessage); err.getMessage
+        }
+      }
+  }
+
+  /**
+    * Apply metadata updates as needed.
+    */
+  def applyMetadataUpdates(
+      ds: ReadSetType,
+      bioSampleName: Option[String] = None,
+      wellSampleName: Option[String] = None): ReadSetType = {
+    setNameIfDefined(wellSampleName,
+                     (name: String) => setWellSampleName(ds, name))
+    setNameIfDefined(bioSampleName,
+                     (name: String) => setBioSampleName(ds, name))
+    ds
+  }
+
+  /**
+    * Write a copy of a dataset to disk, applying metadata updates as needed.
+    * This only works for SubreadSets at present.
+    */
+  def saveUpdatedCopy(dsFile: Path,
+                      outputFile: Path,
+                      bioSampleName: Option[String] = None,
+                      wellSampleName: Option[String] = None,
+                      resolvePaths: Boolean = true) = {
+    val ds = if (resolvePaths) {
+      DataSetLoader.loadAndResolveSubreadSet(dsFile)
+    } else {
+      DataSetLoader.loadSubreadSet(dsFile)
+    }
+    logger.info(s"Saving updated dataset XML to $outputFile")
+    DataSetWriter.writeDataSet(
+      DataSetMetaTypes.Subread,
+      applyMetadataUpdates(ds, bioSampleName, wellSampleName),
+      outputFile)
   }
 }

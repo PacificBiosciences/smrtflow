@@ -23,7 +23,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetadataUtils
 object Converters extends DataSetMetadataUtils {
 
   // Default values for dataset attributes/elements that are Not found or are valid
-  val UNKNOWN = "unknown"
+  // some others are defined in DataSetMetadataUtils
   val DEFAULT_VERSION = "0.0.0"
   val DEFAULT_TAGS = "converted"
   val DEFAULT_SAMPLE_NAME = UNKNOWN
@@ -33,7 +33,6 @@ object Converters extends DataSetMetadataUtils {
   val DEFAULT_INST = UNKNOWN
   val DEFAULT_CELL_ID = UNKNOWN
   val DEFAULT_INST_CTL_VERSION = UNKNOWN
-  val MULTIPLE_SAMPLES_NAME = "[multiple]"
 
   def toMd5(text: String): String =
     MessageDigest
