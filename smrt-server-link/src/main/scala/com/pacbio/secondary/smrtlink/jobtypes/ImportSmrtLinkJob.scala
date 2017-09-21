@@ -91,6 +91,21 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     }
   }
 
+  private def getExistingEntryPoints(dao: JobsDao,
+                                     entryPointFiles: Seq[DataStoreJobFile])
+    : Future[Seq[Option[DataSetMetaDataSet]]] = {
+    Future.sequence {
+      entryPointFiles.map { f =>
+        dao
+          .getDataSetMetaData(f.dataStoreFile.uniqueId)
+          .map(ds => Some(ds))
+          .recoverWith {
+            case e: Exception => Future.successful(None)
+          }
+      }
+    }
+  }
+
   private def getUniqueDataStoreFiles(
       dataSets: Seq[Option[DataSetMetaDataSet]],
       entryPointFiles: Seq[DataStoreJobFile]): Seq[DataStoreJobFile] = {
@@ -147,15 +162,11 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     val epDsFiles =
       getEntryPointDataStoreFiles(job.uuid, importPath, manifest.entryPoints)
 
-    val epExisting: Seq[Option[DataSetMetaDataSet]] = epDsFiles.map { f =>
-      Try {
-        Await.result(dao.getDataSetMetaData(f.dataStoreFile.uniqueId),
-                     30.seconds)
-      }.toOption
-    }
-    val epDsFilesUnique = getUniqueDataStoreFiles(epExisting, epDsFiles)
-
     val fx2 = for {
+      epExisting <- getExistingEntryPoints(dao, epDsFiles)
+      epDsFilesUnique <- Future {
+        getUniqueDataStoreFiles(epExisting, epDsFiles)
+      }
       _ <- Future.sequence {
         addImportedJobFiles(dao, imported, manifest.datastore)
       }
@@ -182,8 +193,8 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
                                   f.dataStoreFile.fileTypeId))
         }
       }
-    } yield entryPoints
-    val eps = Await.result(fx2, 30.seconds)
+    } yield epDsFilesUnique
+    val epDsFilesUnique = Await.result(fx2, 30.seconds)
 
     val dsFiles = epDsFilesUnique.map(_.dataStoreFile) ++ Seq(
       DataStoreFile(
