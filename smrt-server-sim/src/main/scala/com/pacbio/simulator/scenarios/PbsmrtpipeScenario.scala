@@ -263,7 +263,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
         .isFile
     } !=? true,
     // Import the job we just exported
-    ImportJob(Var("/path/does/not/exist.zip")) SHOULD_RAISE classOf[
+    ImportJob(Var(Paths.get("/path/does/not/exist.zip"))) SHOULD_RAISE classOf[
       UnsuccessfulResponseException],
     ImportJob(getExportedZip(dataStore), Var(false)) SHOULD_RAISE classOf[
       UnsuccessfulResponseException], // duplicate UUID
