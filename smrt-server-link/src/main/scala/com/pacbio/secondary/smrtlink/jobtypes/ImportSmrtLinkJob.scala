@@ -106,20 +106,19 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     epDsFilesUnique
   }
 
-  private def addImportedJobFiles(
-      dao: JobsDao,
-      importedJob: EngineJob,
-      datastore: Option[PacBioDataStore]) = {
+  private def addImportedJobFiles(dao: JobsDao,
+                                  importedJob: EngineJob,
+                                  datastore: Option[PacBioDataStore]) = {
     datastore
       .map { ds =>
         ds.files.map { f =>
           // this also may have the UUID mocked for testing
-          DataStoreJobFile(
-            importedJob.uuid,
-            f.copy(path = Paths.get(importedJob.path)
-                               .resolve(f.path.toString)
-                               .toString,
-                   uniqueId = getUuid(f.uniqueId)))
+          DataStoreJobFile(importedJob.uuid,
+                           f.copy(path = Paths
+                                    .get(importedJob.path)
+                                    .resolve(f.path.toString)
+                                    .toString,
+                                  uniqueId = getUuid(f.uniqueId)))
         }
       }
       .getOrElse(Seq.empty[DataStoreJobFile])
@@ -145,8 +144,8 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     val (job, imported) = Await.result(fx1, 30.seconds)
     val importPath = Paths.get(imported.path)
     val summary = expandJob(opts.zipPath, importPath)
-    val epDsFiles = getEntryPointDataStoreFiles(job.uuid, importPath,
-                                                manifest.entryPoints)
+    val epDsFiles =
+      getEntryPointDataStoreFiles(job.uuid, importPath, manifest.entryPoints)
 
     val epExisting: Seq[Option[DataSetMetaDataSet]] = epDsFiles.map { f =>
       Try {
