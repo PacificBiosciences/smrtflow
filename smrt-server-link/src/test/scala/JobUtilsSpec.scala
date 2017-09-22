@@ -118,10 +118,9 @@ class JobUtilsSpec
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")
       val result2 = expandJob(zipPath, unzipPath).toOption.get
-      result2.nFiles === 17
-      val epPath = unzipPath.resolve("entry-points.json")
-      val epsUnzip = FileUtils.readFileToString(epPath.toFile, "UTF-8")
-                              .parseJson.convertTo[Seq[BoundEntryPoint]]
+      result2.nFiles === 16
+      val manifest = getManifest(zipPath)
+      val epsUnzip = manifest.entryPoints
       epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
       val ds2Path = unzipPath.resolve("workflow/datastore.json")
       val ds2 = FileUtils.readFileToString(ds2Path.toFile, "UTF-8")
@@ -189,10 +188,10 @@ class JobUtilsAdvancedSpec
       FileUtils.deleteDirectory(Paths.get(job.path).toFile)
       val unzipPath = Files.createTempDirectory("import-job")
       val result2 = expandJob(zipPath, unzipPath).toOption.get
-      result2.nFiles === 17
-      val epPath = unzipPath.resolve("entry-points.json")
-      val epsUnzip = FileUtils.readFileToString(epPath.toFile, "UTF-8")
-                              .parseJson.convertTo[Seq[BoundEntryPoint]]
+      result2.nFiles === 16
+      val manifest = getManifest(zipPath)
+      val epsUnzip = manifest.entryPoints
+      epsUnzip.size === 1
       epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
       val subreads2Path = unzipPath.resolve("tasks/pbcommand.tasks.dev_mixed_app/SubreadSet").resolve(FilenameUtils.getName(subreads.toString))
       val subreads2 = DataSetLoader.loadAndResolveSubreadSet(subreads2Path)

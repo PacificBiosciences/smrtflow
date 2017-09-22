@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.services
 
+import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -24,9 +25,13 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   MethodNotImplementedError,
-  ResourceNotFoundError
+  ResourceNotFoundError,
+  UnprocessableEntityError
 }
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetUpdateUtils
+}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
@@ -197,9 +202,20 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
     val f2 =
       if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
-        dao.updateSubreadSetDetails(id,
-                                    sopts.bioSampleName,
-                                    sopts.wellSampleName)
+        for {
+          ds <- dao.getDataSetMetaData(id)
+          _ <- DataSetUpdateUtils
+            .testApplyEdits(Paths.get(ds.path),
+                            sopts.bioSampleName,
+                            sopts.wellSampleName)
+            .map { err =>
+              Future.failed(new UnprocessableEntityError(err))
+            }
+            .getOrElse(Future.successful("no errors"))
+          msg <- dao.updateSubreadSetDetails(id,
+                                             sopts.bioSampleName,
+                                             sopts.wellSampleName)
+        } yield msg
       } else Future.successful(MessageResponse(""))
 
     for {

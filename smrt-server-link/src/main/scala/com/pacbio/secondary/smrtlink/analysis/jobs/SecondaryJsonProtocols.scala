@@ -549,7 +549,7 @@ trait JobTypeSettingProtocol
 
   import JobModels._
 
-  implicit val engineJobFormat = jsonFormat19(EngineJob)
+  implicit val engineJobFormat = jsonFormat20(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile)
@@ -582,7 +582,7 @@ trait JobTypeSettingProtocol
   implicit val tsSystemStatusManifest = jsonFormat9(
     TsSystemStatusManifest.apply)
   implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
-
+  implicit val exportJobManifestFormat = jsonFormat3(ExportJobManifest)
 }
 
 trait SecondaryJobJsonProtocol extends JobTypeSettingProtocol

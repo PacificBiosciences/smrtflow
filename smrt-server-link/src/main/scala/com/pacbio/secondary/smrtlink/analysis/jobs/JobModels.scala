@@ -177,6 +177,13 @@ object JobModels {
       override def isQuick: Boolean = false
     }
 
+    case object IMPORT_JOB extends JobType {
+      val id = "import-job"
+      val name = "Import Job"
+      val description = "Import SMRT Link job from ZIP file"
+      override def isQuick: Boolean = false
+    }
+
     case object IMPORT_DATASET extends JobType {
       val id = "import-dataset"
       val name = "Import PacBio DataSet"
@@ -252,6 +259,7 @@ object JobModels {
       EXPORT_DATASETS,
       IMPORT_DATASET,
       EXPORT_JOBS,
+      IMPORT_JOB,
       MERGE_DATASETS,
       MOCK_PBSMRTPIPE,
       PBSMRTPIPE,
@@ -407,7 +415,8 @@ object JobModels {
                        projectId: Int = JobConstants.GENERAL_PROJECT_ID,
                        isMultiJob: Boolean = false,
                        workflow: String = "{}",
-                       parentMultiJobId: Option[Int] = None)
+                       parentMultiJobId: Option[Int] = None,
+                       importedAt: Option[JodaDateTime] = None)
       extends SmrtLinkJob {
 
     def toEngineCoreJob: EngineCoreJob = {
@@ -857,5 +866,9 @@ object JobModels {
                            jobTypeId: String,
                            jobId: Int)
       extends TsManifest
+
+  case class ExportJobManifest(job: EngineJob,
+                               entryPoints: Seq[BoundEntryPoint],
+                               datastore: Option[PacBioDataStore])
 
 }

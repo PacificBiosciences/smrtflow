@@ -58,6 +58,25 @@ trait JobUtils extends SecondaryJobJsonProtocol {
     FileUtils.writeStringToFile(dsOut.toFile, ds.toJson.prettyPrint, "UTF-8")
     dsOut
   }
+
+  protected def getDataStore(rootPath: Path): Option[PacBioDataStore] = {
+    val p1 = rootPath.resolve("datastore.json")
+    val p2 = rootPath.resolve("workflow/datastore.json")
+    val dataStorePath = if (p1.toFile.exists) {
+      Some(p1)
+    } else if (p2.toFile.exists) {
+      Some(p2)
+    } else {
+      None
+    }
+    dataStorePath.map { p =>
+      FileUtils
+        .readFileToString(p.toFile, "UTF-8")
+        .parseJson
+        .convertTo[PacBioDataStore]
+        .relativize(rootPath)
+    }
+  }
 }
 
 class JobExporter(job: EngineJob, zipPath: Path)
@@ -104,6 +123,17 @@ class JobExporter(job: EngineJob, zipPath: Path)
     }
   }
 
+  private def convertEntryPointPaths(entryPoints: Seq[BoundEntryPoint],
+                                     jobPath: Path): Seq[BoundEntryPoint] = {
+    entryPoints.map { e =>
+      e.copy(
+        path = Paths
+          .get(s"entry-points/${e.entryId}")
+          .resolve(FilenameUtils.getName(e.path))
+          .toString)
+    }
+  }
+
   /**
     * Write the entry points to a subdirectory in the zip, along with a JSON
     * file referencing them
@@ -111,17 +141,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
   protected def exportEntryPoints(entryPoints: Seq[BoundEntryPoint],
                                   jobPath: Path): Long = {
     if (entryPoints.isEmpty) return 0L
-    val epsOut = entryPoints.map { e =>
-      e.copy(
-        path = Paths
-          .get(s"entry-points/${e.entryId}")
-          .resolve(FilenameUtils.getName(e.path))
-          .toString)
-    }
-    val epsJson = Files.createTempFile("entry-points", ".json")
-    FileUtils.writeStringToFile(epsJson.toFile,
-                                epsOut.toJson.prettyPrint,
-                                "UTF-8")
+    val epsOut = convertEntryPointPaths(entryPoints, jobPath)
     entryPoints
       .zip(epsOut)
       .map {
@@ -129,7 +149,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
           val (ep, op) = (Paths.get(e.path), Paths.get(o.path))
           if (!ep.toFile.exists) {
             logger.warn(
-              s"Skipping entry point ${e.entryId}:${e.path} because the path no longer exists");
+              s"Skipping entry point ${e.entryId}:${e.path} because the path no longer exists")
             0L
           } else {
             Try { getDataSetMiniMeta(ep) }.toOption
@@ -143,9 +163,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
               .getOrElse(exportFile(op, Paths.get(""), Some(ep)))
           }
       }
-      .sum + exportFile(jobPath.resolve("entry-points.json"),
-                        jobPath,
-                        Some(epsJson))
+      .sum
   }
 
   /**
@@ -157,13 +175,18 @@ class JobExporter(job: EngineJob, zipPath: Path)
     if (jobPath.toFile.isFile) {
       throw new RuntimeException(s"${jobPath.toString} is not a directory")
     }
-    val manifest = Files.createTempFile("engine-job", ".json")
-    FileUtils.writeStringToFile(manifest.toFile,
-                                job.toJson.prettyPrint,
+    val entryPointsOut = convertEntryPointPaths(entryPoints, jobPath)
+    val datastore = getDataStore(jobPath)
+    val manifest = ExportJobManifest(job, entryPointsOut, datastore)
+    val manifestFile = Files.createTempFile("export-job-manifest", ".json")
+    FileUtils.writeStringToFile(manifestFile.toFile,
+                                manifest.toJson.prettyPrint,
                                 "UTF-8")
     var nBytes: Long = exportPath(jobPath, jobPath) +
       exportEntryPoints(entryPoints, jobPath) +
-      exportFile(jobPath.resolve("engine-job.json"), jobPath, Some(manifest))
+      exportFile(jobPath.resolve("export-job-manifest.json"),
+                 jobPath,
+                 Some(manifestFile))
     out.close
     Try { JobExportSummary(nBytes) }
   }
@@ -189,22 +212,22 @@ trait JobImportUtils
     * Decompress a zip file containing a job
     */
   def expandJob(zipFile: Path, jobPath: Path): Try[JobImportSummary] = Try {
-    var zis = new ZipInputStream(new FileInputStream(zipFile.toFile));
+    var zis = new ZipInputStream(new FileInputStream(zipFile.toFile))
     //get the zipped file list entry
-    var ze = Option(zis.getNextEntry());
+    var ze = Option(zis.getNextEntry())
     var nFiles = 0
     while (ze.isDefined) {
-      val fileName = ze.get.getName();
-      val newFile = jobPath.resolve(fileName).toFile;
+      val fileName = ze.get.getName()
+      val newFile = jobPath.resolve(fileName).toFile
       logger.debug(s"Deflating ${newFile.getAbsoluteFile}")
       Paths.get(newFile.getParent).toFile.mkdirs
-      val fos = new FileOutputStream(newFile);
+      val fos = new FileOutputStream(newFile)
       var buffer = new Array[Byte](BUFFER_SIZE)
       var len = 0
       while ({ len = zis.read(buffer); len > 0 }) {
         fos.write(buffer, 0, len)
       }
-      fos.close();
+      fos.close()
       if (FilenameUtils.getName(fileName) == "datastore.json") {
         logger.info(s"Updating paths in ${fileName}")
         absolutizeDataStore(jobPath, newFile.toPath, Some(newFile.toPath))
@@ -215,5 +238,24 @@ trait JobImportUtils
     zis.closeEntry
     zis.close
     JobImportSummary(nFiles)
+  }
+
+  /**
+    * Retrieve the manifest from an exported job ZIP file.
+    */
+  def getManifest(zipFile: Path): ExportJobManifest = {
+    var zf = new ZipFile(zipFile.toFile)
+    Option(zf.getEntry("export-job-manifest.json"))
+      .map { ze =>
+        val buffer = new Array[Byte](ze.getSize().toInt)
+        val zis = zf.getInputStream(ze)
+        zis.read(buffer, 0, ze.getSize().toInt)
+        zis.close
+        new String(buffer).parseJson.convertTo[ExportJobManifest]
+      }
+      .getOrElse {
+        throw new IllegalArgumentException(
+          "Can't read export-job-manifest.json in $zipFile.  Only jobs exported through the SMRT Link export-jobs service may be imported.")
+      }
   }
 }
