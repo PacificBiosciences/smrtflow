@@ -105,6 +105,19 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
                     }
                   }
               }
+            } ~
+            pathPrefix("datamodel") {
+              get {
+                pathEndOrSingleSlash {
+                  complete {
+                    ok { // added as a sugar layer to avoid getting the XML from within the JSON of Run
+                      (runActor ? GetRun(id))
+                        .mapTo[Run]
+                        .map(f => scala.xml.XML.loadString(f.dataModel))
+                    }
+                  }
+                }
+              }
             }
         }
     }

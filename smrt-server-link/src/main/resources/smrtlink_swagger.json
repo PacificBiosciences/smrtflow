@@ -576,6 +576,33 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/smrt-link/runs/{runId}/datamodel": {
+      "get": {
+        "description": "Retrieve an existing run XML record by ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Run XML"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "runId",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "text/xml"
+        ],
+        "x-scope": "run-qc",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/smrt-link/runs/{runId}/collections": {
       "get": {
         "description": "Retrieve a list of collections associated with a run",
