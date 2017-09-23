@@ -239,6 +239,11 @@ class RunSpec
         run.chemistrySwVersion === None
       }
     }
+     "return a specific run xml" in new daoSetup {
+      Get(s"/smrt-link/runs/$RUN_ID/datamodel") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+        status.isSuccess must beTrue
+      }
+    }
 
     "return a run set of collections" in new daoSetup {
       Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
