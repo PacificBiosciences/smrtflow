@@ -61,7 +61,7 @@ MAX_RETRIES=30
 
 export PATH=${SL_SERVICES_TOOLS_DIR}/bin:${SL_SERVICES_TOOLS_DIR}/tools/bin:$PATH
 
-TOMCAT_DIR="$__dir/../apache-tomcat-8.0.26"
+TOMCAT_DIR="$__dir/../tomcat_current"
 WSO2_DIR="$__dir/../wso2am-2.0.0"
 
 

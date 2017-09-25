@@ -1,3 +1,3 @@
 
 pull-tomcat:
-	wget http://apache.claz.org/tomcat/tomcat-8/v8.0.26/bin/apache-tomcat-8.0.26.tar.gz
+	cp -a /pbi/dept/secondary/builds/develop/current_thirdpartyall-release_installdir/java/tomcat-pbtarball/tomcat-pbtarball_8.5.20/tarball/tomcat-pbtarball_8.5.20.tar.gz .

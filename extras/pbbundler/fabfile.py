@@ -165,28 +165,31 @@ def _raise_non_none_if_not_exists(path_or_none, custom_message=None):
 
 def _copy_and_extract_tomcat(tomcat_tgz, output_dir):
 
-    name = os.path.basename(tomcat_tgz)
+    tomcat_rootdir_rel = local('tar --wildcards --exclude="*/*" --show-transformed-names -tf "{p}" "*"'.format(p=tomcat_tgz), capture=True)
+    if tomcat_rootdir_rel == "":
+        raise ValueError("Unable to determine tomcat root directory from {f}".format(f=tomcat_tgz))
 
-    rx = re.compile('apache-tomcat-\d+.\d+.\d+')
-    m = re.match(rx, name)
-
-    if m is None:
-        raise ValueError("Unable to determine tomcat name from {f} using regex {r}".format(f=tomcat_tgz, r=rx.pattern))
-
-    tomcat_output = os.path.join(output_dir, m.group())
+    tomcat_rootdir = os.path.join(output_dir, tomcat_rootdir_rel)
 
     with lcd(output_dir):
-        if not os.path.exists(tomcat_output):
+        if not os.path.exists(tomcat_rootdir):
             local("tar xvfz {p}".format(p=tomcat_tgz))
         else:
-            log.debug("Tomcat already exists {}, skipping copying".format(tomcat_output))
+            log.debug("Tomcat already exists {}, skipping tarball extract".format(tomcat_rootdir))
 
-    return tomcat_output
+    # Point the 'tomcat_current' link at the tarball output
+    tomcat_current_link = os.path.join(output_dir, "tomcat_current")
+    if os.path.lexists(tomcat_current_link):
+        os.remove(tomcat_current_link)
+    os.symlink(tomcat_rootdir_rel, tomcat_current_link)
+
+    return tomcat_current_link
 
 
 def _archive_tomcat_webapp_root(tomcat_output_dir):
     webapp_path = os.path.join(tomcat_output_dir, 'webapps')
-    shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
+    if os.path.exists(os.path.join(webapp_path, 'ROOT')):
+        shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
@@ -399,7 +402,7 @@ def build_smrtlink_services_ui(version,
                                publish_to=None,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
-                               tomcat_tgz="apache-tomcat-8.0.26.tar.gz",
+                               tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
                                chemistry_bundle_dir=None,
                                doc_dir=None
                                ):
@@ -441,7 +444,7 @@ def build_smrtlink_services_ui(version,
     ivy_cache="~/.ivy-cache-custom",
     analysis_server="smrt-server-link",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
-    tomcat_tgz=/path/to/apache-tomcat-8.0.26.tar.gz
+    tomcat_tgz=/path/to/tomcat-pbtarball_8.5.20.tar.gz
 
 
     Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
