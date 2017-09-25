@@ -29,7 +29,7 @@ case class ApplyConfigToolOptions(rootDir: Path,
 
 object ApplyConfigConstants {
 
-  val TOMCAT_VERSION = "apache-tomcat-8.0.26"
+  val TOMCAT_VERSION = "tomcat_current"
   val WSO2_VERSION = "wso2am-2.0.0"
 
   // This must be relative as
