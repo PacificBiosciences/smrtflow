@@ -17,11 +17,21 @@ import spray.http.MediaTypes
 import spray.json._
 import spray.httpx.SprayJsonSupport
 import SprayJsonSupport._
-import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  Authenticator,
+  AuthenticatorProvider
+}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{MethodNotImplementedError, ResourceNotFoundError, UnprocessableEntityError}
-import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetMetaTypes, DataSetUpdateUtils}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
+  MethodNotImplementedError,
+  ResourceNotFoundError,
+  UnprocessableEntityError
+}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetUpdateUtils
+}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
@@ -60,23 +70,22 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
   val DETAILS_PREFIX = "details"
   val DETAILED_RECORDS_PREFIX = "record-names"
 
-
   /**
     * Load Barcode Names/Ids from the Fasta file
     *
     * @param barcodeSet Path to the Barcode Set.
     * @return
     */
-   def loadBarcodeNames(barcodeSet: Path): Seq[String] = {
+  def loadBarcodeNames(barcodeSet: Path): Seq[String] = {
 
     val bs = DataSetLoader.loadAndResolveBarcodeSet(barcodeSet)
 
     bs.getExternalResources.getExternalResource
-        .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
-        .map(_.getResourceId)
-        .map(p => Fasta.loadFrom(Paths.get(p).toFile))
-        .map(items => items.map(_.id))
-        .getOrElse(Seq.empty[String])
+      .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
+      .map(_.getResourceId)
+      .map(p => Fasta.loadFrom(Paths.get(p).toFile))
+      .map(items => items.map(_.id))
+      .getOrElse(Seq.empty[String])
 
   }
 
@@ -84,10 +93,12 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
     * Only the BarcodeSet supports loading the Contig names/ids from the fasta file
     */
   def validateBarcodeShortName(shortName: String): Future[String] = {
-    if (shortName == "barcodes") Future.successful("Successful barcodeSet type")
-    else Future.failed(new UnprocessableEntityError(s"DataSet $shortName not supported. Only BarcodeSets are supported."))
+    if (shortName == "barcodes")
+      Future.successful("Successful barcodeSet type")
+    else
+      Future.failed(new UnprocessableEntityError(
+        s"DataSet $shortName not supported. Only BarcodeSets are supported."))
   }
-
 
   // Default MAX number of records to return
   val DS_LIMIT = 2000
@@ -311,7 +322,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                         for {
                           _ <- validateBarcodeShortName(shortName)
                           dataset <- GetDataSetById(id)
-                          recordNames <- Future.successful(loadBarcodeNames(Paths.get(dataset.path)))
+                          recordNames <- Future.successful(
+                            loadBarcodeNames(Paths.get(dataset.path)))
                         } yield recordNames
                       }
                     }
