@@ -589,7 +589,7 @@ object JobModels {
   }
 
   // Should think about making this a Path
-  case class BoundEntryPoint(entryId: String, path: String)
+  case class BoundEntryPoint(entryId: String, path: Path)
 
   // Used in pipeline Templates. Name is the display name
   case class EntryPoint(entryId: String, fileTypeId: String, name: String)

@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.analysis.jobtypes
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Path, Paths, Files}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.InvalidJobOptionError
@@ -11,12 +11,12 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.InvalidJobOptionError
   */
 object Validators {
 
-  def fileExists(x: String): Option[InvalidJobOptionError] = {
-    if (Files.exists(Paths.get(x))) None
+  def fileExists(x: Path): Option[InvalidJobOptionError] = {
+    if (Files.exists(x)) None
     else Some(InvalidJobOptionError(s"Unable to find $x"))
   }
 
-  def filesExists(xs: Seq[String]): Option[InvalidJobOptionError] = {
+  def filesExists(xs: Seq[Path]): Option[InvalidJobOptionError] = {
     val rx = xs.map(fileExists).flatMap(x => x)
     rx.reduceLeftOption((a, b) => InvalidJobOptionError(a.msg + " " + b.msg))
   }

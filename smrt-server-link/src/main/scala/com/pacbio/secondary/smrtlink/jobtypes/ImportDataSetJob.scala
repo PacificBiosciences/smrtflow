@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -44,7 +44,7 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     // shim layer
-    val oldOpts = ImportDataSetOptions(opts.path.toAbsolutePath.toString,
+    val oldOpts = ImportDataSetOptions(opts.path.toAbsolutePath,
                                        opts.datasetType,
                                        opts.getProjectId())
     val job = oldOpts.toJob

@@ -1,4 +1,4 @@
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{BoundEntryPoint, JobResource, ServiceTaskOptionBase, ServiceTaskStrOption}
@@ -17,7 +17,7 @@ with SecondaryJobJsonProtocol {
   "Sanity test for running a mock pbsmrtpipe jobOptions" should {
     "Basic mock jobOptions to write datastore, jobOptions resources, report" in {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
-      val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, x._2))
+      val entryPoints = Seq(("e_01", "file.txt"), ("e_02", "file2.txt")).map(x => BoundEntryPoint(x._1, Paths.get(x._2)))
       // Path to source path.stuff.sh
       val envPath:Option[Path] = None
       val job = JobResource(UUID.randomUUID, outputDir)
@@ -31,7 +31,7 @@ with SecondaryJobJsonProtocol {
       jobResult.isRight must beTrue
     }
     "Serialization smoke test for mock pbsmrtpipe jobOptions option" in {
-      val entryPoints = Seq(BoundEntryPoint("e_01", "/path/to/file.txt"))
+      val entryPoints = Seq(BoundEntryPoint("e_01", Paths.get("/path/to/file.txt")))
       val taskOptions = Seq(ServiceTaskStrOption("option_01", "value_01"))
       val workflowOptions = Seq(ServiceTaskStrOption("option_02", "value_02"))
       val serviceUri = None

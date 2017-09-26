@@ -11,7 +11,10 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetExporter
 import JobModels._
 
@@ -126,11 +129,12 @@ class JobExporter(job: EngineJob, zipPath: Path)
   private def convertEntryPointPaths(entryPoints: Seq[BoundEntryPoint],
                                      jobPath: Path): Seq[BoundEntryPoint] = {
     entryPoints.map { e =>
-      e.copy(
-        path = Paths
-          .get(s"entry-points/${e.entryId}")
-          .resolve(FilenameUtils.getName(e.path))
-          .toString)
+      val dsMeta = getDataSetMiniMeta(e.path)
+      val ext = dsMeta.metatype.fileType.fileExt
+      // this is consistent with how SubreadSet entry points are written
+      // in upstream jobs
+      val outputPath = Paths.get(s"entry-points/${dsMeta.uuid.toString}.$ext")
+      e.copy(path = outputPath)
     }
   }
 
@@ -146,21 +150,21 @@ class JobExporter(job: EngineJob, zipPath: Path)
       .zip(epsOut)
       .map {
         case (e, o) =>
-          val (ep, op) = (Paths.get(e.path), Paths.get(o.path))
-          if (!ep.toFile.exists) {
+          if (!e.path.toFile.exists) {
             logger.warn(
-              s"Skipping entry point ${e.entryId}:${e.path} because the path no longer exists")
+              s"Skipping entry point ${e.entryId}:${e.path.toString} because the path no longer exists")
             0L
           } else {
-            Try { getDataSetMiniMeta(ep) }.toOption
+            Try { getDataSetMiniMeta(e.path) }.toOption
               .map { m =>
-                if (haveFiles contains op.toString) {
-                  logger.warn(s"Skipping duplicate entry ${op.toString}"); 0L
+                if (haveFiles contains o.path.toString) {
+                  logger.warn(s"Skipping duplicate entry ${o.path.toString}");
+                  0L
                 } else {
-                  writeDataSet(ep, op, m.metatype, None)
+                  writeDataSet(e.path, o.path, m.metatype, None)
                 }
               }
-              .getOrElse(exportFile(op, Paths.get(""), Some(ep)))
+              .getOrElse(exportFile(o.path, Paths.get(""), Some(e.path)))
           }
       }
       .sum

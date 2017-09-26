@@ -93,7 +93,7 @@ class JobUtilsSpec
     "Export with entry point" in {
       val job = setupFakeJob
       val refPath = Paths.get(getClass.getResource(REF_PATH).getPath)
-      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job_eps.zip")
       val result = ExportJob(job, zipPath, eps)
@@ -109,7 +109,7 @@ class JobUtilsSpec
       val dsJson = ds.copy(files = ds.files ++ Seq(rs)).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
       val refPath = Paths.get(getClass.getResource(REF_PATH).getPath)
-      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job_eps.zip")
       val result = ExportJob(job, zipPath, eps)
@@ -179,7 +179,7 @@ class JobUtilsAdvancedSpec
       val dsJson = ds.copy(files = ds.files ++ files2).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
       val refPath = PacBioTestData().getFile("lambdaNEB")
-      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath.toString))
+      val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")
       val result = ExportJob(job, zipPath, eps)

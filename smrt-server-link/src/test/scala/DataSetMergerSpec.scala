@@ -127,7 +127,7 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
     "Merge SubreadSets using jobtype API" in {
       val paths = getData(Seq("subreads-sequel", "subreads-xml"))
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths.map(_.toString), "merge_datasets")
+                                     paths, "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
       val job = JobResource(UUID.randomUUID, outputDir)
       val j = opts.toJob
@@ -166,10 +166,10 @@ class DataSetMergerScalingSpec extends Specification with LazyLogging with timeU
 
   "Test merging large numbers of datasets" should {
     "Merge SubreadSets using jobtype API" in {
-      val paths = listSubreadSetFiles(Paths.get(DATA_DIR).toFile)
+      val paths = listSubreadSetFiles(Paths.get(DATA_DIR).toFile).map(_.toPath)
       println(s"Found ${paths.size} SubreadSet XMLs")
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths.map(_.toString), "merge_datasets")
+                                     paths, "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
       val job = JobResource(UUID.randomUUID, outputDir)
       println(s"Merge job output dir is ${outputDir.toString}")

@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERA
   * @param path Path to input dataSet
   * @param datasetType DataSet type (must be consistent with the resource in `path`
   */
-case class ImportDataSetOptions(path: String,
+case class ImportDataSetOptions(path: Path,
                                 datasetType: DataSetMetaTypes.DataSetMetaType,
                                 override val projectId: Int =
                                   GENERAL_PROJECT_ID)
@@ -58,8 +58,7 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
     val startedAt = JodaDateTime.now()
     val createdAt = JodaDateTime.now()
 
-    val srcP = Paths.get(opts.path)
-    val fileSize = srcP.toFile.length
+    val fileSize = opts.path.toFile.length
 
     def toDataStoreFile(ds: DataSetType) =
       DataStoreFile(
@@ -69,7 +68,7 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
         fileSize,
         createdAt,
         createdAt,
-        opts.path,
+        opts.path.toString,
         isChunked = false,
         Option(ds.getName).getOrElse(s"PacBio DataSet"),
         s"Imported DataSet on $startedAt"
@@ -83,7 +82,11 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
 
       // This should never stop a dataset from being imported
       val reports = Try {
-        DataSetReports.runAll(srcP, dst, job.path, jobTypeId, resultsWriter)
+        DataSetReports.runAll(opts.path,
+                              dst,
+                              job.path,
+                              jobTypeId,
+                              resultsWriter)
       }
 
       val reportFiles: Seq[DataStoreFile] = reports match {
@@ -113,7 +116,7 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
 
     val tx = for {
       dsFile <- Try {
-        toDataStoreFile(DataSetLoader.loadType(opts.datasetType, srcP))
+        toDataStoreFile(DataSetLoader.loadType(opts.datasetType, opts.path))
       }
       dstore <- Try { writeJobDataStore(dsFile, opts.datasetType) }
     } yield dstore

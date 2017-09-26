@@ -104,10 +104,10 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       importPath: Path,
       entryPoints: Seq[BoundEntryPoint]): Seq[DataStoreJobFile] = {
     entryPoints.map { e =>
-      e.copy(path = importPath.resolve(e.path).toString)
+      e.copy(path = importPath.resolve(e.path))
     } map { e =>
       val now = JodaDateTime.now()
-      val md = getDataSetMiniMeta(Paths.get(e.path))
+      val md = getDataSetMiniMeta(e.path)
       val f = DataStoreFile(
         uniqueId = md.uuid, // XXX does this need to be mockable too?
         sourceId = "import-job",
@@ -115,7 +115,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
         fileSize = 0L,
         createdAt = now,
         modifiedAt = now,
-        path = e.path,
+        path = e.path.toString,
         name = s"Entry point ${e.entryId}",
         description = s"Imported entry point ${e.entryId}"
       )

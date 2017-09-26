@@ -125,7 +125,10 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
                                                             opts.ids,
                                                             dao)
       paths <- Future.successful(datasets.map(p => Paths.get(p.path)))
-    } yield paths
+      updatedPaths <- Future.sequence(paths.map { p =>
+        updateDataSetEntryPoint(p, resources.path, dao)
+      })
+    } yield updatedPaths
 
     val paths: Seq[Path] = Await.result(fx, opts.DEFAULT_TIMEOUT)
 

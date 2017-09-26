@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.io.{PrintWriter, StringWriter}
 import java.net.InetAddress
 
@@ -127,7 +127,14 @@ package object jobtypes {
                                                Some(ds.wellSampleName)) match {
               case None =>
                 Future.successful(outPath)
-              case Some(err) => Future.failed(new RuntimeException(err))
+              case Some(err) =>
+                // FIXME ideally we would just fail in this case but the blast
+                // radius is potentially huge so I'm leaving it fault-tolerant
+                // until we can test it better
+                //Future.failed(new RuntimeException(err))
+                logger.error(s"Dataset ${dsMeta.uuid} could not be updated")
+                logger.error(err)
+                Future.successful(entryPoint)
             }
           }
         case _ => Future.successful(entryPoint)
@@ -221,7 +228,7 @@ package object jobtypes {
                                                         dao)
       } yield
         (EngineJobEntryPointRecord(d.uuid, e.fileTypeId),
-         BoundEntryPoint(e.entryId, d.path))
+         BoundEntryPoint(e.entryId, Paths.get(d.path)))
     }
 
     def resolver(entryPoints: Seq[BoundServiceEntryPoint], dao: JobsDao)

@@ -21,7 +21,7 @@ import com.pacificbiosciences.pacbiodatasets._
 // Merge DataSets
 case class MergeDataSetOptions(
     datasetType: String,
-    paths: Seq[String],
+    paths: Seq[Path],
     name: String,
     override val projectId: Int = GENERAL_PROJECT_ID)
     extends BaseJobOptions {
@@ -60,7 +60,7 @@ class MergeDataSetJob(opts: MergeDataSetOptions)
       s"Starting dataset merging of ${opts.paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
 
     resultsWriter.writeLine(s"DataSet Merging options: $opts")
-    opts.paths.foreach(x => resultsWriter.writeLine(s"File $x"))
+    opts.paths.foreach(x => resultsWriter.writeLine(s"File ${x.toString}"))
 
     val outputPath = job.path.resolve("merged.dataset.xml")
     val datastoreJson = job.path.resolve("datastore.json")
@@ -83,24 +83,23 @@ class MergeDataSetJob(opts: MergeDataSetOptions)
       )
     }
 
-    val paths = opts.paths.map(x => Paths.get(x))
-
     val mType = DataSetMetaTypes.toDataSetType(opts.datasetType)
 
     val result = mType match {
       case Some(DataSetMetaTypes.Subread) =>
         Some(
-          (DataSetMerger.mergeSubreadSetPathsTo(paths, opts.name, outputPath),
+          (DataSetMerger
+             .mergeSubreadSetPathsTo(opts.paths, opts.name, outputPath),
            DataSetMetaTypes.Subread))
       case Some(DataSetMetaTypes.HdfSubread) =>
         Some(
           (DataSetMerger
-             .mergeHdfSubreadSetPathsTo(paths, opts.name, outputPath),
+             .mergeHdfSubreadSetPathsTo(opts.paths, opts.name, outputPath),
            DataSetMetaTypes.HdfSubread))
       case Some(DataSetMetaTypes.Alignment) =>
         Some(
           (DataSetMerger
-             .mergeAlignmentSetPathsTo(paths, opts.name, outputPath),
+             .mergeAlignmentSetPathsTo(opts.paths, opts.name, outputPath),
            DataSetMetaTypes.Alignment))
       case x =>
         resultsWriter.writeLineError(s"Unsupported DataSet type $x")
