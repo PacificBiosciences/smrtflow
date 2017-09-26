@@ -27,12 +27,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
-import com.pacbio.secondary.smrtlink.jobtypes.{
-  DeleteSmrtLinkJobOptions,
-  MergeDataSetJobOptions,
-  ExportSmrtLinkJobOptions,
-  ImportSmrtLinkJobOptions
-}
+import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
 class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
@@ -878,6 +873,32 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions)
     }
 
+  def createMultiAnalysisJob(
+      multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] = {
+    runJobPipeline {
+      logger.info(
+        s"Submitting $JOB_MULTI_ROOT_PREFIX name:${multiAnalysisJobOptions.name.getOrElse("")}")
+      Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
+           multiAnalysisJobOptions)
+    }
+  }
+
+  def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] = {
+    getMessageResponsePipeline {
+      logger.info(
+        s"Attempting to change multi-job ${ix.toIdString} state to SUBMITTED")
+      Post(toUrl(
+        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit"))
+    }
+  }
+
+  def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] = {
+    getJobsPipeline {
+      Get(toUrl(
+        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/jobs"))
+    }
+  }
+
   // PacBio Data Bundle
   def getPacBioDataBundles() = getPacBioDataBundlesPipeline {
     Get(toPacBioDataBundleUrl())
@@ -980,7 +1001,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
-    logger.debug(s"Polling for job ${jobId.toIdString} to finish successfully")
+    logger.debug(s"Polling for core job ${jobId.toIdString} to finish successfully")
 
     def failIfNotState(state: AnalysisJobStates.JobStates,
                        job: EngineJob): Try[EngineJob] = {
@@ -1033,7 +1054,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
             exitFlag = false
             runningJob = Some(job)
           }
-        case Failure(ex) =>
+        case Failure(_) =>
           exitFlag = false
           runningJob = None
       }
@@ -1065,7 +1086,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
-    logger.debug(s"Polling for job ${jobId.toIdString} to complete")
+    logger.debug(s"Polling for core job ${jobId.toIdString} to complete")
 
     def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
@@ -1098,7 +1119,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
             exitFlag = false
             runningJob = Some(job)
           }
-        case Failure(ex) =>
+        case Failure(_) =>
           exitFlag = false
       }
     }
