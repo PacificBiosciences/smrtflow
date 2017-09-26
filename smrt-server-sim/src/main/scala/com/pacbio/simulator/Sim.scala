@@ -37,7 +37,8 @@ object Sim extends App with LazyLogging {
     "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
     "LargeMergeScenario" -> LargeMergeScenarioLoader,
     "TechSupportScenario" -> TechSupportScenarioLoader,
-    "DbBackUpScenario" -> DbBackUpScenarioLoader
+    "DbBackUpScenario" -> DbBackUpScenarioLoader,
+    "SampleNamesScenario" -> SampleNamesScenarioLoader
   )
 
   final val DESCRIPTION =

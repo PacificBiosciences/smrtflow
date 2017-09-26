@@ -1,10 +1,16 @@
 package com.pacbio.secondary.smrtlink
 
+import java.nio.file.Path
 import java.io.{PrintWriter, StringWriter}
 import java.net.InetAddress
 
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes,
+  DataSetUpdateUtils
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
@@ -34,7 +40,9 @@ import scala.util.{Failure, Success, Try}
   */
 package object jobtypes {
 
-  trait ServiceCoreJobModel extends LazyLogging {
+  import com.pacbio.common.models.CommonModelImplicits._
+
+  trait ServiceCoreJobModel extends LazyLogging with DataSetFileUtils {
     type Out
     val jobTypeId: JobTypeIds.JobType
 
@@ -91,6 +99,40 @@ package object jobtypes {
         Await.result(fx, timeOut)
       }
 
+    /**
+      * Update the entry point for a dataset to point to a new XML file
+      * saved with metadata updated from the database.  Fails if any errors
+      * are encountered.  Currently this only affects SubreadSets, but it
+      * will pass through other dataset types silently.
+      *
+      * @param entryPoint resolved entry point path
+      * @param jobPath output directory for the job
+      * @param dao JobsDao object
+      * @return Future with updated (or original) entry point path
+      */
+    def updateDataSetEntryPoint(entryPoint: Path,
+                                jobPath: Path,
+                                dao: JobsDao): Future[Path] = {
+      val dsMeta = getDataSetMiniMeta(entryPoint)
+      dsMeta.metatype match {
+        case DataSetMetaTypes.Subread =>
+          val outDir = jobPath.resolve("entry-points")
+          outDir.toFile.mkdirs
+          val outPath =
+            outDir.resolve(s"${dsMeta.uuid.toString}.subreadset.xml")
+          dao.getSubreadDataSetById(dsMeta.uuid).flatMap { ds =>
+            DataSetUpdateUtils.saveUpdatedCopy(entryPoint,
+                                               outPath,
+                                               Some(ds.bioSampleName),
+                                               Some(ds.wellSampleName)) match {
+              case None =>
+                Future.successful(outPath)
+              case Some(err) => Future.failed(new RuntimeException(err))
+            }
+          }
+        case _ => Future.successful(entryPoint)
+      }
+    }
   }
 
   trait ServiceJobOptions {

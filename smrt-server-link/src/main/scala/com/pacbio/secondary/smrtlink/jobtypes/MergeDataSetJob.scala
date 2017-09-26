@@ -88,7 +88,11 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
                                                             opts.ids,
                                                             dao)
       paths <- Future.successful(datasets.map(_.path))
-    } yield paths
+      updatedPaths <- Future.sequence(paths.map { p =>
+        updateDataSetEntryPoint(Paths.get(p), resources.path, dao)
+          .map(_.toString)
+      })
+    } yield updatedPaths
 
     val paths: Seq[String] = Await.result(fx, timeout)
 

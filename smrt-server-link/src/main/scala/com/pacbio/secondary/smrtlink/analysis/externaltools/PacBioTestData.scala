@@ -36,8 +36,11 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
     extends DataSetFileUtils {
   private val fileLookup = files.map(f => (f.id, f)).toMap
 
+  def getFileIdsByType(ft: FileTypes.FileType) =
+    files.filter(_.fileTypeId == ft.fileTypeId).map(_.id)
+
   def getFilesByType(ft: FileTypes.FileType) =
-    files.filter(_.fileTypeId == ft.fileTypeId).map(f => getFile(f.id))
+    getFileIdsByType(ft).map(id => getFile(id))
 
   def getFile(id: String): Path = {
     val relPath = fileLookup(id).path
