@@ -49,17 +49,20 @@ UI_SHA="`git rev-parse --short HEAD`"
 echo "smrtflow revision: $SMRTFLOW_SHA ; UI revision: $UI_SHA"
 
 BUNDLER_ROOT="${SMRTFLOW_ROOT}/extras/pbbundler"
-SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
+if [ -z "$SL_IVY_CACHE" ] ; then
+    SL_IVY_CACHE=~/.ivy2-pbbundler-mainline-sl
+fi
 
 WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0-stock-plus-postgres.zip
-TOMCAT_TGZ=/mnt/secondary/Share/smrtserver-resources/apache-tomcat-8.0.26.tar.gz
-
+if [ -z "$TOMCAT_TGZ" ] ; then
+     TOMCAT_TGZ=/pbi/dept/secondary/builds/develop/current_thirdpartyall-release_installdir/java/tomcat-pbtarball/tomcat-pbtarball_8.5.20/tarball/tomcat-pbtarball_8.5.20.tar.gz
+fi
 
 echo "Starting building ${BUNDLE_VERSION}"
 
 source /mnt/software/Modules/current/init/bash
 
-module load jdk/1.8.0_71
+module load jdk/1.8.0_144
 module load sbt
 module load nodejs/4.1.2
 

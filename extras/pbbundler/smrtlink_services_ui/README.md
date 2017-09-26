@@ -159,5 +159,5 @@ Example:
 - *SL Analysis Services* sl-analysis.pid will contain the process id of the SMRT Link Analysis web services
 - *SL Analysis Services* sl-analysis.std{out|err} has the SMRT Link Analysis standard out and error. If there are errors starting the webservices, the stdout and stderr is the first place to look. The SL Analysis log file will contain further details.
 - *SL Analysis log* file is configured in the "smrtflow.pacBioSystem.logDir" key
-- *Tomcat UI Logs* file is in [BUNDLE_ROOT]/apache-tomcat-8.0.26/logs/
+- *Tomcat UI Logs* file is in [BUNDLE_ROOT]/tomcat_8.5.20/logs/
 - *WSO2 API Manager logs* are in [BUNDLE_ROOT]/wso2am-2.0.0/repository/logs

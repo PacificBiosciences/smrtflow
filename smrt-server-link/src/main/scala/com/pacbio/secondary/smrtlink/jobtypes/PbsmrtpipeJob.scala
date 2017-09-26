@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.net.{URI, URL}
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -71,9 +71,16 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     // This needs to be cleaned up
     val serviceURI: Option[URI] = Some(toURL(rootUpdateURL, resources.jobId))
 
-    // Resolve Entry Points
-    val fx: Future[Seq[BoundEntryPoint]] =
-      opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
+    // Resolve Entry Points (with updated paths for SubreadSets)
+    val fx: Future[Seq[BoundEntryPoint]] = for {
+      entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
+      epUpdated <- Future.sequence {
+        entryPoints.map { ep =>
+          updateDataSetEntryPoint(Paths.get(ep.path), resources.path, dao)
+            .map(path => ep.copy(path = path.toString))
+        }
+      }
+    } yield epUpdated
     val entryPoints: Seq[BoundEntryPoint] =
       Await.result(fx, opts.DEFAULT_TIMEOUT)
 

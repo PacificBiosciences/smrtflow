@@ -193,12 +193,11 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
     dao.getContigDataSetDetailsById(i)
 
   def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
-    val f1 = if (sopts.isActive.getOrElse(false)) {
-      Future.failed(throw new MethodNotImplementedError(
-        "Undelete of datasets not supported - please use 'dataset newuuid' to set a new UUID and re-import."))
-    } else if (!sopts.isActive.getOrElse(true)) {
-      dao.deleteDataSetById(id)
-    } else Future.successful(MessageResponse(""))
+    val f1 = sopts.isActive
+      .map { setIsActive =>
+        dao.deleteDataSetById(id, setIsActive = setIsActive)
+      }
+      .getOrElse(Future.successful(MessageResponse("")))
 
     val f2 =
       if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {

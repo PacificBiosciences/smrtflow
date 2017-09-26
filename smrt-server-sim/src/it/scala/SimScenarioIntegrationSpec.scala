@@ -97,5 +97,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     "MultiAnalysis Scenario" in {
       runScenario("MultiAnalysisScenario") must beNone
     }
+    "Sample Names Scenario" in {
+      runScenario("SampleNamesScenario") must beNone
+    }
   }
 }
