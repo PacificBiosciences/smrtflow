@@ -384,7 +384,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         }
         .recoverWith {
           case NonFatal(ex) =>
-            logger.error(s"Failed to wait for Succesful job $jobId")
+            logger.error(s"Failed to wait for Successful job $jobId")
             Future.failed(ex)
         }
   }
