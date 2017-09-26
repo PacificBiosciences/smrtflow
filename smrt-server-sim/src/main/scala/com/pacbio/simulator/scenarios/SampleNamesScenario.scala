@@ -1,4 +1,3 @@
-
 package com.pacbio.simulator.scenarios
 
 import java.util.UUID
@@ -24,7 +23,6 @@ import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
-
 
 object SampleNamesScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
@@ -76,34 +74,49 @@ class SampleNamesScenario(host: String, port: Int)
       val ep = BoundServiceEntryPoint("eid_subread",
                                       FileTypes.DS_SUBREADS.fileTypeId,
                                       id)
-      val taskOpts = Seq(
-        ServiceTaskStrOption(toI("bio_sample_name"), bioName, STR.optionTypeId),
-        ServiceTaskStrOption(toI("well_sample_name"), wellName, STR.optionTypeId))
-      PbSmrtPipeServiceOptions(
-        s"Test sample name propagation with $dsName",
-        PIPELINE_ID,
-        Seq(ep),
-        taskOpts,
-        Seq.empty[ServiceTaskOptionBase])
+      val taskOpts = Seq(ServiceTaskStrOption(toI("bio_sample_name"),
+                                              bioName,
+                                              STR.optionTypeId),
+                         ServiceTaskStrOption(toI("well_sample_name"),
+                                              wellName,
+                                              STR.optionTypeId))
+      PbSmrtPipeServiceOptions(s"Test sample name propagation with $dsName",
+                               PIPELINE_ID,
+                               Seq(ep),
+                               taskOpts,
+                               Seq.empty[ServiceTaskOptionBase])
     }
   }
 
   private def updateSubreadSet(uuid: Var[UUID]) =
-    UpdateSubreadSetDetails(uuid, Var(Some(true)), Var(Some(BIO_SAMPLE_NAME)), Var(Some(WELL_SAMPLE_NAME)))
+    UpdateSubreadSetDetails(uuid,
+                            Var(Some(true)),
+                            Var(Some(BIO_SAMPLE_NAME)),
+                            Var(Some(WELL_SAMPLE_NAME)))
 
   private def failIfWrongWellSampleName(subreads: Var[SubreadServiceDataSet],
                                         name: String) =
-    fail(s"Expected wellSampleName=$name") IF subreads.mapWith(_.wellSampleName) !=? name
+    fail(s"Expected wellSampleName=$name") IF subreads.mapWith(
+      _.wellSampleName) !=? name
 
   private def failIfWrongBioSampleName(subreads: Var[SubreadServiceDataSet],
-                                        name: String) =
+                                       name: String) =
     fail(s"Expected bioSampleName=$name") IF subreads.mapWith(_.bioSampleName) !=? name
 
   private def getSubreadsFile(files: Seq[DataStoreServiceFile]) =
     files.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head
 
-  private def toSingleSampleSteps(dsId: String) = {
-    val subreads: Var[SubreadServiceDataSet] = Var()
+  private val jobId: Var[UUID] = Var()
+  private val jobStatus: Var[Int] = Var()
+  private val job: Var[EngineJob] = Var()
+  private val msg: Var[String] = Var()
+  private val subreads: Var[SubreadServiceDataSet] = Var()
+  private val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
+  private val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
+
+  private val singleSampleSteps = Seq("subreads-sequel",
+                                      "subreads-biosample-1",
+                                      "subreads-biosample-2").map { dsId =>
     val path = testdata.getTempDataSet(dsId)
     val uuid = getDataSetMiniMeta(path).uuid
     Seq(
@@ -117,80 +130,77 @@ class SampleNamesScenario(host: String, port: Int)
       failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
       // test propagation of sampe names to pbsmrtpipe
       jobId := RunAnalysisPipeline(toPbsmrtpipeOpts(dsId, Var(uuid))),
-      WaitForSuccessfulJob(jobId))
-  }
-
-  private val jobId: Var[UUID] = Var()
-  private val jobStatus: Var[Int] = Var()
-  private val job: Var[EngineJob] = Var()
-  private val msg: Var[String] = Var()
-  private val subreads: Var[SubreadServiceDataSet] = Var()
-  private val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
-  private val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
-
-  private val singleSampleSteps =
-      Seq("subreads-xml",
-          "subreads-sequel",
-          "subreads-biosample-1",
-          "subreads-biosample-2").map { id =>
-    toSingleSampleSteps(id)
+      WaitForSuccessfulJob(jobId)
+    )
   }.flatten
 
-  private val sample1tmp = testdata.getTempDataSet("subreads-biosample-1")
-  private val sample2tmp = testdata.getTempDataSet("subreads-biosample-1")
-  private val sample1ds = DataSetLoader.loadSubreadSet(sample1tmp)
-  private val sample1BioName = getBioSampleNames(sample1ds).head
-  private val sample1WellName = getWellSampleNames(sample1ds).head
-  private val sample2ds = DataSetLoader.loadSubreadSet(sample2tmp)
-  private val sample2BioName = getBioSampleNames(sample2ds).head
-  private val sample2WellName = getWellSampleNames(sample2ds).head
-  private val combinedWellName = Seq(sample1WellName, sample2WellName).mkString(";")
-  private val combinedBioName = Seq(sample1BioName, sample2BioName).mkString(";")
-  private val sample1Uuid = getDataSetMiniMeta(sample1tmp).uuid
-  private val sample2Uuid = getDataSetMiniMeta(sample2tmp).uuid
-  private val mergedDataSetSteps = Seq(
-    // import and merge two related samples
-    jobId := ImportDataSet(Var(sample1tmp), FT_SUBREADS),
-    WaitForSuccessfulJob(jobId),
-    jobId := ImportDataSet(Var(sample2tmp), FT_SUBREADS),
-    WaitForSuccessfulJob(jobId),
-    subreadSets := GetSubreadSets,
-    subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
-    failIfWrongBioSampleName(subreads, sample1BioName),
-    failIfWrongWellSampleName(subreads, sample1WellName),
-    // merging the two inputs should result in name = '[multiple]', which we
-    // can't edit
-    jobId := MergeDataSets(
-      FT_SUBREADS,
-      subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
-      Var("merge-bio-samples")),
-    WaitForSuccessfulJob(jobId),
-    // we will use the existing subreadSets again below, so we get the new
-    // SubreadSet from the job datastore
-    dataStore := GetMergeJobDataStore(jobId),
-    subreads := GetSubreadSet(dataStore.mapWith(files => getSubreadsFile(files).uuid)),
-    failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
-    failIfWrongBioSampleName(subreads, MULTIPLE_SAMPLES_NAME),
-    updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
-    // the individual sample names should still be propagated to pbsmrtpipe
-    jobId := RunAnalysisPipeline(toPbsmrtpipeOpts("merged-bio-samples", subreads.mapWith(_.uuid), combinedBioName, combinedWellName)),
-    WaitForSuccessfulJob(jobId),
-    // Now set both inputs to have the same sample names, and merge again
-    updateSubreadSet(Var(sample1Uuid)),
-    updateSubreadSet(Var(sample2Uuid)),
-    jobId := MergeDataSets(
-      FT_SUBREADS,
-      subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
-      Var("merge-bio-samples-renamed")),
-    WaitForSuccessfulJob(jobId),
-    // the new merged dataset should have the single names, which we can edit
-    subreads := GetSubreadSet(dataStore.mapWith(files => getSubreadsFile(files).uuid)),
-    failIfWrongWellSampleName(subreads, combinedWellName),
-    failIfWrongBioSampleName(subreads, combinedBioName),
-    updateSubreadSet(subreads.mapWith(_.uuid)),
-    jobId := RunAnalysisPipeline(toPbsmrtpipeOpts("merged-bio-samples-renamed", subreads.mapWith(_.uuid))),
-    WaitForSuccessfulJob(jobId)
-  )
+  private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
+  private val sampleDsTmp = sampleDsIds.map(id => testdata.getTempDataSet(id))
+  private val sampleDs = sampleDsTmp.map(p => DataSetLoader.loadSubreadSet(p))
+  private val sampleBioNames = sampleDs.map(ds => getBioSampleNames(ds).head)
+  private val sampleWellNames = sampleDs.map(ds => getWellSampleNames(ds).head)
+  private val combinedWellName = sampleWellNames.mkString(";")
+  private val combinedBioName = sampleBioNames.mkString(";")
+  private val sampleDsUuids =
+    sampleDs.map(ds => UUID.fromString(ds.getUniqueId))
+  private val mergedDataSetSteps =
+    sampleDsTmp.zipWithIndex.map {
+      case (path, idx) =>
+        // import and merge two related samples
+        Seq(
+          jobId := ImportDataSet(Var(path), FT_SUBREADS),
+          WaitForSuccessfulJob(jobId),
+          subreadSets := GetSubreadSets,
+          subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+          failIfWrongBioSampleName(subreads, sampleBioNames(idx)),
+          failIfWrongWellSampleName(subreads, sampleWellNames(idx))
+        )
+    }.flatten ++ Seq(
+      subreadSets := GetSubreadSets,
+      subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+      // merging the two inputs should result in name = '[multiple]', which we
+      // can't edit
+      jobId := MergeDataSets(
+        FT_SUBREADS,
+        subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
+        Var("merge-bio-samples")),
+      WaitForSuccessfulJob(jobId),
+      // we will use the existing subreadSets again below, so we get the new
+      // SubreadSet from the job datastore
+      dataStore := GetMergeJobDataStore(jobId),
+      subreads := GetSubreadSet(
+        dataStore.mapWith(files => getSubreadsFile(files).uuid)),
+      failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
+      failIfWrongBioSampleName(subreads, MULTIPLE_SAMPLES_NAME),
+      updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[
+        UnsuccessfulResponseException],
+      // the individual sample names should still be propagated to pbsmrtpipe
+      jobId := RunAnalysisPipeline(
+        toPbsmrtpipeOpts("merged-bio-samples",
+                         subreads.mapWith(_.uuid),
+                         combinedBioName,
+                         combinedWellName)),
+      WaitForSuccessfulJob(jobId),
+      // Now set both inputs to have the same sample names, and merge again
+      updateSubreadSet(Var(sampleDsUuids(0))),
+      updateSubreadSet(Var(sampleDsUuids(1))),
+      jobId := MergeDataSets(
+        FT_SUBREADS,
+        subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
+        Var("merge-bio-samples-renamed")),
+      WaitForSuccessfulJob(jobId),
+      // the new merged dataset should have the single names, which we can edit
+      dataStore := GetMergeJobDataStore(jobId),
+      subreads := GetSubreadSet(
+        dataStore.mapWith(files => getSubreadsFile(files).uuid)),
+      failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),
+      failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
+      updateSubreadSet(subreads.mapWith(_.uuid)),
+      jobId := RunAnalysisPipeline(
+        toPbsmrtpipeOpts("merged-bio-samples-renamed",
+                         subreads.mapWith(_.uuid))),
+      WaitForSuccessfulJob(jobId)
+    )
 
   override val steps = singleSampleSteps ++ mergedDataSetSteps
 }
