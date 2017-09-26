@@ -7,11 +7,25 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PacBioTestResources, PacBioTestResourcesLoader}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskBooleanOption, ServiceTaskOptionBase}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PacBioTestResources,
+  PacBioTestResourcesLoader
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  ServiceTaskBooleanOption,
+  ServiceTaskOptionBase
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.BOOL
-import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
-import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, DataStoreServiceFile, PbSmrtPipeServiceOptions}
+import com.pacbio.secondary.smrtlink.client.{
+  ClientUtils,
+  SmrtLinkServiceAccessLayer
+}
+import com.pacbio.secondary.smrtlink.models.{
+  BoundServiceEntryPoint,
+  DataStoreServiceFile,
+  PbSmrtPipeServiceOptions
+}
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.Config
@@ -33,7 +47,8 @@ object TechSupportScenarioLoader extends ScenarioLoader {
   }
 }
 
-class TechSupportScenario(client: SmrtLinkServiceAccessLayer, testData: PacBioTestResources)
+class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
+                          testData: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps

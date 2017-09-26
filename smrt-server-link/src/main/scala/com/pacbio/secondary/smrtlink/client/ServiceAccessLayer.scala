@@ -877,7 +877,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] = {
     runJobPipeline {
       logger.info(
-        s"Submitting $JOB_MULTI_ROOT_PREFIX name:${multiAnalysisJobOptions.name.getOrElse("")}")
+        s"Submitting $JOB_MULTI_ROOT_PREFIX name:${multiAnalysisJobOptions.name
+          .getOrElse("")}")
       Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
            multiAnalysisJobOptions)
     }
@@ -1001,7 +1002,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
-    logger.debug(s"Polling for core job ${jobId.toIdString} to finish successfully")
+    logger.debug(
+      s"Polling for core job ${jobId.toIdString} to finish successfully")
 
     def failIfNotState(state: AnalysisJobStates.JobStates,
                        job: EngineJob): Try[EngineJob] = {

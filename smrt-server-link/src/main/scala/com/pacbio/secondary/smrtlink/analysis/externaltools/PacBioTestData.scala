@@ -7,7 +7,10 @@ import spray.json._
 import org.apache.commons.io.FileUtils
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.{DataSetFileUtils, MockDataSetUtils}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  MockDataSetUtils
+}
 
 case class TestDataFile(id: String,
                         path: String,
@@ -98,7 +101,6 @@ case class TestDataResource(id: String,
                             fileTypeId: String,
                             description: String) {
 
-
   /**
     * (FIXME)This should be encoded at the file type level
     * This only works if the File is a DataSet type
@@ -114,10 +116,10 @@ case class TestDataResource(id: String,
 
     val dst = DataSetFileUtils.getDataSetMiniMeta(path).metatype
     val px = MockDataSetUtils.makeTmpDataset(path,
-      dst,
-      copyFiles = copyFiles,
-      tmpDirBase = tmpDirBase,
-      setNewUuid = setNewUuid)
+                                             dst,
+                                             copyFiles = copyFiles,
+                                             tmpDirBase = tmpDirBase,
+                                             setNewUuid = setNewUuid)
 
     this.copy(path = px)
   }
@@ -134,20 +136,20 @@ case class PacBioTestResources(files: Seq[TestDataResource]) {
     files.filter(_.fileTypeId == fileType.fileTypeId)
 }
 
-
 /**
   *
   * This should replace PacBioTestData
   *
   * And this needs to be moved to a better namespace/location (not externaltools)
   */
-object PacBioTestResourcesLoader extends TestDataResourceJsonProtocol with ConfigLoader{
+object PacBioTestResourcesLoader
+    extends TestDataResourceJsonProtocol
+    with ConfigLoader {
 
   private final val PB_TEST_ID = "smrtflow.test.test-files"
 
   val ERROR_MESSAGE =
-      s"Unable to find PacbioTestData files.json. Set $PB_TEST_ID or env var 'PB_TEST_DATA_FILES' to /path/to/repos/pacbiotestdata/data/files.json"
-
+    s"Unable to find PacbioTestData files.json. Set $PB_TEST_ID or env var 'PB_TEST_DATA_FILES' to /path/to/repos/pacbiotestdata/data/files.json"
 
   final lazy val testFileDir = conf.getString(PB_TEST_ID)
 
@@ -159,6 +161,7 @@ object PacBioTestResourcesLoader extends TestDataResourceJsonProtocol with Confi
   }
 
   def isAvailable(): Boolean = Files.isRegularFile(getFilesJson)
+
   /**
     * Load a Resource
     *
@@ -176,7 +179,6 @@ object PacBioTestResourcesLoader extends TestDataResourceJsonProtocol with Confi
 
     new PacBioTestResources(resolvedFiles)
   }
-
 
   def loadFromConfig(): PacBioTestResources = {
     loadFromJsonPath(getFilesJson)

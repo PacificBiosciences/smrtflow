@@ -141,22 +141,26 @@ object Sim extends App with LazyLogging {
   }
 
   // EXECUTION
-  def writeOutput(result: ScenarioResult, requirements: Seq[String], output: Path): Future[Unit] = {
+  def writeOutput(result: ScenarioResult,
+                  requirements: Seq[String],
+                  output: Path): Future[Unit] = {
     Future.successful(outputXML(result, output, requirements))
   }
 
   def parseArgs(rawArgs: Seq[String]): Try[SimArgs] = {
-    Try(parser.parse(rawArgs, SimArgs())
+    Try(
+      parser
+        .parse(rawArgs, SimArgs())
         .getOrElse(throw new Exception(s"Failed to parse options $rawArgs")))
   }
 
   def printConfig(config: Config): Unit = {
-      import scala.collection.JavaConversions.asScalaSet
-      println("\nConfigs:")
-      config.entrySet().foreach { e =>
-        println(s"${e.getKey}: ${e.getValue.render()}")
-      }
-      println()
+    import scala.collection.JavaConversions.asScalaSet
+    println("\nConfigs:")
+    config.entrySet().foreach { e =>
+      println(s"${e.getKey}: ${e.getValue.render()}")
+    }
+    println()
   }
 
   def printAndLog(sx: String): String = {
@@ -176,33 +180,38 @@ object Sim extends App with LazyLogging {
     val f = for {
       _ <- Future.fromTry(Try(scenario.setUp()))
       result <- scenario.run()
-      _ <- simArgs.outputXML.map(p => writeOutput(result, scenario.requirements, p)).getOrElse(Future.successful(Unit))
-      wasSuccessful <- Future.successful(result.stepResults.forall(_.result.succeeded))
-    } yield s"Completed running ${scenario.name} was successful? $wasSuccessful"
+      _ <- simArgs.outputXML
+        .map(p => writeOutput(result, scenario.requirements, p))
+        .getOrElse(Future.successful(Unit))
+      wasSuccessful <- Future.successful(
+        result.stepResults.forall(_.result.succeeded))
+    } yield
+      s"Completed running ${scenario.name} was successful? $wasSuccessful"
 
     // We always call tear down
-    val fx = f.andThen { case _ => Try(scenario.tearDown())}
+    val fx = f.andThen { case _ => Try(scenario.tearDown()) }
 
-    printAndLog(s"Starting to run scenario ${scenario.name} with timeout ${simArgs.timeout}")
+    printAndLog(
+      s"Starting to run scenario ${scenario.name} with timeout ${simArgs.timeout}")
     Try(Await.result(fx, simArgs.timeout))
   }
 
   def runScenarioFromArgs(simArgs: SimArgs): Try[String] = {
 
     for {
-      config <- Try(simArgs.config.map(p => ConfigFactory.parseFile(p.toFile).resolve()))
+      config <- Try(
+        simArgs.config.map(p => ConfigFactory.parseFile(p.toFile).resolve()))
       _ <- Try(config.map(printConfig).getOrElse(Unit))
       scenario <- Try(simArgs.loader.load(config))
       msg <- runScenario(scenario, simArgs)
     } yield msg
   }
 
-
-
   /// Run Main
   parseArgs(args).map(runScenarioFromArgs) match {
     case Success(_) =>
-      println("Successfully completed running scenario. Exiting with exit code 0.")
+      println(
+        "Successfully completed running scenario. Exiting with exit code 0.")
       System.exit(0)
     case Failure(ex) =>
       val msg = s"Failed to run scenario. Error $ex\nExiting with exit code 1."

@@ -185,7 +185,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       case (AnalysisJobStates.CREATED, AnalysisJobStates.SUBMITTED) =>
         AnalysisJobStates.RUNNING
       // This is unclear what this means. Defaulting to Failed
-      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) => AnalysisJobStates.FAILED
+      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) =>
+        AnalysisJobStates.FAILED
       // If any child job has failed, then fail all jobs
       case (AnalysisJobStates.FAILED, _) => AnalysisJobStates.FAILED
       case (_, AnalysisJobStates.FAILED) => AnalysisJobStates.FAILED
@@ -204,7 +205,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     }
   }
 
-  private def reduceFromSingleState(state: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+  private def reduceFromSingleState(
+      state: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
     state match {
       case AnalysisJobStates.CREATED => AnalysisJobStates.RUNNING
       case AnalysisJobStates.RUNNING => AnalysisJobStates.RUNNING
@@ -219,10 +221,11 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
   /**
     * Collapse the Children job states into a reflection of the overall state of the MultiJob
     */
-  private def determineMultiJobState(states: Seq[AnalysisJobStates.JobStates]): AnalysisJobStates.JobStates = {
+  private def determineMultiJobState(states: Seq[AnalysisJobStates.JobStates])
+    : AnalysisJobStates.JobStates = {
     states match {
       case Nil => AnalysisJobStates.FAILED
-      case s1::Nil => reduceFromSingleState(s1)
+      case s1 :: Nil => reduceFromSingleState(s1)
       case _ => states.reduce(reduceJobStates)
     }
   }
@@ -286,7 +289,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       andLog(s"multi-job id:${engineJob.id} $sx")
 
     def summary(sx: Seq[(Option[Int], AnalysisJobStates.JobStates)]): String =
-      sx.map { case (i, j) => s"${i.getOrElse("ID NOT ASSIGNED YET")}:$j"}.reduce(_ + " " + _)
+      sx.map { case (i, j) => s"${i.getOrElse("ID NOT ASSIGNED YET")}:$j" }
+        .reduce(_ + " " + _)
 
     for {
       updatedJobIds <- runFuturesSequentially(items)(runner)
@@ -294,7 +298,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       updatedWorkflow <- Future.successful(
         MultiAnalysisWorkflow(updatedJobIds))
       jobStates <- fetchJobStates(dao, updatedJobIds)
-      _ <- andJobLog(s"Got MultiJob Child Job Summary (id:state) ${summary(updatedJobIds.zip(jobStates))}")
+      _ <- andJobLog(
+        s"Got MultiJob Child Job Summary (id:state) ${summary(updatedJobIds.zip(jobStates))}")
       multiJobState <- Future.successful(determineMultiJobState(jobStates))
       msg <- updateIfNecessary(multiJobState, updatedWorkflow)
     } yield msg
