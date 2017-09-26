@@ -149,7 +149,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       .map { i =>
         dao.getJobById(i).map(_.state)
       }
-      .getOrElse(Future.successful(AnalysisJobStates.UNKNOWN))
+      .getOrElse(Future.successful(AnalysisJobStates.FAILED))
   }
 
   private def fetchJobStates(
@@ -184,15 +184,16 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         AnalysisJobStates.RUNNING
       case (AnalysisJobStates.CREATED, AnalysisJobStates.SUBMITTED) =>
         AnalysisJobStates.RUNNING
-      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) =>
-        AnalysisJobStates.UNKNOWN // This is unclear what this means
+      // This is unclear what this means. Defaulting to Failed
+      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) => AnalysisJobStates.FAILED
+      // If any child job has failed, then fail all jobs
       case (AnalysisJobStates.FAILED, _) => AnalysisJobStates.FAILED
       case (_, AnalysisJobStates.FAILED) => AnalysisJobStates.FAILED
-      case (AnalysisJobStates.TERMINATED, _) =>
-        AnalysisJobStates.FAILED // The core job failed, mark multi job as failed
-      case (_, AnalysisJobStates.TERMINATED) => AnalysisJobStates.FAILED //
-      case (AnalysisJobStates.RUNNING, _) =>
-        AnalysisJobStates.RUNNING // If any job is running, mark the multi as running
+      // If any child job has been Terminated, then mark the multi-job as failed
+      case (AnalysisJobStates.TERMINATED, _) => AnalysisJobStates.FAILED
+      case (_, AnalysisJobStates.TERMINATED) => AnalysisJobStates.FAILED
+      // If
+      case (AnalysisJobStates.RUNNING, _) => AnalysisJobStates.RUNNING
       case (_, AnalysisJobStates.RUNNING) => AnalysisJobStates.RUNNING
       case (_, AnalysisJobStates.CREATED) => AnalysisJobStates.RUNNING
       case (AnalysisJobStates.CREATED, _) => AnalysisJobStates.RUNNING
@@ -201,6 +202,34 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
           s"Unclear mapping of multi-job state from $s1 and $s2. Defaulting to ${AnalysisJobStates.FAILED}")
         AnalysisJobStates.FAILED
     }
+  }
+
+  private def reduceFromSingleState(state: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+    state match {
+      case AnalysisJobStates.CREATED => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.RUNNING => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.SUBMITTED => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.FAILED => AnalysisJobStates.FAILED
+      case AnalysisJobStates.TERMINATED => AnalysisJobStates.FAILED
+      case AnalysisJobStates.UNKNOWN => AnalysisJobStates.FAILED
+      case AnalysisJobStates.SUCCESSFUL => AnalysisJobStates.SUCCESSFUL
+    }
+  }
+
+  /**
+    * Collapse the Children job states into a reflection of the overall state of the MultiJob
+    */
+  private def determineMultiJobState(states: Seq[AnalysisJobStates.JobStates]): AnalysisJobStates.JobStates = {
+    states match {
+      case Nil => AnalysisJobStates.FAILED
+      case s1::Nil => reduceFromSingleState(s1)
+      case _ => states.reduce(reduceJobStates)
+    }
+  }
+
+  def andLog(sx: String): Future[String] = Future {
+    logger.info(sx)
+    sx
   }
 
   override def runWorkflow(
@@ -253,12 +282,20 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     // The default values will be an Seq(None, None, None, ... n) for n Deferred Jobs.
     val items: Seq[(DeferredJob, Option[Int])] = opts.jobs.zip(workflow.jobIds)
 
+    def andJobLog(sx: String) =
+      andLog(s"multi-job id:${engineJob.id} $sx")
+
+    def summary(sx: Seq[(Option[Int], AnalysisJobStates.JobStates)]): String =
+      sx.map { case (i, j) => s"${i.getOrElse("ID NOT ASSIGNED YET")}:$j"}.reduce(_ + " " + _)
+
     for {
       updatedJobIds <- runFuturesSequentially(items)(runner)
+      _ <- andJobLog(s"Job Ids $updatedJobIds")
       updatedWorkflow <- Future.successful(
         MultiAnalysisWorkflow(updatedJobIds))
       jobStates <- fetchJobStates(dao, updatedJobIds)
-      multiJobState <- Future.successful(jobStates.reduce(reduceJobStates))
+      _ <- andJobLog(s"Got MultiJob Child Job Summary (id:state) ${summary(updatedJobIds.zip(jobStates))}")
+      multiJobState <- Future.successful(determineMultiJobState(jobStates))
       msg <- updateIfNecessary(multiJobState, updatedWorkflow)
     } yield msg
   }
