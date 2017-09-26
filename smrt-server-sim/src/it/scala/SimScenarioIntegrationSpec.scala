@@ -94,5 +94,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     "Pbsmrtpipe Scenario" in {
       runScenario("PbsmrtpipeScenario") must beNone
     }
+    "Sample Names Scenario" in {
+      runScenario("SampleNamesScenario") must beNone
+    }
   }
 }
