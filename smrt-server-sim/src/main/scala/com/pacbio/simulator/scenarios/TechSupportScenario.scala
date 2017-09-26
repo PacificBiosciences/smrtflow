@@ -6,27 +6,14 @@ import akka.actor.ActorSystem
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.{
-  DataSetFileUtils,
-  DataSetMetaTypes
-}
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  ServiceTaskBooleanOption,
-  ServiceTaskOptionBase
-}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PacBioTestResources, PacBioTestResourcesLoader}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{ServiceTaskBooleanOption, ServiceTaskOptionBase}
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.BOOL
-import com.pacbio.secondary.smrtlink.client.{
-  ClientUtils,
-  SmrtLinkServiceAccessLayer
-}
-import com.pacbio.secondary.smrtlink.models.{
-  BoundServiceEntryPoint,
-  DataStoreServiceFile,
-  PbSmrtPipeServiceOptions
-}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
+import com.pacbio.secondary.smrtlink.models.{BoundServiceEntryPoint, DataStoreServiceFile, PbSmrtPipeServiceOptions}
 import com.pacbio.simulator.steps._
-import com.pacbio.simulator.{Scenario, ScenarioLoader, ScenarioResult}
+import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.Config
 
 object TechSupportScenarioLoader extends ScenarioLoader {
@@ -37,13 +24,16 @@ object TechSupportScenarioLoader extends ScenarioLoader {
     require(PacBioTestData.isAvailable,
             "PacBioTestData must be configured for PbsmrtpipeScenario")
 
-    val testData = PacBioTestData()
+    // This should really load from the Config provided, not from the internal conf file
+    // This is quite confusing.
+    val testData = PacBioTestResourcesLoader.loadFromConfig()
     val c: Config = config.get
-    new TechSupportScenario(getHost(c), getPort(c), testData)
+    val smrtLinkClient = new SmrtLinkServiceAccessLayer(getHost(c), getPort(c))
+    new TechSupportScenario(smrtLinkClient, testData)
   }
 }
 
-class TechSupportScenario(host: String, port: Int, testData: PacBioTestData)
+class TechSupportScenario(client: SmrtLinkServiceAccessLayer, testData: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -54,7 +44,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData)
   import CommonModelImplicits._
 
   override val name = "TechSupportScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = client
 
   // Force this job to fail
   val jobFailedAnalysisId = Var.empty[UUID]
@@ -67,7 +57,7 @@ class TechSupportScenario(host: String, port: Int, testData: PacBioTestData)
 
   val jobStatusId = Var.empty[UUID]
 
-  val lambdaNebPath = testData.getFile("lambdaNEB")
+  val lambdaNebPath = testData.getFile("lambdaNEB").get.path
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
   val dsUUID = Var.empty[UUID]
 
