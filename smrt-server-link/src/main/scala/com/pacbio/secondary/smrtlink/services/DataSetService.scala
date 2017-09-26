@@ -72,6 +72,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   /**
     * Load Barcode Names/Ids from the Fasta file
+    * TODO(mpkocher)(8-26-2017) Move to central location and add unittest
     *
     * @param barcodeSet Path to the Barcode Set.
     * @return
