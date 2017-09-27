@@ -48,6 +48,19 @@ object Converters extends DataSetMetadataUtils {
     else default
   }
 
+  private def getParentDataSetId(dataset: ReadSetType): Option[UUID] =
+    Option(dataset.getDataSetMetadata.getProvenance).flatMap { provenance =>
+      Option(provenance.getParentDataSet).map { ds =>
+        UUID.fromString(ds.getUniqueId)
+      }
+    }
+
+  private def getTotalLength(dataset: ReadSetType): Long =
+    Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+
+  private def getNumRecords(dataset: ReadSetType): Int =
+    Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+
   def convert(dataset: SubreadSet,
               path: Path,
               createdBy: Option[String],
@@ -130,8 +143,9 @@ object Converters extends DataSetMetadataUtils {
         .getOrElse(DEFAULT_CELL_ID)
     }.getOrElse(DEFAULT_CELL_ID)
 
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val numRecords = getNumRecords(dataset)
+    val totalLength = getTotalLength(dataset)
+    val parentUuid = getParentDataSetId(dataset)
 
     SubreadServiceDataSet(
       -99,
@@ -159,7 +173,7 @@ object Converters extends DataSetMetadataUtils {
       jobId,
       projectId,
       dnaBarcodeName,
-      parentUuid = None
+      parentUuid = parentUuid
     )
   }
 
@@ -203,8 +217,8 @@ object Converters extends DataSetMetadataUtils {
 
     val bioSampleName = getNameOrDefault(getBioSampleNames(dataset))
 
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val numRecords = getNumRecords(dataset)
+    val totalLength = getTotalLength(dataset)
 
     HdfSubreadServiceDataSet(
       -99,

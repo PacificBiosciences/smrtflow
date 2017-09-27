@@ -13,6 +13,12 @@
 	<DataSetMetadata>
 		<TotalLength>33882</TotalLength>
 		<NumRecords>18</NumRecords>
+    <Provenance CreatedBy="AnalysisJob">
+      <ParentDataSet
+        UniqueId="9c0ffb83-f702-400d-817a-921d8a4c9117"
+        MetaType="PacBio.DataSet.SubreadSet"
+        TimeStampedName="pacbio_dataset_subreadset-170516_223848456"/>
+    </Provenance>
 		<pbmeta:Collections>
       <!--
         Note the mocked Context here; the TimeStampedName is left alone
