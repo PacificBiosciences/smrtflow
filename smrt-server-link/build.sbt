@@ -17,15 +17,14 @@ mainClass in assembly := Some(mainServer)
 assemblyMergeStrategy in assembly := {
   case PathList("application.conf") => MergeStrategy.first
   case p if p.endsWith("eclipse.inf") => MergeStrategy.first
-  case PathList("org", "slf4j", xs @ _*) => MergeStrategy.first
-  case PathList("org", "eclipse", xs @ _*) => MergeStrategy.first
+  case PathList("org", "slf4j", xs @ _ *) => MergeStrategy.first
+  case PathList("org", "eclipse", xs @ _ *) => MergeStrategy.first
   case "logback.xml" => MergeStrategy.first
   case "plugin.properties" => MergeStrategy.first
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
-
 
 packSettings
 
@@ -57,6 +56,5 @@ packMain := Map(
   "smrtflow-example-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleToolApp",
   "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp"
 )
-
 
 packGenerateWindowsBatFile := false
