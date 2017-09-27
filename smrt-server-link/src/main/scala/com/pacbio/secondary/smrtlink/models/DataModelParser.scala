@@ -67,6 +67,10 @@ object DataModelParserImpl extends DataModelParser {
 
       val runModel = runModels.head
 
+      // Validate the Run state to have a better error message. Does jaxb silently fail for invalid enum values?
+      // Doing this here to catch the error earlier, otherwise it will fail at the db level
+      require(runModel.getStatus != null, "Invalid Run Status")
+
       val events = Option(runModel.getRecordedEvents)
         .flatMap(e => Option(e.getRecordedEvent))
         .map(asScalaBuffer)
@@ -104,6 +108,11 @@ object DataModelParserImpl extends DataModelParser {
 
         require(collectionMetadataModel.getWellSample != null,
                 "expected a <WellSample> element.")
+
+        // If these states are invalid, this will generate an NPE at the DB level
+        require(
+          collectionMetadataModel.getStatus != null,
+          s"Collection ${collectionMetadataModel.getUniqueId} invalid state.")
 
         val movieMinutes =
           collectionMetadataModel.getAutomation.getAutomationParameters.getAutomationParameter
