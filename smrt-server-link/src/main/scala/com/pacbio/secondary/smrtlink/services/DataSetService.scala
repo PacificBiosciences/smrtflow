@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.services
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -39,6 +39,11 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelSpraySupport._
+import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
+
+import collection.JavaConversions._
 
 /**
   * Accessing DataSets by type. Currently several datasets types are
@@ -63,6 +68,38 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
   val DATASET_TYPES_PREFIX = "dataset-types"
   val DATASET_PREFIX = "datasets"
   val DETAILS_PREFIX = "details"
+  val DETAILED_RECORDS_PREFIX = "record-names"
+
+  /**
+    * Load Barcode Names/Ids from the Fasta file
+    * TODO(mpkocher)(8-26-2017) Move to central location and add unittest
+    *
+    * @param barcodeSet Path to the Barcode Set.
+    * @return
+    */
+  def loadBarcodeNames(barcodeSet: Path): Seq[String] = {
+
+    val bs = DataSetLoader.loadAndResolveBarcodeSet(barcodeSet)
+
+    bs.getExternalResources.getExternalResource
+      .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
+      .map(_.getResourceId)
+      .map(p => Fasta.loadFrom(Paths.get(p).toFile))
+      .map(items => items.map(_.id))
+      .getOrElse(Seq.empty[String])
+
+  }
+
+  /**
+    * Only the BarcodeSet supports loading the Contig names/ids from the fasta file
+    */
+  def validateBarcodeShortName(shortName: String): Future[String] = {
+    if (shortName == "barcodes")
+      Future.successful("Successful barcodeSet type")
+    else
+      Future.failed(new UnprocessableEntityError(
+        s"DataSet $shortName not supported. Only BarcodeSets are supported."))
+  }
 
   // Default MAX number of records to return
   val DS_LIMIT = 2000
@@ -273,6 +310,22 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                     complete {
                       ok {
                         GetDetailsById(id)
+                      }
+                    }
+                  }
+                }
+              } ~
+              path(DETAILED_RECORDS_PREFIX) {
+                pathEndOrSingleSlash {
+                  get {
+                    complete {
+                      ok {
+                        for {
+                          _ <- validateBarcodeShortName(shortName)
+                          dataset <- GetDataSetById(id)
+                          recordNames <- Future.successful(
+                            loadBarcodeNames(Paths.get(dataset.path)))
+                        } yield recordNames
                       }
                     }
                   }

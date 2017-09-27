@@ -1474,6 +1474,33 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/secondary-analysis/datasets/barcodes/{dataset-id}/record-names": {
+      "get": {
+        "description": "Get a list of Barcode Id/Names from the BarcodeSet external resources",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
     "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
       "get": {
         "description": "Get the Service CCSAlignmentSet Metadata",
