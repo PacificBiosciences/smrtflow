@@ -38,7 +38,7 @@ object PbSmrtpipeHackyTest extends App with LazyLogging {
   val workflowOpts = x.options
 
   val epath = outputDir.resolve("my-file.txt")
-  val ePoints = Seq(BoundEntryPoint("e_01", epath.toString))
+  val ePoints = Seq(BoundEntryPoint("e_01", epath))
   IOUtils.writeMockBoundEntryPoints(epath)
 
   val serviceUri = None

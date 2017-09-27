@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.net.{URI, URL}
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -76,8 +76,8 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
       entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
       epUpdated <- Future.sequence {
         entryPoints.map { ep =>
-          updateDataSetEntryPoint(Paths.get(ep.path), resources.path, dao)
-            .map(path => ep.copy(path = path.toString))
+          updateDataSetEntryPoint(ep.path, resources.path, dao)
+            .map(path => ep.copy(path = path))
         }
       }
     } yield epUpdated

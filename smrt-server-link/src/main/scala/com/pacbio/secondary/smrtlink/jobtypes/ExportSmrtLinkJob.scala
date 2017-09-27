@@ -116,7 +116,7 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
         eps <- Future.sequence(serviceEntryPoints.map { e =>
           dao.getDataSetMetaData(e.datasetUUID).map { ds =>
             val entryId = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
-            BoundEntryPoint(entryId.getOrElse("unknown"), ds.path)
+            BoundEntryPoint(entryId.getOrElse("unknown"), Paths.get(ds.path))
           }
         })
       } yield eps

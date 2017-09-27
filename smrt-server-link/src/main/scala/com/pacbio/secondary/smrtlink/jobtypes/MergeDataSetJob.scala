@@ -83,18 +83,17 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
 
     val name = opts.name.getOrElse("Merge-DataSet")
 
-    val fx: Future[Seq[String]] = for {
+    val fx: Future[Seq[Path]] = for {
       datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
                                                             opts.ids,
                                                             dao)
       paths <- Future.successful(datasets.map(_.path))
       updatedPaths <- Future.sequence(paths.map { p =>
         updateDataSetEntryPoint(Paths.get(p), resources.path, dao)
-          .map(_.toString)
       })
     } yield updatedPaths
 
-    val paths: Seq[String] = Await.result(fx, timeout)
+    val paths: Seq[Path] = Await.result(fx, timeout)
 
     val oldOpts = MergeDataSetOptions(opts.datasetType.toString,
                                       paths,

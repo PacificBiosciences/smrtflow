@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 trait DataSetImports { self: Specification =>
 
   protected def runImportImpl(
-      path: String,
+      path: Path,
       dsType: DataSetMetaTypes.DataSetMetaType,
       resultWriter: JobResultWriter) = {
     val outputDir = Files.createTempDirectory("import-test")
@@ -57,7 +57,7 @@ class DataSetImportSpec
 
   private def runImport(dsId: String, dsType: DataSetMetaTypes.DataSetMetaType) = {
     val pbdata = PacBioTestData()
-    val path = pbdata.getFile(dsId).toAbsolutePath.toString
+    val path = pbdata.getFile(dsId).toAbsolutePath
     runImportImpl(path, dsType, writer)
   }
 
@@ -116,7 +116,7 @@ class DataSetImportAdvancedSpec
   val writer = new PrinterJobResultsWriter
   "Import additional datasets" should {
     "Import recent SubreadSet" in {
-      val path = "/unknownpath"
+      val path = Paths.get("/unknownpath")
       val datastore = runImportImpl(path, DataSetMetaTypes.Subread, writer)
       val N_REPORTS = if (PbReports.isAvailable()) 4 else 1
       checkNumReports(datastore, N_REPORTS)

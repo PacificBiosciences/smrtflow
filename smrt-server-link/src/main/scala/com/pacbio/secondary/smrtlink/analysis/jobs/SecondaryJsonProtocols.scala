@@ -431,6 +431,7 @@ case class ExampleServiceJobOption(name: String,
 trait JobOptionsProtocols
     extends DefaultJsonProtocol
     with DataSetMetaTypesProtocol
+    with PathProtocols
     with JsonProjectSupport {
 
   implicit object ImportDataSetOptionsFormat
@@ -443,7 +444,7 @@ trait JobOptionsProtocols
       val jsObj = value.asJsObject
       jsObj.getFields("path", "datasetType") match {
         case Seq(JsString(path), JsString(dsType)) =>
-          ImportDataSetOptions(path,
+          ImportDataSetOptions(Paths.get(path),
                                DataSetMetaTypes.toDataSetType(dsType).get,
                                getProjectId(jsObj))
         case x =>
@@ -508,7 +509,7 @@ trait JobOptionsProtocols
       jsObj.getFields("datasetType", "paths", "name") match {
         case Seq(JsString(datasetType), JsArray(paths), JsString(name)) =>
           MergeDataSetOptions(datasetType,
-                              paths.map(_.convertTo[String]),
+                              paths.map(_.convertTo[Path]),
                               name,
                               getProjectId(jsObj))
         case x => deserializationError(s"Expected MergeDataSetOptions, got $x")

@@ -789,7 +789,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     runJobPipeline {
       logger.debug(s"Submitting import-dataset job for $path")
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-           ImportDataSetOptions(toP(path), dsMetaType))
+           ImportDataSetOptions(path, dsMetaType))
     }
 
   def importFasta(path: Path,

@@ -39,7 +39,7 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
   type ValidateOptError = ValidationNel[String, ImportDataSetOptions]
 
   def isPathExists(opts: ImportDataSetOptions): ValidateOptError = {
-    if (Files.exists(Paths.get(opts.path))) opts.successNel
+    if (Files.exists(opts.path)) opts.successNel
     else s"Failed to find DataSet ${opts.path}".failNel
   }
 
@@ -58,7 +58,7 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
     */
   def validateDataSetMetaData(opts: ImportDataSetOptions): ValidateOptError = {
     // This is naming is pretty terrible.
-    ScTry(getDataSetMiniMeta(Paths.get(opts.path))) match {
+    ScTry(getDataSetMiniMeta(opts.path)) match {
       case ScSuccess(_) => opts.successNel
       case ScFailure(err) =>
         s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failNel

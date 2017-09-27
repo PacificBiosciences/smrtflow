@@ -24,7 +24,7 @@ case class ExportDataSetsOptions(datasetType: DataSetMetaTypes.DataSetMetaType,
 
   override def validate = {
     for {
-      v1 <- Validators.filesExists(paths.map(_.toString))
+      v1 <- Validators.filesExists(paths)
       v2 <- Validators.validateDataSetType(datasetType.dsId)
     } yield v2
   }

@@ -144,8 +144,8 @@ class JobModelsSpec extends Specification  {
         ServiceTaskStrOption("id-d", "Hello, world", STR.optionTypeId),
         ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId))
       val entryPoints = Seq(
-        BoundEntryPoint("eid_ref_dataset", "/var/tmp/referenceset.xml"),
-        BoundEntryPoint("eid_subread", "/var/tmp/subreadset.xml"))
+        BoundEntryPoint("eid_ref_dataset", Paths.get("/var/tmp/referenceset.xml")),
+        BoundEntryPoint("eid_subread", Paths.get("/var/tmp/subreadset.xml")))
       val jobOpts = PbsmrtpipeDirectJobOptions(1, "pipeline-id-01",
         entryPoints, taskOpts, opts)
       val jobOpts2 = jobOpts.toJson.convertTo[PbsmrtpipeDirectJobOptions]
@@ -224,7 +224,7 @@ class JobModelsSpec extends Specification  {
   "Test job type options serialization" should {
     import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
     "ImportDataSetOptions" in {
-      val o = ImportDataSetOptions("/path/to/subreads.xml", DataSetMetaTypes.Subread, 666)
+      val o = ImportDataSetOptions(Paths.get("/path/to/subreads.xml"), DataSetMetaTypes.Subread, 666)
       val oj = o.toJson.convertTo[ImportDataSetOptions]
       oj.projectId must beEqualTo(666)
       oj.datasetType must beEqualTo(DataSetMetaTypes.Subread)
@@ -239,7 +239,7 @@ class JobModelsSpec extends Specification  {
       opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
     "MergeDataSetOptions" in {
-      val o = MergeDataSetOptions(DataSetMetaTypes.Subread.toString, Seq("/path/to/subreads1.xml", "/path/to/subreads2.xml"), "Merged dataset", 666)
+      val o = MergeDataSetOptions(DataSetMetaTypes.Subread.toString, Seq("/path/to/subreads1.xml", "/path/to/subreads2.xml").map(p => Paths.get(p)), "Merged dataset", 666)
       val oj = o.toJson.convertTo[MergeDataSetOptions]
       oj.projectId must beEqualTo(666)
       val opts = getJson("merge_dataset_options.json").convertTo[MergeDataSetOptions]
