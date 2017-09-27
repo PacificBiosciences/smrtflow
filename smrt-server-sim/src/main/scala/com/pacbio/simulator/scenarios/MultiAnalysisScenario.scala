@@ -75,13 +75,15 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
       uuid,
       "eid_subread")
 
-    val taskOptions = Seq.empty[ServiceTaskOptionBase]
+    val numSubreadSets = 5
+    val numSubreadsetOpt = ServiceTaskIntOption("pbsmrtpipe.task_options.num_subreadsets", numSubreadSets)
+    val taskOptions:Seq[ServiceTaskOptionBase] = Seq(numSubreadsetOpt)
+    val workflowOptions = Seq.empty[ServiceTaskOptionBase]
 
     val jobs = (1 to numJobs).map { i =>
       DeferredJob(Seq(entryPoint),
                   "pbsmrtpipe.pipelines.dev_01_ds",
-                  taskOptions,
-                  taskOptions,
+                  taskOptions, workflowOptions,
                   Some(s"Sim Scenario MJob Create $i"),
                   None,
                   None)
