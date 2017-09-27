@@ -207,6 +207,7 @@
 						<xs:element name="CreatorUserId" type="xs:IDREF" minOccurs="0"/>
 						<xs:element name="ParentJobId" type="xs:IDREF" minOccurs="0"/>
 						<xs:element name="ParentTool" type="pbbase:BaseEntityType" minOccurs="0"/>
+						<xs:element name="ParentDataSet" type="pbbase:StrictEntityType" minOccurs="0"/>
 					</xs:sequence>
 					<xs:attribute name="CreatedBy" use="required">
 						<xs:simpleType>
