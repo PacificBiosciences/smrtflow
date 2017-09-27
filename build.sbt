@@ -8,7 +8,6 @@
 // - smrt-server-analysis
 // - smrt-server-sim
 
-
 name := "smrtflow"
 
 version in ThisBuild := "0.9.0-SNAPSHOT"
@@ -21,7 +20,8 @@ scalaVersion in ThisBuild := "2.11.8"
 // This is useful, but is really chattery. "-Ywarn-dead-code"
 scalacOptions in ThisBuild := Seq(
   "-target:jvm-1.8",
-  "-encoding", "UTF-8",
+  "-encoding",
+  "UTF-8",
   "-unchecked",
   "-deprecation",
   "-feature",
@@ -41,15 +41,21 @@ javaOptions in ThisBuild += "-Xms256m"
 javaOptions in ThisBuild += "-Xmx8g"
 
 // tmp files are written during testing; cannot be mounted noexec because of sqlite
-javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env.get("TMP").isDefined) sys.env("TMP") else "/tmp")
+javaOptions in ThisBuild += "-Djava.io.tmpdir=" + (if (sys.env
+                                                         .get("TMP")
+                                                         .isDefined)
+                                                     sys.env("TMP")
+                                                   else "/tmp")
 
 // Custom keys for this build.
 
 val gitHeadCommitSha = taskKey[String]("Determines the current git commit SHA")
 
-val makeVersionProperties = taskKey[Seq[File]]("Creates a version.properties file we can find at runtime.")
+val makeVersionProperties = taskKey[Seq[File]](
+  "Creates a version.properties file we can find at runtime.")
 
-val makePacBioComponentManifest = taskKey[Seq[File]]("Creates a pacbio-manifest.json as a managed resource")
+val makePacBioComponentManifest =
+  taskKey[Seq[File]]("Creates a pacbio-manifest.json as a managed resource")
 
 val akkaV = "2.3.6"
 
@@ -59,13 +65,14 @@ val slickV = "3.1.1"
 
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
+scalafmtOnCompile in ThisBuild := true // all projects
 
 resolvers in ThisBuild += "mbilski" at "http://dl.bintray.com/mbilski/maven"
 
 resolvers in ThisBuild += "lightshed-maven" at "http://dl.bintray.com/content/lightshed/maven"
 
-
-credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+credentials in ThisBuild += Credentials(
+  Path.userHome / ".ivy2" / ".credentials")
 
 publishTo in ThisBuild := {
   val nexus = "http://ossnexus.pacificbiosciences.com/repository/"
@@ -129,12 +136,12 @@ lazy val baseSettings = Seq(
   "ch.lightshed" % "courier_2.11" % "0.1.4",
   "javax.mail" % "mail" % "1.4.7"
 ).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
-    .map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
-
+  .map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
 
 gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
 
-def getBuildNumber(): Option[Int] = sys.env.get(bambooBuildNumberEnv).map(_.toInt)
+def getBuildNumber(): Option[Int] =
+  sys.env.get(bambooBuildNumberEnv).map(_.toInt)
 
 // Util to mirror bash clear
 def clearConsoleCommand = Command.command("clear") { state =>
@@ -152,8 +159,11 @@ def clearConsoleCommand = Command.command("clear") { state =>
   * @param buildNumber   Bamboo Build number or empty string
   * @return
   */
-def writeVersionProperties(path: File, versionString: String, gitSha: String, buildNumber: String) = {
-  val content = "version=%s\nsha1=%s\nbuildNumber=%s" format(versionString, gitSha, buildNumber)
+def writeVersionProperties(path: File,
+                           versionString: String,
+                           gitSha: String,
+                           buildNumber: String) = {
+  val content = "version=%s\nsha1=%s\nbuildNumber=%s" format (versionString, gitSha, buildNumber)
   IO.write(path, content)
   Seq(path)
 }
@@ -167,8 +177,11 @@ def writeVersionProperties(path: File, versionString: String, gitSha: String, bu
   * @param buildNumber   Bamboo Build number or empty string
   * @return
   */
-def writePacBioManifest(path: File, versionString: String, gitSha: String, buildNumber: String) = {
-  val pacbioVersion = "%s+%s%s" format(versionString, buildNumber, gitSha)
+def writePacBioManifest(path: File,
+                        versionString: String,
+                        gitSha: String,
+                        buildNumber: String) = {
+  val pacbioVersion = "%s+%s%s" format (versionString, buildNumber, gitSha)
   val manifest = s"""
                     |{
                     | "id":"smrtlink_services",
@@ -190,66 +203,75 @@ def writePacBioManifest(path: File, versionString: String, gitSha: String, build
   */
 def toPacBioProject(name: String): Project =
   Project(name, file(name))
-      .settings(Defaults.itSettings : _*)
-      .settings(libraryDependencies ++= baseSettings)
-      .settings(coverageEnabled := false)
-      .settings(fork in Test := true)
-      .settings(fork in IntegrationTest := true)
-      .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
-      .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
-      .configs(IntegrationTest)
-
-
-// Project to use the ammonite repl
-lazy val smrtflow = project.in(file("."))
-    .settings(moduleName := "smrtflow")
-    .settings(publish := {})
-    .settings(publishLocal := {})
-    .settings(publishArtifact := false)
+    .settings(Defaults.itSettings: _*)
+    .settings(libraryDependencies ++= baseSettings)
+    .settings(coverageEnabled := false)
     .settings(fork in Test := true)
     .settings(fork in IntegrationTest := true)
-    .settings(fork in run := true)
-    .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
-    .settings(libraryDependencies ++= baseSettings)
-    .settings(exportJars := true)
-    .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
-    //.settings(parallelExecution in Test := false) // run each Spec sequentially
-    .settings(initialCommands in (Test, console) := """ammonite.Main().run()""")
-    .settings(Defaults.itSettings : _*)
-    .settings(testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "junitxml", "console"))
+    .settings(testOptions in Test += Tests
+      .Argument(TestFrameworks.Specs2, "junitxml", "console"))
     .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
     .configs(IntegrationTest)
-    .dependsOn(logging, common, smrtServerLink, smrtServerSim)
-    .aggregate(logging, common, smrtServerLink, smrtServerSim)
 
+// Project to use the ammonite repl
+lazy val smrtflow = project
+  .in(file("."))
+  .settings(moduleName := "smrtflow")
+  .settings(publish := {})
+  .settings(publishLocal := {})
+  .settings(publishArtifact := false)
+  .settings(fork in Test := true)
+  .settings(fork in IntegrationTest := true)
+  .settings(fork in run := true)
+  .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
+  .settings(libraryDependencies ++= baseSettings)
+  .settings(exportJars := true)
+  .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
+  //.settings(parallelExecution in Test := false) // run each Spec sequentially
+  .settings(initialCommands in (Test, console) := """ammonite.Main().run()""")
+  .settings(Defaults.itSettings: _*)
+  .settings(testOptions in Test += Tests
+    .Argument(TestFrameworks.Specs2, "junitxml", "console"))
+  .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
+  .configs(IntegrationTest)
+  .dependsOn(logging, common, smrtServerLink, smrtServerSim)
+  .aggregate(logging, common, smrtServerLink, smrtServerSim)
 
 lazy val logging = toPacBioProject("smrt-server-logging").settings()
 
 lazy val common =
   toPacBioProject("smrt-common-models")
-      .settings(
-        resourceGenerators in Compile += Def.task {
-          val propFile = (resourceManaged in Compile).value / "version.properties"
-          writeVersionProperties(propFile, version.value, gitHeadCommitSha.value, getBuildNumber().map(_.toString).getOrElse("Unknown"))
-        }.taskValue
-      )
-      .settings(
-        resourceGenerators in Compile += Def.task {
-          val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
-          val sfVersion = version.value.replace("-SNAPSHOT", "")
-          val bambooBuildNumber = getBuildNumber().map(number => s"$number.").getOrElse("")
-          writePacBioManifest(propFile, sfVersion, gitHeadCommitSha.value.take(7), bambooBuildNumber)
-        }.taskValue
-      )
+    .settings(
+      resourceGenerators in Compile += Def.task {
+        val propFile = (resourceManaged in Compile).value / "version.properties"
+        writeVersionProperties(
+          propFile,
+          version.value,
+          gitHeadCommitSha.value,
+          getBuildNumber().map(_.toString).getOrElse("Unknown"))
+      }.taskValue
+    )
+    .settings(
+      resourceGenerators in Compile += Def.task {
+        val propFile = (resourceManaged in Compile).value / "pacbio-manifest.json"
+        val sfVersion = version.value.replace("-SNAPSHOT", "")
+        val bambooBuildNumber =
+          getBuildNumber().map(number => s"$number.").getOrElse("")
+        writePacBioManifest(propFile,
+                            sfVersion,
+                            gitHeadCommitSha.value.take(7),
+                            bambooBuildNumber)
+      }.taskValue
+    )
 
 lazy val smrtServerLink =
   toPacBioProject("smrt-server-link")
-      .dependsOn(logging, common)
-      .settings(
-        mainClass in assembly := Some("com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"),
-        assemblyJarName in assembly := "smrt-server-link-analysis.jar")
+    .dependsOn(logging, common)
+    .settings(mainClass in assembly := Some(
+                "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"),
+              assemblyJarName in assembly := "smrt-server-link-analysis.jar")
 
 lazy val smrtServerSim =
   toPacBioProject("smrt-server-sim")
-      .dependsOn(logging, common, smrtServerLink)
-      .settings()
+    .dependsOn(logging, common, smrtServerLink)
+    .settings()
