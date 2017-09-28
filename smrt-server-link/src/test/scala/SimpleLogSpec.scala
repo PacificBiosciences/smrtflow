@@ -7,26 +7,28 @@ import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models.{LogLevels, LogMessageRecord}
-import com.pacbio.secondary.smrtlink.services.{ServiceComposer, SimpleLogServiceProvider}
+import com.pacbio.secondary.smrtlink.services.{
+  ServiceComposer,
+  SimpleLogServiceProvider
+}
 
-class SimpleLogSpec extends Specification
-  with NoTimeConversions
-  with Specs2RouteTest {
+class SimpleLogSpec
+    extends Specification
+    with NoTimeConversions
+    with Specs2RouteTest {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
-  object TestProviders extends
-      ServiceComposer with
-      SimpleLogServiceProvider {
-  }
+  object TestProviders extends ServiceComposer with SimpleLogServiceProvider {}
 
   val routes = TestProviders.routes()
 
   val sourceId = "test"
 
-  val logMessage = LogMessageRecord("test warning message", LogLevels.WARN, sourceId)
+  val logMessage =
+    LogMessageRecord("test warning message", LogLevels.WARN, sourceId)
 
   "Simple log service" should {
     "accept a log message" in {

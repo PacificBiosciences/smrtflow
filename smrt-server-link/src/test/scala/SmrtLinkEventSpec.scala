@@ -13,7 +13,10 @@ import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
-import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{
+  EngineCoreConfigLoader,
+  PbsmrtpipeConfigLoader
+}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
@@ -26,14 +29,14 @@ import slick.driver.PostgresDriver.api.Database
 import concurrent.duration._
 import scala.concurrent.Await
 
-
-class SmrtLinkEventSpec extends Specification
+class SmrtLinkEventSpec
+    extends Specification
     with Specs2RouteTest
     with SetupMockData
     with PacBioServiceErrors
     with JobServiceConstants
     with SmrtLinkConstants
-    with TestUtils{
+    with TestUtils {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -41,37 +44,44 @@ class SmrtLinkEventSpec extends Specification
 
   val INVALID_JWT = "invalid.jwt"
 
-  object TestProviders extends
-      ServiceComposer with
-      ProjectServiceProvider with
-      SmrtLinkConfigProvider with
-      PbsmrtpipeConfigLoader with
-      EngineCoreConfigLoader with
-      EulaServiceProvider with
-      DataSetServiceProvider with
-      EventManagerActorProvider with
-      SmrtLinkEventServiceProvider with
-      JobsDaoProvider with
-      SmrtLinkTestDalProvider with
-      AuthenticatorImplProvider with
-      JwtUtilsProvider with
-      FakeClockProvider with
-      SetBindings with
-      ActorRefFactoryProvider {
+  object TestProviders
+      extends ServiceComposer
+      with ProjectServiceProvider
+      with SmrtLinkConfigProvider
+      with PbsmrtpipeConfigLoader
+      with EngineCoreConfigLoader
+      with EulaServiceProvider
+      with DataSetServiceProvider
+      with EventManagerActorProvider
+      with SmrtLinkEventServiceProvider
+      with JobsDaoProvider
+      with SmrtLinkTestDalProvider
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with FakeClockProvider
+      with SetBindings
+      with ActorRefFactoryProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
 
-    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
+    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(
+      system)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.routes()
 
-  val exampleEvent = SmrtLinkEvent("test_event", 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty)
+  val exampleEvent = SmrtLinkEvent("test_event",
+                                   1,
+                                   UUID.randomUUID(),
+                                   JodaDateTime.now(),
+                                   JsObject.empty)
 
   step(setupDb(TestProviders.dbConfig))
   step(enableInstallMetrics(TestProviders.eventManagerActor()))
@@ -79,7 +89,12 @@ class SmrtLinkEventSpec extends Specification
   def enableInstallMetrics(evManager: ActorRef): Unit = {
     val dt = FiniteDuration(5, SECONDS)
     implicit val timeout = Timeout(dt)
-    val record = EulaRecord("test-user", JodaDateTime.now(), "1.2.3", "linux", enableInstallMetrics = true, enableJobMetrics = false)
+    val record = EulaRecord("test-user",
+                            JodaDateTime.now(),
+                            "1.2.3",
+                            "linux",
+                            enableInstallMetrics = true,
+                            enableJobMetrics = false)
     val fx = (evManager ? record).mapTo[SmrtLinkSystemEvent]
     Await.result(fx, dt)
   }

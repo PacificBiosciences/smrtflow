@@ -10,13 +10,28 @@ import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetWriter, DataSetMerger, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetWriter,
+  DataSetMerger,
+  DataSetLoader
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData,PbReports}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PbReports
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter, PrinterJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  NullJobResultsWriter,
+  PrinterJobResultsWriter,
+  AnalysisJobStates
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
-import com.pacbio.secondary.smrtlink.analysis.tools.{DataSetMergerOptions, DataSetMergerTool, timeUtils}
+import com.pacbio.secondary.smrtlink.analysis.tools.{
+  DataSetMergerOptions,
+  DataSetMergerTool,
+  timeUtils
+}
 
 /**
   *
@@ -34,7 +49,8 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 
   val expectedVersion = "4.0.1"
 
-  val examplePaths = exampleFiles.map(x => Paths.get(getClass.getResource("dataset-hdfsubreads/" + x).toURI))
+  val examplePaths = exampleFiles.map(x =>
+    Paths.get(getClass.getResource("dataset-hdfsubreads/" + x).toURI))
 
   "Sanity test for merging datasets" should {
     "Merge Hdf Subread" in {
@@ -43,7 +59,8 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       val name = "Merged Datasets"
       logger.info(s"Loaded datasets $datasets")
 
-      val mergedDataSet = DataSetMerger.mergeHdfSubreadSets(datasets, "ds-name")
+      val mergedDataSet =
+        DataSetMerger.mergeHdfSubreadSets(datasets, "ds-name")
 
       logger.info(s"Dataset mergedDataSet $mergedDataSet")
 
@@ -54,17 +71,21 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       // Not really clear what the expected behavior is here. The Schema of the HdfSubreadSet has not changed
       // but the DataSet "version" is across all schemas.
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(6)
+      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+        6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(3)
-      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.HdfSubread.toString)
+      mergedDataSet.getMetaType must beEqualTo(
+        DataSetMetaTypes.HdfSubread.toString)
     }
   }
   "Merge dataset tool smoke test" should {
     "Simple HdfSubread merge" in {
       val paths = examplePaths.map(_.toFile)
       val outputPath = Files.createTempFile("merged", ".hdfsubreadset.xml")
-      val opts = DataSetMergerOptions("PacBio.DataSet.HdfSubreadSet", paths, outputPath.toAbsolutePath.toString)
+      val opts = DataSetMergerOptions("PacBio.DataSet.HdfSubreadSet",
+                                      paths,
+                                      outputPath.toAbsolutePath.toString)
       val result = DataSetMergerTool.run(opts)
       logger.info(s"Merge tool Results $result")
       result.isRight must beTrue
@@ -74,7 +95,10 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 
 }
 
-class DataSetMergerAdvancedSpec extends Specification with LazyLogging with timeUtils {
+class DataSetMergerAdvancedSpec
+    extends Specification
+    with LazyLogging
+    with timeUtils {
   args(skipAll = !PacBioTestData.isAvailable)
 
   sequential
@@ -100,15 +124,18 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       println(p)
       DataSetWriter.writeSubreadSet(mergedDataSet, p)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(2)
+      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+        2)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(81354)
       mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(137)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(2)
-      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.Subread.toString)
+      mergedDataSet.getMetaType must beEqualTo(
+        DataSetMetaTypes.Subread.toString)
     }
     "Merge AlignmentSets" in {
       val paths = getData(Seq("aligned-xml", "aligned-ds-2"))
-      val datasets = paths.map(x => DataSetLoader.loadAndResolveAlignmentSet(x))
+      val datasets =
+        paths.map(x => DataSetLoader.loadAndResolveAlignmentSet(x))
       val name = "Merged Datasets"
       logger.info(s"Loaded datasets $datasets")
       val mergedDataSet = DataSetMerger.mergeAlignmentSets(datasets, "ds-name")
@@ -116,9 +143,11 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
       val p = Files.createTempFile("merged", ".alignmentset.xml")
       logger.info(s"Writing merged dataset to $p")
       DataSetWriter.writeAlignmentSet(mergedDataSet, p)
-      mergedDataSet.getMetaType must beEqualTo(DataSetMetaTypes.Alignment.toString)
+      mergedDataSet.getMetaType must beEqualTo(
+        DataSetMetaTypes.Alignment.toString)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(3)
+      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+        3)
       //FIXME Metadata isn't being handled properly right now
       //mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(274217)
       //mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(133)
@@ -127,7 +156,8 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
     "Merge SubreadSets using jobtype API" in {
       val paths = getData(Seq("subreads-sequel", "subreads-xml"))
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths, "merge_datasets")
+                                     paths,
+                                     "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
       val job = JobResource(UUID.randomUUID, outputDir)
       val j = opts.toJob
@@ -142,7 +172,8 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
             "pbreports.tasks.filter_stats_report_xml",
             "pbreports.tasks.loading_report_xml")
       } else Seq("pbscala::dataset_report")
-      val reports = datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
+      val reports =
+        datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
       reports.size must beEqualTo(REPORT_IDS.size)
       val taskIds = reports.map(_.sourceId).sorted
       taskIds must beEqualTo(REPORT_IDS)
@@ -152,14 +183,21 @@ class DataSetMergerAdvancedSpec extends Specification with LazyLogging with time
 
 // XXX standalone test class for debugging runtime issues - not intended to
 // be run in standard suite
-class DataSetMergerScalingSpec extends Specification with LazyLogging with timeUtils {
+class DataSetMergerScalingSpec
+    extends Specification
+    with LazyLogging
+    with timeUtils {
   val DATA_DIR = "/unknownpath" // replace me with something useful
   args(skipAll = !Paths.get(DATA_DIR).toFile.exists)
 
   sequential
 
   private def listSubreadSetFiles(f: File): Array[File] = {
-    f.listFiles.filter((fn) => fn.toString.endsWith(".subreadset.xml")).toArray ++ f.listFiles.filter(_.isDirectory).flatMap(listSubreadSetFiles)
+    f.listFiles
+      .filter((fn) => fn.toString.endsWith(".subreadset.xml"))
+      .toArray ++ f.listFiles
+      .filter(_.isDirectory)
+      .flatMap(listSubreadSetFiles)
   }
 
   val writer = new PrinterJobResultsWriter
@@ -169,7 +207,8 @@ class DataSetMergerScalingSpec extends Specification with LazyLogging with timeU
       val paths = listSubreadSetFiles(Paths.get(DATA_DIR).toFile).map(_.toPath)
       println(s"Found ${paths.size} SubreadSet XMLs")
       val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths, "merge_datasets")
+                                     paths,
+                                     "merge_datasets")
       val outputDir = Files.createTempDirectory("merge-job-test")
       val job = JobResource(UUID.randomUUID, outputDir)
       println(s"Merge job output dir is ${outputDir.toString}")
@@ -186,7 +225,8 @@ class DataSetMergerScalingSpec extends Specification with LazyLogging with timeU
             "pbreports.tasks.filter_stats_report_xml",
             "pbreports.tasks.loading_report_xml")
       } else Seq("pbscala::dataset_report")
-      val reports = datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
+      val reports =
+        datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
       reports.size must beEqualTo(REPORT_IDS.size)
       val taskIds = reports.map(_.sourceId).sorted
       taskIds must beEqualTo(REPORT_IDS)

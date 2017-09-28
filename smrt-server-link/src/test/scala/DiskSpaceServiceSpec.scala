@@ -1,9 +1,19 @@
 import java.nio.file.Paths
 
-import com.pacbio.secondary.smrtlink.dependency.{Singleton, StringConfigProvider}
-import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil}
+import com.pacbio.secondary.smrtlink.dependency.{
+  Singleton,
+  StringConfigProvider
+}
+import com.pacbio.secondary.smrtlink.file.{
+  FileSystemUtil,
+  FileSystemUtilProvider,
+  JavaFileSystemUtil
+}
 import com.pacbio.secondary.smrtlink.models.DiskSpaceResource
-import com.pacbio.secondary.smrtlink.services.{DiskSpaceServiceProviderx, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{
+  DiskSpaceServiceProviderx,
+  ServiceComposer
+}
 import org.mockito.Mockito._
 import org.specs2.mock._
 import org.specs2.mutable.Specification
@@ -16,7 +26,11 @@ import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-class DiskSpaceServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
+class DiskSpaceServiceSpec
+    extends Specification
+    with Directives
+    with Mockito
+    with Specs2RouteTest {
 
   val spiedFileSystemUtil = spy(new JavaFileSystemUtil)
 
@@ -25,14 +39,14 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
   val TEST_JOB_DIR = "/test/job/dir"
   val TEST_TMP_DIR = "/test/tmp/dir"
 
-  object TestProviders extends
-    ServiceComposer with
-    StringConfigProvider with
-    DiskSpaceServiceProviderx with
-    FileSystemUtilProvider {
-      override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(() => spiedFileSystemUtil)
-      override val configString = Singleton(() =>
-        s"""
+  object TestProviders
+      extends ServiceComposer
+      with StringConfigProvider
+      with DiskSpaceServiceProviderx
+      with FileSystemUtilProvider {
+    override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(
+      () => spiedFileSystemUtil)
+    override val configString = Singleton(() => s"""
            |smrtflow {
            |  engine {
            |    jobRootDir = "$TEST_JOB_DIR"
@@ -43,16 +57,24 @@ class DiskSpaceServiceSpec extends Specification with Directives with Mockito wi
            |  tmpDir = "$TEST_TMP_DIR"
            |}
         """.stripMargin)
-    }
+  }
 
   doReturn(100.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get("/"))
   doReturn(50.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get("/"))
 
-  doReturn(200.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get(TEST_JOB_DIR))
-  doReturn(150.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get(TEST_JOB_DIR))
+  doReturn(200.toLong)
+    .when(spiedFileSystemUtil)
+    .getTotalSpace(Paths.get(TEST_JOB_DIR))
+  doReturn(150.toLong)
+    .when(spiedFileSystemUtil)
+    .getFreeSpace(Paths.get(TEST_JOB_DIR))
 
-  doReturn(300.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get(TEST_TMP_DIR))
-  doReturn(250.toLong).when(spiedFileSystemUtil).getFreeSpace(Paths.get(TEST_TMP_DIR))
+  doReturn(300.toLong)
+    .when(spiedFileSystemUtil)
+    .getTotalSpace(Paths.get(TEST_TMP_DIR))
+  doReturn(250.toLong)
+    .when(spiedFileSystemUtil)
+    .getFreeSpace(Paths.get(TEST_TMP_DIR))
 
   val routes = TestProviders.diskSpaceService().prefixedRoutes
 

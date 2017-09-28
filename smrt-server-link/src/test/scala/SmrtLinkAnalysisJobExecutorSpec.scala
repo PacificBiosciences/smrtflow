@@ -1,9 +1,12 @@
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTypeIds}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  JobTypeIds
+}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import spray.httpx.SprayJsonSupport._
 
-
-class SmrtLinkAnalysisJobExecutorSpec extends SmrtLinkAnalysisJobExecutorSpecBase {
+class SmrtLinkAnalysisJobExecutorSpec
+    extends SmrtLinkAnalysisJobExecutorSpecBase {
 
   import SmrtLinkJsonProtocols._
 

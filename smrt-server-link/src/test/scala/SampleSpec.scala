@@ -6,8 +6,18 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
-import com.pacbio.secondary.smrtlink.actors.{InMemorySampleDao, InMemorySampleDaoProvider, SampleServiceActor, SampleServiceActorProvider}
-import com.pacbio.secondary.smrtlink.models.{Sample, SampleCreate, SampleUpdate, UserRecord}
+import com.pacbio.secondary.smrtlink.actors.{
+  InMemorySampleDao,
+  InMemorySampleDaoProvider,
+  SampleServiceActor,
+  SampleServiceActorProvider
+}
+import com.pacbio.secondary.smrtlink.models.{
+  Sample,
+  SampleCreate,
+  SampleUpdate,
+  UserRecord
+}
 import com.pacbio.secondary.smrtlink.services.{SampleService, ServiceComposer}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
@@ -21,13 +31,13 @@ import spray.testkit.Specs2RouteTest
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class SampleSpec extends
-    Specification with
-    Directives with
-    Specs2RouteTest with
-    LazyLogging with
-    NoTimeConversions with
-    PacBioServiceErrors {
+class SampleSpec
+    extends Specification
+    with Directives
+    with Specs2RouteTest
+    with LazyLogging
+    with NoTimeConversions
+    with PacBioServiceErrors {
 
   // run sequentially because of shared InMemoryDAO state
   sequential
@@ -54,22 +64,25 @@ class SampleSpec extends
   val SAMPLE_PATH = "/smrt-link/samples"
   var SAMPLE_PATH_SLASH = SAMPLE_PATH + "/"
 
-  object TestProviders extends
-    ServiceComposer with
-    SampleServiceActorProvider with
-    InMemorySampleDaoProvider with
-    AuthenticatorImplProvider with
-    JwtUtilsProvider with
-    FakeClockProvider {
+  object TestProviders
+      extends ServiceComposer
+      with SampleServiceActorProvider
+      with InMemorySampleDaoProvider
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with FakeClockProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
 
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
   }
 
-  val actorRef = TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
+  val actorRef =
+    TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
   val authenticator = TestProviders.authenticator()
   val routes = new SampleService(actorRef, authenticator).prefixedRoutes
 
@@ -83,9 +96,15 @@ class SampleSpec extends
     val sampleDao = TestProviders.sampleDao()
 
     val fx = for {
-      _ <- sampleDao.createSample(ADMIN_USER_1_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One"))
-      _ <- sampleDao.createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two"))
-      _ <- sampleDao.createSample(ADMIN_USER_2_LOGIN, SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
+      _ <- sampleDao.createSample(
+        ADMIN_USER_1_LOGIN,
+        SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One"))
+      _ <- sampleDao.createSample(
+        ADMIN_USER_2_LOGIN,
+        SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two"))
+      _ <- sampleDao.createSample(
+        ADMIN_USER_2_LOGIN,
+        SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
     } yield "Completed inserting Test Samples"
 
     Await.result(fx, 10.seconds)
@@ -97,7 +116,9 @@ class SampleSpec extends
         status.isSuccess must beTrue
         val samples = responseAs[Set[Sample]]
         samples.size === 3
-        samples.map(_.createdBy) === Set(ADMIN_USER_1_LOGIN, ADMIN_USER_2_LOGIN, ADMIN_USER_2_LOGIN)
+        samples.map(_.createdBy) === Set(ADMIN_USER_1_LOGIN,
+                                         ADMIN_USER_2_LOGIN,
+                                         ADMIN_USER_2_LOGIN)
       }
     }
 
@@ -125,7 +146,8 @@ class SampleSpec extends
     "update a sample" in new daoSetup {
       val newDetails = "{Chemistry:S2, InputConcentration:21.1}"
       val update = SampleUpdate(details = Some(newDetails), name = None)
-      Post(SAMPLE_PATH_SLASH + SAMPLE3_UUID, update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+      Post(SAMPLE_PATH_SLASH + SAMPLE3_UUID, update) ~> addHeader(
+        ADMIN_CREDENTIALS_1) ~> routes ~> check {
         logger.info("request: POST " + SAMPLE_PATH_SLASH + SAMPLE3_UUID)
         val sample = responseAs[Sample]
         sample.name === "Sample Three"
@@ -142,7 +164,8 @@ class SampleSpec extends
     }
 
     "delete a sample" in new daoSetup {
-      Delete(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+      Delete(SAMPLE_PATH_SLASH + SAMPLE3_UUID) ~> addHeader(
+        ADMIN_CREDENTIALS_1) ~> routes ~> check {
         logger.info("request: DELETE " + SAMPLE_PATH_SLASH + SAMPLE3_UUID)
         status.isSuccess must beTrue
       }
@@ -158,7 +181,8 @@ class SampleSpec extends
     }
 
     "create a sample" in new daoSetup {
-      val newSample = SampleCreate(FAKE_SAMPLE, UUID.randomUUID(), "Created Sample")
+      val newSample =
+        SampleCreate(FAKE_SAMPLE, UUID.randomUUID(), "Created Sample")
       Post(SAMPLE_PATH, newSample) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         val sample = responseAs[Sample]
         sample.name === "Created Sample"

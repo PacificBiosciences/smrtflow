@@ -8,7 +8,10 @@ import spray.client.pipelining._
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-class SanityBaseServiceSpec extends Specification with Directives with Specs2RouteTest {
+class SanityBaseServiceSpec
+    extends Specification
+    with Directives
+    with Specs2RouteTest {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 

@@ -1,16 +1,20 @@
 import java.nio.file.{Paths, Files}
 import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
-import com.pacbio.secondary.smrtlink.analysis.converters.{InvalidPacBioFastaError, PacBioFastaValidator, FastaIndexWriter}
+import com.pacbio.secondary.smrtlink.analysis.converters.{
+  InvalidPacBioFastaError,
+  PacBioFastaValidator,
+  FastaIndexWriter
+}
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
 
 /**
- * Created by mkocher on 3/14/15.
- *
- * Simple Pbcore-esque library to access Fasta Files
- */
-class BioFastaSpec extends Specification{
+  * Created by mkocher on 3/14/15.
+  *
+  * Simple Pbcore-esque library to access Fasta Files
+  */
+class BioFastaSpec extends Specification {
 
   sequential
 
@@ -27,13 +31,12 @@ class BioFastaSpec extends Specification{
     }
   }
 
-
   "Load example Fasta file" should {
     "Parse file sanity test" in {
       val uri = getClass.getResource("small.fasta")
       val records = Fasta.loadFrom(uri)
       records.length must beEqualTo(5)
-      val faidx = new FastaIndexWriter{}.createFaidx(Paths.get(uri.getPath()))
+      val faidx = new FastaIndexWriter {}.createFaidx(Paths.get(uri.getPath()))
       Files.exists(Paths.get(faidx)) must beTrue
     }
     "Example file" in {

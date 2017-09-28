@@ -1,21 +1,31 @@
-
 import java.nio.file.{Files, Path, Paths}
 import java.io.File
 import java.util.UUID
 
-import org.apache.commons.io.{FileUtils,FilenameUtils}
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
-import com.pacbio.secondary.smrtlink.analysis.jobs.{PrinterJobResultsWriter, JobModels, AnalysisJobStates}
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{DeleteResourcesOptions, DeleteResourcesJob, DeleteDatasetsOptions, DeleteDatasetsJob}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{JobResource, BoundEntryPoint}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  PrinterJobResultsWriter,
+  JobModels,
+  AnalysisJobStates
+}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
+  DeleteResourcesOptions,
+  DeleteResourcesJob,
+  DeleteDatasetsOptions,
+  DeleteDatasetsJob
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  JobResource,
+  BoundEntryPoint
+}
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
-
-class DeleteResourcesSpec extends Specification with LazyLogging{
+class DeleteResourcesSpec extends Specification with LazyLogging {
 
   sequential
 
@@ -45,7 +55,8 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
       Files.exists(targetSubFile.toPath) must beFalse
       val deleteFile = targetDir.resolve("DELETED")
       Files.exists(deleteFile) must beTrue
-      val r = ReportUtils.loadReport(Paths.get(jobResult.right.get.files(1).path))
+      val r =
+        ReportUtils.loadReport(Paths.get(jobResult.right.get.files(1).path))
       r.attributes(0).value must beEqualTo(targetDir.toString)
     }
     "Test behavior when delete is turned off" in {
@@ -63,7 +74,7 @@ class DeleteResourcesSpec extends Specification with LazyLogging{
   }
 }
 
-class DeleteDatasetsSpec extends Specification with LazyLogging{
+class DeleteDatasetsSpec extends Specification with LazyLogging {
 
   val NBYTES_MIN_BARCODED_SUBREADS: Long = 16729 // this may be a bad idea
 
@@ -96,7 +107,8 @@ class DeleteDatasetsSpec extends Specification with LazyLogging{
       val r = ReportUtils.loadReport(rptPath)
       r.attributes(0).value must beEqualTo(subreads.toString)
       r.attributes(1).value must beEqualTo(0)
-      r.attributes(2).value.asInstanceOf[Long] must beGreaterThanOrEqualTo(NBYTES_MIN_BARCODED_SUBREADS)
+      r.attributes(2).value.asInstanceOf[Long] must beGreaterThanOrEqualTo(
+        NBYTES_MIN_BARCODED_SUBREADS)
       r.tables(0).columns(0).values.size must beEqualTo(5)
     }
     "Fail when a dataset path does not exist" in {
@@ -110,8 +122,9 @@ class DeleteDatasetsSpec extends Specification with LazyLogging{
       val pbdata = PacBioTestData()
       val targetDsSrc = pbdata.getFile("subreads-sequel")
       val targetDir = Files.createTempDirectory("missing-resources")
-      val targetDs = Paths.get(targetDir.toString + "/" +
-                               FilenameUtils.getName(targetDsSrc.toString))
+      val targetDs = Paths.get(
+        targetDir.toString + "/" +
+          FilenameUtils.getName(targetDsSrc.toString))
       FileUtils.copyFile(targetDsSrc.toFile, targetDs.toFile)
       val jobResult = runJob(Seq(targetDs))
       jobResult.isRight must beTrue

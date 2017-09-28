@@ -1,7 +1,7 @@
 import java.nio.file.Paths
 
 import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
-import com.pacbio.secondary.smrtlink.models.{Alarm,PacBioComponentManifest}
+import com.pacbio.secondary.smrtlink.models.{Alarm, PacBioComponentManifest}
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable._
 import spray.json._

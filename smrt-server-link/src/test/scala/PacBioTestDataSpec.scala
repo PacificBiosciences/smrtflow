@@ -1,4 +1,3 @@
-
 import java.nio.file.Files
 
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData

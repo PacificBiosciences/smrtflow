@@ -8,14 +8,18 @@ import org.specs2.mutable._
 import scala.collection.JavaConversions._
 
 /**
- * Test for all pipeline related specs
- * Created by mkocher on 8/18/15.
- */
-class ToolContractSpec extends Specification with SecondaryJobJsonProtocol with LazyLogging{
+  * Test for all pipeline related specs
+  * Created by mkocher on 8/18/15.
+  */
+class ToolContractSpec
+    extends Specification
+    with SecondaryJobJsonProtocol
+    with LazyLogging {
 
   sequential
 
-  val name = "resolved-tool-contracts/smrtflow.tasks.example_tool_resolved_tool_contract.avro"
+  val name =
+    "resolved-tool-contracts/smrtflow.tasks.example_tool_resolved_tool_contract.avro"
 
   "Loading avro tool contract" should {
     "Smoke test to load a pbcommand dev test Avro file" in {

@@ -15,31 +15,52 @@ import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth._
-import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.dependency.{
+  ConfigProvider,
+  SetBindings,
+  Singleton
+}
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
-import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, JobTask, JobTypeIds}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{
+  EngineCoreConfigLoader,
+  PbsmrtpipeConfigLoader
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  JobTask,
+  JobTypeIds
+}
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.jobtypes.{DeleteSmrtLinkJobOptions, ExportSmrtLinkJobOptions}
+import com.pacbio.secondary.smrtlink.jobtypes.{
+  DeleteSmrtLinkJobOptions,
+  ExportSmrtLinkJobOptions
+}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{JobsServiceProvider, ProjectServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{
+  JobsServiceProvider,
+  ProjectServiceProvider,
+  ServiceComposer
+}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.mockito.internal.matchers.GreaterThan
 import slick.driver.PostgresDriver.api._
 
-
-class JobExecutorSpec extends Specification
-with Specs2RouteTest
-with NoTimeConversions
-with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
+class JobExecutorSpec
+    extends Specification
+    with Specs2RouteTest
+    with NoTimeConversions
+    with JobServiceConstants
+    with timeUtils
+    with LazyLogging
+    with TestUtils {
 
   sequential
 
@@ -48,34 +69,37 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   implicit val routeTestTimeout = RouteTestTimeout(5.seconds)
 
-  object TestProviders extends
-  ServiceComposer with
-  ProjectServiceProvider with
-  StatusGeneratorProvider with
-  EventManagerActorProvider with
-  JobsDaoProvider with
-  SmrtLinkTestDalProvider with
-  SmrtLinkConfigProvider with
-  JobsServiceProvider with
-  PbsmrtpipeConfigLoader with
-  EngineCoreConfigLoader with
-  AuthenticatorImplProvider with
-  JwtUtilsProvider with
-  ActorSystemProvider with
-  ConfigProvider with
-  FakeClockProvider with
-  EngineCoreJobManagerActorProvider with
-  SetBindings {
+  object TestProviders
+      extends ServiceComposer
+      with ProjectServiceProvider
+      with StatusGeneratorProvider
+      with EventManagerActorProvider
+      with JobsDaoProvider
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with JobsServiceProvider
+      with PbsmrtpipeConfigLoader
+      with EngineCoreConfigLoader
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with ActorSystemProvider
+      with ConfigProvider
+      with FakeClockProvider
+      with EngineCoreJobManagerActorProvider
+      with SetBindings {
 
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          Some(UserRecord(jwt))
     })
 
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorSystem: Singleton[ActorSystem] = Singleton(system)
     override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
     override val baseServiceId: Singleton[String] = Singleton("test-service")
-    override val buildPackage: Singleton[Package] = Singleton(getClass.getPackage)
+    override val buildPackage: Singleton[Package] = Singleton(
+      getClass.getPackage)
 
   }
 
@@ -86,9 +110,15 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
   def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
-  def toJobTypeByIdWithRest(x: String, i: IdAble, rest: String) = s"${toJobTypeById(x, i)}/$rest"
+  def toJobTypeByIdWithRest(x: String, i: IdAble, rest: String) =
+    s"${toJobTypeById(x, i)}/$rest"
 
-  val project = ProjectRequest("mock project name", "mock project description", None, None, None, None)
+  val project = ProjectRequest("mock project name",
+                               "mock project description",
+                               None,
+                               None,
+                               None,
+                               None)
   var projectId = -1
 
   val rx = scala.util.Random
@@ -105,8 +135,13 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
   val jobId = 1
   val taskUUID = UUID.randomUUID()
   val taskTypeId = "smrtflow.tasks.mock_task"
-  val mockTaskRecord = CreateJobTaskRecord(taskUUID, s"$taskTypeId-0",  taskTypeId, s"task-name-${taskUUID}", JodaDateTime.now())
-  val mockUpdateTaskRecord = UpdateJobTaskRecord(taskUUID, "RUNNING", "Updating state to Running", None)
+  val mockTaskRecord = CreateJobTaskRecord(taskUUID,
+                                           s"$taskTypeId-0",
+                                           taskTypeId,
+                                           s"task-name-${taskUUID}",
+                                           JodaDateTime.now())
+  val mockUpdateTaskRecord =
+    UpdateJobTaskRecord(taskUUID, "RUNNING", "Updating state to Running", None)
 
   val url = toJobType("mock-pbsmrtpipe")
 
@@ -158,7 +193,7 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         jobs.size === 1
         jobs.head.name === jobName
       }
-      Get(s"$url?projectId=${projectId+1}") ~> totalRoutes ~> check {
+      Get(s"$url?projectId=${projectId + 1}") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobs = responseAs[Seq[EngineJob]]
         jobs.size === 0
@@ -191,7 +226,10 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
 
       val uuid = dsFiles.head.uuid
       val r = DataStoreFileUpdateRequest(false, Some("/tmp/foo"), Some(12345))
-      Put(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, s"datastore/$uuid"), r) ~> totalRoutes ~> check {
+      Put(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id,
+                                1,
+                                s"datastore/$uuid"),
+          r) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
 
@@ -229,7 +267,8 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       }
     }
     "create a job task by Int Id" in {
-      Post(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "tasks"), mockTaskRecord) ~> totalRoutes ~> check {
+      Post(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "tasks"),
+           mockTaskRecord) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTask = responseAs[JobTask]
         jobTask.state === "CREATED"
@@ -239,11 +278,15 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       Get(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "tasks")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTasks = responseAs[Seq[JobTask]]
-        jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.uuid) must beSome(mockTaskRecord.uuid)
+        jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.uuid) must beSome(
+          mockTaskRecord.uuid)
       }
     }
     "update a job task status by Job Int Id" in {
-      Put(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, s"tasks/${mockTaskRecord.uuid}"), mockUpdateTaskRecord) ~> totalRoutes ~> check {
+      Put(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id,
+                                1,
+                                s"tasks/${mockTaskRecord.uuid}"),
+          mockUpdateTaskRecord) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTask = responseAs[JobTask]
         jobTask.state === mockUpdateTaskRecord.state
@@ -253,7 +296,8 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       Get(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "tasks")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val jobTasks = responseAs[Seq[JobTask]]
-        jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.state) must beSome(mockUpdateTaskRecord.state)
+        jobTasks.find(_.uuid === mockTaskRecord.uuid).map(_.state) must beSome(
+          mockUpdateTaskRecord.state)
       }
     }
     "Export job" in {
@@ -275,9 +319,10 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
         // There must be at least one completed job
         val jobs = responseAs[Seq[EngineJob]]
         // filter(job => AnalysisJobStates.isCompleted(job.state))
-        jobs.filter(_.id == newJob.get.id)
-            .map(_.id)
-            .headOption must beSome
+        jobs
+          .filter(_.id == newJob.get.id)
+          .map(_.id)
+          .headOption must beSome
       }
 
       var complete = false
@@ -288,25 +333,28 @@ with JobServiceConstants with timeUtils with LazyLogging with TestUtils {
       val startedAt = JodaDateTime.now()
       while (!complete) {
         Get(toJobType(JobTypeIds.MOCK_PBSMRTPIPE.id)) ~> totalRoutes ~> check {
-          complete = responseAs[Seq[EngineJob]].filter(_.id == newJob.get.id).head.isComplete
+          complete = responseAs[Seq[EngineJob]]
+            .filter(_.id == newJob.get.id)
+            .head
+            .isComplete
           if (!complete && retry < maxRetries) {
             retry = retry + 1
             Thread.sleep(2000)
             println(s"Polling for mock pbsmrtpipe job state ${newJob.get.id}")
             success
           } else if (!complete && retry >= maxRetries) {
-            failure(s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
+            failure(
+              s"mock-pbsmrtpipe Job failed to complete after ${computeTimeDelta(JodaDateTime.now, startedAt)} seconds")
           }
         }
       }
 
-      val params = DeleteSmrtLinkJobOptions(
-        newJob.get.uuid,
-        Some("Job name"),
-        Some("Job Description"),
-        removeFiles = true,
-        dryRun = Some(false),
-        projectId = Some(projectId))
+      val params = DeleteSmrtLinkJobOptions(newJob.get.uuid,
+                                            Some("Job name"),
+                                            Some("Job Description"),
+                                            removeFiles = true,
+                                            dryRun = Some(false),
+                                            projectId = Some(projectId))
 
       Post(toJobType(JobTypeIds.DELETE_JOB.id), params) ~> totalRoutes ~> check {
         // poll hack. We need a general mechanism to wait for a job to complete

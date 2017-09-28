@@ -1,4 +1,3 @@
-
 import java.nio.file.{Paths, Files}
 
 import com.typesafe.scalalogging.LazyLogging
@@ -11,14 +10,13 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetLoader.
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ImplicitDataSetValidators._
 
 /**
- * Created by mkocher on 3/10/15.
- *
- * Spec for Reference DataSet parsing and writing
- *
- * Performs and end-to-end test for ReferenceInfoXML -> ReferenceDataSet XML
- */
-
-class GmapReferenceDatasetSpec extends Specification with LazyLogging{
+  * Created by mkocher on 3/10/15.
+  *
+  * Spec for Reference DataSet parsing and writing
+  *
+  * Performs and end-to-end test for ReferenceInfoXML -> ReferenceDataSet XML
+  */
+class GmapReferenceDatasetSpec extends Specification with LazyLogging {
 
   sequential
 
