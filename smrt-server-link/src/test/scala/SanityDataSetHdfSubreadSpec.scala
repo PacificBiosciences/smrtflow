@@ -1,14 +1,18 @@
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader, DataSetValidator}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetJsonUtils,
+  DataSetLoader,
+  DataSetValidator
+}
 import com.pacificbiosciences.pacbiodatasets._
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
 /**
- * Sannity test to load dataset test files and XML -> DataSet Object
- * Created by mkocher on 5/29/15.
- */
+  * Sannity test to load dataset test files and XML -> DataSet Object
+  * Created by mkocher on 5/29/15.
+  */
 class SanityDataSetHdfSubreadSpec extends Specification with LazyLogging {
 
   sequential

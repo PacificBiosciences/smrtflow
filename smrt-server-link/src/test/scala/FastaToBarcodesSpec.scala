@@ -1,4 +1,3 @@
-
 import java.nio.file.{Files, Paths, Path}
 import java.util.UUID
 import org.apache.commons.io.FileUtils
@@ -16,7 +15,7 @@ class FastaToBarcodesSpec extends Specification with BeforeAfterEach {
 
   def generateBarcodes(fastaPath: Path): Boolean = {
     val name = UUID.randomUUID().toString
-    FastaBarcodesConverter(name, fastaPath, tmpDir, mkdir=true) match {
+    FastaBarcodesConverter(name, fastaPath, tmpDir, mkdir = true) match {
       case Right(io) => true
       case Left(err) => false
     }

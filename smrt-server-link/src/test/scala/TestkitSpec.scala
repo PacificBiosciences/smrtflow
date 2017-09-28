@@ -1,4 +1,3 @@
-
 import java.nio.file.Paths
 
 import scala.io.Source
@@ -29,8 +28,10 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       cfg.testId must beEqualTo("test_job")
       val json = cfg.toJson
       val cfg2 = json.convertTo[TestkitConfig]
-      cfg.reportTests(0).rules(0).attrId must beEqualTo(cfg2.reportTests(0).rules(0).attrId)
-      cfg.reportTests(0).rules(0).value must beEqualTo(cfg2.reportTests(0).rules(0).value)
+      cfg.reportTests(0).rules(0).attrId must beEqualTo(
+        cfg2.reportTests(0).rules(0).attrId)
+      cfg.reportTests(0).rules(0).value must beEqualTo(
+        cfg2.reportTests(0).rules(0).value)
     }
     "Read in testkit cfg with shorthand report rule syntax" in {
       val jsonPath = Paths.get(getClass.getResource(test_cfg2).toURI).toString
@@ -41,8 +42,10 @@ class TestkitSpec extends Specification with TestkitJsonProtocol {
       val json = cfg.toJson
       //println(json.prettyPrint)
       val cfg2 = json.convertTo[TestkitConfig]
-      cfg.reportTests(0).rules(0).attrId must beEqualTo(cfg2.reportTests(0).rules(0).attrId)
-      cfg.reportTests(0).rules(0).value must beEqualTo(cfg2.reportTests(0).rules(0).value)
+      cfg.reportTests(0).rules(0).attrId must beEqualTo(
+        cfg2.reportTests(0).rules(0).attrId)
+      cfg.reportTests(0).rules(0).value must beEqualTo(
+        cfg2.reportTests(0).rules(0).value)
     }
   }
 }

@@ -3,12 +3,18 @@ import java.util.UUID
 import java.sql
 
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobModels
+}
 import com.pacbio.secondary.smrtlink.actors.SmrtLinkTestDalProvider
 import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
-import com.pacificbiosciences.pacbiobasedatamodel.{SupportedAcquisitionStates, SupportedRunStates}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedAcquisitionStates,
+  SupportedRunStates
+}
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import slick.driver.PostgresDriver
@@ -19,7 +25,6 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
 
 /**
   * This is a sanity test for the insertion and querying of the data from the
@@ -35,7 +40,12 @@ import scala.concurrent.duration._
   * entity (often by uuid) that has been inserted into the db.
   *
   */
-class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConversions with SmrtLinkTestDalProvider with TestUtils{
+class DatabaseSpec
+    extends Specification
+    with Specs2RouteTest
+    with NoTimeConversions
+    with SmrtLinkTestDalProvider
+    with TestUtils {
   import PacBioDateTimeFormat.TIME_ZONE
   import JobModels._
   import TableModels._
@@ -72,21 +82,27 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         Some("jsnow"),
         Some("jsnow@email.com"),
         Some("0.1.0-SL"),
-        projectId = -1)
-      val event = JobEvent(UUID.randomUUID(), jobId = -1, AnalysisJobStates.CREATED, "job-created", createdAt = now)
+        projectId = -1
+      )
+      val event = JobEvent(UUID.randomUUID(),
+                           jobId = -1,
+                           AnalysisJobStates.CREATED,
+                           "job-created",
+                           createdAt = now)
       val tag = (-1, "tag-name")
       val jTag = (-1, -1)
-      val project = Project(
-        id = -1,
-        projectName,
-        "project-description",
-        ProjectState.CREATED,
-        createdAt = now,
-        updatedAt = now,
-        isActive = true,
-        grantRoleToAll = Some(ProjectUserRole.CAN_EDIT))
-      val projectUser = ProjectUser(projectId = -1, username, ProjectUserRole.OWNER)
-      val dataset = EngineJobEntryPoint(jobId = -1, UUID.randomUUID(), datasetTypeId)
+      val project = Project(id = -1,
+                            projectName,
+                            "project-description",
+                            ProjectState.CREATED,
+                            createdAt = now,
+                            updatedAt = now,
+                            isActive = true,
+                            grantRoleToAll = Some(ProjectUserRole.CAN_EDIT))
+      val projectUser =
+        ProjectUser(projectId = -1, username, ProjectUserRole.OWNER)
+      val dataset =
+        EngineJobEntryPoint(jobId = -1, UUID.randomUUID(), datasetTypeId)
       val metadata = DataSetMetaDataSet(
         id = -1,
         UUID.randomUUID(),
@@ -104,7 +120,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         jobId = -1,
         projectId = -1,
         isActive = true,
-        parentUuid = None)
+        parentUuid = None
+      )
       val subread = SubreadServiceSet(
         id = -1,
         UUID.randomUUID(),
@@ -118,7 +135,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "instrument-name",
         "run-name",
         "instrument-control-version",
-        Some("dna-barcode-name"))
+        Some("dna-barcode-name")
+      )
       val hdf = HdfSubreadServiceSet(
         id = -1,
         UUID.randomUUID(),
@@ -131,9 +149,14 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         "instrument-id",
         "instrument-name",
         "run-name",
-        "instrument-control-version")
-      val reference = ReferenceServiceSet(id = -1, UUID.randomUUID(), "ploidy", "organism")
-      val gmap = GmapReferenceServiceSet(id = -1, UUID.randomUUID(), "ploidy", "organism")
+        "instrument-control-version"
+      )
+      val reference =
+        ReferenceServiceSet(id = -1, UUID.randomUUID(), "ploidy", "organism")
+      val gmap = GmapReferenceServiceSet(id = -1,
+                                         UUID.randomUUID(),
+                                         "ploidy",
+                                         "organism")
       val alignment = AlignmentServiceSet(id = -1, UUID.randomUUID())
       val barcode = BarcodeServiceSet(id = -1, UUID.randomUUID())
       val ccs = ConsensusReadServiceSet(id = -1, UUID.randomUUID())
@@ -151,7 +174,8 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         jobId = -1,
         job.uuid,
         "name",
-        "description")
+        "description"
+      )
       val runSummary = RunSummary(
         UUID.randomUUID(),
         "run-name",
@@ -172,8 +196,10 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         Some("chemistry-version"),
         Some("context"),
         Some("termination-info"),
-        reserved = false)
-      val runDataModel = DataModelAndUniqueId("<run>data</run>", runSummary.uniqueId)
+        reserved = false
+      )
+      val runDataModel =
+        DataModelAndUniqueId("<run>data</run>", runSummary.uniqueId)
       val collection = CollectionMetadata(
         runSummary.uniqueId,
         UUID.randomUUID(),
@@ -189,33 +215,36 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
         Some(username),
         startedAt = Some(now),
         completedAt = Some(now),
-        Some("termination-info"))
-      val sample = Sample("details", UUID.randomUUID(), "name", username, createdAt = now)
+        Some("termination-info")
+      )
+      val sample =
+        Sample("details", UUID.randomUUID(), "name", username, createdAt = now)
 
       // TODO(smcclellan): JobResults table does not appear to be real?
 
       val putAll = testdb.run(
         for {
           pid <- projects returning projects.map(_.id) += project
-          _   <- projectsUsers += projectUser.copy(projectId = pid)
-          jid <- engineJobs returning engineJobs.map(_.id) += job.copy(projectId = pid)
-          _   <- jobEvents += event.copy(jobId = jid)
-          _   <- engineJobsDataSets += dataset.copy(jobId = jid)
-          _   <- dsMetaData2 += metadata.copy(jobId = jid, projectId = pid)
-          _   <- dsSubread2 += subread
-          _   <- dsHdfSubread2 += hdf
-          _   <- dsReference2 += reference
-          _   <- dsGmapReference2 += gmap
-          _   <- dsAlignment2 += alignment
-          _   <- dsBarcode2 += barcode
-          _   <- dsCCSread2 += ccs
-          _   <- dsCCSAlignment2 += consensus
-          _   <- dsContig2 += contig
-          _   <- datastoreServiceFiles += datastoreFile.copy(jobId = jid)
-          _   <- runSummaries += runSummary
-          _   <- dataModels += runDataModel
-          _   <- collectionMetadata += collection
-          _   <- samples += sample
+          _ <- projectsUsers += projectUser.copy(projectId = pid)
+          jid <- engineJobs returning engineJobs.map(_.id) += job.copy(
+            projectId = pid)
+          _ <- jobEvents += event.copy(jobId = jid)
+          _ <- engineJobsDataSets += dataset.copy(jobId = jid)
+          _ <- dsMetaData2 += metadata.copy(jobId = jid, projectId = pid)
+          _ <- dsSubread2 += subread
+          _ <- dsHdfSubread2 += hdf
+          _ <- dsReference2 += reference
+          _ <- dsGmapReference2 += gmap
+          _ <- dsAlignment2 += alignment
+          _ <- dsBarcode2 += barcode
+          _ <- dsCCSread2 += ccs
+          _ <- dsCCSAlignment2 += consensus
+          _ <- dsContig2 += contig
+          _ <- datastoreServiceFiles += datastoreFile.copy(jobId = jid)
+          _ <- runSummaries += runSummary
+          _ <- dataModels += runDataModel
+          _ <- collectionMetadata += collection
+          _ <- samples += sample
         } yield ()
       )
 
@@ -227,29 +256,83 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       //[error] slick.jdbc.Invoker$class.first(Invoker.scala:34)
       //[error] slick.jdbc.StatementInvoker.first(StatementInvoker.scala:16)
 
-      val ej = Await.result(testdb.run(engineJobs.filter(_.uuid === job.uuid).result.head), 1.second)
-      val je = Await.result(testdb.run(jobEvents.filter(_.jobId === ej.id).result.head), 1.second)
-      val gp = Await.result(testdb.run(projects.filter(_.name === "General Project").result.head), 1.second)
+      val ej = Await.result(
+        testdb.run(engineJobs.filter(_.uuid === job.uuid).result.head),
+        1.second)
+      val je = Await.result(
+        testdb.run(jobEvents.filter(_.jobId === ej.id).result.head),
+        1.second)
+      val gp = Await.result(
+        testdb.run(projects.filter(_.name === "General Project").result.head),
+        1.second)
       // Get the Project that this spec imported
-      val pr = Await.result(testdb.run(projects.filter(_.name === projectName).result.head), 1.second)
+      val pr = Await.result(
+        testdb.run(projects.filter(_.name === projectName).result.head),
+        1.second)
       val pu = Await.result(testdb.run(projectsUsers.result.head), 1.second)
-      val rt = Await.result(testdb.run(datasetMetaTypes.filter(_.shortName === "references").result.head), 1.second)
-      val ds = Await.result(testdb.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head), 1.second)
-      val md = Await.result(testdb.run(dsMetaData2.filter(_.jobId === ej.id).filter(_.projectId === pr.id).result.head), 1.second)
-      val su = Await.result(testdb.run(dsSubread2.filter(_.uuid === subread.uuid).result.head), 1.second)
-      val hd = Await.result(testdb.run(dsHdfSubread2.filter(_.uuid === hdf.uuid).result.head), 1.second)
-      val re = Await.result(testdb.run(dsReference2.filter(_.uuid === reference.uuid).result.head), 1.second)
-      val gm = Await.result(testdb.run(dsGmapReference2.filter(_.uuid === gmap.uuid).result.head), 1.second)
-      val al = Await.result(testdb.run(dsAlignment2.filter(_.uuid === alignment.uuid).result.head), 1.second)
-      val ba = Await.result(testdb.run(dsBarcode2.filter(_.uuid === barcode.uuid).result.head), 1.second)
-      val cc = Await.result(testdb.run(dsCCSread2.filter(_.uuid === ccs.uuid).result.head), 1.second)
-      val ca = Await.result(testdb.run(dsCCSAlignment2.filter(_.uuid === consensus.uuid).result.head), 1.second)
-      val co = Await.result(testdb.run(dsContig2.filter(_.uuid === contig.uuid).result.head), 1.second)
-      val df = Await.result(testdb.run(datastoreServiceFiles.filter(_.jobId === ej.id).result.head), 1.second)
-      val rs = Await.result(testdb.run(runSummaries.filter(_.uniqueId === runSummary.uniqueId).result.head), 1.second)
-      val dm = Await.result(testdb.run(dataModels.filter(_.uniqueId === runDataModel.uniqueId).result.head), 1.second)
-      val cm = Await.result(testdb.run(collectionMetadata.filter(_.uniqueId === collection.uniqueId).result.head), 1.second)
-      val sa = Await.result(testdb.run(samples.filter(_.uniqueId === sample.uniqueId).result.head), 1.second)
+      val rt = Await.result(
+        testdb.run(
+          datasetMetaTypes.filter(_.shortName === "references").result.head),
+        1.second)
+      val ds = Await.result(
+        testdb.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head),
+        1.second)
+      val md = Await.result(testdb.run(
+                              dsMetaData2
+                                .filter(_.jobId === ej.id)
+                                .filter(_.projectId === pr.id)
+                                .result
+                                .head),
+                            1.second)
+      val su = Await.result(
+        testdb.run(dsSubread2.filter(_.uuid === subread.uuid).result.head),
+        1.second)
+      val hd = Await.result(
+        testdb.run(dsHdfSubread2.filter(_.uuid === hdf.uuid).result.head),
+        1.second)
+      val re = Await.result(
+        testdb.run(dsReference2.filter(_.uuid === reference.uuid).result.head),
+        1.second)
+      val gm = Await.result(
+        testdb.run(dsGmapReference2.filter(_.uuid === gmap.uuid).result.head),
+        1.second)
+      val al = Await.result(
+        testdb.run(dsAlignment2.filter(_.uuid === alignment.uuid).result.head),
+        1.second)
+      val ba = Await.result(
+        testdb.run(dsBarcode2.filter(_.uuid === barcode.uuid).result.head),
+        1.second)
+      val cc = Await.result(
+        testdb.run(dsCCSread2.filter(_.uuid === ccs.uuid).result.head),
+        1.second)
+      val ca = Await.result(
+        testdb.run(
+          dsCCSAlignment2.filter(_.uuid === consensus.uuid).result.head),
+        1.second)
+      val co = Await.result(
+        testdb.run(dsContig2.filter(_.uuid === contig.uuid).result.head),
+        1.second)
+      val df = Await.result(
+        testdb.run(
+          datastoreServiceFiles.filter(_.jobId === ej.id).result.head),
+        1.second)
+      val rs = Await.result(
+        testdb.run(
+          runSummaries.filter(_.uniqueId === runSummary.uniqueId).result.head),
+        1.second)
+      val dm = Await.result(
+        testdb.run(
+          dataModels.filter(_.uniqueId === runDataModel.uniqueId).result.head),
+        1.second)
+      val cm = Await.result(testdb.run(
+                              collectionMetadata
+                                .filter(_.uniqueId === collection.uniqueId)
+                                .result
+                                .head),
+                            1.second)
+      val sa = Await.result(
+        testdb.run(samples.filter(_.uniqueId === sample.uniqueId).result.head),
+        1.second)
 
       val jobId = ej.id
       val projectId = pr.id
@@ -271,7 +354,9 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
       //pu === projectUser.copy(projectId = projectId)
       rt.id === "PacBio.DataSet.ReferenceSet"
       ds === dataset.copy(jobId = jobId)
-      md === metadata.copy(id = metadataId, jobId = jobId, projectId = projectId)
+      md === metadata.copy(id = metadataId,
+                           jobId = jobId,
+                           projectId = projectId)
       su === subread.copy(id = subreadId)
       hd === hdf.copy(id = hdfId)
       re === reference.copy(id = referenceId)
@@ -294,16 +379,17 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
 
       val modelTableNames = TableModels.allTables.map(tq =>
         tq.baseTableRow.tableName.toLowerCase())
-      val dbTableNames = dbTables.map(t =>
-        t.name.name.toLowerCase())
+      val dbTableNames = dbTables.map(t => t.name.name.toLowerCase())
 
       // the DB must contain at least the tables in TableModels.allTables,
       // but the DB can also contain additional tables (e.g., flyway table)
       dbTableNames must contain(allOf(modelTableNames.toSeq: _*))
 
-      val dbTableMap = dbTables.map(
-        t => (t.name.name.toLowerCase(), t)
-      ).toMap
+      val dbTableMap = dbTables
+        .map(
+          t => (t.name.name.toLowerCase(), t)
+        )
+        .toMap
 
       TableModels.allTables.map(tq => {
         val modelTable = tq.baseTableRow
@@ -316,11 +402,15 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
           case Some(dbTable) => {
 
             // compare columns
-            val dbCols = Await.result(testdb.run(dbTable.getColumns), Duration.Inf)
+            val dbCols =
+              Await.result(testdb.run(dbTable.getColumns), Duration.Inf)
 
-            val dbColInfo = dbCols.map(
-              col => (col.name.toLowerCase(), col.sqlType, col.nullable)
-            ).toSeq.sorted
+            val dbColInfo = dbCols
+              .map(
+                col => (col.name.toLowerCase(), col.sqlType, col.nullable)
+              )
+              .toSeq
+              .sorted
 
             def mapType(st: Int): Int = {
               st match {
@@ -330,19 +420,27 @@ class DatabaseSpec extends Specification with Specs2RouteTest with NoTimeConvers
               }
             }
 
-            val modelColInfo = modelTable.create_*.map(
-              col => PostgresDriver.JdbcType.unapply(col.tpe) match {
-                case Some((jt, isOption)) => (col.name.toLowerCase(), mapType(jt.sqlType), Option(isOption))
-              }
-            ).toSeq.sorted
+            val modelColInfo = modelTable.create_*
+              .map(
+                col =>
+                  PostgresDriver.JdbcType.unapply(col.tpe) match {
+                    case Some((jt, isOption)) =>
+                      (col.name.toLowerCase(),
+                       mapType(jt.sqlType),
+                       Option(isOption))
+                }
+              )
+              .toSeq
+              .sorted
 
             dbColInfo === modelColInfo
 
             // compare index names
-            val dbIndexInfo = Await.result(testdb.run(dbTable.getIndexInfo()), Duration.Inf)
+            val dbIndexInfo =
+              Await.result(testdb.run(dbTable.getIndexInfo()), Duration.Inf)
             // TODO handle multi-column indexes
             val dbIndexes = dbIndexInfo.map(
-              i => (i.indexName.map(_.toLowerCase()), ! i.nonUnique)
+              i => (i.indexName.map(_.toLowerCase()), !i.nonUnique)
             )
 
             val modelIndexes = modelTable.indexes.map(

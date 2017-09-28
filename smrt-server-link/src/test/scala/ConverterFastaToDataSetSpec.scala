@@ -11,23 +11,27 @@ import com.pacbio.secondary.smrtlink.analysis.converters.FastaToReferenceConvert
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter,AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  NullJobResultsWriter,
+  AnalysisJobStates
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ConvertImportFastaOptions
 
-
 /**
- * Tests for converting a Fasta to reference DataSet. This has dependencies on both sawriter and samtools.
- *
- * The tests will be skipped if the exe's are not in the path
- *
- * Created by mkocher on 5/1/15.
- */
+  * Tests for converting a Fasta to reference DataSet. This has dependencies on both sawriter and samtools.
+  *
+  * The tests will be skipped if the exe's are not in the path
+  *
+  * Created by mkocher on 5/1/15.
+  */
 class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
 
   // This is for testing
   val HAVE_NGMLR = CallNgmlrIndex.isAvailable()
   val HAVE_SAWRITER = CallSaWriterIndex.isAvailable()
-  args(skipAll = !(CallSaWriterIndex.isAvailable() && CallNgmlrIndex.isAvailable()))
+  args(
+    skipAll =
+      !(CallSaWriterIndex.isAvailable() && CallNgmlrIndex.isAvailable()))
 
   private def runFastaToReference(referenceName: String) = {
     val name = "example_01.fasta"
@@ -42,8 +46,11 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
     val referenceName = "Dragon"
     val ploidy = Option("Haploid")
     val organism = Option("Lambda")
-    FastaToReferenceConverter(referenceName, organism, ploidy,
-                              tmpFasta, outputDir).right.get
+    FastaToReferenceConverter(referenceName,
+                              organism,
+                              ploidy,
+                              tmpFasta,
+                              outputDir).right.get
   }
 
   "Convert Fasta to Reference Dataset XML" should {
@@ -61,7 +68,10 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
     val name = "example_01.fasta"
     val writer = new NullJobResultsWriter
     val path = Paths.get(getClass.getResource(name).toURI)
-    val opts = ConvertImportFastaOptions(path.toString, referenceName, "Haploid", "Lambda")
+    val opts = ConvertImportFastaOptions(path.toString,
+                                         referenceName,
+                                         "Haploid",
+                                         "Lambda")
     val outputDir = Files.createTempDirectory("fasta-job-test")
     val job = JobResource(UUID.randomUUID, outputDir)
     println(s"Merge job output dir is ${outputDir.toString}")
@@ -75,14 +85,18 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
       val jobResult = runConvertJob("Dragon")
       jobResult.isRight must beTrue
       val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val rs = datastore.files.filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId).head
+      val rs = datastore.files
+        .filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId)
+        .head
       Paths.get(rs.path).toFile.exists must beTrue
     }
     "Hyphen in name" in {
       val jobResult = runConvertJob("aaa-bbb_ccc_123456")
       jobResult.isRight must beTrue
       val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val rs = datastore.files.filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId).head
+      val rs = datastore.files
+        .filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId)
+        .head
       Paths.get(rs.path).toFile.exists must beTrue
     }
   }

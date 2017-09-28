@@ -1,4 +1,3 @@
-
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
@@ -10,7 +9,6 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.models.Converters
-
 
 class DataSetConvertersSpec extends Specification with LazyLogging {
 
@@ -41,7 +39,8 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.parentUuid === None
     }
     "SubreadSet with no biological samples" in {
-      val sds = convertSubreads("/dataset-subreads/m54008_160215_180009.subreadset.xml")
+      val sds = convertSubreads(
+        "/dataset-subreads/m54008_160215_180009.subreadset.xml")
       sds.bioSampleName === Converters.UNKNOWN
       sds.wellSampleName === "dry_D01"
       sds.dnaBarcodeName === None
@@ -52,10 +51,12 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.wellSampleName === "Alice_Sample_1"
       sds.dnaBarcodeName === Some("F1--R1")
       sds.runName === "Alice_Bob"
-      sds.parentUuid === Some(UUID.fromString("9c0ffb83-f702-400d-817a-921d8a4c9117"))
+      sds.parentUuid === Some(
+        UUID.fromString("9c0ffb83-f702-400d-817a-921d8a4c9117"))
     }
     "SubreadSet with multiple samples" in {
-      val sds = convertSubreads("/dataset-subreads/multi_sample.subreadset.xml")
+      val sds =
+        convertSubreads("/dataset-subreads/multi_sample.subreadset.xml")
       sds.bioSampleName === "[multiple]"
       sds.wellSampleName === "Alice_Bob_Pooled"
       sds.dnaBarcodeName === Some("[multiple]")
@@ -70,7 +71,8 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.parentUuid === None
     }
     "SubreadSet with no collection metadata" in {
-      val sds = convertSubreads("/dataset-subreads/no_collections.subreadset.xml")
+      val sds =
+        convertSubreads("/dataset-subreads/no_collections.subreadset.xml")
       sds.bioSampleName === Converters.UNKNOWN
       sds.wellSampleName === Converters.UNKNOWN
       sds.dnaBarcodeName === None
@@ -92,16 +94,22 @@ class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
 
   "Convert PacBioTestData datasets" should {
     "Convert all SubreadSets" in {
-      PacBioTestData().getFilesByType(FileTypes.DS_SUBREADS).map { p =>
-        val ds = DataSetLoader.loadSubreadSet(p)
-        val sds = Converters.convert(ds, p, None, 1, 1)
-      }.size must beGreaterThan(0)
+      PacBioTestData()
+        .getFilesByType(FileTypes.DS_SUBREADS)
+        .map { p =>
+          val ds = DataSetLoader.loadSubreadSet(p)
+          val sds = Converters.convert(ds, p, None, 1, 1)
+        }
+        .size must beGreaterThan(0)
     }
     "Convert all HdfSubreadSets" in {
-      PacBioTestData().getFilesByType(FileTypes.DS_HDF_SUBREADS).map { p =>
-        val ds = DataSetLoader.loadHdfSubreadSet(p)
-        val sds = Converters.convert(ds, p, None, 1, 1)
-      }.size must beGreaterThan(0)
+      PacBioTestData()
+        .getFilesByType(FileTypes.DS_HDF_SUBREADS)
+        .map { p =>
+          val ds = DataSetLoader.loadHdfSubreadSet(p)
+          val sds = Converters.convert(ds, p, None, 1, 1)
+        }
+        .size must beGreaterThan(0)
     }
   }
 }

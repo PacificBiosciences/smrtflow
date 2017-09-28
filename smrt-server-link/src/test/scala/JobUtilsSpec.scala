@@ -1,5 +1,4 @@
-
-import java.nio.file.{Files,Path,Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import scala.collection.JavaConversions._
@@ -14,8 +13,12 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobModels, JobImportUtils, ExportJob}
-
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobModels,
+  JobImportUtils,
+  ExportJob
+}
 
 trait MockJobExport {
   import JobModels._
@@ -28,20 +31,54 @@ trait MockJobExport {
     logDirPath.toFile.mkdir
     val logPath = logDirPath.resolve("master.log")
     FileUtils.writeStringToFile(logPath.toFile, "Hello world!", "UTF-8")
-    EngineJob(1, UUID.randomUUID(), "My job", "Test job",
-      JodaDateTime.now(), JodaDateTime.now(), AnalysisJobStates.SUCCESSFUL,
-      "pbsmrtpipe", jobPath.toString, "{}", Some("smrtlinktest"), None,
-      Some("4.0.0"), projectId = 10)
+    EngineJob(
+      1,
+      UUID.randomUUID(),
+      "My job",
+      "Test job",
+      JodaDateTime.now(),
+      JodaDateTime.now(),
+      AnalysisJobStates.SUCCESSFUL,
+      "pbsmrtpipe",
+      jobPath.toString,
+      "{}",
+      Some("smrtlinktest"),
+      None,
+      Some("4.0.0"),
+      projectId = 10
+    )
   }
 
   protected def setupFakeDataStore(job: EngineJob): PacBioDataStore = {
     val dsf = Seq(
-      DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.LOG.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), Paths.get(job.path).resolve("logs/master.log").toString, false, "Log file", "Log file"),
-      DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.FASTA.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), Paths.get(job.path).resolve("contigs.fasta").toString, false, "FASTA file", "FASTA file"))
+      DataStoreFile(
+        UUID.randomUUID(),
+        "pbcommand.tasks.dev_mixed_app",
+        FileTypes.LOG.fileTypeId,
+        1000,
+        JodaDateTime.now(),
+        JodaDateTime.now(),
+        Paths.get(job.path).resolve("logs/master.log").toString,
+        false,
+        "Log file",
+        "Log file"
+      ),
+      DataStoreFile(
+        UUID.randomUUID(),
+        "pbcommand.tasks.dev_mixed_app",
+        FileTypes.FASTA.fileTypeId,
+        1000,
+        JodaDateTime.now(),
+        JodaDateTime.now(),
+        Paths.get(job.path).resolve("contigs.fasta").toString,
+        false,
+        "FASTA file",
+        "FASTA file"
+      )
+    )
     PacBioDataStore(JodaDateTime.now(), JodaDateTime.now(), "1.0", dsf)
   }
 }
-
 
 class JobUtilsSpec
     extends Specification
@@ -51,7 +88,8 @@ class JobUtilsSpec
 
   import JobModels._
 
-  val REF_PATH = "/dataset-references/example_reference_dataset/reference.dataset.xml"
+  val REF_PATH =
+    "/dataset-references/example_reference_dataset/reference.dataset.xml"
   val SEQ_PATH = "/dataset-references/example_reference_dataset/sequence"
 
   private def setupDataSet(job: EngineJob): DataStoreFile = {
@@ -61,9 +99,19 @@ class JobUtilsSpec
     val seqData = Paths.get(getClass.getResource(SEQ_PATH).getPath).toFile
     val seqPath = Paths.get(job.path).resolve("sequence")
     FileUtils.copyDirectory(seqData, seqPath.toFile)
-    DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.DS_REFERENCE.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), refPath.toString, false, "ReferenceSet XML", "ReferenceSet XML")
+    DataStoreFile(
+      UUID.randomUUID(),
+      "pbcommand.tasks.dev_mixed_app",
+      FileTypes.DS_REFERENCE.fileTypeId,
+      1000,
+      JodaDateTime.now(),
+      JodaDateTime.now(),
+      refPath.toString,
+      false,
+      "ReferenceSet XML",
+      "ReferenceSet XML"
+    )
   }
-
 
   "JobExporter" should {
     "Export minimal fake job directory" in {
@@ -78,7 +126,9 @@ class JobUtilsSpec
       val workflowDir = Paths.get(job.path).resolve("workflow")
       workflowDir.toFile.mkdir
       val dsFile = workflowDir.resolve("datastore.json")
-      FileUtils.writeStringToFile(dsFile.toFile, ds.toJson.prettyPrint, "UTF-8")
+      FileUtils.writeStringToFile(dsFile.toFile,
+                                  ds.toJson.prettyPrint,
+                                  "UTF-8")
       val zipPath = Files.createTempFile("job", ".zip")
       val result = ExportJob(job, zipPath)
       result.toOption.get.nBytes must beGreaterThan(0L)
@@ -100,7 +150,7 @@ class JobUtilsSpec
       result.toOption.get.nBytes must beGreaterThan(0L)
     }
     "Combined with datastore and dataset XML, unzipped and validated" in {
-            val job = setupFakeJob
+      val job = setupFakeJob
       val rs = setupDataSet(job)
       val ds = setupFakeDataStore(job)
       val workflowDir = Paths.get(job.path).resolve("workflow")
@@ -123,8 +173,10 @@ class JobUtilsSpec
       val epsUnzip = manifest.entryPoints
       epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
       val ds2Path = unzipPath.resolve("workflow/datastore.json")
-      val ds2 = FileUtils.readFileToString(ds2Path.toFile, "UTF-8")
-                         .parseJson.convertTo[PacBioDataStore]
+      val ds2 = FileUtils
+        .readFileToString(ds2Path.toFile, "UTF-8")
+        .parseJson
+        .convertTo[PacBioDataStore]
       ds2.files.foreach { f =>
         val p = Paths.get(f.path)
         p.isAbsolute === true
@@ -133,22 +185,24 @@ class JobUtilsSpec
       val ref2Path = unzipPath.resolve("example.referenceset.xml")
       val ref2 = DataSetLoader.loadReferenceSet(ref2Path)
       DataSetValidator.validate(ref2, unzipPath)
-      val resPaths2 = ref2.getExternalResources.getExternalResource.map(_.getResourceId)
+      val resPaths2 =
+        ref2.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths2.forall(Paths.get(_).isAbsolute) must beFalse
       // now absolutize paths and make sure they exist
       val ref3 = DataSetLoader.loadAndResolveReferenceSet(ref2Path)
-      val resPaths3 = ref3.getExternalResources.getExternalResource.map(_.getResourceId)
+      val resPaths3 =
+        ref3.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths3.forall(Paths.get(_).toFile.exists) === true
       // and now the entry point dataset
       val ref4Path = unzipPath.resolve(epsUnzip(0).path)
       val ref4 = DataSetLoader.loadAndResolveReferenceSet(ref4Path)
-      val resPaths4 = ref4.getExternalResources.getExternalResource.map(_.getResourceId)
+      val resPaths4 =
+        ref4.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths4.forall(Paths.get(_).toFile.exists) === true
     }
   }
   // TODO standalone expandJob test
 }
-
 
 class JobUtilsAdvancedSpec
     extends Specification
@@ -169,10 +223,34 @@ class JobUtilsAdvancedSpec
       val fakeTaskDir = tasksDir.resolve("pbcommand.tasks.dev_mixed_app")
       fakeTaskDir.toFile.mkdirs
       val ds = setupFakeDataStore(job)
-      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads(Some(fakeTaskDir))
+      val (subreads, barcodes) =
+        MockDataSetUtils.makeBarcodedSubreads(Some(fakeTaskDir))
       val files2 = Seq(
-        DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.DS_BARCODE.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), barcodes.toString, false, "BarcodeSet XML", "BarcodeSet XML"),
-        DataStoreFile(UUID.randomUUID(), "pbcommand.tasks.dev_mixed_app", FileTypes.DS_SUBREADS.fileTypeId, 1000, JodaDateTime.now(), JodaDateTime.now(), subreads.toString, false, "SubreadSet XML", "SubreadSet XML"))
+        DataStoreFile(
+          UUID.randomUUID(),
+          "pbcommand.tasks.dev_mixed_app",
+          FileTypes.DS_BARCODE.fileTypeId,
+          1000,
+          JodaDateTime.now(),
+          JodaDateTime.now(),
+          barcodes.toString,
+          false,
+          "BarcodeSet XML",
+          "BarcodeSet XML"
+        ),
+        DataStoreFile(
+          UUID.randomUUID(),
+          "pbcommand.tasks.dev_mixed_app",
+          FileTypes.DS_SUBREADS.fileTypeId,
+          1000,
+          JodaDateTime.now(),
+          JodaDateTime.now(),
+          subreads.toString,
+          false,
+          "SubreadSet XML",
+          "SubreadSet XML"
+        )
+      )
       val workflowDir = Paths.get(job.path).resolve("workflow")
       workflowDir.toFile.mkdir
       val dsFile = workflowDir.resolve("datastore.json")
@@ -193,10 +271,13 @@ class JobUtilsAdvancedSpec
       val epsUnzip = manifest.entryPoints
       epsUnzip.size === 1
       epsUnzip.forall(e => unzipPath.resolve(e.path).toFile.exists) === true
-      val subreads2Path = unzipPath.resolve("tasks/pbcommand.tasks.dev_mixed_app/SubreadSet").resolve(FilenameUtils.getName(subreads.toString))
+      val subreads2Path = unzipPath
+        .resolve("tasks/pbcommand.tasks.dev_mixed_app/SubreadSet")
+        .resolve(FilenameUtils.getName(subreads.toString))
       val subreads2 = DataSetLoader.loadAndResolveSubreadSet(subreads2Path)
       DataSetValidator.validate(subreads2, unzipPath)
-      val resPaths2 = subreads2.getExternalResources.getExternalResource.map(_.getResourceId)
+      val resPaths2 =
+        subreads2.getExternalResources.getExternalResource.map(_.getResourceId)
       resPaths2.forall(Paths.get(_).toFile.exists) === true
     }
   }

@@ -1,4 +1,3 @@
-
 import java.nio.file.{Files, Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
@@ -13,9 +12,8 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 }
 //import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
-
 class DataSetUtilsSpec
-    extends Specification 
+    extends Specification
     with DataSetMetadataUtils
     with LazyLogging {
 
@@ -60,7 +58,8 @@ class DataSetUtilsSpec
       ds = getSubreads("/dataset-subreads/pooled_sample.subreadset.xml")
       getBioSampleNames(ds) must beEqualTo(Seq("Alice"))
       canEditBioSampleName(ds) must beTrue
-      setBioSampleName(ds, "foo").toOption === Some("Set 2 BioSample tag name(s) to foo")
+      setBioSampleName(ds, "foo").toOption === Some(
+        "Set 2 BioSample tag name(s) to foo")
     }
     "Get and set well sample names" in {
       val updateMsg = Some("Set 1 WellSample tag name(s) to foo")
@@ -70,10 +69,12 @@ class DataSetUtilsSpec
       setWellSampleName(ds, "foo").toOption === updateMsg
       getWellSampleNames(ds) must beEqualTo(Seq("foo"))
       ds = getSubreads("/dataset-subreads/merged.dataset.xml")
-      getWellSampleNames(ds) must beEqualTo(Seq("Alice_Sample_1", "Bob Sample 1"))
+      getWellSampleNames(ds) must beEqualTo(
+        Seq("Alice_Sample_1", "Bob Sample 1"))
       canEditWellSampleName(ds) must beFalse
       setWellSampleName(ds, "foo").toOption must beNone
-      getWellSampleNames(ds) must beEqualTo(Seq("Alice_Sample_1", "Bob Sample 1"))
+      getWellSampleNames(ds) must beEqualTo(
+        Seq("Alice_Sample_1", "Bob Sample 1"))
       ds = getSubreads("/dataset-subreads/multi_sample.subreadset.xml")
       getWellSampleNames(ds) must beEqualTo(Seq("Alice_Bob_Pooled"))
       canEditWellSampleName(ds) must beTrue
@@ -86,7 +87,8 @@ class DataSetUtilsSpec
       ds = getSubreads("/dataset-subreads/pooled_sample.subreadset.xml")
       getWellSampleNames(ds) must beEqualTo(Seq("Alice Sample 1"))
       canEditWellSampleName(ds) must beTrue
-      setWellSampleName(ds, "foo").toOption === Some("Set 2 WellSample tag name(s) to foo")
+      setWellSampleName(ds, "foo").toOption === Some(
+        "Set 2 WellSample tag name(s) to foo")
     }
     "Get DNA Barcode names" in {
       var ds = getSubreads("/dataset-subreads/example_01.xml")
@@ -111,29 +113,51 @@ class DataSetUtilsSpec
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       DataSetUpdateUtils.testApplyEdits(dsFile, Some("foo"), Some("bar")) must beNone
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) must beNone
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile,
+                                         tmpFile,
+                                         Some("foo"),
+                                         Some("bar"),
+                                         resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getBioSampleNames(ds) must beEqualTo(Seq("foo"))
       getWellSampleNames(ds) must beEqualTo(Seq("bar"))
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some(UNKNOWN), Some(MULTIPLE_SAMPLES_NAME), resolvePaths = false) must beNone
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile,
+                                         tmpFile,
+                                         Some(UNKNOWN),
+                                         Some(MULTIPLE_SAMPLES_NAME),
+                                         resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       dsFile = getPath("/dataset-subreads/pooled_sample.subreadset.xml")
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) must beNone
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile,
+                                         tmpFile,
+                                         Some("foo"),
+                                         Some("bar"),
+                                         resolvePaths = false) must beNone
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getBioSampleNames(ds) must beEqualTo(Seq("foo"))
       getWellSampleNames(ds) must beEqualTo(Seq("bar"))
       // failure mode
       dsFile = getPath("/dataset-subreads/no_collections.subreadset.xml")
-      val ERR = Some("Error(s) occurred applying metadata updates: no well sample records are present; no well sample records are present")
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) === ERR
+      val ERR = Some(
+        "Error(s) occurred applying metadata updates: no well sample records are present; no well sample records are present")
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile,
+                                         tmpFile,
+                                         Some("foo"),
+                                         Some("bar"),
+                                         resolvePaths = false) === ERR
       DataSetUpdateUtils.testApplyEdits(dsFile, Some("foo"), Some("bar")) === ERR
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq.empty[String])
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
       dsFile = getPath("/dataset-subreads/multi_sample.subreadset.xml")
-      DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, Some("foo"), Some("bar"), resolvePaths = false) === Some("Error(s) occurred applying metadata updates: Multiple unique BioSample names already present")
+      DataSetUpdateUtils.saveUpdatedCopy(dsFile,
+                                         tmpFile,
+                                         Some("foo"),
+                                         Some("bar"),
+                                         resolvePaths = false) === Some(
+        "Error(s) occurred applying metadata updates: Multiple unique BioSample names already present")
     }
   }
 }

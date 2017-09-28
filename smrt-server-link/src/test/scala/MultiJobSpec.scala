@@ -5,7 +5,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.joda.time.{DateTime => JodaDateTime}
 
-
 // Take a test driven development approach here to sketch out the basic idea.
 
 /**
@@ -25,7 +24,7 @@ import org.joda.time.{DateTime => JodaDateTime}
   * - Add Multi-Job case for the barcoding usecase (e.g., Wait for SubreadSets alpha, beta, gamma, then create N analysis/pbsmrtpipe "core" jobs
   *
   */
-object Utils extends LazyLogging{
+object Utils extends LazyLogging {
 
   // Testing data
   val EXAMPLE_PIPELINE_ID = "pbsmrtpipe.pipelines.dev_diagnostic_subreads"
@@ -39,16 +38,19 @@ object Utils extends LazyLogging{
 
   def getTestMultiJob(): MultiEngineJob = {
     val now = JodaDateTime.now()
-    val dsj1 = DataSetJob(DS1_UUID, datasetIsResolved = false, None, None, None)
-    val dsj2 = DataSetJob(DS2_UUID, datasetIsResolved = false, None, None, None)
+    val dsj1 =
+      DataSetJob(DS1_UUID, datasetIsResolved = false, None, None, None)
+    val dsj2 =
+      DataSetJob(DS2_UUID, datasetIsResolved = false, None, None, None)
     val datasetJobs = Seq(dsj1, dsj2)
 
     // The state isn't really correct
-    val workflow = SimpleWorkflow(datasetJobs, EXAMPLE_PIPELINE_ID, AnalysisJobStates.CREATED)
+    val workflow = SimpleWorkflow(datasetJobs,
+                                  EXAMPLE_PIPELINE_ID,
+                                  AnalysisJobStates.CREATED)
 
     MultiEngineJob(MJOB_UUID, now, now, AnalysisJobStates.CREATED, workflow)
   }
-
 
   // This really should be an entry point? Not a dataset UUID?
   case class DataSetJob(dataset: UUID,
@@ -69,8 +71,7 @@ object Utils extends LazyLogging{
   // Runs an analysis job after each dataset is resolved
   case class SimpleWorkflow(datasetJobs: Seq[DataSetJob],
                             pipelineId: String,
-                            state: AnalysisJobStates.JobStates
-                           ) {
+                            state: AnalysisJobStates.JobStates) {
     def summary: String = {
 
       s"""
@@ -114,7 +115,7 @@ object Utils extends LazyLogging{
     }
 
     // Getting a job will return a SUCCESSFUL job
-    override def getJob(uuid: UUID):Option[SimpleEngineJob] = {
+    override def getJob(uuid: UUID): Option[SimpleEngineJob] = {
       val job = SimpleEngineJob(uuid, AnalysisJobStates.SUCCESSFUL)
       println(s"Found successful job $job")
       Some(job)
@@ -132,11 +133,16 @@ object Utils extends LazyLogging{
         dataSetJob.copy(jobId = Some(jobId), jobState = Some(job.state))
       case None =>
         // This is an error. The job was created, by is not found
-        dataSetJob.copy(jobId = Some(jobId), jobState = Some(AnalysisJobStates.FAILED), message = Some(s"Unable to find $jobId"), datasetIsResolved = true)
+        dataSetJob.copy(jobId = Some(jobId),
+                        jobState = Some(AnalysisJobStates.FAILED),
+                        message = Some(s"Unable to find $jobId"),
+                        datasetIsResolved = true)
     }
   }
 
-  def createJob(dao: Dao, dataSetJob: DataSetJob, pipelineId: String): DataSetJob = {
+  def createJob(dao: Dao,
+                dataSetJob: DataSetJob,
+                pipelineId: String): DataSetJob = {
     // create Job
     val j = SimpleEngineJob(UUID.randomUUID(), AnalysisJobStates.CREATED)
     // this should use dsUUID
@@ -145,32 +151,54 @@ object Utils extends LazyLogging{
     dataSetJob.copy(jobId = Some(job.uuid), jobState = Some(job.state))
   }
 
-
-  def runResolveDataSetJob(dao: Dao, dataSetJob: DataSetJob, pipelineId: String): DataSetJob = {
+  def runResolveDataSetJob(dao: Dao,
+                           dataSetJob: DataSetJob,
+                           pipelineId: String): DataSetJob = {
     // Need to add a filter for dataset job that is in a completed state. There's nothing to do here.
-    dao.getDataSet(dataSetJob.dataset).map { dsUUID =>
-      dataSetJob.jobId
-          .map(jobId => resolveJob(dao, jobId, dataSetJob.copy(datasetIsResolved = true, jobId = Some(jobId)))) // need to filter on or set if the dataset was resolved
-          .getOrElse(createJob(dao, dataSetJob.copy(datasetIsResolved = true), pipelineId))
-      }.getOrElse(dataSetJob) // Return the original datasetJob, there's nothing to do
+    dao
+      .getDataSet(dataSetJob.dataset)
+      .map { dsUUID =>
+        dataSetJob.jobId
+          .map(
+            jobId =>
+              resolveJob(dao,
+                         jobId,
+                         dataSetJob.copy(
+                           datasetIsResolved = true,
+                           jobId = Some(jobId)))) // need to filter on or set if the dataset was resolved
+          .getOrElse(createJob(dao,
+                               dataSetJob.copy(datasetIsResolved = true),
+                               pipelineId))
+      }
+      .getOrElse(dataSetJob) // Return the original datasetJob, there's nothing to do
   }
 
   // This needs some more thought
-  def reduceJobStates(s1: AnalysisJobStates.JobStates, s2: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+  def reduceJobStates(
+      s1: AnalysisJobStates.JobStates,
+      s2: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
     (s1, s2) match {
-      case (AnalysisJobStates.CREATED, AnalysisJobStates.CREATED) => AnalysisJobStates.CREATED
-      case (AnalysisJobStates.RUNNING, AnalysisJobStates.RUNNING) => AnalysisJobStates.RUNNING
-      case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUCCESSFUL) => AnalysisJobStates.SUCCESSFUL
-      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUBMITTED) => AnalysisJobStates.SUBMITTED
-      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) => AnalysisJobStates.UNKNOWN // This is unclear what this means
+      case (AnalysisJobStates.CREATED, AnalysisJobStates.CREATED) =>
+        AnalysisJobStates.CREATED
+      case (AnalysisJobStates.RUNNING, AnalysisJobStates.RUNNING) =>
+        AnalysisJobStates.RUNNING
+      case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUCCESSFUL) =>
+        AnalysisJobStates.SUCCESSFUL
+      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUBMITTED) =>
+        AnalysisJobStates.SUBMITTED
+      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) =>
+        AnalysisJobStates.UNKNOWN // This is unclear what this means
       case (AnalysisJobStates.FAILED, _) => AnalysisJobStates.FAILED
       case (_, AnalysisJobStates.FAILED) => AnalysisJobStates.FAILED
-      case (AnalysisJobStates.TERMINATED, _) => AnalysisJobStates.FAILED // The core job failed, mark multi job as failed
+      case (AnalysisJobStates.TERMINATED, _) =>
+        AnalysisJobStates.FAILED // The core job failed, mark multi job as failed
       case (_, AnalysisJobStates.TERMINATED) => AnalysisJobStates.FAILED //
-      case (AnalysisJobStates.RUNNING, _) => AnalysisJobStates.RUNNING  // If any job is running, mark the multi as running
+      case (AnalysisJobStates.RUNNING, _) =>
+        AnalysisJobStates.RUNNING // If any job is running, mark the multi as running
       case (_, AnalysisJobStates.RUNNING) => AnalysisJobStates.RUNNING
       case (_, _) =>
-        logger.info(s"Unclear mapping of multi-job state from $s1 and $s2. Defaulting to ${AnalysisJobStates.UNKNOWN}")
+        logger.info(
+          s"Unclear mapping of multi-job state from $s1 and $s2. Defaulting to ${AnalysisJobStates.UNKNOWN}")
         AnalysisJobStates.UNKNOWN
     }
   }
@@ -192,12 +220,15 @@ object Utils extends LazyLogging{
 
       // Compute the "overall" job state that will be used at the Multi-Job level
       val jobState = updatedDataSetJobs
-          .flatMap(_.jobState)
-          .reduceLeftOption(reduceJobStates)
-          .getOrElse(multiEngineJob.state) // Not sure this is the correct behavior
+        .flatMap(_.jobState)
+        .reduceLeftOption(reduceJobStates)
+        .getOrElse(multiEngineJob.state) // Not sure this is the correct behavior
 
       // Return an updated copy of the Multi-job
-      multiEngineJob.copy(state = jobState, workflow = multiEngineJob.workflow.copy(datasetJobs = updatedDataSetJobs))
+      multiEngineJob.copy(
+        state = jobState,
+        workflow =
+          multiEngineJob.workflow.copy(datasetJobs = updatedDataSetJobs))
     } else {
       // Job is already completed, there's nothing to do here
       multiEngineJob
@@ -205,8 +236,7 @@ object Utils extends LazyLogging{
   }
 }
 
-
-class MultiJobSpec extends Specification{
+class MultiJobSpec extends Specification {
 
   import Utils._
 

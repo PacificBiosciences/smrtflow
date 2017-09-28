@@ -1,12 +1,10 @@
-
 import java.nio.file.{Files, Path, Paths}
 
 import org.specs2.mutable.Specification
 
 import com.pacbio.secondary.smrtlink.analysis.externaltools._
 
-
-class ExternalToolsSpec extends Specification with ExternalToolsUtils{
+class ExternalToolsSpec extends Specification with ExternalToolsUtils {
 
   sequential
 
@@ -19,8 +17,7 @@ class ExternalToolsSpec extends Specification with ExternalToolsUtils{
   }
 }
 
-trait FastaSetupUtils {
-  this: Specification =>
+trait FastaSetupUtils { this: Specification =>
 
   def getFasta(name: String): Path = {
     val path = getClass.getResource(name)

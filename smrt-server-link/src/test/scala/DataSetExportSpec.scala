@@ -1,4 +1,3 @@
-
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.io.File
 import java.util.UUID
@@ -6,12 +5,15 @@ import java.util.UUID
 import scala.util.Try
 import scala.collection.JavaConversions._
 
-import org.apache.commons.io.{FileUtils,FilenameUtils}
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
-import com.pacbio.secondary.smrtlink.analysis.jobs.{NullJobResultsWriter, AnalysisJobStates}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  NullJobResultsWriter,
+  AnalysisJobStates
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
@@ -20,42 +22,37 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
-
 class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
 
-  def toPaths(resource: String, basePath: String, destPath: String,
+  def toPaths(resource: String,
+              basePath: String,
+              destPath: String,
               archiveRoot: Option[String]): (Path, Path) =
-    relativizeResourcePath(Paths.get(resource), Paths.get(basePath),
-                           Paths.get(destPath), archiveRoot.map(Paths.get(_)))
+    relativizeResourcePath(Paths.get(resource),
+                           Paths.get(basePath),
+                           Paths.get(destPath),
+                           archiveRoot.map(Paths.get(_)))
 
   "Base functions" should {
     "Relativize resource paths" in {
       // relative, no archiveRoot
-      val (resource, dest) = toPaths("subreads.bam",
-                                     "/data/movie1",
-                                     "exported",
-                                     None)
+      val (resource, dest) =
+        toPaths("subreads.bam", "/data/movie1", "exported", None)
       resource.toString must beEqualTo("subreads.bam")
       dest.toString must beEqualTo("exported/subreads.bam")
       // relative with subdir, no archiveRoot
-      val (resource1, dest1) = toPaths("mydata/subreads.bam",
-                                       "/data/movie1",
-                                       "exported",
-                                       None)
+      val (resource1, dest1) =
+        toPaths("mydata/subreads.bam", "/data/movie1", "exported", None)
       resource1.toString must beEqualTo("mydata/subreads.bam")
       dest1.toString must beEqualTo("exported/mydata/subreads.bam")
       // relative, archiveRoot defined
-      val (resource2, dest2) = toPaths("subreads.bam",
-                                       "/data/movie1",
-                                       "movie1",
-                                       Some("/data"))
+      val (resource2, dest2) =
+        toPaths("subreads.bam", "/data/movie1", "movie1", Some("/data"))
       resource2.toString must beEqualTo("subreads.bam")
       dest2.toString must beEqualTo("movie1/subreads.bam")
       // absolute, no archiveRoot
-      val (resource3, dest3) = toPaths("/data/barcodes/2.xml",
-                                       "/data/movie1",
-                                       "movie1",
-                                       None)
+      val (resource3, dest3) =
+        toPaths("/data/barcodes/2.xml", "/data/movie1", "movie1", None)
       resource3.toString must beEqualTo("./data/barcodes/2.xml")
       dest3.toString must beEqualTo("movie1/data/barcodes/2.xml")
       // absolute, archiveRoot includes path
@@ -73,10 +70,11 @@ class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
       resource5.toString must beEqualTo("./data2/barcodes/2.xml")
       dest5.toString must beEqualTo("movie1/data2/barcodes/2.xml")
       // absolute, archiveRoot includes path
-      val (resource6, dest6) = toPaths("/data/jobs/1/tasks/task-1/subreads.bam",
-                                       "/data/jobs/1/tasks/gather-1",
-                                       "tasks/gather-1",
-                                       Some("/data/jobs/1"))
+      val (resource6, dest6) =
+        toPaths("/data/jobs/1/tasks/task-1/subreads.bam",
+                "/data/jobs/1/tasks/gather-1",
+                "tasks/gather-1",
+                Some("/data/jobs/1"))
       resource6.toString must beEqualTo("../task-1/subreads.bam")
       dest6.toString must beEqualTo("tasks/task-1/subreads.bam")
       // relative with parent dir, subdir of archiveRoot
@@ -96,10 +94,11 @@ class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
                                        Some("/data/jobs/1/tasks/gather-1"))
       resource8.toString must beEqualTo("../task-1/subreads.bam")
       dest8.toString must beEqualTo("task-1/subreads.bam")
-      */
+     */
     }
     "Get external resources from dataset" in {
-      val REF = "/dataset-references/example_reference_dataset/reference.dataset.xml"
+      val REF =
+        "/dataset-references/example_reference_dataset/reference.dataset.xml"
       val refXml = Paths.get(getClass.getResource(REF).getPath)
       val ds = DataSetLoader.loadAndResolveReferenceSet(refXml)
       val resources = getResources(ds)
@@ -113,7 +112,8 @@ class DataSetExportSpec extends Specification with LazyLogging {
   sequential
 
   val writer = new NullJobResultsWriter
-  val ds = "/dataset-references/example_reference_dataset/reference.dataset.xml"
+  val ds =
+    "/dataset-references/example_reference_dataset/reference.dataset.xml"
 
   "Export Dataset" should {
     "Generate ZIP file from valid ReferenceSet" in {
@@ -145,7 +145,8 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val zipPath = Files.createTempFile("referencesets", ".zip")
       val dsType = DataSetMetaTypes.Reference
       val result = Try {
-        val n = ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath)
+        val n =
+          ExportDataSets(Seq(tmpPath), DataSetMetaTypes.Reference, zipPath)
       }
       result.isSuccess must beFalse
     }
@@ -187,7 +188,8 @@ class DataSetExportSpecAdvanced
     val basename = FilenameUtils.getName(ds.toString)
     val dsUnzip = dest.resolve(s"${uuid}/${basename}")
     val subreads = DataSetLoader.loadSubreadSet(dsUnzip)
-    val resPaths = subreads.getExternalResources.getExternalResource.map(_.getResourceId)
+    val resPaths =
+      subreads.getExternalResources.getExternalResource.map(_.getResourceId)
     resPaths.forall(Paths.get(_).isAbsolute) must beFalse
     val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
     ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
@@ -218,7 +220,8 @@ class DataSetExportSpecAdvanced
     }
     "Export SubreadSet with absolute paths" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+                                                  DataSetMetaTypes.Subread,
                                                   copyFiles = false)
       zipAndUnzip(dsTmp)
     }
@@ -231,21 +234,27 @@ class DataSetExportSpecAdvanced
     }
     "Export SubreadSet with relative paths (with spaces)" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
-                                                  tmpDirBase = "dataset contents")
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+                                                  DataSetMetaTypes.Subread,
+                                                  tmpDirBase =
+                                                    "dataset contents")
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with absolute paths (with spaces)" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+                                                  DataSetMetaTypes.Subread,
                                                   copyFiles = false,
-                                                  tmpDirBase = "dataset contents")
+                                                  tmpDirBase =
+                                                    "dataset contents")
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths converted to absolute (with spaces)" in {
       val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread,
-                                                  tmpDirBase = "dataset contents")
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+                                                  DataSetMetaTypes.Subread,
+                                                  tmpDirBase =
+                                                    "dataset contents")
       val subreadsTmp = DataSetLoader.loadAndResolveSubreadSet(dsTmp)
       DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
       zipAndUnzip(dsTmp)
@@ -284,7 +293,7 @@ class DataSetExportSpecAdvanced
         val subreadsDestDir = new File(tmpDir.toString + "/" + d)
         subreadsDestDir.mkdir
         val prefix = "barcoded"
-        subreadsDir.listFiles.foreach { f=>
+        subreadsDir.listFiles.foreach { f =>
           val filename = FilenameUtils.getName(f.toString)
           if (filename.startsWith(prefix)) {
             val dest = new File(subreadsDestDir.toString + "/" + filename)
@@ -292,10 +301,12 @@ class DataSetExportSpecAdvanced
           }
         }
       }
-      val url = getClass.getResource("/dataset-subreads/gathered_barcoded.subreadset.xml")
+      val url = getClass.getResource(
+        "/dataset-subreads/gathered_barcoded.subreadset.xml")
       val subreadsSrc = Paths.get(url.getPath)
-      val subreadsTmp = Paths.get(tmpDir.toString + "/" +
-                                  FilenameUtils.getName(subreadsSrc.toString))
+      val subreadsTmp = Paths.get(
+        tmpDir.toString + "/" +
+          FilenameUtils.getName(subreadsSrc.toString))
       FileUtils.copyFile(subreadsSrc.toFile, subreadsTmp.toFile)
       val dsSubreads = DataSetLoader.loadAndResolveSubreadSet(subreadsTmp)
       val datasets = Seq(subreadsTmp)

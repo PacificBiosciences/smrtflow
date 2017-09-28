@@ -1,7 +1,10 @@
-
 import java.nio.file.{Paths, Files}
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils,DataSetLoader,DataSetJsonProtocol}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetJsonUtils,
+  DataSetLoader,
+  DataSetJsonProtocol
+}
 import com.pacificbiosciences.pacbiodatasets._
 
 import spray.json._
@@ -9,10 +12,11 @@ import spray.json._
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
-class DataSetJsonSpec extends Specification with LazyLogging{
+class DataSetJsonSpec extends Specification with LazyLogging {
   import DataSetJsonProtocol._
 
-  def getPath(resource: String) = Paths.get(getClass.getResource(resource).getPath)
+  def getPath(resource: String) =
+    Paths.get(getClass.getResource(resource).getPath)
 
   "SubreadSet" should {
     val path = getPath("/dataset-subreads/m54008_160215_180009.subreadset.xml")
@@ -31,7 +35,8 @@ class DataSetJsonSpec extends Specification with LazyLogging{
     }
   }
   "ReferenceSet" should {
-    val path = getPath("/dataset-references/example_reference_dataset/reference.dataset.xml")
+    val path = getPath(
+      "/dataset-references/example_reference_dataset/reference.dataset.xml")
     val d = DataSetLoader.loadReferenceSet(path)
     "Convert to and from JSON" in {
       val j = DataSetJsonUtils.referenceSetToJson(d)
@@ -45,7 +50,8 @@ class DataSetJsonSpec extends Specification with LazyLogging{
     }
   }
   "HdfSubreadSet" should {
-    val path = getPath("/dataset-hdfsubreads/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml")
+    val path = getPath(
+      "/dataset-hdfsubreads/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.hdfsubread.dataset.xml")
     val d = DataSetLoader.loadHdfSubreadSet(path)
     "Convert to and from JSON" in {
       val j = DataSetJsonUtils.hdfSubreadSetToJson(d)

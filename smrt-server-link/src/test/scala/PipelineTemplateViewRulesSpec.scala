@@ -8,16 +8,20 @@ import org.specs2.mutable.Specification
 import spray.json._
 
 /**
- *
- * Created by mkocher on 9/19/15.
- */
-class PipelineTemplateViewRulesSpec extends Specification with SecondaryJobJsonProtocol with LazyLogging {
+  *
+  * Created by mkocher on 9/19/15.
+  */
+class PipelineTemplateViewRulesSpec
+    extends Specification
+    with SecondaryJobJsonProtocol
+    with LazyLogging {
 
   sequential
 
   val RESOURCE_DIR = "pipeline-template-view-rules"
 
-  def getTestResource(name: String) = getClass.getResource(s"$RESOURCE_DIR/$name")
+  def getTestResource(name: String) =
+    getClass.getResource(s"$RESOURCE_DIR/$name")
 
   "Test pipeline loading from Avro file" should {
     "Smoke test for pipeline" in {
@@ -25,7 +29,8 @@ class PipelineTemplateViewRulesSpec extends Specification with SecondaryJobJsonP
       val path = getTestResource(name)
 
       val p = Paths.get(path.toURI)
-      val pipelineTemplateViewRules = PipelineTemplateViewRulesLoader.loadFrom(p)
+      val pipelineTemplateViewRules =
+        PipelineTemplateViewRulesLoader.loadFrom(p)
       // this is the json representation
       logger.info(s"Pipeline template $pipelineTemplateViewRules")
 

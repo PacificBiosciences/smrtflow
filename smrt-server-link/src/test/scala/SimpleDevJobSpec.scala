@@ -2,13 +2,18 @@ import java.nio.file.Files
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobResource
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PrinterJobResultsWriter}
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{SimpleDevJob, SimpleDevJobOptions}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  PrinterJobResultsWriter
+}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
+  SimpleDevJob,
+  SimpleDevJobOptions
+}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-
-class SimpleDevJobSpec extends Specification with LazyLogging{
+class SimpleDevJobSpec extends Specification with LazyLogging {
 
   sequential
 

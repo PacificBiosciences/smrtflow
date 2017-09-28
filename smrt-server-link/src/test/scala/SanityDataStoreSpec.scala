@@ -10,12 +10,13 @@ import spray.json._
 import scala.io.Source
 
 /**
- *
- * Created by mkocher on 7/15/15.
- */
-class SanityDataStoreSpec extends Specification
-with LazyLogging
-with SecondaryJobJsonProtocol{
+  *
+  * Created by mkocher on 7/15/15.
+  */
+class SanityDataStoreSpec
+    extends Specification
+    with LazyLogging
+    with SecondaryJobJsonProtocol {
 
   sequential
 

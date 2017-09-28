@@ -7,26 +7,39 @@ import org.specs2.mutable._
 import spray.json._
 
 /**
- * Test for all pipeline related specs
- * Created by mkocher on 5/6/15.
- */
-class PipelineSpec extends Specification with SecondaryJobJsonProtocol with LazyLogging {
+  * Test for all pipeline related specs
+  * Created by mkocher on 5/6/15.
+  */
+class PipelineSpec
+    extends Specification
+    with SecondaryJobJsonProtocol
+    with LazyLogging {
 
   sequential
 
   val ROOT_PIPELINE_TEMPLATES = "pipeline-templates"
 
   val rsPipelineTemplate = {
-      val engineOptions = Seq(
-        PipelineIntOption("max_nchunks", "Max chunks", 24, "Max chunks"))
-      val taskOptions = Seq(
-        PipelineBooleanOption("id-a", "Boolean", true, "Boolean Option"),
-        PipelineIntOption("id-b", "Int", 2001, "Integer Option"))
-      val entryPoints = Seq(
-        EntryPoint("eid_ref_dataset", FileTypes.DS_REFERENCE.fileTypeId, "Reference"))
-      val tags = Seq("dev", "example")
-      val presets = Seq[PipelineTemplatePreset]()
-      PipelineTemplate("pbsmrtpipe.pipelines.sa3_resequencing", "Name", "Desc", "0.1.0", engineOptions, taskOptions, entryPoints, tags, presets)
+    val engineOptions = Seq(
+      PipelineIntOption("max_nchunks", "Max chunks", 24, "Max chunks"))
+    val taskOptions = Seq(
+      PipelineBooleanOption("id-a", "Boolean", true, "Boolean Option"),
+      PipelineIntOption("id-b", "Int", 2001, "Integer Option"))
+    val entryPoints = Seq(
+      EntryPoint("eid_ref_dataset",
+                 FileTypes.DS_REFERENCE.fileTypeId,
+                 "Reference"))
+    val tags = Seq("dev", "example")
+    val presets = Seq[PipelineTemplatePreset]()
+    PipelineTemplate("pbsmrtpipe.pipelines.sa3_resequencing",
+                     "Name",
+                     "Desc",
+                     "0.1.0",
+                     engineOptions,
+                     taskOptions,
+                     entryPoints,
+                     tags,
+                     presets)
   }
 
   "Test pipeline serialization" should {

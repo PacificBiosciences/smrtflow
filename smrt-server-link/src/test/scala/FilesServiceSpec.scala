@@ -4,7 +4,10 @@ import java.nio.file.{Files, Paths}
 import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, JavaFileSystemUtil}
-import com.pacbio.secondary.smrtlink.models.{DirectoryResource, DiskSpaceResource}
+import com.pacbio.secondary.smrtlink.models.{
+  DirectoryResource,
+  DiskSpaceResource
+}
 import com.pacbio.secondary.smrtlink.services.CommonFilesServiceProvider
 import org.apache.commons.io.FileUtils
 import org.mockito.Mockito.doReturn
@@ -17,7 +20,11 @@ import spray.client.pipelining._
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-class FilesServiceSpec extends Specification with Directives with Mockito with Specs2RouteTest {
+class FilesServiceSpec
+    extends Specification
+    with Directives
+    with Mockito
+    with Specs2RouteTest {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -30,9 +37,10 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
 
   object Api extends BaseApi {
     override val providers: CoreProviders = new CoreProviders
-      with CommonFilesServiceProvider {
-        override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(() => spiedFileSystemUtil)
-      }
+    with CommonFilesServiceProvider {
+      override val fileSystemUtil: Singleton[FileSystemUtil] = Singleton(
+        () => spiedFileSystemUtil)
+    }
   }
 
   doReturn(100.toLong).when(spiedFileSystemUtil).getTotalSpace(Paths.get("/"))
@@ -71,7 +79,8 @@ class FilesServiceSpec extends Specification with Directives with Mockito with S
       val tmpDir = Files.createTempDirectory("path with spaces")
       val tmpFile = tmpDir.resolve("data with spaces.txt").toFile
       FileUtils.writeStringToFile(tmpFile, "Hello, world!")
-      val url = "/smrt-base/files/" + URLEncoder.encode(tmpDir.toString, "UTF-8")
+      val url = "/smrt-base/files/" + URLEncoder.encode(tmpDir.toString,
+                                                        "UTF-8")
       Get(url) ~> routes ~> check {
         val dirRes = responseAs[DirectoryResource]
         dirRes.fullPath must beEqualTo(tmpDir.toString)

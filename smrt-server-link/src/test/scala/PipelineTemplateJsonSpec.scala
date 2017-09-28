@@ -7,14 +7,17 @@ import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 import spray.json._
 
-
-class PipelineTemplateJsonSpec extends Specification with SecondaryJobJsonProtocol with LazyLogging{
+class PipelineTemplateJsonSpec
+    extends Specification
+    with SecondaryJobJsonProtocol
+    with LazyLogging {
 
   sequential
 
   "Test pipeline template JSON serialization" should {
     "Smoke test for json pipeline" in {
-      val name = "pipeline-templates/pbsmrtpipe.pipelines.sa3_ds_resequencing_fat_pipeline_template.json"
+      val name =
+        "pipeline-templates/pbsmrtpipe.pipelines.sa3_ds_resequencing_fat_pipeline_template.json"
       val path = getClass.getResource(name)
       val p = Paths.get(path.toURI)
       val pipelineTemplate = JsonPipelineTemplatesLoader.loadFrom(p)
@@ -42,12 +45,17 @@ class PipelineTemplateJsonSpec extends Specification with SecondaryJobJsonProtoc
       val p = j.convertTo[PipelineTemplate]
       val tOpts = p.taskOptions.map(o => (o.id, o)).toMap
       tOpts("pbsmrtpipe.task_options.alpha") must haveClass[PipelineStrOption]
-      tOpts("pbsmrtpipe.task_options.beta") must haveClass[PipelineBooleanOption]
+      tOpts("pbsmrtpipe.task_options.beta") must haveClass[
+        PipelineBooleanOption]
       tOpts("pbsmrtpipe.task_options.gamma") must haveClass[PipelineIntOption]
-      tOpts("pbsmrtpipe.task_options.delta") must haveClass[PipelineDoubleOption]
-      tOpts("pbsmrtpipe.task_options.a") must haveClass[PipelineChoiceStrOption]
-      tOpts("pbsmrtpipe.task_options.b") must haveClass[PipelineChoiceIntOption]
-      tOpts("pbsmrtpipe.task_options.c") must haveClass[PipelineChoiceDoubleOption]
+      tOpts("pbsmrtpipe.task_options.delta") must haveClass[
+        PipelineDoubleOption]
+      tOpts("pbsmrtpipe.task_options.a") must haveClass[
+        PipelineChoiceStrOption]
+      tOpts("pbsmrtpipe.task_options.b") must haveClass[
+        PipelineChoiceIntOption]
+      tOpts("pbsmrtpipe.task_options.c") must haveClass[
+        PipelineChoiceDoubleOption]
     }
   }
 }

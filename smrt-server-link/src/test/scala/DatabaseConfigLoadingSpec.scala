@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigFactory
 /**
   * Created by mkocher on 12/19/16.
   */
-class DatabaseConfigLoadingSpec extends Specification{
+class DatabaseConfigLoadingSpec extends Specification {
 
   "Load config from" should {
     "Sanity test to load db config" in {

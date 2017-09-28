@@ -1,15 +1,22 @@
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{SecondaryJobJsonProtocol, SecondaryJobProtocols}
-import com.pacbio.secondary.smrtlink.services.{PipelineTemplateProvider, ResolvedPipelineTemplateServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  SecondaryJobJsonProtocol,
+  SecondaryJobProtocols
+}
+import com.pacbio.secondary.smrtlink.services.{
+  PipelineTemplateProvider,
+  ResolvedPipelineTemplateServiceProvider,
+  ServiceComposer
+}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 
 import scala.concurrent.duration.FiniteDuration
 
-
-class PipelineTemplateSpec extends Specification
+class PipelineTemplateSpec
+    extends Specification
     with Specs2RouteTest
     with SecondaryJobJsonProtocol
     with JobServiceConstants {
@@ -20,12 +27,13 @@ class PipelineTemplateSpec extends Specification
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
-  object TestProviders extends
-  ServiceComposer with
-  ResolvedPipelineTemplateServiceProvider with
-  PipelineTemplateProvider
+  object TestProviders
+      extends ServiceComposer
+      with ResolvedPipelineTemplateServiceProvider
+      with PipelineTemplateProvider
 
-  val totalRoutes = TestProviders.resolvedPipelineTemplateService().prefixedRoutes
+  val totalRoutes =
+    TestProviders.resolvedPipelineTemplateService().prefixedRoutes
 
   val workflowPrefix = "resolved-pipeline-templates"
   val mockPipelineId = "pbsmrtpipe.pipelines.dev_diagnostic"
@@ -64,7 +72,8 @@ class PipelineTemplateSpec extends Specification
       }
     }
     "Get Workflow template preset by workflow template preset id" in {
-      Get(s"/$ROOT_SA_PREFIX/$workflowPrefix/$mockPipelineId/presets/$mockPresetPipelineId") ~> totalRoutes ~> check {
+      Get(
+        s"/$ROOT_SA_PREFIX/$workflowPrefix/$mockPipelineId/presets/$mockPresetPipelineId") ~> totalRoutes ~> check {
         //val templates = responseAs[PipelineTemplatePreset]
         status.isSuccess must beFalse
       }

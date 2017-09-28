@@ -1,29 +1,29 @@
-
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.io.File
 import java.util.UUID
 
 import scala.util.Try
 
-import org.apache.commons.io.{FileUtils,FilenameUtils}
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{PacBioTestData, PbReports}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PbReports
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 
-
 trait DataSetImports { self: Specification =>
 
-  protected def runImportImpl(
-      path: Path,
-      dsType: DataSetMetaTypes.DataSetMetaType,
-      resultWriter: JobResultWriter) = {
+  protected def runImportImpl(path: Path,
+                              dsType: DataSetMetaTypes.DataSetMetaType,
+                              resultWriter: JobResultWriter) = {
     val outputDir = Files.createTempDirectory("import-test")
     println(outputDir)
     val opts = ImportDataSetOptions(path, dsType)
@@ -36,7 +36,8 @@ trait DataSetImports { self: Specification =>
 
   protected def checkNumReports(datastore: PacBioDataStore, nReports: Int) = {
     datastore.files.size must beEqualTo(nReports + 2)
-    datastore.files.count(_.fileTypeId == FileTypes.REPORT.fileTypeId) must beEqualTo(nReports)
+    datastore.files.count(_.fileTypeId == FileTypes.REPORT.fileTypeId) must beEqualTo(
+      nReports)
   }
 }
 
@@ -55,7 +56,8 @@ class DataSetImportSpec
     dsIds.map(pbdata.getFile)
   }
 
-  private def runImport(dsId: String, dsType: DataSetMetaTypes.DataSetMetaType) = {
+  private def runImport(dsId: String,
+                        dsType: DataSetMetaTypes.DataSetMetaType) = {
     val pbdata = PacBioTestData()
     val path = pbdata.getFile(dsId).toAbsolutePath
     runImportImpl(path, dsType, writer)
@@ -97,7 +99,8 @@ class DataSetImportSpec
       checkNumReports(datastore, 1)
     }
     "Import ConsensusAlignmentSet" in {
-      val datastore = runImport("rsii-ccs-aligned", DataSetMetaTypes.AlignmentCCS)
+      val datastore =
+        runImport("rsii-ccs-aligned", DataSetMetaTypes.AlignmentCCS)
       checkNumReports(datastore, 1)
     }
   }

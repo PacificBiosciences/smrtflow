@@ -3,10 +3,19 @@ import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDataTime}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  PacBioIntJobResolver
+}
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, SmrtLinkTestDalProvider}
-import com.pacbio.secondary.smrtlink.dataintegrity.{DataSetIntegrityRunner, JobStateIntegrityRunner}
-import com.pacbio.secondary.smrtlink.models.{EngineConfig, SubreadServiceDataSet}
+import com.pacbio.secondary.smrtlink.dataintegrity.{
+  DataSetIntegrityRunner,
+  JobStateIntegrityRunner
+}
+import com.pacbio.secondary.smrtlink.models.{
+  EngineConfig,
+  SubreadServiceDataSet
+}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.common.models.CommonModelImplicits._
 import com.typesafe.scalalogging.LazyLogging
@@ -17,8 +26,13 @@ import spray.testkit.Specs2RouteTest
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
-class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeConversions with SmrtLinkTestDalProvider with TestUtils with LazyLogging{
+class DataIntegritySpec
+    extends Specification
+    with Specs2RouteTest
+    with NoTimeConversions
+    with SmrtLinkTestDalProvider
+    with TestUtils
+    with LazyLogging {
 
   // Sequentially run the tests
   sequential
@@ -45,12 +59,36 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
       val p1 = Paths.get("/tmp/path-that-does-not-exist.xml")
       val p2 = Files.createTempFile("subreadset", "s1")
 
-      val s1 = SubreadServiceDataSet(-1, u1, "Test", p1.toString, createdAt, updatedAt, 1L, 1L,
-        "1.0.0", "Comments", "tag,tag2", "md5", "inst-name", "ics-ctl-version", "mcontext", "well-s-name", "well-name",
-        "bio-sample", 1, "cell-id", "run-name", None, 1, 1, Some("dna-barcode-name"), None)
+      val s1 = SubreadServiceDataSet(
+        -1,
+        u1,
+        "Test",
+        p1.toString,
+        createdAt,
+        updatedAt,
+        1L,
+        1L,
+        "1.0.0",
+        "Comments",
+        "tag,tag2",
+        "md5",
+        "inst-name",
+        "ics-ctl-version",
+        "mcontext",
+        "well-s-name",
+        "well-name",
+        "bio-sample",
+        1,
+        "cell-id",
+        "run-name",
+        None,
+        1,
+        1,
+        Some("dna-barcode-name"),
+        None
+      )
 
       val s2 = s1.copy(path = p2.toString, uuid = u2)
-
 
       val runner = new DataSetIntegrityRunner(dao)
 
@@ -72,9 +110,19 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
       val u1 = UUID.fromString("d221ac68-2c73-11e7-9243-3c15c2cc8f88")
       val u2 = UUID.fromString("217daf0a-2e7c-11e7-905d-3c15c2cc8f88")
 
-      val j1 = EngineJob(-1, u1, "Test Job", "comment", createdAt, createdAt,
-        AnalysisJobStates.CREATED, "import-dataset", "/tmp/job-dir", "{}", None, None,
-        Some(smrtLinkSystemVersion))
+      val j1 = EngineJob(-1,
+                         u1,
+                         "Test Job",
+                         "comment",
+                         createdAt,
+                         createdAt,
+                         AnalysisJobStates.CREATED,
+                         "import-dataset",
+                         "/tmp/job-dir",
+                         "{}",
+                         None,
+                         None,
+                         Some(smrtLinkSystemVersion))
 
       val j2 = j1.copy(state = AnalysisJobStates.SUCCESSFUL, uuid = u2)
 
@@ -86,7 +134,6 @@ class DataIntegritySpec extends Specification with Specs2RouteTest with NoTimeCo
         m <- runner.run()
         updatedJob <- dao.getJobById(ej1.id)
       } yield updatedJob
-
 
       val uj1 = Await.result(fx, timeOut)
 

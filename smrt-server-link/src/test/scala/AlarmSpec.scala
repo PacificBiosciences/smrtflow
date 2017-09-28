@@ -3,16 +3,35 @@ import java.nio.file.Paths
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
-import com.pacbio.secondary.smrtlink.dependency.{DefaultConfigProvider, StringConfigProvider}
-import com.pacbio.secondary.smrtlink.file.{FileSystemUtil, FileSystemUtilProvider, JavaFileSystemUtil, JavaFileSystemUtilProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  Authenticator,
+  AuthenticatorImplProvider,
+  JwtUtils,
+  JwtUtilsProvider
+}
+import com.pacbio.secondary.smrtlink.dependency.{
+  DefaultConfigProvider,
+  StringConfigProvider
+}
+import com.pacbio.secondary.smrtlink.file.{
+  FileSystemUtil,
+  FileSystemUtilProvider,
+  JavaFileSystemUtil,
+  JavaFileSystemUtilProvider
+}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{
+  EngineCoreConfigLoader,
+  PbsmrtpipeConfigLoader
+}
 import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.alarms.TmpDirectoryAlarmRunner
-import com.pacbio.secondary.smrtlink.services.{AlarmServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{
+  AlarmServiceProvider,
+  ServiceComposer
+}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mock._
@@ -27,11 +46,12 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 
 class AlarmSpec
-  extends Specification
-  with Mockito
-  with Directives
-  with Specs2RouteTest
-  with NoTimeConversions with LazyLogging{
+    extends Specification
+    with Mockito
+    with Directives
+    with Specs2RouteTest
+    with NoTimeConversions
+    with LazyLogging {
 
   sequential
 
@@ -41,21 +61,21 @@ class AlarmSpec
 
   val mockFileSystemUtil = mock[FileSystemUtil]
 
-  object TestProviders extends
-      ServiceComposer with
-      ActorRefFactoryProvider with
-      SmrtLinkTestDalProvider with
-      SmrtLinkConfigProvider with
-      DefaultConfigProvider with
-      ActorSystemProvider with
-      FileSystemUtilProvider with
-      EngineCoreConfigLoader with
-      PbsmrtpipeConfigLoader with
-      AlarmDaoActorProvider with
-      AlarmRunnerLoaderProvider with
-      AlarmManagerRunnerProvider with
-      AlarmServiceProvider with
-      JavaFileSystemUtilProvider {
+  object TestProviders
+      extends ServiceComposer
+      with ActorRefFactoryProvider
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with DefaultConfigProvider
+      with ActorSystemProvider
+      with FileSystemUtilProvider
+      with EngineCoreConfigLoader
+      with PbsmrtpipeConfigLoader
+      with AlarmDaoActorProvider
+      with AlarmRunnerLoaderProvider
+      with AlarmManagerRunnerProvider
+      with AlarmServiceProvider
+      with JavaFileSystemUtilProvider {
 
     import com.pacbio.secondary.smrtlink.dependency.Singleton
 
@@ -119,7 +139,8 @@ class AlarmSpec
 
       // Test a path that doesn't exist
 
-      val r3 = new TmpDirectoryAlarmRunner(Paths.get("/tmp-does-not-exist"), new JavaFileSystemUtil)
+      val r3 = new TmpDirectoryAlarmRunner(Paths.get("/tmp-does-not-exist"),
+                                           new JavaFileSystemUtil)
       val s3 = Await.result(r3.run(), 10.seconds)
       s3.severity == ERROR
       s3.message must beSome("Unable to find path /tmp-does-not-exist")

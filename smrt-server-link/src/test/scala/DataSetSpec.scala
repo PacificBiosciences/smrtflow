@@ -1,14 +1,24 @@
 import akka.actor.ActorRefFactory
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import com.pacbio.secondary.smrtlink.auth.{AuthenticatorImplProvider, JwtUtils, JwtUtilsProvider}
+import com.pacbio.secondary.smrtlink.auth.{
+  AuthenticatorImplProvider,
+  JwtUtils,
+  JwtUtilsProvider
+}
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
-import com.pacbio.secondary.smrtlink.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{
+  EngineCoreConfigLoader,
+  PbsmrtpipeConfigLoader
+}
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.{ActorRefFactoryProvider, _}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{DataSetServiceProvider, ServiceComposer}
+import com.pacbio.secondary.smrtlink.services.{
+  DataSetServiceProvider,
+  ServiceComposer
+}
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
@@ -22,12 +32,13 @@ import slick.driver.PostgresDriver.api._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
-class DataSetSpec extends Specification
-with NoTimeConversions
-with Specs2RouteTest
-with SetupMockData
-with JobServiceConstants with TestUtils{
+class DataSetSpec
+    extends Specification
+    with NoTimeConversions
+    with Specs2RouteTest
+    with SetupMockData
+    with JobServiceConstants
+    with TestUtils {
 
   sequential
 
@@ -35,26 +46,29 @@ with JobServiceConstants with TestUtils{
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
 
-  object TestProviders extends
-      ServiceComposer with
-      SmrtLinkTestDalProvider with
-      SmrtLinkConfigProvider with
-      PbsmrtpipeConfigLoader with
-      EngineCoreConfigLoader with
-      DataSetServiceProvider with
-      EventManagerActorProvider with
-      JobsDaoProvider with
-      AuthenticatorImplProvider with
-      JwtUtilsProvider with
-      FakeClockProvider with
-      SetBindings with
-      ActorRefFactoryProvider {
+  object TestProviders
+      extends ServiceComposer
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with PbsmrtpipeConfigLoader
+      with EngineCoreConfigLoader
+      with DataSetServiceProvider
+      with EventManagerActorProvider
+      with JobsDaoProvider
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with FakeClockProvider
+      with SetBindings
+      with ActorRefFactoryProvider {
 
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          Some(UserRecord(jwt))
     })
 
-    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
+    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(
+      system)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
@@ -85,7 +99,8 @@ with JobServiceConstants with TestUtils{
     "Secondary analysis Subread DataSetsType resources by projectId" in {
       val credentials = RawHeader(JWT_HEADER, MOCK_USER_LOGIN)
 
-      Get(s"/$ROOT_SA_PREFIX/datasets/subreads?projectId=$getMockProjectId") ~> addHeader(credentials) ~> totalRoutes ~> check {
+      Get(s"/$ROOT_SA_PREFIX/datasets/subreads?projectId=$getMockProjectId") ~> addHeader(
+        credentials) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
         subreads.size === 2
@@ -121,8 +136,8 @@ with JobServiceConstants with TestUtils{
       }
     }
     "Update SubreadSet resource bioSampleName and wellSampleName" in {
-      val opts = DataSetUpdateRequest(bioSampleName=Some("hobbit"),
-                                      wellSampleName=Some("hobbit DNA"))
+      val opts = DataSetUpdateRequest(bioSampleName = Some("hobbit"),
+                                      wellSampleName = Some("hobbit DNA"))
       Put(s"/$ROOT_SA_PREFIX/datasets/subreads/1", opts) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
@@ -137,7 +152,8 @@ with JobServiceConstants with TestUtils{
       Get(s"/$ROOT_SA_PREFIX/datasets/subreads/1/details") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val resp = responseAs[String].parseJson
-        resp.asJsObject().fields("MetaType") === JsString("PacBio.DataSet.SubreadSet")
+        resp.asJsObject().fields("MetaType") === JsString(
+          "PacBio.DataSet.SubreadSet")
       }
     }
     "Secondary analysis Reference DataSetsType resource" in {
