@@ -39,7 +39,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelSpraySupport._
-import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
+import com.pacbio.secondary.smrtlink.analysis.bio.{Fasta, FastaIterator}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 
@@ -84,8 +84,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
     bs.getExternalResources.getExternalResource
       .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
       .map(_.getResourceId)
-      .map(p => Fasta.loadFrom(Paths.get(p).toFile))
-      .map(items => items.map(_.id))
+      .map(p => new FastaIterator(Paths.get(p).toFile))
+      .map(items => items.map(_.getName).toList)
       .getOrElse(Seq.empty[String])
 
   }
