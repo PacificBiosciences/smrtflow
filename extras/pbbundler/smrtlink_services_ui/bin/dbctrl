@@ -472,19 +472,22 @@ def db_create_wso2(dbc, wso2_dir, wso2_init):
         log.info("No WSO2 directory provided. Skipping creation for WSO2 database")
         return 0
 
-    createdb_result = db_create(dbc, _WSO2_DB_NAME)
+    db_names = _get_dbs(dbc, _WSO2_DB_NAME)
+    if not db_names:
+        createdb_result = db_create(dbc, _WSO2_DB_NAME)
 
-    if createdb_result == 0:
-        env = dbc.to_env()
-        for script in wso2_script_files:
-            cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
-            script_result = _run_cmd_and_log(cmd, env=env)
-            if script_result != 0:
-                return script_result
-        return 0
-    else:
-        # the db creation failed, there's nothing more we can do here. The wso2 tables won't be created.
-        return createdb_result
+        if createdb_result == 0:
+            env = dbc.to_env()
+            for script in wso2_script_files:
+                cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
+                script_result = _run_cmd_and_log(cmd, env=env)
+                if script_result != 0:
+                    return script_result
+            return 0
+        else:
+            # the db creation failed, there's nothing more we can do here. The wso2 tables won't be created.
+            return createdb_result
+    return 0
 
 
 def db_setup(dbc, wso2_dir=None, wso2_init=None):
