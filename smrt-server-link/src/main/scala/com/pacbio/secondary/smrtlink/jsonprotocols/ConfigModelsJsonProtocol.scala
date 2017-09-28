@@ -35,7 +35,7 @@ trait ConfigModelsJsonProtocol
     with UrlProtocol
     with UUIDJsonProtocol {
 
-  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat15(
+  implicit val smrtflowPacBioSystemConfigFormat = jsonFormat16(
     SmrtflowPacBioSystemConfig)
   implicit val smrtflowDbPropertiesConfigFormat = jsonFormat5(
     SmrtflowDbPropertiesConfig)
