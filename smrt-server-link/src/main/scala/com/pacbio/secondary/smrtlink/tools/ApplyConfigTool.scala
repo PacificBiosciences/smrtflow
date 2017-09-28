@@ -45,6 +45,7 @@ object ApplyConfigConstants {
   val STATIC_FILE_DIR = "sl"
 
   val UI_API_SERVER_CONFIG_JSON = "api-server.config.json"
+  val UI_APP_CONFIG_JSON = "app-config.json"
 
   // Tomcat
   val TOMCAT_SERVER_XML = "server.xml"
@@ -63,6 +64,9 @@ object ApplyConfigConstants {
 
   val REL_TOMCAT_UI_API_SERVER_CONFIG =
     s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_API_SERVER_CONFIG_JSON"
+
+  val REL_TOMCAT_UI_APP_CONFIG =
+    s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_APP_CONFIG_JSON"
 
   val REL_WSO2_API_DIR =
     s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
@@ -117,6 +121,8 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver {
   val uiApiServerConfig = resolve(
     ApplyConfigConstants.REL_TOMCAT_UI_API_SERVER_CONFIG)
 
+  val uiAppConfig = resolve(ApplyConfigConstants.REL_TOMCAT_UI_APP_CONFIG)
+
   val keyStoreFile = resolve(ApplyConfigConstants.SSL_KEYSTORE_FILE)
 
   val wso2ApiDir = resolve(ApplyConfigConstants.REL_WSO2_API_DIR)
@@ -168,6 +174,11 @@ object ApplyConfigUtils extends LazyLogging {
     FileUtils.write(file, sx, "UTF-8")
     logger.debug(s"Wrote file $file")
     file
+  }
+
+  def loadJson(file: File) = {
+    logger.debug(s"Loading and converting to JSON $file")
+    FileUtils.readFileToString(file).parseJson
   }
 
   def loadSmrtLinkSystemConfig(path: Path): RootSmrtflowConfig =
@@ -260,6 +271,23 @@ object ApplyConfigUtils extends LazyLogging {
                           techSupportUrl)
     writeApiServerConfig(c, outputFile)
     outputFile
+  }
+
+  /**
+    * Use a pass through layer to overwrite the "enableCellReuse" key in the
+    * UI app-config.json
+    *
+    */
+  def updateUiAppConfig(uiAppConfigJson: File,
+                        enableCellReuse: Boolean): File = {
+
+    val jx = loadJson(uiAppConfigJson)
+
+    val nx = JsObject("enableCellReuse" -> JsBoolean(enableCellReuse))
+
+    val total = new JsObject(jx.asJsObject.fields ++ nx.fields)
+
+    writeAndLog(uiAppConfigJson, total.toJson.prettyPrint.toString)
   }
 
   def updateTomcatSetupEnvSh(output: File, tomcatMem: Int): File = {
@@ -432,11 +460,6 @@ object ApplyConfigUtils extends LazyLogging {
                            internalConfig: File,
                            output: File): Path = {
 
-    def loadJson(file: File) = {
-      logger.debug(s"Loading and converting to JSON $file")
-      FileUtils.readFileToString(file).parseJson
-    }
-
     val j1 = loadJson(smrtLinkSystemConfig)
     val j2 = loadJson(internalConfig)
 
@@ -601,13 +624,16 @@ object ApplyConfigUtils extends LazyLogging {
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
+    updateUiAppConfig(resolver.uiAppConfig.toFile,
+                      smrtLinkConfig.pacBioSystem.enableCellReuse)
+
     "Successfully Completed apply-config"
   }
 }
 
 object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
-  val VERSION = "0.2.1"
+  val VERSION = "0.3.0"
   val DESCRIPTION =
     "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
   val toolId = "smrtflow.tools.apply_config"
