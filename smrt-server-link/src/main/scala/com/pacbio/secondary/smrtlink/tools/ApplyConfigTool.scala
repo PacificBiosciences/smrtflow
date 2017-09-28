@@ -624,8 +624,9 @@ object ApplyConfigUtils extends LazyLogging {
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
 
-    updateUiAppConfig(resolver.uiAppConfig.toFile,
-                      smrtLinkConfig.pacBioSystem.enableCellReuse)
+    updateUiAppConfig(
+      resolver.uiAppConfig.toFile,
+      smrtLinkConfig.pacBioSystem.enableCellReuse.getOrElse(false))
 
     "Successfully Completed apply-config"
   }

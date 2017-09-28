@@ -34,7 +34,7 @@ object ConfigModels {
       mailHost: Option[String] = None,
       mailUser: Option[String] = None,
       mailPassword: Option[String] = None,
-      enableCellReuse: Boolean = false)
+      enableCellReuse: Option[Boolean] = Some(false))
 
   case class SmrtflowDbPropertiesConfig(databaseName: String,
                                         user: String,

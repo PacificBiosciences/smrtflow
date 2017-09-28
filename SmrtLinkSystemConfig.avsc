@@ -231,7 +231,7 @@
           {
             "doc": "Enable Cell Reuse in the SMRT Link UI (hocon-key smrtflow.pacBioSystem.enableCellReuse)",
             "name": "enableCellReuse",
-            "type": "boolean",
+            "type": ["boolean", "null"],
             "default": false
           }
         ]
