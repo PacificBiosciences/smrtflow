@@ -1,13 +1,13 @@
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
+
+import com.pacbio.secondary.smrtlink.analysis.bio.{Fasta, FastaIterator}
+import org.specs2.mutable._
 import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
 import com.pacbio.secondary.smrtlink.analysis.converters.{
+  FastaIndexWriter,
   InvalidPacBioFastaError,
-  PacBioFastaValidator,
-  FastaIndexWriter
+  PacBioFastaValidator
 }
-import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
 
 /**
   * Created by mkocher on 3/14/15.
@@ -32,6 +32,13 @@ class BioFastaSpec extends Specification {
   }
 
   "Load example Fasta file" should {
+    "Load fasta iterator" in {
+      val uri = getClass.getResource("example_01.fasta").toURI
+      val it = new FastaIterator(Paths.get(uri).toFile)
+      val expectedNames = Seq("HSBGPG", "HSGLTH1")
+      val names = it.toSeq.map(_.getName).toList
+      names === expectedNames
+    }
     "Parse file sanity test" in {
       val uri = getClass.getResource("small.fasta")
       val records = Fasta.loadFrom(uri)

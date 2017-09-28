@@ -5,9 +5,27 @@ import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.PacBioFileReader
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.io.Source
-import java.io.{BufferedWriter, FileWriter, File}
+import java.io.{BufferedWriter, File, FileWriter}
+
+import htsjdk.samtools.reference.{FastaSequenceFile, ReferenceSequence}
+
 import scala.collection.mutable
+
+// Thin wrapper around htsjdk
+class FastaIterator(file: File, truncateWhiteSpace: Boolean = true)
+    extends Iterator[ReferenceSequence] {
+  private val reader = new FastaSequenceFile(file, truncateWhiteSpace)
+  private var record = reader.nextSequence()
+
+  def hasNext: Boolean = record != null
+  def next: ReferenceSequence = {
+    val r = record
+    record = reader.nextSequence()
+    r
+  }
+}
 
 /** This uses the pbcore.io data Model
   *
@@ -18,6 +36,9 @@ import scala.collection.mutable
   */
 case class FastaRecord(id: String, header: String, sequence: Seq[Char])
 
+/**
+  * THIS ALL NEEDS TO BE DELETED
+  */
 trait FastaReader extends PacBioFileReader[Seq[FastaRecord]] {
 
   def loadFrom(file: File): Seq[FastaRecord] = {
