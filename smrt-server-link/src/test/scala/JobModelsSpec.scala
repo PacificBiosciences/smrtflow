@@ -231,10 +231,12 @@ class JobModelsSpec extends Specification {
     "PipelineTemplateViewRule" in {
       val rules =
         Seq(PipelineOptionViewRule("pbsmrtpipe.task_options.a", false, false),
-            PipelineOptionViewRule("pbsmrtpipe.task_options.b", true, true))
+            PipelineOptionViewRule("pbsmrtpipe.task_options.b", true, true, Some(true)))
       val rule =
         PipelineTemplateViewRule("pipeline-1", "Rules", "My rules", rules)
-      rule.toJson.convertTo[PipelineTemplateViewRule] must beEqualTo(rule)
+      val jrule = rule.toJson.convertTo[PipelineTemplateViewRule]
+      jrule must beEqualTo(rule)
+      jrule.rules(1).required.getOrElse(false) must beTrue
     }
     "PipelineDataStoreRules" in {
       val rules = Seq(
