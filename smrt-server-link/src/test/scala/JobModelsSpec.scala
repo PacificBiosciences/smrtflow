@@ -236,7 +236,7 @@ class JobModelsSpec extends Specification {
         PipelineTemplateViewRule("pipeline-1", "Rules", "My rules", rules)
       val jrule = rule.toJson.convertTo[PipelineTemplateViewRule]
       jrule must beEqualTo(rule)
-      jrule.rules(1).required.getOrElse(false) must beTrue
+      jrule.taskOptions(1).required.getOrElse(false) must beTrue
     }
     "PipelineDataStoreRules" in {
       val rules = Seq(
