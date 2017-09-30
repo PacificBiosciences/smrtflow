@@ -19,7 +19,7 @@
                 UniqueId="b095d0a3-94b8-4918-b3af-a3f81bbe719c"
                 MetaType="PacBio.BarcodeFile.BarcodeFastaFile"
                 TimeStampedName="barcode_fasta_150304_231155"
-                ResourceId="file:///mnt/path/to/barcode.fasta"
+                ResourceId="barcode.fasta"
                 Tags="Example"/>
     </pbbase:ExternalResources>
     <pbds:DataSetMetadata>
