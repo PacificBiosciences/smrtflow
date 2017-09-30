@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 import akka.actor.ActorRefFactory
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.{
@@ -42,6 +44,9 @@ class DataSetSpec
 
   sequential
 
+  val tmpJobDir = Files.createTempDirectory("dataset-spec")
+  val tmpEngineConfig = EngineConfig(1, None, tmpJobDir, debugMode = true)
+
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(5, "sec"))
@@ -69,6 +74,9 @@ class DataSetSpec
 
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(
       system)
+
+    override val jobEngineConfig: Singleton[EngineConfig] =
+      Singleton(tmpEngineConfig)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()
@@ -197,4 +205,5 @@ class DataSetSpec
 //      }
 //    }
   }
+  step(cleanUpJobDir(tmpEngineConfig.pbRootJobDir))
 }
