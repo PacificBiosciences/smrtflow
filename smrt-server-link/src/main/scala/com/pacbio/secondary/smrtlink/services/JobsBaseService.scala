@@ -456,7 +456,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               complete {
                 created {
                   dao.getJobById(jobId).flatMap { engineJob =>
-                    dao.insertDataStoreFileById(dsf, engineJob.id)
+                    dao.importDataStoreFile(dsf, engineJob.uuid)
                   }
                 }
               }
@@ -491,7 +491,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               complete {
                 created {
                   dao.getJobById(jobId).flatMap { engineJob =>
-                    dao.insertDataStoreFileById(dsf, engineJob.id)
+                    dao.importDataStoreFile(dsf, engineJob.uuid)
                   }
                 }
               }

@@ -44,7 +44,7 @@ import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
 import com.pacbio.secondary.smrtlink.database.DatabaseConfig
-import com.pacificbiosciences.pacbiodatasets.DataSetType
+import com.pacificbiosciences.pacbiodatasets._
 import org.postgresql.util.PSQLException
 import spray.json.JsObject
 
@@ -933,14 +933,6 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   import CommonModelImplicits._
 
   /**
-    * Importing of DataStore File by Job id
-    *
-    */
-  def insertDataStoreFileById(ds: DataStoreFile,
-                              jobId: IdAble): Future[MessageResponse] =
-    getJobById(jobId).flatMap(job => insertDataStoreFileByJob(job, ds))
-
-  /**
     * Import a DataStoreJob File
     *
     * All of these insert/add methods should return the entity that was inserted.
@@ -951,199 +943,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def addDataStoreFile(ds: DataStoreJobFile): Future[MessageResponse] = {
     logger.info(s"adding datastore file for $ds")
     getJobById(ds.jobId).flatMap(engineJob =>
-      insertDataStoreFileByJob(engineJob, ds.dataStoreFile))
-  }
-
-  /**
-    * Generic Importing of DataSet by type and Path to dataset file
-    */
-  protected def insertDataSet(dataSetMetaType: DataSetMetaType,
-                              spath: String,
-                              jobId: Int,
-                              createdBy: Option[String],
-                              projectId: Int): Future[MessageResponse] = {
-    val path = Paths.get(spath)
-    dataSetMetaType match {
-      case DataSetMetaTypes.Subread =>
-        val dataset = DataSetLoader.loadSubreadSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertSubreadDataSet(sds)
-      case DataSetMetaTypes.Reference =>
-        val dataset = DataSetLoader.loadReferenceSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertReferenceDataSet(sds)
-      case DataSetMetaTypes.GmapReference =>
-        val dataset = DataSetLoader.loadGmapReferenceSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertGmapReferenceDataSet(sds)
-      case DataSetMetaTypes.HdfSubread =>
-        val dataset = DataSetLoader.loadHdfSubreadSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertHdfSubreadDataSet(sds)
-      case DataSetMetaTypes.Alignment =>
-        val dataset = DataSetLoader.loadAlignmentSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertAlignmentDataSet(sds)
-      case DataSetMetaTypes.Barcode =>
-        val dataset = DataSetLoader.loadBarcodeSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertBarcodeDataSet(sds)
-      case DataSetMetaTypes.CCS =>
-        val dataset = DataSetLoader.loadConsensusReadSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertConsensusReadDataSet(sds)
-      case DataSetMetaTypes.AlignmentCCS =>
-        val dataset = DataSetLoader.loadConsensusAlignmentSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertConsensusAlignmentDataSet(sds)
-      case DataSetMetaTypes.Contig =>
-        val dataset = DataSetLoader.loadContigSet(path)
-        val sds = Converters.convert(dataset,
-                                     path.toAbsolutePath,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
-        insertContigDataSet(sds)
-      case x =>
-        val msg =
-          s"Non PacBio DataSet file type ($x) detected. Only DataStoreFile will be imported. Skipping Advanced DataSet importing of $path"
-        logger.warn(msg)
-        Future.successful(MessageResponse(msg))
-    }
-  }
-
-  /**
-    * This is the fundamental interface to import a DataStoreFile
-    */
-  protected def insertDataStoreFileByJob(
-      engineJob: EngineJob,
-      ds: DataStoreFile): Future[MessageResponse] = {
-    logger.info(
-      s"Inserting DataStore File $ds with job id:${engineJob.id} name:${engineJob.name}")
-
-    // TODO(smcclellan): Use dependency-injected Clock instance
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val importedAt = createdAt
-
-    // Tech Support TGZ need to be uploaded
-    if (ds.fileTypeId == FileTypes.TS_TGZ.fileTypeId) {
-      sendEventToManager[UploadTgz](UploadTgz(Paths.get(ds.path)))
-    }
-
-    if (ds.isChunked) {
-      Future.successful(
-        MessageResponse(s"Skipping inserting of Chunked DataStoreFile $ds"))
-    } else {
-
-      /**
-        *  Transaction with conditional (add, insert) so that data isn't duplicated in the database
-        */
-      def addOptionalInsert(existing: Option[Any]): Future[MessageResponse] = {
-        // 1 of 3: add the DataStoreServiceFile, if it isn't already in the DB
-        val addDataStoreServiceFile = existing match {
-          case Some(_) =>
-            DBIO.from(
-              Future.successful(
-                s"Already imported. Skipping inserting of datastore file $ds"))
-          case None =>
-            logger.info(s"importing datastore file into db $ds")
-            val dss = DataStoreServiceFile(ds.uniqueId,
-                                           ds.fileTypeId,
-                                           ds.sourceId,
-                                           ds.fileSize,
-                                           createdAt,
-                                           modifiedAt,
-                                           importedAt,
-                                           ds.path,
-                                           engineJob.id,
-                                           engineJob.uuid,
-                                           ds.name,
-                                           ds.description)
-            datastoreServiceFiles += dss
-        }
-
-        //FIXME(mpkocher)(5-19-2017) We should try to clarify this model and make this consistent across all job types.
-        // Context from mskinner
-        // for imported datasets, createdBy comes from CollectionMetadata/RunDetails/CreatedBy (set in Converters.convert).
-        // for merged datasets, createdBy comes from the user who initiated the merge job
-        val createdBy =
-          if (engineJob.jobTypeId == JobTypeIds.MERGE_DATASETS.id) {
-            engineJob.createdBy
-          } else {
-            None
-          }
-
-        // 2 of 3: insert of the data set, if it is a known/supported file type
-        val optionalInsert =
-          DataSetMetaTypes.toDataSetType(ds.fileTypeId) match {
-            case Some(typ) =>
-              DBIO.from(
-                insertDataSet(typ,
-                              ds.path,
-                              engineJob.id,
-                              createdBy,
-                              engineJob.projectId))
-            case None =>
-              existing match {
-                case Some(_) =>
-                  DBIO.from(Future.successful(MessageResponse(
-                    s"Skipping previously imported FileType:${ds.fileTypeId} UUID:${ds.uniqueId} name:${ds.name}")))
-                case None =>
-                  DBIO.from(Future.successful(MessageResponse(
-                    s"Unsupported DataSet type ${ds.fileTypeId}. Imported $ds. Skipping extended/detailed importing")))
-              }
-          }
-        // 3 of 3: run the appropriate actions in a transaction
-        val fin = for {
-          _ <- addDataStoreServiceFile
-          oi <- optionalInsert
-        } yield oi
-        db.run(fin.transactionally)
-      }
-
-      // This needed queries un-nested due to SQLite limitations -- see #197
-      db.run(
-          datastoreServiceFiles
-            .filter(_.uuid === ds.uniqueId)
-            .result
-            .headOption)
-        .flatMap {
-          addOptionalInsert
-        }
-    }
+      importDataStoreFile(ds.dataStoreFile, engineJob.uuid))
   }
 
   /**
@@ -1285,161 +1085,101 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       parentUuid = None // TODO how does this get set?
     )
   }
-
-  // Util container. This should be named better
-  case class DsServiceJobFile(file: DataStoreServiceFile,
-                              createdBy: Option[String],
-                              projectId: Int,
-                              jobId: Int)
-
-  sealed trait ImportA {
-    val ds: DsServiceJobFile
-  }
-  case class ImportAbleDataStoreFile(ds: DsServiceJobFile) extends ImportA
-
-  case class ImportAbleSubreadSet(ds: DsServiceJobFile,
-                                  file: SubreadServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleHdfSubreadSet(ds: DsServiceJobFile,
-                                     file: HdfSubreadServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleAlignmentSet(ds: DsServiceJobFile,
-                                    file: AlignmentServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleBarcodeSet(ds: DsServiceJobFile,
-                                  file: BarcodeServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleConsensusReadSet(ds: DsServiceJobFile,
-                                        file: ConsensusReadServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleConsensusAlignmentSet(
-      ds: DsServiceJobFile,
-      file: ConsensusAlignmentServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleContigSet(ds: DsServiceJobFile,
-                                 file: ContigServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleReferenceSet(ds: DsServiceJobFile,
-                                    file: ReferenceServiceDataSet)
-      extends ImportA
-
-  case class ImportAbleGmapReferenceSet(ds: DsServiceJobFile,
-                                        file: GmapReferenceServiceDataSet)
-      extends ImportA
-
-  // There's a bunch of duplication here, but Converts.convert would have to improved
-  // to better communicate the type
-  def loadImportAbleSubreadSet(dsj: DsServiceJobFile): ImportAbleSubreadSet = {
+  // Util func for composing the composition of loading the dataset and translation to
+  // a necessary file formats.
+  private def loadImportAbleServiceFileLoader[T <: DataSetType,
+                                              X <: ServiceDataSetMetadata,
+                                              Y <: ImportAbleServiceFile](
+      loader: (Path => T),
+      converter: ((T, Path, Option[String], Int, Int) => X),
+      g: ((DsServiceJobFile, X) => Y))(dsj: DsServiceJobFile): Y = {
     val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadSubreadSet(path)
-    val sds: SubreadServiceDataSet = Converters.convert(dataset,
-                                                        path.toAbsolutePath,
-                                                        dsj.createdBy,
-                                                        dsj.jobId,
-                                                        dsj.projectId)
-    ImportAbleSubreadSet(dsj, sds)
+    val dataset = loader(path)
+    val sds = converter(dataset,
+                        path.toAbsolutePath,
+                        dsj.createdBy,
+                        dsj.jobId,
+                        dsj.projectId)
+    g(dsj, sds)
   }
+
+  def loadImportAbleSubreadSet(dsj: DsServiceJobFile): ImportAbleSubreadSet =
+    loadImportAbleServiceFileLoader[SubreadSet,
+                                    SubreadServiceDataSet,
+                                    ImportAbleSubreadSet](
+      DataSetLoader.loadSubreadSet,
+      Converters.convertSubreadSet,
+      ImportAbleSubreadSet.apply)(dsj)
 
   def loadImportAbleHdfSubreadSet(
-      dsj: DsServiceJobFile): ImportAbleHdfSubreadSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadHdfSubreadSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleHdfSubreadSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleHdfSubreadSet =
+    loadImportAbleServiceFileLoader[HdfSubreadSet,
+                                    HdfSubreadServiceDataSet,
+                                    ImportAbleHdfSubreadSet](
+      DataSetLoader.loadHdfSubreadSet,
+      Converters.convertHdfSubreadSet,
+      ImportAbleHdfSubreadSet.apply)(dsj)
 
   def loadImportAbleAlignmentSet(
-      dsj: DsServiceJobFile): ImportAbleAlignmentSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadAlignmentSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleAlignmentSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleAlignmentSet =
+    loadImportAbleServiceFileLoader[AlignmentSet,
+                                    AlignmentServiceDataSet,
+                                    ImportAbleAlignmentSet](
+      DataSetLoader.loadAlignmentSet,
+      Converters.convertAlignmentSet,
+      ImportAbleAlignmentSet.apply)(dsj)
 
   def loadImportAbleReferenceSet(
-      dsj: DsServiceJobFile): ImportAbleReferenceSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadReferenceSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleReferenceSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleReferenceSet =
+    loadImportAbleServiceFileLoader[ReferenceSet,
+                                    ReferenceServiceDataSet,
+                                    ImportAbleReferenceSet](
+      DataSetLoader.loadReferenceSet,
+      Converters.convertReferenceSet,
+      ImportAbleReferenceSet.apply)(dsj)
 
-  def loadImportAbleBarcodeSet(dsj: DsServiceJobFile): ImportAbleBarcodeSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadBarcodeSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleBarcodeSet(dsj, sds)
-  }
+  def loadImportAbleBarcodeSet(dsj: DsServiceJobFile): ImportAbleBarcodeSet =
+    loadImportAbleServiceFileLoader[BarcodeSet,
+                                    BarcodeServiceDataSet,
+                                    ImportAbleBarcodeSet](
+      DataSetLoader.loadBarcodeSet,
+      Converters.convertBarcodeSet,
+      ImportAbleBarcodeSet.apply)(dsj)
 
   def loadImportAbleConsensusReadSet(
-      dsj: DsServiceJobFile): ImportAbleConsensusReadSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadConsensusReadSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleConsensusReadSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleConsensusReadSet =
+    loadImportAbleServiceFileLoader[ConsensusReadSet,
+                                    ConsensusReadServiceDataSet,
+                                    ImportAbleConsensusReadSet](
+      DataSetLoader.loadConsensusReadSet,
+      Converters.convertConsensusReadSet,
+      ImportAbleConsensusReadSet.apply)(dsj)
 
   def loadImportAbleConsensusAlignmentSet(
-      dsj: DsServiceJobFile): ImportAbleConsensusAlignmentSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadConsensusAlignmentSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleConsensusAlignmentSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleConsensusAlignmentSet =
+    loadImportAbleServiceFileLoader[ConsensusAlignmentSet,
+                                    ConsensusAlignmentServiceDataSet,
+                                    ImportAbleConsensusAlignmentSet](
+      DataSetLoader.loadConsensusAlignmentSet,
+      Converters.convertConsensusAlignmentSet,
+      ImportAbleConsensusAlignmentSet.apply)(dsj)
 
-  def loadImportAbleContigSet(dsj: DsServiceJobFile): ImportAbleContigSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadContigSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleContigSet(dsj, sds)
-  }
+  def loadImportAbleContigSet(dsj: DsServiceJobFile): ImportAbleContigSet =
+    loadImportAbleServiceFileLoader[ContigSet,
+                                    ContigServiceDataSet,
+                                    ImportAbleContigSet](
+      DataSetLoader.loadContigSet,
+      Converters.convertContigSet,
+      ImportAbleContigSet.apply)(dsj)
 
   def loadImportAbleGmapReferenceSet(
-      dsj: DsServiceJobFile): ImportAbleGmapReferenceSet = {
-    val path = Paths.get(dsj.file.path)
-    val dataset = DataSetLoader.loadGmapReferenceSet(path)
-    val sds = Converters.convert(dataset,
-                                 path.toAbsolutePath,
-                                 dsj.createdBy,
-                                 dsj.jobId,
-                                 dsj.projectId)
-    ImportAbleGmapReferenceSet(dsj, sds)
-  }
+      dsj: DsServiceJobFile): ImportAbleGmapReferenceSet =
+    loadImportAbleServiceFileLoader[GmapReferenceSet,
+                                    GmapReferenceServiceDataSet,
+                                    ImportAbleGmapReferenceSet](
+      DataSetLoader.loadGmapReferenceSet,
+      Converters.convertGmapReferenceSet,
+      ImportAbleGmapReferenceSet.apply)(dsj)
 
   /**
     * def loadImportAbleFile(file: DataStoreFile): ImportAbleFile
@@ -1450,7 +1190,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * 3. val importAbleFiles: Seq[ImportAbleFile] = files.map(loadImportAbleFile) // Load from filesystem
     * 4. val xs = Future.sequence(importableFiles.map(file => importImportAbleFile(file))): Future[Seq[MessageResponse]] // import into DB
     */
-  def loadImportAbleFile[T >: ImportA](dsj: DsServiceJobFile): T = {
+  def loadImportAbleFile[T >: ImportAbleServiceFile](
+      dsj: DsServiceJobFile): T = {
     DataSetMetaTypes
       .fromString(dsj.file.fileTypeId)
       .map {
@@ -1470,7 +1211,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .getOrElse(ImportAbleDataStoreFile(dsj))
   }
 
-  def importDataStoreFileX(
+  def importSimpleDataStoreFile(
       f: ImportAbleDataStoreFile): Future[MessageResponse] = {
 
     val ds = f.ds.file
@@ -1508,7 +1249,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * 2. Import Specific DataSet
     * 3. Import DataStoreFile
     */
-  def importSubreadSetX(i: ImportAbleSubreadSet): Future[MessageResponse] = {
+  def importSubreadSet(i: ImportAbleSubreadSet): Future[MessageResponse] = {
     val ds = i.file
 
     val ft = DataSetMetaTypes.Subread
@@ -1557,7 +1298,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importHdfSubreadSetX(
+  def importHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): Future[MessageResponse] = {
     val ds = i.file
 
@@ -1606,7 +1347,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importAlignmentSetX(i: ImportAbleAlignmentSet): Future[MessageResponse] = {
+  def importAlignmentSet(i: ImportAbleAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
     val ft = DataSetMetaTypes.Alignment
@@ -1641,7 +1382,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importImportAbleBarcodeSetX(
+  def importImportAbleBarcodeSet(
       i: ImportAbleBarcodeSet): Future[MessageResponse] = {
     val ds = i.file
 
@@ -1677,7 +1418,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importImportAbleConsensusReadSetX(
+  def importImportAbleConsensusReadSet(
       i: ImportAbleConsensusReadSet): Future[MessageResponse] = {
     val ds = i.file
 
@@ -1713,7 +1454,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importImportAbleConsensusAlignmentSetX(
+  def importImportAbleConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
@@ -1749,7 +1490,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importImportAbleContigSetX(
+  def importImportAbleContigSet(
       i: ImportAbleContigSet): Future[MessageResponse] = {
     val ds = i.ds.file
 
@@ -1785,7 +1526,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
-  def importReferenceSetX(i: ImportAbleReferenceSet): Future[MessageResponse] = {
+  def importReferenceSet(i: ImportAbleReferenceSet): Future[MessageResponse] = {
 
     val ds = i.ds.file
     val action0 = insertMetaData(i.file).map { id: Int =>
@@ -1819,7 +1560,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         MessageResponse(s"Successfully imported SubreadSet ${i.file.uuid}"))
   }
 
-  def importGmapReferenceSetX(
+  def importGmapReferenceSet(
       i: ImportAbleGmapReferenceSet): Future[MessageResponse] = {
     val ft = DataSetMetaTypes.GmapReference
 
@@ -1854,27 +1595,28 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         MessageResponse(s"Successfully imported SubreadSet ${i.file.uuid}"))
   }
 
-  def importImportAbleFile[T >: ImportA](f: T): Future[MessageResponse] = {
+  private def importImportAbleFile[T >: ImportAbleServiceFile](
+      f: T): Future[MessageResponse] = {
     f match {
-      case x: ImportAbleDataStoreFile => importDataStoreFileX(x)
-      case x: ImportAbleSubreadSet => importSubreadSetX(x)
-      case x: ImportAbleHdfSubreadSet => importHdfSubreadSetX(x)
-      case x: ImportAbleAlignmentSet => importAlignmentSetX(x)
-      case x: ImportAbleBarcodeSet => importImportAbleBarcodeSetX(x)
+      case x: ImportAbleDataStoreFile => importSimpleDataStoreFile(x)
+      case x: ImportAbleSubreadSet => importSubreadSet(x)
+      case x: ImportAbleHdfSubreadSet => importHdfSubreadSet(x)
+      case x: ImportAbleAlignmentSet => importAlignmentSet(x)
+      case x: ImportAbleBarcodeSet => importImportAbleBarcodeSet(x)
       case x: ImportAbleConsensusReadSet =>
-        importImportAbleConsensusReadSetX(x)
+        importImportAbleConsensusReadSet(x)
       case x: ImportAbleConsensusAlignmentSet =>
-        importImportAbleConsensusAlignmentSetX(x)
-      case x: ImportAbleContigSet => importImportAbleContigSetX(x)
-      case x: ImportAbleReferenceSet => importReferenceSetX(x)
-      case x: ImportAbleGmapReferenceSet => importGmapReferenceSetX(x)
+        importImportAbleConsensusAlignmentSet(x)
+      case x: ImportAbleContigSet => importImportAbleContigSet(x)
+      case x: ImportAbleReferenceSet => importReferenceSet(x)
+      case x: ImportAbleGmapReferenceSet => importGmapReferenceSet(x)
     }
   }
 
-  def toDataStoreServiceFile(f: DataStoreFile,
-                             jobId: Int,
-                             jobUUID: UUID,
-                             isActive: Boolean) = {
+  private def toDataStoreServiceFile(f: DataStoreFile,
+                                     jobId: Int,
+                                     jobUUID: UUID,
+                                     isActive: Boolean) = {
     val now = JodaDateTime.now()
     DataStoreServiceFile(f.uniqueId,
                          f.fileTypeId,
@@ -1898,7 +1640,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /**
     *
-    * THIS IS THE NEW INTERFACE THAT SHOULD BE USED
+    * THIS IS THE NEW PUBLIC INTERFACE THAT SHOULD BE USED from the Job interface to
+    * import datastore files.
     */
   def importDataStoreFiles(files: Seq[DataStoreFile],
                            jobId: UUID): Future[Seq[MessageResponse]] = {
@@ -1916,140 +1659,18 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       _ <- andLog(
         s"Successfully import datastore with import-able (${importAbleFiles.length} files) for job ${job.id}")
     } yield messages
-
   }
 
-  type U = slick.profile.FixedSqlAction[Int,
-                                        slick.dbio.NoStream,
-                                        slick.dbio.Effect.Write]
-
-  def insertDataSetSafe[T <: ServiceDataSetMetadata](
-      ds: T,
-      dsTypeStr: String,
-      insertFxn: (Int) => U): Future[MessageResponse] = {
-    getDataSetMetaDataSetBlocking(ds.uuid) match {
-      case Some(_) =>
-        val msg =
-          s"$dsTypeStr ${ds.uuid} already imported. Skipping importing of $ds"
-        logger.debug(msg)
-        Future.successful(MessageResponse(msg))
-      case None =>
-        db.run {
-          insertMetaData(ds)
-            .flatMap { id =>
-              insertFxn(id)
-            }
-            .map(_ => {
-              val m = s"Successfully entered $dsTypeStr $ds"
-              logger.info(m)
-              MessageResponse(m)
-            })
-        }
-    }
+  /**
+    * PUBLIC INTERFACE THAT SHOULD BE USED for importing a Single DataStoreFile
+    */
+  def importDataStoreFile(file: DataStoreFile,
+                          jobId: UUID): Future[MessageResponse] = {
+    importDataStoreFiles(Seq(file), jobId).map(
+      _ =>
+        MessageResponse(
+          s"Successfuly imported ${file.uniqueId} ${file.fileTypeId}"))
   }
-
-  def insertReferenceDataSet(
-      ds: ReferenceServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[ReferenceServiceDataSet](ds, "ReferenceSet", (id) => {
-      dsReference2 forceInsert ReferenceServiceSet(id,
-                                                   ds.uuid,
-                                                   ds.ploidy,
-                                                   ds.organism)
-    })
-
-  def insertGmapReferenceDataSet(
-      ds: GmapReferenceServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[GmapReferenceServiceDataSet](
-      ds,
-      "GmapReferenceSet",
-      (id) => {
-        dsGmapReference2 forceInsert GmapReferenceServiceSet(id,
-                                                             ds.uuid,
-                                                             ds.ploidy,
-                                                             ds.organism)
-      })
-
-  def insertSubreadDataSet(
-      ds: SubreadServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[SubreadServiceDataSet](
-      ds,
-      "SubreadSet",
-      (id) => {
-        dsSubread2 forceInsert SubreadServiceSet(
-          id,
-          ds.uuid,
-          ds.cellId,
-          ds.metadataContextId,
-          ds.wellSampleName,
-          ds.wellName,
-          ds.bioSampleName,
-          ds.cellIndex,
-          ds.instrumentName,
-          ds.instrumentName,
-          ds.runName,
-          ds.instrumentControlVersion,
-          ds.dnaBarcodeName
-        )
-      }
-    )
-
-  def insertHdfSubreadDataSet(
-      ds: HdfSubreadServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[HdfSubreadServiceDataSet](
-      ds,
-      "HdfSubreadSet",
-      (id) => {
-        dsHdfSubread2 forceInsert HdfSubreadServiceSet(
-          id,
-          ds.uuid,
-          "cell-id",
-          ds.metadataContextId,
-          ds.wellSampleName,
-          ds.wellName,
-          ds.bioSampleName,
-          ds.cellIndex,
-          ds.instrumentName,
-          ds.instrumentName,
-          ds.runName,
-          "instrument-ctr-version"
-        )
-      }
-    )
-
-  def insertAlignmentDataSet(
-      ds: AlignmentServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[AlignmentServiceDataSet](ds, "AlignmentSet", (id) => {
-      dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
-    })
-
-  def insertConsensusReadDataSet(
-      ds: ConsensusReadServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[ConsensusReadServiceDataSet](
-      ds,
-      "ConsensusReadSet",
-      (id) => { dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid) })
-
-  def insertConsensusAlignmentDataSet(
-      ds: ConsensusAlignmentServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[ConsensusAlignmentServiceDataSet](
-      ds,
-      "ConsensusAlignmentSet",
-      (id) => {
-        dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
-      })
-
-  def insertBarcodeDataSet(
-      ds: BarcodeServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[BarcodeServiceDataSet](ds, "BarcodeSet", (id) => {
-      dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
-    })
-
-  def insertContigDataSet(ds: ContigServiceDataSet): Future[MessageResponse] =
-    insertDataSetSafe[ContigServiceDataSet](ds, "ContigSet", (id) => {
-      dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
-    })
-
-  // END OF OLD IMPORT CODE
 
   def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =
     db.run(datasetMetaTypes.filter(_.id === typeId).result.headOption)

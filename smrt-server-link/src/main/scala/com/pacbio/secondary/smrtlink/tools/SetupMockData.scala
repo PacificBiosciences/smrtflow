@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import java.security.MessageDigest
 import java.util.UUID
 
+import com.pacbio.common.models.CommonModelImplicits._
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{
   ConfigLoader,
   EngineCoreConfigLoader
@@ -14,8 +15,10 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  DataStoreFile,
   EngineJob,
-  JobEvent
+  JobEvent,
+  JobTypeIds
 }
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
@@ -58,9 +61,9 @@ trait SetupMockData extends MockUtils with InitializeTables {
     val f = for {
       _ <- insertMockProject()
       _ <- insertMockSubreadDataSetsFromDir()
-      _ <- insertMockHdfSubreadDataSetsFromDir()
+      //_ <- insertMockHdfSubreadDataSetsFromDir()
       _ <- insertMockReferenceDataSetsFromDir()
-      _ <- insertMockAlignmentDataSets()
+      //_ <- insertMockAlignmentDataSets()
       // Jobs
       _ <- insertMockJobs()
       _ <- insertMockJobEvents()
@@ -110,7 +113,7 @@ trait MockUtils extends LazyLogging {
     val p = Paths.get(u.toURI)
     val f = p.resolve(dirName).toFile
     val files = f.listFiles.toList
-    println(s"Loading mock data from $f. Found ${files.length} mock files.")
+    // println(s"Loading mock data from $f. Found ${files.length} mock files.")
     files
   }
 
@@ -148,130 +151,151 @@ trait MockUtils extends LazyLogging {
       dao.db.run(engineJobs ++= jobIds.map(x => toJob))))
   }
 
-  def insertDummySubreadSets(n: Int): Future[Seq[MessageResponse]] = {
-    def toS = {
-      val importJobId = 1
-      val ux = UUID.randomUUID()
-      val now = JodaDateTime.now()
-      SubreadServiceDataSet(
-        -1,
-        ux,
-        "DataSet",
-        "/path/to/dataset.xml",
-        now,
-        now,
-        1,
-        1L,
-        "3.1.0",
-        "Comment",
-        "tag1, tag2",
-        "md5",
-        "inst-name",
-        "inst-ctl-version",
-        "movie-context-id",
-        "well-sample-name",
-        "well-anme",
-        "bio-sample",
-        0,
-        "cell-id",
-        "run-name",
-        MOCK_CREATED_BY,
-        importJobId,
-        mockProjectId,
-        None,
-        None
-      )
-    }
-
-    Future.sequence((0 until n).map(_ => dao.insertSubreadDataSet(toS)))
-  }
-
   def insertMockSubreadDataSetsFromDir(): Future[Seq[MessageResponse]] = {
     val name = "datasets-subreads-rs-converted"
     val files = getMockDataSetFiles(name)
+    val now = JodaDateTime.now()
 
-    def toS(file: File): SubreadServiceDataSet = {
+    def toS(file: File): DataStoreFile = {
       logger.info(
         s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
       val d = DataSetLoader.loadSubreadSet(file.toPath)
       logger.info(s"DataSet $d")
-      val sds = Converters.convert(d,
-                                   file.toPath.toAbsolutePath,
-                                   MOCK_CREATED_BY,
-                                   MOCK_JOB_ID,
-                                   mockProjectId)
+      val sds = Converters.convertSubreadSet(d,
+                                             file.toPath.toAbsolutePath,
+                                             MOCK_CREATED_BY,
+                                             MOCK_JOB_ID,
+                                             mockProjectId)
       logger.info(s"Loading dataset $sds")
-      sds
+      sds.toDataStoreFile("source-id", FileTypes.DS_SUBREADS, file.length())
     }
-    val sets = files.map(toS)
-    val allSets = sets ++ sets.map(
-      _.copy(uuid = UUID.randomUUID(), projectId = GEN_PROJECT_ID))
-    Future.sequence(
-      allSets.map(dao.insertSubreadDataSet)
+
+    // This is a bit goofy.
+    val jobId = 1
+    val engineJob = EngineJob(
+      jobId,
+      UUID.randomUUID(),
+      "Mock Job",
+      "Mock Job Comment",
+      now,
+      now,
+      AnalysisJobStates.SUCCESSFUL,
+      JobTypeIds.IMPORT_DATASET.toString,
+      "",
+      "{}",
+      None,
+      None,
+      None
     )
+
+    val getJobOrInsert: Future[EngineJob] = dao
+      .getJobById(jobId)
+      .recoverWith {
+        case e => dao.importRawEngineJob(engineJob, engineJob, Nil)
+      }
+
+    for {
+      job <- getJobOrInsert
+      files <- Future.successful(files.map(f => toS(f)))
+      results <- Future.sequence(
+        files.map(f => dao.importDataStoreFile(f, job.uuid)))
+    } yield results
   }
 
-  def insertMockHdfSubreadDataSetsFromDir(): Future[Seq[MessageResponse]] = {
-    val name = "datasets-hdfsubreads-rs-converted"
-    val files = getMockDataSetFiles(name)
-
-    def toS(file: File): HdfSubreadServiceDataSet = {
-      logger.info(
-        s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
-      val d = DataSetLoader.loadHdfSubreadSet(file.toPath)
-      logger.info(s"DataSet $d")
-      val sds = Converters.convert(d,
-                                   file.toPath.toAbsolutePath,
-                                   MOCK_CREATED_BY,
-                                   MOCK_JOB_ID,
-                                   mockProjectId)
-      logger.info(s"Loading dataset $sds")
-      sds
-    }
-    Future.sequence(files.map(toS).map(dao.insertHdfSubreadDataSet))
-  }
+//  def insertMockHdfSubreadDataSetsFromDir(): Future[Seq[MessageResponse]] = {
+//    val name = "datasets-hdfsubreads-rs-converted"
+//    val files = getMockDataSetFiles(name)
+//
+//    def toS(file: File): HdfSubreadServiceDataSet = {
+//      logger.info(
+//        s"Loading mock data from ${file.toPath.toAbsolutePath.toString}")
+//      val d = DataSetLoader.loadHdfSubreadSet(file.toPath)
+//      logger.info(s"DataSet $d")
+//      val sds = Converters.convertHdfSubreadSet(d,
+//                                                file.toPath.toAbsolutePath,
+//                                                MOCK_CREATED_BY,
+//                                                MOCK_JOB_ID,
+//                                                mockProjectId)
+//      logger.info(s"Loading dataset $sds")
+//      sds
+//    }
+//    Future.sequence(files.map(toS).map(dao.insertHdfSubreadDataSet))
+//  }
 
   def insertMockReferenceDataSetsFromDir(): Future[Seq[MessageResponse]] = {
     val name = "datasets-references-rs-converted"
     val files = getMockDataSetFiles(name)
+    val now = JodaDateTime.now()
 
-    def toS(file: File): ReferenceServiceDataSet = {
+    def toS(file: File): DataStoreFile = {
       val dataset = DataSetLoader.loadReferenceSet(file.toPath)
       logger.debug(s"Loading reference from ${file.toPath}")
-      Converters.convert(dataset,
-                         file.toPath,
-                         MOCK_CREATED_BY,
-                         MOCK_JOB_ID,
-                         mockProjectId)
+      val sds = Converters.convertReferenceSet(dataset,
+                                               file.toPath,
+                                               MOCK_CREATED_BY,
+                                               MOCK_JOB_ID,
+                                               mockProjectId)
+
+      sds.toDataStoreFile("source-id", FileTypes.DS_REFERENCE, file.length())
     }
-    Future.sequence(files.map(toS).map(dao.insertReferenceDataSet))
+
+    // This is a bit goofy.
+    val jobId = 1
+    val engineJob = EngineJob(
+      jobId,
+      UUID.randomUUID(),
+      "Mock Job",
+      "Mock Job Comment",
+      now,
+      now,
+      AnalysisJobStates.SUCCESSFUL,
+      JobTypeIds.IMPORT_DATASET.toString,
+      "",
+      "{}",
+      None,
+      None,
+      None
+    )
+
+    val getJobOrInsert: Future[EngineJob] = dao
+      .getJobById(jobId)
+      .recoverWith {
+        case e => dao.importRawEngineJob(engineJob, engineJob, Nil)
+      }
+
+    for {
+      job <- getJobOrInsert
+      files <- Future.successful(files.map(f => toS(f)))
+      results <- Future.sequence(
+        files.map(f => dao.importDataStoreFile(f, job.uuid)))
+    } yield results
   }
 
-  def insertMockAlignmentDataSets(
-      n: Int = MOCK_NDATASETS): Future[Seq[MessageResponse]] = {
-    def toDS = {
-      val uuid = UUID.randomUUID()
-      AlignmentServiceDataSet(
-        -1,
-        UUID.randomUUID(),
-        s"Alignment DataSet $uuid",
-        s"/path/to/dataset/$uuid.xml",
-        JodaDateTime.now(),
-        JodaDateTime.now(),
-        1,
-        9876,
-        MOCK_DS_VERSION,
-        "mock Alignment Dataset comments",
-        "mock-alignment-dataset-tags",
-        toMd5(uuid.toString),
-        MOCK_CREATED_BY,
-        MOCK_JOB_ID,
-        mockProjectId
-      )
-    }
-    val dss = (0 until n).map(x => toDS)
-    Future.sequence(dss.map(dao.insertAlignmentDataSet))
-  }
+//  def insertMockAlignmentDataSets(
+//      n: Int = MOCK_NDATASETS): Future[Seq[MessageResponse]] = {
+//    def toDS = {
+//      val uuid = UUID.randomUUID()
+//      AlignmentServiceDataSet(
+//        -1,
+//        UUID.randomUUID(),
+//        s"Alignment DataSet $uuid",
+//        s"/path/to/dataset/$uuid.xml",
+//        JodaDateTime.now(),
+//        JodaDateTime.now(),
+//        1,
+//        9876,
+//        MOCK_DS_VERSION,
+//        "mock Alignment Dataset comments",
+//        "mock-alignment-dataset-tags",
+//        toMd5(uuid.toString),
+//        MOCK_CREATED_BY,
+//        MOCK_JOB_ID,
+//        mockProjectId
+//      )
+//    }
+//    val dss = (0 until n).map(x => toDS)
+//    Future.sequence(dss.map(dao.insertAlignmentDataSet))
+//  }
 
   def insertMockJobEvents(): Future[Option[Int]] = {
     val jobIds = (1 until 4).toList
@@ -448,83 +472,4 @@ trait InitializeTables extends MockUtils {
     //db.migrate()
     logger.info("Completed applying migrations")
   }
-
-  /**
-    * Required data in db
-    */
-  def loadBaseMock = {
-    Await.result(insertMockProject(), 10.seconds)
-    logger.info(
-      "Completed loading base database resources (User, Project, DataSet Types, JobStates)")
-  }
-}
-
-object InsertMockData
-    extends App
-    with TmpDirJobResolver
-    with InitializeTables
-    with ConfigLoader
-    with SetupMockData {
-
-  // Max number of jobs to query
-  val maxJobs = 20000
-
-  // Number of chunks to batch up commits for events and datastore files
-  val numChunks = conf.getInt("smrtflow.mock.nchunks")
-
-  // Jobs
-  val maxPbsmrtpipeJobs = conf.getInt("smrtflow.mock.pbsmrtpipe-jobs")
-  val maxImportDataSetJobs = conf.getInt("smrtflow.mock.import-dataset-jobs")
-
-  // DataSets
-  val numSubreadSets = conf.getInt("smrtflow.mock.subreadsets")
-  val numAlignmentSets = conf.getInt("smrtflow.mock.alignmentsets")
-  val numReferenceSets = conf.getInt("smrtflow.mock.referencesets")
-
-  val db = Database.forConfig("smrtflow.db")
-
-  val dao = new JobsDao(db, resolver)
-
-  def runner(args: Array[String]): Int = {
-    println(s"Loading DB ${dao.db}")
-
-    val startedAt = JodaDateTime.now()
-
-    println(
-      s"Jobs     to import -> pbsmrtpipe:$maxPbsmrtpipeJobs import-dataset:$maxImportDataSetJobs")
-    println(
-      s"DataSets to import -> SubreadSets:$numSubreadSets alignmentsets:$numAlignmentSets")
-
-    val fsummary = dao.getSystemSummary("Initial System Summary")
-
-    fsummary onSuccess { case summary => println(summary) }
-
-    val fx = for {
-      _ <- fsummary
-      _ <- insertMockProject()
-      _ <- insertDummySubreadSets(numSubreadSets)
-      _ <- insertMockAlignmentDataSets(numAlignmentSets)
-      _ <- insertMockJobs(maxPbsmrtpipeJobs, "pbsmrtpipe", numChunks)
-      _ <- insertMockJobs(maxImportDataSetJobs, "import-dataset", numChunks)
-      _ <- insertMockJobEventsForMockJobs(numChunks)
-      _ <- insertMockDataStoreFilesForMockJobs(5, numChunks)
-      _ <- insertMockJobDatasets(numChunks)
-      sx <- dao.getSystemSummary("Final System Summary")
-    } yield sx
-
-    val result = Await.result(fx, Duration.Inf)
-    println(result)
-
-    val exitCode = 0
-    val runtime = new JodaDuration(startedAt, JodaDateTime.now())
-
-    println(
-      s"Exiting main with exit code $exitCode in ${runtime.getStandardSeconds} seconds")
-    // Not sure why this is necessary, but it is. Otherwise it will hang
-    System.exit(exitCode)
-    exitCode
-  }
-
-  runner(args)
-
 }

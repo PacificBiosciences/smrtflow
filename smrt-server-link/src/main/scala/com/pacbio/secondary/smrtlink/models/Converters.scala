@@ -61,11 +61,11 @@ object Converters extends DataSetMetadataUtils {
   private def getNumRecords(dataset: ReadSetType): Int =
     Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
 
-  def convert(dataset: SubreadSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): SubreadServiceDataSet = {
+  def convertSubreadSet(dataset: SubreadSet,
+                        path: Path,
+                        createdBy: Option[String],
+                        jobId: Int,
+                        projectId: Int): SubreadServiceDataSet = {
     // this is not correct, but the timestamps are often written correctly
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -177,11 +177,11 @@ object Converters extends DataSetMetadataUtils {
     )
   }
 
-  def convert(dataset: HdfSubreadSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): HdfSubreadServiceDataSet = {
+  def convertHdfSubreadSet(dataset: HdfSubreadSet,
+                           path: Path,
+                           createdBy: Option[String],
+                           jobId: Int,
+                           projectId: Int): HdfSubreadServiceDataSet = {
     // this is not correct
     val createdAt = JodaDateTime.now()
     val modifiedAt = createdAt
@@ -246,11 +246,11 @@ object Converters extends DataSetMetadataUtils {
     )
   }
 
-  def convert(dataset: ContigSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): ContigServiceDataSet = {
+  def convertContigSet(dataset: ContigSet,
+                       path: Path,
+                       createdBy: Option[String],
+                       jobId: Int,
+                       projectId: Int): ContigServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -282,11 +282,11 @@ object Converters extends DataSetMetadataUtils {
                          projectId)
   }
 
-  def convert(dataset: ReferenceSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): ReferenceServiceDataSet = {
+  def convertReferenceSet(dataset: ReferenceSet,
+                          path: Path,
+                          createdBy: Option[String],
+                          jobId: Int,
+                          projectId: Int): ReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -323,11 +323,11 @@ object Converters extends DataSetMetadataUtils {
   }
 
   // FIXME way too much code duplication here
-  def convert(dataset: GmapReferenceSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): GmapReferenceServiceDataSet = {
+  def convertGmapReferenceSet(dataset: GmapReferenceSet,
+                              path: Path,
+                              createdBy: Option[String],
+                              jobId: Int,
+                              projectId: Int): GmapReferenceServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -363,11 +363,11 @@ object Converters extends DataSetMetadataUtils {
     )
   }
 
-  def convert(dataset: AlignmentSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): AlignmentServiceDataSet = {
+  def convertAlignmentSet(dataset: AlignmentSet,
+                          path: Path,
+                          createdBy: Option[String],
+                          jobId: Int,
+                          projectId: Int): AlignmentServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -398,11 +398,11 @@ object Converters extends DataSetMetadataUtils {
                             projectId)
   }
 
-  def convert(dataset: ConsensusReadSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): ConsensusReadServiceDataSet = {
+  def convertConsensusReadSet(dataset: ConsensusReadSet,
+                              path: Path,
+                              createdBy: Option[String],
+                              jobId: Int,
+                              projectId: Int): ConsensusReadServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -434,11 +434,12 @@ object Converters extends DataSetMetadataUtils {
   }
 
   // FIXME consolidate with AlignmentSet implementation
-  def convert(dataset: ConsensusAlignmentSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): ConsensusAlignmentServiceDataSet = {
+  def convertConsensusAlignmentSet(
+      dataset: ConsensusAlignmentSet,
+      path: Path,
+      createdBy: Option[String],
+      jobId: Int,
+      projectId: Int): ConsensusAlignmentServiceDataSet = {
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct
     val createdAt = JodaDateTime.now()
@@ -469,11 +470,11 @@ object Converters extends DataSetMetadataUtils {
                                      projectId)
   }
 
-  def convert(dataset: BarcodeSet,
-              path: Path,
-              createdBy: Option[String],
-              jobId: Int,
-              projectId: Int): BarcodeServiceDataSet = {
+  def convertBarcodeSet(dataset: BarcodeSet,
+                        path: Path,
+                        createdBy: Option[String],
+                        jobId: Int,
+                        projectId: Int): BarcodeServiceDataSet = {
 
     val uuid = UUID.fromString(dataset.getUniqueId)
     // this is not correct

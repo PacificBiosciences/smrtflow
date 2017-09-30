@@ -80,7 +80,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       Future.successful(
         MessageResponse(s"skipping import of intermediate chunked file $ds"))
     } else {
-      dao.insertDataStoreFileById(ds, jobUUID)
+      dao.importDataStoreFile(ds, jobUUID)
     }
   }
 
