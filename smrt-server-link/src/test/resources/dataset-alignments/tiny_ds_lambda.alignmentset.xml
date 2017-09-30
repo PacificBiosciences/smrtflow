@@ -4,7 +4,7 @@
         xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         Tags="barcode moreTags mapping mytags"
-        UniqueId="b095d0a3-94b8-4918-b3af-a3f81bbe519c"
+        UniqueId="d8031faa-a5ad-11e7-abce-720003b94da0"
         TimeStampedName="alignmentset_150304_231155"
         MetaType="PacBio.DataSet.AlignmentSet"
         Name="Uber alignment set"
