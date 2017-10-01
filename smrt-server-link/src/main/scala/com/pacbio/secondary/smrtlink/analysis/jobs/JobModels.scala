@@ -107,6 +107,8 @@ object JobModels {
     // Default project ID; all datasets that aren't
     // in more specific projects get this ID
     val GENERAL_PROJECT_ID = 1
+    // THIS MUST BE GLOBALLY UNIQUE
+    val GENERAL_PROJECT_NAME = "General Project"
   }
 
   // This needs to be made a proper type
