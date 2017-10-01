@@ -98,6 +98,7 @@ class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
       PacBioTestData()
         .getFilesByType(FileTypes.DS_SUBREADS)
         .map { p =>
+          logger.info(s"loading SubreadSet from $p")
           val ds = DataSetLoader.loadSubreadSet(p)
           Converters.convertSubreadSet(ds, p, None, 1, 1)
         }

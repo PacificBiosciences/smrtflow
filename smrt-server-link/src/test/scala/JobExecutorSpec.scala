@@ -203,7 +203,7 @@ class JobExecutorSpec
       Get(toJobTypeById(JobTypeIds.MOCK_PBSMRTPIPE.id, 1)) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val engineJob = responseAs[EngineJob]
-        println(s"Got job $engineJob")
+        //println(s"Got job $engineJob")
         engineJob.state === AnalysisJobStates.SUCCESSFUL
         engineJob.jobTypeId === JobTypeIds.MOCK_PBSMRTPIPE.id
       }
