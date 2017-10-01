@@ -150,10 +150,17 @@ trait EventComponent {
 }
 
 trait ProjectDataStore extends LazyLogging {
-  this: DalComponent with SmrtLinkConstants =>
+  this: DalComponent with SmrtLinkConstants with DaoFutureUtils =>
 
   def getProjects(limit: Int = 1000): Future[Seq[Project]] =
     db.run(projects.filter(_.isActive).take(limit).result)
+
+  def getProjectByName(name: String): Future[Project] = {
+    val q = projects.filter(_.name === name)
+
+    db.run(q.result.headOption)
+      .flatMap(failIfNone(s"Unable to find project '$name'"))
+  }
 
   def getProjectById(projId: Int): Future[Option[Project]] =
     db.run(projects.filter(_.id === projId).result.headOption)
@@ -1087,6 +1094,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   }
   // Util func for composing the composition of loading the dataset and translation to
   // a necessary file formats.
+  // Note, DsServiceJobFile has projectId, jobId is used to populated
+  // the ServiceDataSetMetadata
   private def loadImportAbleServiceFileLoader[T <: DataSetType,
                                               X <: ServiceDataSetMetadata,
                                               Y <: ImportAbleServiceFile](
@@ -1095,11 +1104,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       g: ((DsServiceJobFile, X) => Y))(dsj: DsServiceJobFile): Y = {
     val path = Paths.get(dsj.file.path)
     val dataset = loader(path)
+
+    logger.debug(
+      s"Converting DataSet${dataset.getUniqueId} with projectId ${dsj.projectId}")
     val sds = converter(dataset,
                         path.toAbsolutePath,
                         dsj.createdBy,
-                        dsj.jobId,
+                        dsj.file.jobId,
                         dsj.projectId)
+    logger.debug(
+      s"Converted DataSet id:${sds.id} uuid:${sds.uuid} jobId:${sds.jobId} projectId:${sds.projectId}")
+
     g(dsj, sds)
   }
 
@@ -1236,6 +1251,70 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported DSF ${ds.uuid} type:${ds.fileTypeId}"))
   }
 
+  type U = slick.profile.FixedSqlAction[Int,
+                                        slick.dbio.NoStream,
+                                        slick.dbio.Effect.Write]
+
+  private def insertSubreadSetRecord(dsId: Int, ds: SubreadServiceDataSet)
+    : DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
+
+    dsSubread2 returning dsSubread2.map(_.id) forceInsert SubreadServiceSet(
+      dsId,
+      ds.uuid,
+      ds.cellId,
+      ds.metadataContextId,
+      ds.wellSampleName,
+      ds.wellName,
+      ds.bioSampleName,
+      ds.cellIndex,
+      ds.instrumentName,
+      ds.instrumentName,
+      ds.runName,
+      ds.instrumentControlVersion,
+      ds.dnaBarcodeName
+    )
+  }
+
+  private def insertHdfSubreadSetRecord(dsId: Int,
+                                        ds: HdfSubreadServiceDataSet)
+    : DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
+    dsHdfSubread2 forceInsert HdfSubreadServiceSet(
+      dsId,
+      ds.uuid,
+      "cell-id",
+      ds.metadataContextId,
+      ds.wellSampleName,
+      ds.wellName,
+      ds.bioSampleName,
+      ds.cellIndex,
+      ds.instrumentName,
+      ds.instrumentName,
+      ds.runName,
+      "instrument-ctr-version"
+    )
+  }
+
+  private def checkForServiceMetaData(
+      ds: DataStoreServiceFile,
+      fileType: String,
+      action: DBIO[Unit]): DBIO[MessageResponse] = {
+    dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
+      case false =>
+        logger.info(
+          s"Job id:${ds.jobId} Attempting to import DataStorefile/$fileType uud:${ds.uuid} path:${ds.path}")
+        action.map(
+          _ =>
+            MessageResponse(
+              s"Job id:${ds.jobId} DataStoreFile ${ds.uuid} already exists"))
+      case true =>
+        logger.info(
+          s"Job id:${ds.jobId} DataStore file already imported. $fileType uuid:${ds.uuid} path:${ds.path}")
+        DBIO.successful(
+          MessageResponse(
+            s"Job id:${ds.jobId} DataStoreFile ${ds.uuid} already exists"))
+    }
+  }
+
   /**
     *
     * The motivation for this is very unclear. This means a datastore file will potentially have the
@@ -1244,114 +1323,45 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     *
     * This has three steps:
     *
-    * 0 Precheck. Check if dataset meta exists and datastore file exists (see comments above)
+    * 0  Precheck. Check if dataset meta exists and datastore file exists (see comments above)
     * 1. Import DataSetMeta
     * 2. Import Specific DataSet
     * 3. Import DataStoreFile
     */
   def importSubreadSet(i: ImportAbleSubreadSet): Future[MessageResponse] = {
     val ds = i.file
+    val action0 = insertMetaData(i.file)
+      .flatMap(i => insertSubreadSetRecord(i, ds))
 
-    val ft = DataSetMetaTypes.Subread
-    // Is this a single transaction?
-    val action0 = insertMetaData(i.file).map { id: Int =>
-      dsSubread2 forceInsert SubreadServiceSet(
-        id,
-        ds.uuid,
-        ds.cellId,
-        ds.metadataContextId,
-        ds.wellSampleName,
-        ds.wellName,
-        ds.bioSampleName,
-        ds.cellIndex,
-        ds.instrumentName,
-        ds.instrumentName,
-        ds.runName,
-        ds.instrumentControlVersion,
-        ds.dnaBarcodeName
-      )
-    }
-
-    val action = DBIO.seq(
+    val action: DBIO[Unit] = DBIO.seq(
       action0,
       datastoreServiceFiles += i.ds.file
     )
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
 
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val ft = DataSetMetaTypes.HdfSubread
-    // Is this a single transaction?
-    val action0 = insertMetaData(i.file).map { id: Int =>
-      dsHdfSubread2 forceInsert HdfSubreadServiceSet(
-        id,
-        ds.uuid,
-        "cell-id",
-        ds.metadataContextId,
-        ds.wellSampleName,
-        ds.wellName,
-        ds.bioSampleName,
-        ds.cellIndex,
-        ds.instrumentName,
-        ds.instrumentName,
-        ds.runName,
-        "instrument-ctr-version"
-      )
-    }
+    val action0 = insertMetaData(i.file)
+      .flatMap(i => insertHdfSubreadSetRecord(i, ds))
 
     val action = DBIO.seq(
       action0,
       datastoreServiceFiles += i.ds.file
     )
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importAlignmentSet(i: ImportAbleAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val ft = DataSetMetaTypes.Alignment
-    // Is this a single transaction?
     val action0 = insertMetaData(i.file).map { id: Int =>
       dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
     }
@@ -1361,34 +1371,16 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       datastoreServiceFiles += i.ds.file
     )
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
 
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importImportAbleBarcodeSet(
       i: ImportAbleBarcodeSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val ft = DataSetMetaTypes.Barcode
-    // Is this a single transaction?
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id =>
       dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
     }
 
@@ -1397,173 +1389,69 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       datastoreServiceFiles += i.ds.file
     )
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importImportAbleConsensusReadSet(
       i: ImportAbleConsensusReadSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val ft = DataSetMetaTypes.CCS
-    // Is this a single transaction?
     val action0 = insertMetaData(i.file).map { id: Int =>
       dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
     }
 
-    val action = DBIO.seq(
-      action0,
-      datastoreServiceFiles += i.ds.file
-    )
+    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importImportAbleConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val ft = DataSetMetaTypes.AlignmentCCS
-    // Is this a single transaction?
     val action0 = insertMetaData(i.file).map { id: Int =>
       dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
     }
 
-    val action = DBIO.seq(
-      action0,
-      datastoreServiceFiles += i.ds.file
-    )
+    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importImportAbleContigSet(
       i: ImportAbleContigSet): Future[MessageResponse] = {
     val ds = i.ds.file
 
-    val ft = DataSetMetaTypes.Contig
-    // Is this a single transaction?
     val action0 = insertMetaData(i.file).map { id: Int =>
       dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
     }
 
-    val action = DBIO.seq(
-      action0,
-      datastoreServiceFiles += ds
-    )
+    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.toString} uud:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ${ft.toString} uuid:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(
-        _ =>
-          MessageResponse(
-            s"Successfully imported ${ft.toString} ${i.file.uuid}"))
   }
 
   def importReferenceSet(i: ImportAbleReferenceSet): Future[MessageResponse] = {
-
     val ds = i.ds.file
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id =>
       dsReference2 forceInsert ReferenceServiceSet(id,
                                                    i.file.uuid,
                                                    i.file.ploidy,
                                                    i.file.organism)
     }
 
-    val action = DBIO.seq(
-      action0,
-      datastoreServiceFiles += ds
-    )
+    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
 
-    // see comments above in docstring
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/ReferenceSet:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ReferenceSet:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(_ =>
-        MessageResponse(s"Successfully imported SubreadSet ${i.file.uuid}"))
   }
 
   def importGmapReferenceSet(
       i: ImportAbleGmapReferenceSet): Future[MessageResponse] = {
-    val ft = DataSetMetaTypes.GmapReference
-
     val ds = i.ds.file
     val action0 = insertMetaData(i.file).map { id: Int =>
       dsReference2 forceInsert ReferenceServiceSet(id,
@@ -1572,27 +1460,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                                                    i.file.organism)
     }
 
-    val action = DBIO.seq(
-      action0,
-      datastoreServiceFiles += ds
-    )
+    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
 
-    val ax =
-      dsMetaData2.filter(_.uuid === ds.uuid).exists.result.flatMap {
-        case false =>
-          logger.info(
-            s"Attempting to import DataStorefile/${ft.shortName}:${ds.uuid} path:${ds.path}")
-          action
-        case true =>
-          logger.info(
-            s"DataStore file already imported. ReferenceSet:${ds.uuid} path:${ds.path}")
-          DBIO.successful(
-            MessageResponse(s"DataStoreFile ${ds.uuid} already exists"))
-      }
-
+    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
     db.run(ax.transactionally)
-      .map(_ =>
-        MessageResponse(s"Successfully imported SubreadSet ${i.file.uuid}"))
   }
 
   private def importImportAbleFile[T >: ImportAbleServiceFile](
@@ -1642,9 +1513,16 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     *
     * THIS IS THE NEW PUBLIC INTERFACE THAT SHOULD BE USED from the Job interface to
     * import datastore files.
+    *
+    * With regards to how the project is is propagated, there's a bit of disconnect
+    * in the models. If an explicit project id is not passed in, the project id
+    * of the companion job (from the jobUUID) project id will be used.
+    *
     */
-  def importDataStoreFiles(files: Seq[DataStoreFile],
-                           jobId: UUID): Future[Seq[MessageResponse]] = {
+  def importDataStoreFiles(
+      files: Seq[DataStoreFile],
+      jobId: UUID,
+      projectId: Option[Int] = None): Future[Seq[MessageResponse]] = {
     for {
       job <- getJobById(jobId)
       serviceFiles <- Future.successful(files.map(f =>
@@ -1652,9 +1530,12 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       _ <- andLog(
         s"Attempting to import datastore with ${serviceFiles.length} files for job ${job.id}")
       importAbleFiles <- Future.successful(
-        serviceFiles.map(dsf =>
-          loadImportAbleFile(
-            DsServiceJobFile(dsf, job.createdBy, job.projectId, job.id))))
+        serviceFiles.map(
+          dsf =>
+            loadImportAbleFile(
+              DsServiceJobFile(dsf,
+                               job.createdBy,
+                               projectId.getOrElse(job.projectId)))))
       messages <- Future.sequence(importAbleFiles.map(importImportAbleFile))
       _ <- andLog(
         s"Successfully import datastore with import-able (${importAbleFiles.length} files) for job ${job.id}")
@@ -1663,13 +1544,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   /**
     * PUBLIC INTERFACE THAT SHOULD BE USED for importing a Single DataStoreFile
+    *
+    * See comments above with regards to the project id propagation.
     */
-  def importDataStoreFile(file: DataStoreFile,
-                          jobId: UUID): Future[MessageResponse] = {
-    importDataStoreFiles(Seq(file), jobId).map(
+  def importDataStoreFile(
+      file: DataStoreFile,
+      jobId: UUID,
+      projectId: Option[Int] = None): Future[MessageResponse] = {
+    importDataStoreFiles(Seq(file), jobId, projectId).map(
       _ =>
         MessageResponse(
-          s"Successfuly imported ${file.uniqueId} ${file.fileTypeId}"))
+          s"Successfully imported ${file.uniqueId} ${file.fileTypeId}"))
   }
 
   def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =

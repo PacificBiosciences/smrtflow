@@ -782,8 +782,7 @@ case class DataSetMergeServiceOptions(datasetType: String,
 // Util container. This should be named better
 case class DsServiceJobFile(file: DataStoreServiceFile,
                             createdBy: Option[String],
-                            projectId: Int,
-                            jobId: Int)
+                            projectId: Int)
 
 sealed trait ImportAbleServiceFile {
   val ds: DsServiceJobFile

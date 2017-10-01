@@ -5,12 +5,12 @@ import java.net.URL
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.analysis.bio.FastaMockUtils
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
+import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
@@ -153,7 +153,7 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
     val uuid = UUID.randomUUID()
     val nrecords = 100
     val p = rootDir.resolve(s"mock-${uuid.toString}.fasta")
-    FastaMockUtils.writeMockFastaFile(nrecords, p)
+    MockFileUtils.writeMockFastaFile(nrecords, p)
     DataStoreFile(
       uuid,
       "mock-pbsmrtpipe",
@@ -191,9 +191,9 @@ class PbSmrtpipeMockJob(opts: MockPbSmrtPipeJobOptions)
     val dsFiles = toMockDataStoreFiles(job.path)
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
-      logPath,
-      "Job Master log of the Import Dataset job")
+    val logFile =
+      toMasterDataStoreFile(logPath,
+                            "Job Master log of the Import Dataset job")
 
     // This must follow the pbreport id format
     val reportId = "smrtflow_mock_job_report"
