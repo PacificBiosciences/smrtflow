@@ -98,40 +98,33 @@ object Converters extends DataSetMetadataUtils {
     } getOrElse -1
     val wellName =
       metadata
-        .map(m => Option(m.getWellSample).map(_.getWellName))
-        .flatten
+        .flatMap(m => Option(m.getWellSample).map(_.getWellName))
         .getOrElse(DEFAULT_WELL_NAME)
     val runName = metadata
-      .map(m => Option(m.getRunDetails).map(_.getName))
-      .flatten
+      .flatMap(m => Option(m.getRunDetails).map(_.getName))
       .map(s => if (s == null) DEFAULT_RUN_NAME else s)
       .getOrElse(DEFAULT_RUN_NAME)
     val metadataCreatedBy =
-      metadata
-        .map(m => Option(m.getRunDetails).map(_.getCreatedBy))
-        .flatten
+      metadata.flatMap(m => Option(m.getRunDetails).map(_.getCreatedBy))
     val contextId =
       metadata
-        .map(m => Option(m.getContext))
-        .flatten
+        .flatMap(m => Option(m.getContext))
         .getOrElse(DEFAULT_CONTEXT)
     val instrumentName =
       metadata
-        .map(m => Option(m.getInstrumentName))
-        .flatten
+        .flatMap(m => Option(m.getInstrumentName))
         .getOrElse(DEFAULT_INST)
     val instrumentControlVersion =
       metadata
-        .map(m => Option(m.getInstCtrlVer))
-        .flatten
+        .flatMap(m => Option(m.getInstCtrlVer))
         .getOrElse(DEFAULT_INST_CTL_VERSION)
 
     // This one is slightly messier because we need to handle the case of
     // multiple bio samples
     val bioSampleName = getNameOrDefault(getBioSampleNames(dataset))
     val barcodes = getDnaBarcodeNames(dataset)
-    val dnaBarcodeName = {
-      if (barcodes.size == 0) None
+    val dnaBarcodeName: Option[String] = {
+      if (barcodes.isEmpty) None
       else if (barcodes.size > 1) Some(MULTIPLE_SAMPLES_NAME)
       else Some(barcodes.head)
     }
