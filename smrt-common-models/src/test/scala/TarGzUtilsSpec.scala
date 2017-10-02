@@ -4,9 +4,7 @@ import java.nio.file.{Files, Paths}
 
 import org.apache.commons.io.FileUtils
 
-
-class TarGzUtilsSpec extends Specification{
-
+class TarGzUtilsSpec extends Specification {
 
   "Sanity Test for reading and writing tar.gz files" should {
     "Write TGZ file and unzip " in {
@@ -42,7 +40,6 @@ class TarGzUtilsSpec extends Specification{
 
       FileUtils.readFileToString(outF1.toFile) must beEqualTo(content)
       FileUtils.readFileToString(outSubF1.toFile) must beEqualTo(content)
-
 
       // Cleanup
       FileUtils.deleteQuietly(t.toFile)
