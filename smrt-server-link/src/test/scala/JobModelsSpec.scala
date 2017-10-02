@@ -9,7 +9,9 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   SecondaryJobProtocols
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.jobtypes.ImportFastaJobOptions
 import org.joda.time.{DateTime => JodaDateTime}
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import org.specs2.mutable.Specification
 import spray.json._
 
@@ -20,7 +22,7 @@ class JobModelsSpec extends Specification {
 
   import JobModels._
   import OptionTypes._
-  import SecondaryJobProtocols._
+  import SmrtLinkJsonProtocols._
 
   sequential
 
@@ -163,10 +165,11 @@ class JobModelsSpec extends Specification {
         ServiceTaskStrOption("id-d", "Hello, world", STR.optionTypeId),
         ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId)
       )
-      val pp = PipelineTemplatePreset("preset-id-01",
-                                      "pipeline-id-01",
-                                      opts,
-                                      taskOpts)
+      val pp =
+        PipelineTemplatePreset("preset-id-01",
+                               "pipeline-id-01",
+                               opts,
+                               taskOpts)
       val j = pp.toJson
       val ppp = j.convertTo[PipelineTemplatePreset]
       //ppp must beEqualTo(pp)
@@ -361,16 +364,18 @@ class JobModelsSpec extends Specification {
       opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
     "ConvertImportFastaOptions" in {
-      val o = ConvertImportFastaOptions("/path/to/genome.fasta",
-                                        "My Genome",
-                                        "haploid",
-                                        "Homo sapiens",
-                                        666)
-      val oj = o.toJson.convertTo[ConvertImportFastaOptions]
-      oj.projectId must beEqualTo(666)
+      val o = ImportFastaJobOptions("/path/to/genome.fasta",
+                                    "My Genome",
+                                    "haploid",
+                                    Some("Homo sapiens"),
+                                    None,
+                                    Some(666))
+      val oj = o.toJson.convertTo[ImportFastaJobOptions]
+      oj.projectId must beSome(666)
+
       val opts = getJson("import_fasta_options.json")
-        .convertTo[ConvertImportFastaOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
+        .convertTo[ImportFastaJobOptions]
+      opts.projectId must beSome(JobConstants.GENERAL_PROJECT_ID)
     }
   }
 }
