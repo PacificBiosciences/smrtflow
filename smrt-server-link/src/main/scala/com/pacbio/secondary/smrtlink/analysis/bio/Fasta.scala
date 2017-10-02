@@ -36,48 +36,6 @@ class FastaIterator(file: File, truncateWhiteSpace: Boolean = true)
   */
 case class FastaRecord(id: String, header: String, sequence: Seq[Char])
 
-/**
-  * THIS ALL NEEDS TO BE DELETED
-  */
-trait FastaReader extends PacBioFileReader[Seq[FastaRecord]] {
-
-  def loadFrom(file: File): Seq[FastaRecord] = {
-
-    logger.debug(s"Parsing file $file")
-    def lineToId(s: String): String = {
-      s.split(" ")(0).tail
-    }
-
-    var header = ""
-    var seq = ""
-
-    var records = new mutable.MutableList[FastaRecord]()
-
-    val source = Source.fromFile(file)
-    val it = source.getLines()
-    while (it.hasNext) {
-      val s = it.next()
-      s match {
-        case s: String if s.startsWith(">") && seq != "" =>
-          records += FastaRecord(lineToId(header), header, seq)
-        case s: String if s.startsWith(">") =>
-          // Reinitialize
-          seq = ""
-          header = s
-        case s: String =>
-          seq += s
-      }
-    }
-    // Last Record
-    if (seq != "") {
-      // Empty case
-      records += FastaRecord(lineToId(header), header, seq)
-    }
-    records.toList
-  }
-
-}
-
 trait FastaWriter extends LazyLogging {
   def writeRecords(f: File, records: Seq[FastaRecord]): Unit = {
     val bw = new BufferedWriter(new FileWriter(f))
@@ -94,4 +52,4 @@ trait FastaWriter extends LazyLogging {
 
 }
 
-object Fasta extends FastaReader with FastaWriter
+object FastaWriter extends FastaWriter
