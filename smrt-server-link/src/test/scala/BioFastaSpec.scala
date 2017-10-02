@@ -1,13 +1,14 @@
-import java.nio.file.{Files, Paths}
+import java.net.URI
+import java.nio.file.{Files, Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.bio.{Fasta, FastaIterator}
+import com.pacbio.secondary.smrtlink.analysis.bio.{FastaIterator, FastaWriter}
 import org.specs2.mutable._
-import com.pacbio.secondary.smrtlink.analysis.bio.Fasta
 import com.pacbio.secondary.smrtlink.analysis.converters.{
   FastaIndexWriter,
   InvalidPacBioFastaError,
   PacBioFastaValidator
 }
+import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 
 /**
   * Created by mkocher on 3/14/15.
@@ -30,6 +31,18 @@ class BioFastaSpec extends Specification {
         None
     }
   }
+  def getResource(name: String): URI = {
+    getClass.getResource(name).toURI
+  }
+
+  def getFastaIter(name: String): FastaIterator = {
+    new FastaIterator(Paths.get(getResource(name)).toFile)
+  }
+
+  def getNumRecords(name: String): Int = {
+    val iter = getFastaIter(name)
+    iter.toSeq.length
+  }
 
   "Load example Fasta file" should {
     "Load fasta iterator" in {
@@ -40,16 +53,15 @@ class BioFastaSpec extends Specification {
       names === expectedNames
     }
     "Parse file sanity test" in {
-      val uri = getClass.getResource("small.fasta")
-      val records = Fasta.loadFrom(uri)
-      records.length must beEqualTo(5)
-      val faidx = new FastaIndexWriter {}.createFaidx(Paths.get(uri.getPath()))
+      val name = "small.fasta"
+      val numRecords = getNumRecords(name)
+      numRecords === 5
+      val faidx = new FastaIndexWriter {}
+        .createFaidx(Paths.get(getResource(name).getPath))
       Files.exists(Paths.get(faidx)) must beTrue
     }
     "Example file" in {
-      val uri = getClass.getResource("example_01.fasta")
-      val records = Fasta.loadFrom(uri)
-      records.length must beEqualTo(2)
+      getNumRecords("example_01.fasta") === 2
     }
     "Simple validate" in {
       val name = "small.fasta"
@@ -135,6 +147,18 @@ class BioFastaSpec extends Specification {
     "Good: DOS line breaks" in {
       val name = "pacbio-fasta-spec-files/good_dos_format.fasta"
       validateFile(name) must not beSome
+    }
+    "Write fasta Records to File" in {
+      val numRecords = 10
+      val records = MockFileUtils.mockRecords(numRecords)
+      val tmpFastaPath = Files.createTempFile("file", ".fasta")
+      val tmpFastaFile = tmpFastaPath.toFile
+
+      FastaWriter.writeRecords(tmpFastaFile, records)
+
+      val iter = new FastaIterator(tmpFastaFile)
+
+      iter.toSeq.length === numRecords
     }
   }
 }

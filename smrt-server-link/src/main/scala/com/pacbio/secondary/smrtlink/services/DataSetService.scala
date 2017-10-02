@@ -39,7 +39,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelSpraySupport._
-import com.pacbio.secondary.smrtlink.analysis.bio.{Fasta, FastaIterator}
+import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 

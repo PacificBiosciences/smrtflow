@@ -5,10 +5,10 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   JobModels,
-  OptionTypes,
-  SecondaryJobProtocols
+  OptionTypes
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.jobtypes.ImportFastaJobOptions
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
@@ -18,7 +18,7 @@ import spray.json._
 import scala.io.Source
 
 // XXX note that PipelineTemplate is tested in PipelineSpec.scala
-class JobModelsSpec extends Specification {
+class JobModelsSpec extends Specification with timeUtils {
 
   import JobModels._
   import OptionTypes._
@@ -234,7 +234,10 @@ class JobModelsSpec extends Specification {
     "PipelineTemplateViewRule" in {
       val rules =
         Seq(PipelineOptionViewRule("pbsmrtpipe.task_options.a", false, false),
-            PipelineOptionViewRule("pbsmrtpipe.task_options.b", true, true, Some(true)))
+            PipelineOptionViewRule("pbsmrtpipe.task_options.b",
+                                   true,
+                                   true,
+                                   Some(true)))
       val rule =
         PipelineTemplateViewRule("pipeline-1", "Rules", "My rules", rules)
       val jrule = rule.toJson.convertTo[PipelineTemplateViewRule]
@@ -259,6 +262,7 @@ class JobModelsSpec extends Specification {
       prule.toJson.convertTo[PipelineDataStoreViewRules] must beEqualTo(prule)
     }
     "JobTask" in {
+      val now = JodaDateTime.now()
       val t = JobTask(
         UUID.randomUUID(),
         1,
@@ -266,12 +270,19 @@ class JobModelsSpec extends Specification {
         "pbsmrtpipe.tasks.task1_tool_contract",
         "Task 1",
         AnalysisJobStates.SUCCESSFUL.toString,
-        JodaDateTime.now(),
-        JodaDateTime.now(),
+        now,
+        now,
         Some("Task 1 failed")
       )
       val tj = t.toJson.convertTo[JobTask]
-      tj.toString must beEqualTo(t.toString)
+
+      // Time parsing is not exactly lossy
+      val tju = tj.copy(updatedAt = now, createdAt = now)
+      tju === t
+
+      val dt = computeTimeDelta(tj.updatedAt, t.updatedAt)
+      dt must beLessThan(1)
+
       val ut = UpdateJobTask(1,
                              t.uuid,
                              AnalysisJobStates.SUCCESSFUL.toString,
