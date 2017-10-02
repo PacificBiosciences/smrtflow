@@ -56,7 +56,7 @@ trait ServiceJobTypeJsonProtocols
 
   implicit val entryPointDeferredJobFormat = jsonFormat3(DeferredEntryPoint)
   implicit val deferredJobFormat = jsonFormat7(DeferredJob)
-  implicit val multiAnalysisJobOptionsFormat = jsonFormat4(
+  implicit val multiAnalysisJobOptionsFormat = jsonFormat5(
     MultiAnalysisJobOptions)
 
 }

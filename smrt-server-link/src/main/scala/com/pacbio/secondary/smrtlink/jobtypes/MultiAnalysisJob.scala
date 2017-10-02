@@ -21,11 +21,22 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+/**
+  *
+  * @param jobs        Deferred jobs that should be run
+  * @param name        Name of the MultiJob
+  * @param description Description of the MultiJob
+  * @param projectId   Project id to assign the MultiJobs. If provided the children jobs
+  *                    do not have an explicit project Id assigned, the mulit-job
+  *                    project id will be used.
+  * @param submit      To submit the job after creation. This will make the job unedtiable.
+  */
 case class MultiAnalysisJobOptions(jobs: Seq[DeferredJob],
                                    name: Option[String],
                                    description: Option[String],
                                    projectId: Option[Int] = Some(
-                                     JobConstants.GENERAL_PROJECT_ID))
+                                     JobConstants.GENERAL_PROJECT_ID),
+                                   submit: Option[Boolean] = Some(false))
     extends ServiceMultiJobOptions {
 
   override def jobTypeId = JobTypeIds.MJOB_MULTI_ANALYSIS

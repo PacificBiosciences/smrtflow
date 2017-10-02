@@ -29,10 +29,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbsmrtpipeJobUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{Authenticator, AuthenticatorProvider}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
@@ -69,7 +66,7 @@ object JobResourceUtils extends LazyLogging {
       .filter(x => x.getName == imageFileName)
     it.toList.headOption match {
       case Some(x) => Some(x.toPath.toAbsolutePath.toString)
-      case _ => None
+      case _       => None
     }
   }
 
@@ -289,7 +286,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                 complete {
                   created {
                     val f = jobId match {
-                      case IntIdAble(n) => Future.successful(n)
+                      case IntIdAble(n)  => Future.successful(n)
                       case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)
                     }
                     f.map { intId =>
@@ -753,10 +750,9 @@ class TsJobBundleJobsService(override val dao: JobsDao,
   override def jobTypeId = JobTypeIds.TS_JOB
 }
 
-class TsSystemStatusBundleJobsService(
-    override val dao: JobsDao,
-    override val authenticator: Authenticator,
-    override val config: SystemJobConfig)(
+class TsSystemStatusBundleJobsService(override val dao: JobsDao,
+                                      override val authenticator: Authenticator,
+                                      override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions],
     implicit val sm: Marshaller[TsSystemStatusBundleJobOptions],
     implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions])
@@ -796,6 +792,35 @@ class MultiAnalysisJobService(override val dao: JobsDao,
   def validateStateIsCreated(job: EngineJob, msg: String): Future[EngineJob] = {
     if (job.state == AnalysisJobStates.CREATED) Future.successful(job)
     else Future.failed(new UnprocessableEntityError(msg))
+  }
+
+  /**
+    * Customization for to enable "auto" submit at creation time.
+    *
+    * For the submit case, this might need to have a more explicit
+    * interface to validate that entry points are resolvable
+    * when the job is moved to submitted. However, it depends on how the
+    * client wants to run the jobs.
+    *
+    */
+  override def createJob(opts: MultiAnalysisJobOptions,
+                         user: Option[UserRecord]): Future[EngineJob] = {
+
+    val submitMsg = "Submitted at Creation time by submit=true"
+
+    if (opts.submit.getOrElse(false)) {
+      for {
+        job <- super.createJob(opts, user)
+        msg <- dao.updateMultiJobState(job.id,
+                                       AnalysisJobStates.SUBMITTED,
+                                       job.workflow.parseJson.asJsObject,
+                                       submitMsg,
+                                       None)
+        updatedJob <- dao.getJobById(job.id)
+      } yield updatedJob
+    } else {
+      super.createJob(opts, user)
+    }
   }
 
   // Note, there's several explicit calls to toJson(jwriter) to avoid ambigous implicit issues.
