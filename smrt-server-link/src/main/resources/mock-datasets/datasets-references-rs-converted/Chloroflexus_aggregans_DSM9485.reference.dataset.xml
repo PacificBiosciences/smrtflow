@@ -1,28 +1,40 @@
-<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet" Name="Chloroflexus_aggregans_DSM9485" CreatedAt="2015-09-08T17:10:58.387-07:00" UniqueId="586beef0-9666-4627-b403-751f32a67f29" Version="0.5.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
-        <!-- Written by reference-info-to-dataset-->
-        <pbbase:ExternalResources>
-          <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file." MetaType="PacBio.ReferenceFile.ReferenceFastaFile" ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta" UniqueId="3f0b7f4a-5c60-4937-8ae4-62c0a573b707" TimeStampedName="3f0b7f4a-5c60-4937-8ae4-62c0a573b707_tsn" Tags="converted">
+<pbds:ReferenceSet TimeStampedName="referenceset_150304_231155" MetaType="PacBio.DataSet.ReferenceSet"
+                   Name="Chloroflexus_aggregans_DSM9485" CreatedAt="2015-09-08T17:10:58.387-07:00"
+                   UniqueId="f86beef0-9666-4627-b403-751f32a67f29" Version="0.5.2"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd"
+                   xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">
+    <!-- Written by reference-info-to-dataset-->
+    <pbbase:ExternalResources>
+        <pbbase:ExternalResource Name="First References FASTA" Description="Points to an example references FASTA file."
+                                 MetaType="PacBio.ReferenceFile.ReferenceFastaFile"
+                                 ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta"
+                                 UniqueId="ff0b7f4a-5c60-4937-8ae4-62c0a573b707"
+                                 TimeStampedName="3f0b7f4a-5c60-4937-8ae4-62c0a573b707_tsn" Tags="converted">
             <pbbase:FileIndices>
-              <pbbase:FileIndex UniqueId="5354f9c9-89fd-4963-a8d8-8d072e2d01c1" TimeStampedName="5354f9c9-89fd-4963-a8d8-8d072e2d01c1_tsn" MetaType="PacBio.FileTypes.SamIndex" ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.index"/><pbbase:FileIndex UniqueId="5bfaecc3-202c-4b64-a717-892ae498f84b" TimeStampedName="5bfaecc3-202c-4b64-a717-892ae498f84b_tsn" MetaType="PacBio.FileTypes.SaWriterIndex" ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.sa"/><pbbase:FileIndex UniqueId="4ade02ab-e235-41d5-bf11-39ceb9c47c51" TimeStampedName="4ade02ab-e235-41d5-bf11-39ceb9c47c51_tsn" MetaType="sam_idx" ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.fai"/>
+                <pbbase:FileIndex UniqueId="f354f9c9-89fd-4963-a8d8-8d072e2d01c1"
+                                  TimeStampedName="5354f9c9-89fd-4963-a8d8-8d072e2d01c1_tsn"
+                                  MetaType="PacBio.FileTypes.SamIndex"
+                                  ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.index"/>
+                <pbbase:FileIndex UniqueId="fbfaecc3-202c-4b64-a717-892ae498f84b"
+                                  TimeStampedName="5bfaecc3-202c-4b64-a717-892ae498f84b_tsn"
+                                  MetaType="PacBio.FileTypes.SaWriterIndex"
+                                  ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.sa"/>
+                <pbbase:FileIndex UniqueId="fade02ab-e235-41d5-bf11-39ceb9c47c51"
+                                  TimeStampedName="4ade02ab-e235-41d5-bf11-39ceb9c47c51_tsn" MetaType="sam_idx"
+                                  ResourceId="./sequence/Chloroflexus_aggregans_DSM9485.fasta.fai"/>
             </pbbase:FileIndices>
-          </pbbase:ExternalResource>
-        </pbbase:ExternalResources>
+        </pbbase:ExternalResource>
+    </pbbase:ExternalResources>
 
-        <pbds:DataSetMetadata>
-          <pbds:TotalLength>
-            4684931
-          </pbds:TotalLength>
-          <pbds:NumRecords>
-            1
-          </pbds:NumRecords>
-          <pbds:Organism>
-            Chloroflexus_aggregans_DSM9485
-          </pbds:Organism>
-          <pbds:Ploidy>
-            unknown
-          </pbds:Ploidy>
-          <pbds:Contigs>
-            <pbds:Contig Name="ref000001" Description="gi|219541215|gb|CP001337.1| Chloroflexus aggregans DSM 9485, com" Length="4684931" Digest="04edc49018d6852dcffc3207e57905b9"/>
-          </pbds:Contigs>
-        </pbds:DataSetMetadata>
-      </pbds:ReferenceSet>
+    <pbds:DataSetMetadata>
+        <pbds:TotalLength>4684931</pbds:TotalLength>
+        <pbds:NumRecords>1</pbds:NumRecords>
+        <pbds:Organism>Chloroflexus_aggregans_DSM9485</pbds:Organism>
+        <pbds:Ploidy>unknown</pbds:Ploidy>
+        <pbds:Contigs>
+            <pbds:Contig Name="ref000001" Description="gi|219541215|gb|CP001337.1| Chloroflexus aggregans DSM 9485, com"
+                         Length="4684931" Digest="04edc49018d6852dcffc3207e57905b9"/>
+        </pbds:Contigs>
+    </pbds:DataSetMetadata>
+</pbds:ReferenceSet>

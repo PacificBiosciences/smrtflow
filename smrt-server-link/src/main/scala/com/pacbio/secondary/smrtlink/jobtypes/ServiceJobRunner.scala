@@ -80,7 +80,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       Future.successful(
         MessageResponse(s"skipping import of intermediate chunked file $ds"))
     } else {
-      dao.insertDataStoreFileById(ds, jobUUID)
+      dao.importDataStoreFile(ds, jobUUID)
     }
   }
 
@@ -103,8 +103,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       files <- Future.successful(
         loadFiles(dataStore.files, None).filter(!_.isChunked))
       validFiles <- Future.sequence(files.map(validateDsFile))
-      results <- Future.sequence(
-        validFiles.map(x => importDataStoreFile(x, jobUUID)))
+      results <- dao.importDataStoreFiles(validFiles, jobUUID)
     } yield results
   }
 
@@ -261,10 +260,28 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     * 5. Update db state of job
     * 6. Return an Either[ResultFailed,ResultSuccess]
     *
+    *
+    *
     * @param engineJob Engine Job to Run
-    * @return
+    * @param timeout The Total timeout to process/parse the output files and import them into the system. If
+    *                a pipeline produces N files and M different jobs complete at around the same time,
+    *                the this will impact the timeout (the M jobs will be competing for import processing). Specifically,
+    *                for the case when N is > 100.
+    *
+    *                In the job log, we need to add some diagnostics to see how long the total import takes. However,
+    *                in the meantime, here's a back of the envelop approximation based on these two factors.
+    *
+    *                1. Average per file process time of ~ 0.5 sec. Processing, is parsing NFS hosted file and import into db.
+    *                In practice this is a bimodal distribution of a raw DataStoreFile (which has no parsing overhead)
+    *                and a DataSet which will hit the disk and parse the XML. Note, the parse IO is completely decoupled from
+    *                the db insertion.
+    *                2. Approximate upper bound of files in a pipeline to be 300-400 datastore files.
+    *
+    *                This roughly translates to 3 total minutes for a single job to import successfully provided that
+    *                it is not competing with other importing or db processes.
+    *
     */
-  def run(engineJob: EngineJob)(implicit timeout: FiniteDuration = 30.seconds)
+  def run(engineJob: EngineJob)(implicit timeout: FiniteDuration = 3.minutes)
     : Either[ResultFailed, ResultSuccess] = {
 
     val startedAt = JodaDateTime.now()

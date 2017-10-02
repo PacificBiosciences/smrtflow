@@ -18,7 +18,7 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
   private def convertSubreads(name: String) = {
     val p = getPath(name)
     val ds = DataSetLoader.loadSubreadSet(p)
-    Converters.convert(ds, p, None, 1, 1)
+    Converters.convertSubreadSet(ds, p, None, 1, 1)
   }
 
   "Convert datasets to Scala services models" should {
@@ -39,8 +39,9 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.parentUuid === None
     }
     "SubreadSet with no biological samples" in {
-      val sds = convertSubreads(
-        "/dataset-subreads/m54008_160215_180009.subreadset.xml")
+      val sds =
+        convertSubreads(
+          "/dataset-subreads/m54008_160215_180009.subreadset.xml")
       sds.bioSampleName === Converters.UNKNOWN
       sds.wellSampleName === "dry_D01"
       sds.dnaBarcodeName === None
@@ -97,8 +98,9 @@ class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
       PacBioTestData()
         .getFilesByType(FileTypes.DS_SUBREADS)
         .map { p =>
+          logger.info(s"loading SubreadSet from $p")
           val ds = DataSetLoader.loadSubreadSet(p)
-          val sds = Converters.convert(ds, p, None, 1, 1)
+          Converters.convertSubreadSet(ds, p, None, 1, 1)
         }
         .size must beGreaterThan(0)
     }
@@ -107,7 +109,7 @@ class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
         .getFilesByType(FileTypes.DS_HDF_SUBREADS)
         .map { p =>
           val ds = DataSetLoader.loadHdfSubreadSet(p)
-          val sds = Converters.convert(ds, p, None, 1, 1)
+          Converters.convertHdfSubreadSet(ds, p, None, 1, 1)
         }
         .size must beGreaterThan(0)
     }

@@ -6,6 +6,7 @@ import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.semver.SemVersion
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
@@ -556,6 +557,22 @@ trait ServiceDataSetMetadata {
   val jobId: Int
   val projectId: Int
   val parentUuid: Option[UUID]
+
+  // MK. I'm not sure this is a good idea.
+  def toDataStoreFile(sourceId: String,
+                      fileType: FileTypes.FileType,
+                      fileSize: Long = 0L,
+                      isChunked: Boolean = false) =
+    DataStoreFile(uuid,
+                  sourceId,
+                  fileType.fileTypeId,
+                  fileSize,
+                  createdAt,
+                  createdAt,
+                  path,
+                  isChunked,
+                  name,
+                  "description")
 }
 
 case class SubreadServiceDataSet(
@@ -759,6 +776,57 @@ case class GmapReferenceServiceDataSet(id: Int,
 case class DataSetMergeServiceOptions(datasetType: String,
                                       ids: Seq[Int],
                                       name: String)
+
+// ImportAble models for interfacing to the DAO
+
+// Util container. This should be named better
+case class DsServiceJobFile(file: DataStoreServiceFile,
+                            createdBy: Option[String],
+                            projectId: Int)
+
+sealed trait ImportAbleServiceFile {
+  val ds: DsServiceJobFile
+}
+
+case class ImportAbleDataStoreFile(ds: DsServiceJobFile)
+    extends ImportAbleServiceFile
+
+case class ImportAbleSubreadSet(ds: DsServiceJobFile,
+                                file: SubreadServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleHdfSubreadSet(ds: DsServiceJobFile,
+                                   file: HdfSubreadServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleAlignmentSet(ds: DsServiceJobFile,
+                                  file: AlignmentServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleBarcodeSet(ds: DsServiceJobFile,
+                                file: BarcodeServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleConsensusReadSet(ds: DsServiceJobFile,
+                                      file: ConsensusReadServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleConsensusAlignmentSet(
+    ds: DsServiceJobFile,
+    file: ConsensusAlignmentServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleContigSet(ds: DsServiceJobFile,
+                               file: ContigServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleReferenceSet(ds: DsServiceJobFile,
+                                  file: ReferenceServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleGmapReferenceSet(ds: DsServiceJobFile,
+                                      file: GmapReferenceServiceDataSet)
+    extends ImportAbleServiceFile
 
 // Project models
 

@@ -91,7 +91,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
                      worker: ActorRef): Future[String] = {
     // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
     // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    implicit val timeOut = Timeout(5.seconds)
+    implicit val timeOut = Timeout(15.seconds)
     val f: Future[String] = for {
       job <- dao.updateJobState(engineJob.id,
                                 AnalysisJobStates.RUNNING,
@@ -160,7 +160,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   // This should return a future
-  def checkForWork(timeout: FiniteDuration = 10.seconds): String = {
+  def checkForWork(timeout: FiniteDuration = 30.seconds): String = {
     // This must be blocking so that a different workers don't
     // pull the same job.
     val x1 = Await.result(checkForWorker(quickWorkers, true), timeout)

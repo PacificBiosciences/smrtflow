@@ -15,13 +15,11 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 class DataSetUtilsSpec
     extends Specification
     with DataSetMetadataUtils
-    with LazyLogging {
-
-  private def getPath(name: String) =
-    Paths.get(getClass.getResource(name).toURI)
+    with LazyLogging
+    with PacBioTestUtils {
 
   private def getSubreads(name: String) =
-    DataSetLoader.loadSubreadSet(getPath(name))
+    DataSetLoader.loadSubreadSet(getResourcePath(name))
 
   "Extract metadata from SubreadSet" should {
     "Get well sample record" in {
@@ -106,7 +104,7 @@ class DataSetUtilsSpec
 
   "Write updated XML files" should {
     "Update well and bio sample names" in {
-      var dsFile = getPath("/dataset-subreads/example_01.xml")
+      var dsFile = getResourcePath("/dataset-subreads/example_01.xml")
       var tmpFile = Files.createTempFile("updated", ".subreadset.xml")
       DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, resolvePaths = false) // no updates
       var ds = DataSetLoader.loadSubreadSet(tmpFile)
@@ -129,7 +127,8 @@ class DataSetUtilsSpec
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
-      dsFile = getPath("/dataset-subreads/pooled_sample.subreadset.xml")
+      dsFile =
+        getResourcePath("/dataset-subreads/pooled_sample.subreadset.xml")
       DataSetUpdateUtils.saveUpdatedCopy(dsFile,
                                          tmpFile,
                                          Some("foo"),
@@ -139,7 +138,8 @@ class DataSetUtilsSpec
       getBioSampleNames(ds) must beEqualTo(Seq("foo"))
       getWellSampleNames(ds) must beEqualTo(Seq("bar"))
       // failure mode
-      dsFile = getPath("/dataset-subreads/no_collections.subreadset.xml")
+      dsFile =
+        getResourcePath("/dataset-subreads/no_collections.subreadset.xml")
       val ERR = Some(
         "Error(s) occurred applying metadata updates: no well sample records are present; no well sample records are present")
       DataSetUpdateUtils.saveUpdatedCopy(dsFile,
@@ -151,7 +151,7 @@ class DataSetUtilsSpec
       ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq.empty[String])
       getBioSampleNames(ds) must beEqualTo(Seq.empty[String])
-      dsFile = getPath("/dataset-subreads/multi_sample.subreadset.xml")
+      dsFile = getResourcePath("/dataset-subreads/multi_sample.subreadset.xml")
       DataSetUpdateUtils.saveUpdatedCopy(dsFile,
                                          tmpFile,
                                          Some("foo"),

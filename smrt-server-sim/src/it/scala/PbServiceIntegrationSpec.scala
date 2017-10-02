@@ -1,11 +1,14 @@
 import java.nio.file.{Files, Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.bio.FastaMockUtils
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  ExternalCmdFailure,
+  ExternalToolsUtils,
+  PacBioTestData
+}
+import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
-
 
 /**
   * This requires that `pbservice` is in the PATH prior to running
@@ -22,7 +25,10 @@ import org.specs2.mutable.Specification
   * - pbcommand,pbsmrtpipe,pbcoretools,pbreports
   * - sawriter and ngmlr for FASTA to ReferenceSet
   */
-class PbServiceIntegrationSpec extends Specification with ConfigLoader with LazyLogging{
+class PbServiceIntegrationSpec
+    extends Specification
+    with ConfigLoader
+    with LazyLogging {
 
   // NOTE, these test must be run serially to avoid import dataset collisions
   // Or make each test uniquely import dataset types
@@ -37,7 +43,8 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
   // This will fail in a non-graceful manner if PB_TEST_DATA_FILES is not exported.
   val testData = PacBioTestData()
 
-  private def getByDataSetType(name: String) = testData.base.resolve(name).toAbsolutePath
+  private def getByDataSetType(name: String) =
+    testData.base.resolve(name).toAbsolutePath
 
   def getSubreadSetsPath(): Path = getByDataSetType("SubreadSet")
   def getLambdaPath(): Path = testData.getFile("lambdaNEB")
@@ -45,7 +52,8 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
   val DEEP_DEBUG = true
 
   def toCmd(args: String*): Seq[String] = {
-    val dx = if (DEEP_DEBUG) Seq("--log2stdout", "--debug") else Seq.empty[String]
+    val dx =
+      if (DEEP_DEBUG) Seq("--log2stdout", "--debug") else Seq.empty[String]
     Seq("pbservice") ++ args ++ dx
   }
 
@@ -84,10 +92,13 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
       runPbservice("import-dataset", getByDataSetType("AlignmentSet").toString) must beNone
     }
     "import-dataset ConsensusAlignmentSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("ConsensusAlignmentSet").toString) must beNone
+      runPbservice(
+        "import-dataset",
+        getByDataSetType("ConsensusAlignmentSet").toString) must beNone
     }
     "import-dataset ConsensusReadSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("ConsensusReadSet").toString) must beNone
+      runPbservice("import-dataset",
+                   getByDataSetType("ConsensusReadSet").toString) must beNone
     }
     "import-dataset ContigSet by Dir" in {
       runPbservice("import-dataset", getByDataSetType("ContigSet").toString) must beNone
@@ -125,7 +136,13 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
       runPbservice("get-job", "1") must beNone
     }
     "get-jobs -t merge-datasets --job-state SUCCESSFUL --max-items 10" in {
-      runPbservice("get-jobs", "--job-type", "merge-datasets", "--job-state", "SUCCESSFUL", "--max-items", "10") must beNone
+      runPbservice("get-jobs",
+                   "--job-type",
+                   "merge-datasets",
+                   "--job-state",
+                   "SUCCESSFUL",
+                   "--max-items",
+                   "10") must beNone
     }
     "get-alarms" in {
       runPbservice("get-alarms") must beNone
@@ -134,12 +151,14 @@ class PbServiceIntegrationSpec extends Specification with ConfigLoader with Lazy
       runPbservice("show-pipelines") must beNone
     }
     "import-barcodes" in {
-      val fastaPath = FastaMockUtils.writeMockTmpFastaFile()
-      runPbservice("import-barcodes", fastaPath.toAbsolutePath.toString, "MyBarcodes") must beNone
+      val fastaPath = MockFileUtils.writeMockTmpFastaFile()
+      runPbservice("import-barcodes",
+                   fastaPath.toAbsolutePath.toString,
+                   "MyBarcodes") must beNone
     }
     // This requires sawriter
     //    "import-fasta" in {
-    //      val fastaPath:Path = FastaMockUtils.writeMockTmpFastaFile()
+    //      val fastaPath:Path = MockFileUtils.writeMockTmpFastaFile()
     //      runPbservice("import-fasta", fastaPath.toAbsolutePath.toString, "--name", "MyRef", "--organism", "MyOrg", "--ploidy", "haploid", "--log2stdout")
     //    }
   }

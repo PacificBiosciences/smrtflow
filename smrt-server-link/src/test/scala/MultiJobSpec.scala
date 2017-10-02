@@ -246,16 +246,8 @@ class MultiJobSpec extends Specification {
       val dao = new TestDao
 
       val mjob = getTestMultiJob()
-      println(s"Initial MultiJob")
-      println(mjob.summary)
-
       val r1 = runMultiJob(dao, mjob)
-      println(s"After one iteration")
-      println(r1.summary)
-
       val r2 = runMultiJob(dao, r1)
-      println(s"After two iterations.")
-      println(r2.summary)
 
       // The test Dao will resolve after the first call to get the status of of job. Hence, 2 calls are necessary
       r2.state must beEqualTo(AnalysisJobStates.SUCCESSFUL)
