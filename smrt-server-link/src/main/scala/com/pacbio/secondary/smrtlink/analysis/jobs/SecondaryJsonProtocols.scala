@@ -453,32 +453,6 @@ trait JobOptionsProtocols
     }
   }
 
-  implicit object ConvertImportFastaOptionsFormat
-      extends RootJsonFormat[ConvertImportFastaOptions] {
-    def write(o: ConvertImportFastaOptions) =
-      JsObject("path" -> o.path.toJson,
-               "name" -> o.name.toJson,
-               "ploidy" -> o.ploidy.toJson,
-               "organism" -> o.organism.toJson,
-               "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): ConvertImportFastaOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("path", "name", "ploidy", "organism") match {
-        case Seq(JsString(path),
-                 JsString(name),
-                 JsString(ploidy),
-                 JsString(organism)) =>
-          ConvertImportFastaOptions(path,
-                                    name,
-                                    ploidy,
-                                    organism,
-                                    getProjectId(jsObj))
-        case x =>
-          deserializationError(s"Expected ConvertImportFastaOptions, got $x")
-      }
-    }
-  }
-
   implicit object ConvertImportFastaBarcodesOptionsFormat
       extends RootJsonFormat[ConvertImportFastaBarcodesOptions] {
     def write(o: ConvertImportFastaBarcodesOptions) =

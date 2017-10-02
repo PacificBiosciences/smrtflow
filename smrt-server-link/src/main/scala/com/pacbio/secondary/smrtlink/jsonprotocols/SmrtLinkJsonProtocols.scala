@@ -294,9 +294,11 @@ trait SmrtLinkJsonProtocols
   implicit val hdfSubreadServiceDataSetFormat
     : RootJsonFormat[HdfSubreadServiceDataSet] = cachedImplicit
   implicit val alignmentDataSetFormat
-    : RootJsonFormat[AlignmentServiceDataSet] = cachedImplicit
+    : RootJsonFormat[AlignmentServiceDataSet] =
+    cachedImplicit
   implicit val referenceDataSetFormat
-    : RootJsonFormat[ReferenceServiceDataSet] = cachedImplicit
+    : RootJsonFormat[ReferenceServiceDataSet] =
+    cachedImplicit
   implicit val ccsreadDataSetFormat
     : RootJsonFormat[ConsensusReadServiceDataSet] = cachedImplicit
   implicit val barcodeDataSetFormat: RootJsonFormat[BarcodeServiceDataSet] =
@@ -359,8 +361,6 @@ trait SmrtLinkJsonProtocols
     SecondaryJobProtocols.PipelineTemplateFormat
   implicit val pipelineTemplateViewRule =
     SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val importConvertFastaOptionsFormat =
-    SecondaryJobProtocols.ConvertImportFastaOptionsFormat
   implicit val movieMetadataToHdfSubreadOptionsFormat =
     SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
   implicit val mergeDataSetOptionsFormat =

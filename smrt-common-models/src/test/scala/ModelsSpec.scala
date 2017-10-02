@@ -1,4 +1,8 @@
-import com.pacbio.common.models.{CommonModelImplicits, CommonModels, IdAbleJsonProtocol}
+import com.pacbio.common.models.{
+  CommonModelImplicits,
+  CommonModels,
+  IdAbleJsonProtocol
+}
 import org.specs2.mutable.Specification
 import java.util.UUID
 
@@ -6,8 +10,7 @@ import spray.json._
 
 import scala.language.implicitConversions
 
-
-class ModelsSpec extends Specification with IdAbleJsonProtocol{
+class ModelsSpec extends Specification with IdAbleJsonProtocol {
 
   import CommonModels._
   import CommonModelImplicits._

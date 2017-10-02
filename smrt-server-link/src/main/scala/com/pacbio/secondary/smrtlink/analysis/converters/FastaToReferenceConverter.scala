@@ -145,4 +145,27 @@ object FastaToReferenceConverter
       case Left(err) => Left(err)
     }
   }
+
+  def toTry(name: String,
+            organism: Option[String],
+            ploidy: Option[String],
+            fastaPath: Path,
+            outputDir: Path,
+            inPlace: Boolean = false,
+            mkdir: Boolean = false,
+            skipNgmlr: Boolean = false): Try[ReferenceSetIO] = {
+
+    apply(name,
+          organism,
+          ploidy,
+          fastaPath,
+          outputDir,
+          inPlace,
+          mkdir,
+          skipNgmlr) match {
+      case Right(rio) => Success(rio)
+      case Left(ex) => Failure(new Exception(ex.getMessage))
+    }
+  }
+
 }

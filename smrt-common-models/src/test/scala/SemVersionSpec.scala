@@ -4,7 +4,7 @@ import org.specs2.mutable.Specification
 /**
   * Created by mkocher on 2/12/17.
   */
-class SemVersionSpec extends Specification{
+class SemVersionSpec extends Specification {
 
   val v1 = "1.0.1+sha"
   val v2 = "1.1.2"

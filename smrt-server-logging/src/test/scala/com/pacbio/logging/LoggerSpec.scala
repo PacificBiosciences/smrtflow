@@ -16,13 +16,13 @@ import org.specs2.mutable.Specification
 import scala.concurrent.{Await, Future}
 
 /**
- * Tests showing that the logging CLI flags work as exepected
- *
- * A start to covering the expected use cases with a test. This spec or related ones could improve
- * the testing to verify that expected param combinations, logging to files and using logback files
- * works.
- */
-class LoggerSpec  extends Specification with LazyLogging {
+  * Tests showing that the logging CLI flags work as exepected
+  *
+  * A start to covering the expected use cases with a test. This spec or related ones could improve
+  * the testing to verify that expected param combinations, logging to files and using logback files
+  * works.
+  */
+class LoggerSpec extends Specification with LazyLogging {
 
   // sequential since the logger doesn't guarantee ordering
   sequential
@@ -40,67 +40,74 @@ class LoggerSpec  extends Specification with LazyLogging {
 
   // custom handler for checking log level and string
   val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
-  lc.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(
-    // custom appender for testing
-    new Appender[ILoggingEvent] {
-      override def getName: String = "LoggerSpec"
+  lc.getLogger(Logger.ROOT_LOGGER_NAME)
+    .addAppender(
+      // custom appender for testing
+      new Appender[ILoggingEvent] {
+        override def getName: String = "LoggerSpec"
 
-      override def setName(name: String): Unit = Unit
+        override def setName(name: String): Unit = Unit
 
-      override def doAppend(e: ILoggingEvent): Unit = log(e.getLevel.toString, e.getMessage)
+        override def doAppend(e: ILoggingEvent): Unit =
+          log(e.getLevel.toString, e.getMessage)
 
-      override def getCopyOfAttachedFiltersList: util.List[Filter[ILoggingEvent]] = null
+        override def getCopyOfAttachedFiltersList
+          : util.List[Filter[ILoggingEvent]] = null
 
-      override def getFilterChainDecision(event: ILoggingEvent): FilterReply = null
+        override def getFilterChainDecision(
+            event: ILoggingEvent): FilterReply = null
 
-      override def addFilter(newFilter: Filter[ILoggingEvent]): Unit = Unit
+        override def addFilter(newFilter: Filter[ILoggingEvent]): Unit = Unit
 
-      override def clearAllFilters(): Unit = {}
+        override def clearAllFilters(): Unit = {}
 
-      override def addInfo(msg: String): Unit = log("INFO", msg)
+        override def addInfo(msg: String): Unit = log("INFO", msg)
 
-      override def addInfo(msg: String, ex: Throwable): Unit = log("INFO", msg)
+        override def addInfo(msg: String, ex: Throwable): Unit =
+          log("INFO", msg)
 
-      override def addWarn(msg: String): Unit = log("WARN", msg)
+        override def addWarn(msg: String): Unit = log("WARN", msg)
 
-      override def addWarn(msg: String, ex: Throwable): Unit = log("WARN", msg)
+        override def addWarn(msg: String, ex: Throwable): Unit =
+          log("WARN", msg)
 
-      override def addError(msg: String): Unit = log("ERROR", msg)
+        override def addError(msg: String): Unit = log("ERROR", msg)
 
-      override def addError(msg: String, ex: Throwable): Unit = log("ERROR", msg)
+        override def addError(msg: String, ex: Throwable): Unit =
+          log("ERROR", msg)
 
-      override def addStatus(status: Status): Unit = Unit
+        override def addStatus(status: Status): Unit = Unit
 
-      override def getContext: Context = null
+        override def getContext: Context = null
 
-      override def setContext(context: Context): Unit = Unit
+        override def setContext(context: Context): Unit = Unit
 
-      override def stop(): Unit = Unit
+        override def stop(): Unit = Unit
 
-      override def isStarted: Boolean = true
+        override def isStarted: Boolean = true
 
-      override def start(): Unit = Unit
-    }
-  )
+        override def start(): Unit = Unit
+      }
+    )
   // need a ref to the config for testing
-  val c = new LoggerConfig(){}
+  val c = new LoggerConfig() {}
 
   "Configured logging" should {
     "Have working DEBUG logging" in {
       logger.debug("Test DEBUG")
-      vals() mustEqual("DEBUG", "Test DEBUG")
+      vals() mustEqual ("DEBUG", "Test DEBUG")
     }
     "Have working INFO logging" in {
       logger.info("Test INFO")
-      vals() mustEqual("INFO", "Test INFO")
+      vals() mustEqual ("INFO", "Test INFO")
     }
     "Have working WARN logging" in {
       logger.warn("Test WARN")
-      vals() mustEqual("WARN", "Test WARN")
+      vals() mustEqual ("WARN", "Test WARN")
     }
     "Have working ERROR logging" in {
       logger.error("Test ERROR")
-      vals() mustEqual("ERROR", "Test ERROR")
+      vals() mustEqual ("ERROR", "Test ERROR")
     }
     "Respect --quiet command-line param" in {
       LoggerOptions.parse("--quiet" :: Nil, c)
