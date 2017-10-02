@@ -166,7 +166,10 @@ class JobModelsSpec extends Specification {
         ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId)
       )
       val pp =
-        PipelineTemplatePreset("preset-id-01", "pipeline-id-01", opts, taskOpts)
+        PipelineTemplatePreset("preset-id-01",
+                               "pipeline-id-01",
+                               opts,
+                               taskOpts)
       val j = pp.toJson
       val ppp = j.convertTo[PipelineTemplatePreset]
       //ppp must beEqualTo(pp)

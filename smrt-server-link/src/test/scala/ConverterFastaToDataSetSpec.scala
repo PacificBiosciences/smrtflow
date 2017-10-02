@@ -15,7 +15,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   NullJobResultsWriter,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.ConvertImportFastaOptions
 
 /**
   * Tests for converting a Fasta to reference DataSet. This has dependencies on both sawriter and samtools.
@@ -61,43 +60,6 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
     "Hyphen in name" in {
       val x = runFastaToReference("aaa-bbb_ccc_123456")
       x.path.toFile.exists must beTrue
-    }
-  }
-
-  private def runConvertJob(referenceName: String) = {
-    val name = "example_01.fasta"
-    val writer = new NullJobResultsWriter
-    val path = Paths.get(getClass.getResource(name).toURI)
-    val opts = ConvertImportFastaOptions(path.toString,
-                                         referenceName,
-                                         "Haploid",
-                                         "Lambda")
-    val outputDir = Files.createTempDirectory("fasta-job-test")
-    val job = JobResource(UUID.randomUUID, outputDir)
-    println(s"Merge job output dir is ${outputDir.toString}")
-    val j = opts.toJob
-    val startedAt = JodaDateTime.now()
-    j.run(job, writer)
-  }
-
-  "Use Job Interface" should {
-    "Sanity test" in {
-      val jobResult = runConvertJob("Dragon")
-      jobResult.isRight must beTrue
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val rs = datastore.files
-        .filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId)
-        .head
-      Paths.get(rs.path).toFile.exists must beTrue
-    }
-    "Hyphen in name" in {
-      val jobResult = runConvertJob("aaa-bbb_ccc_123456")
-      jobResult.isRight must beTrue
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val rs = datastore.files
-        .filter(_.fileTypeId == FileTypes.DS_REFERENCE.fileTypeId)
-        .head
-      Paths.get(rs.path).toFile.exists must beTrue
     }
   }
 }
