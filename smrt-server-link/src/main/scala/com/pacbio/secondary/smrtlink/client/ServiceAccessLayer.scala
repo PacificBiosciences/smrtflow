@@ -798,7 +798,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
                   ploidy: String): Future[EngineJob] = runJobPipeline {
     logger.debug(s"Importing reference $name from FASTA file $path")
     Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
-         ConvertImportFastaOptions(toP(path), name, ploidy, organism))
+         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None))
   }
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
