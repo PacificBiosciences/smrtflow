@@ -1089,7 +1089,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       ds.jobId,
       ds.projectId,
       isActive = true,
-      parentUuid = None // TODO how does this get set?
+      parentUuid = ds.parentUuid
     )
   }
   // Util func for composing the composition of loading the dataset and translation to
