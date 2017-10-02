@@ -6699,6 +6699,12 @@
           "description": "Associate a Multi-Job with a Project",
           "title": "Project Id",
           "type": "integer"
+        },
+        "submit": {
+          "default": false,
+          "description": "Automatically submit the job upon creation. This will yield the job uneditable.",
+          "title": "Submit",
+          "type": ["null", "boolean"]
         }
       }
     },
