@@ -779,7 +779,8 @@ object JobModels {
   // View Rules Models
   case class PipelineOptionViewRule(id: String,
                                     hidden: Boolean,
-                                    advanced: Boolean)
+                                    advanced: Boolean,
+                                    required: Option[Boolean] = Some(false))
 
   case class PipelineTemplateViewRule(id: String,
                                       name: String,
