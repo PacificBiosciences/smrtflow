@@ -1,13 +1,15 @@
 package com.pacbio.secondary.smrtlink.analysis.converters
 
 import java.nio.file.{Files, Path}
+
+import com.pacbio.secondary.smrtlink.analysis.datasets.ReferenceDatasetFileIO
 import com.typesafe.scalalogging.LazyLogging
 import htsjdk.samtools.reference.{FastaSequenceFile, ReferenceSequence}
 
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 import scala.io.Source
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class InvalidPacBioFastaError(msg: String) extends Exception(msg)
 case class ContigsMetaData(nrecords: Int, totalLength: Long)
@@ -208,6 +210,15 @@ object PacBioFastaValidator extends LazyLogging {
     preValidation(path) match {
       case Some(x) => Left(x)
       case _ => validateFastaFile(path, barcodeMode)
+    }
+  }
+
+  // Centralizing to help compose
+  def toTry(path: Path, barcodeMode: Boolean = false): Try[ContigsMetaData] = {
+    apply(path) match {
+      case Left(ex) =>
+        Failure(new Exception(s"Failed to validate file. ${ex.msg}"))
+      case Right(c) => Success(c)
     }
   }
 
