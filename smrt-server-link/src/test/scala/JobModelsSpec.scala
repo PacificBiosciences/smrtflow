@@ -166,10 +166,7 @@ class JobModelsSpec extends Specification {
         ServiceTaskStrOption("id-e", "A", CHOICE.optionTypeId)
       )
       val pp =
-        PipelineTemplatePreset("preset-id-01",
-                               "pipeline-id-01",
-                               opts,
-                               taskOpts)
+        PipelineTemplatePreset("preset-id-01", "pipeline-id-01", opts, taskOpts)
       val j = pp.toJson
       val ppp = j.convertTo[PipelineTemplatePreset]
       //ppp must beEqualTo(pp)
@@ -371,11 +368,13 @@ class JobModelsSpec extends Specification {
                                     None,
                                     Some(666))
       val oj = o.toJson.convertTo[ImportFastaJobOptions]
+      // Check the raw value
       oj.projectId must beSome(666)
 
       val opts = getJson("import_fasta_options.json")
         .convertTo[ImportFastaJobOptions]
-      opts.projectId must beSome(JobConstants.GENERAL_PROJECT_ID)
+      // Check the resolved value
+      opts.getProjectId() === JobConstants.GENERAL_PROJECT_ID
     }
   }
 }
