@@ -135,6 +135,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     * Run locally (don't submit to the cluster resources)
     */
   private def runLocal(
+      dao: JobsDao,
       opts: ImportFastaJobOptions,
       job: JobResourceBase,
       resultsWriter: JobResultWriter): Try[PacBioDataStore] = {
@@ -160,15 +161,21 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
 
     w(s"Attempting to converting Fasta to ReferenceSet ${opts.path}")
     w(s"Job Options $opts")
-    FastaToReferenceConverter
-      .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
-             Option(opts.organism),
-             Option(opts.ploidy),
-             Paths.get(opts.path),
-             outputDir,
-             mkdir = true)
-      .map(writeFiles)
 
+    // Proactively add the log file, so the datastore file will show up in
+    // SL and can be accessible from the UI
+    for {
+      _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
+                       opts.DEFAULT_TIMEOUT)
+      r <- FastaToReferenceConverter
+        .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
+               Option(opts.organism),
+               Option(opts.ploidy),
+               Paths.get(opts.path),
+               outputDir,
+               mkdir = true)
+      results <- Try(writeFiles(r))
+    } yield results
   }
 
   /**
@@ -198,12 +205,13 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   /**
     * Run and dispatch to correct computation resources
     */
-  def runner(opts: ImportFastaJobOptions,
+  def runner(dao: JobsDao,
+             opts: ImportFastaJobOptions,
              job: JobResourceBase,
              resultsWriter: JobResultWriter,
              config: SystemJobConfig): Try[PacBioDataStore] = {
     if (shouldRunLocal(opts, job, resultsWriter)) {
-      runLocal(opts, job, resultsWriter)
+      runLocal(dao, opts, job, resultsWriter)
     } else {
       runNonLocal(opts, job, resultsWriter, config)
     }
@@ -230,7 +238,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
 
     val tx = for {
       _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
-      result <- runner(opts, resources, resultsWriter, config)
+      result <- runner(dao, opts, resources, resultsWriter, config)
     } yield Right(result)
 
     val tr = tx.recover { case ex => toLeft(ex.getMessage) }

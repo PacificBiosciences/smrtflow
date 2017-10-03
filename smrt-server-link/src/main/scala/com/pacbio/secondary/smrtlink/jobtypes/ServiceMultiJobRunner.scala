@@ -60,7 +60,7 @@ trait JobRunnerUtils {
 
   def writeError(
       writer: JobResultWriter,
-      msg: Option[String]): PartialFunction[Throwable, Try[ResultSuccess]] = {
+      msg: Option[String]): PartialFunction[Throwable, Try[String]] = {
     case NonFatal(ex) =>
       writeErrorToResults(ex, writer, msg)
       Failure(ex)
