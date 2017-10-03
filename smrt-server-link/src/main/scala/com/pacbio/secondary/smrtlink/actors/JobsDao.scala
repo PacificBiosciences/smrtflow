@@ -1398,7 +1398,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val ds = i.file
 
     val action0 = insertMetaData(i.file).map { id: Int =>
-      dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
+      dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid)
     }
 
     val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
@@ -1454,10 +1454,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleGmapReferenceSet): Future[MessageResponse] = {
     val ds = i.ds.file
     val action0 = insertMetaData(i.file).map { id: Int =>
-      dsReference2 forceInsert ReferenceServiceSet(id,
-                                                   i.file.uuid,
-                                                   i.file.ploidy,
-                                                   i.file.organism)
+      dsGmapReference2 forceInsert GmapReferenceServiceSet(id,
+                                                           i.file.uuid,
+                                                           i.file.ploidy,
+                                                           i.file.organism)
     }
 
     val action = DBIO.seq(action0, datastoreServiceFiles += ds)
