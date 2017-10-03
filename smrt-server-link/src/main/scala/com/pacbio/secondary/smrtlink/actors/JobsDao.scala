@@ -1362,7 +1362,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def importAlignmentSet(i: ImportAbleAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
     }
 
@@ -1380,7 +1380,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleBarcodeSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val action0 = insertMetaData(i.file).flatMap { id =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
     }
 
@@ -1397,7 +1397,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleConsensusReadSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid)
     }
 
@@ -1411,7 +1411,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleConsensusAlignmentSet): Future[MessageResponse] = {
     val ds = i.file
 
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
     }
 
@@ -1425,7 +1425,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleContigSet): Future[MessageResponse] = {
     val ds = i.ds.file
 
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
     }
 
@@ -1437,7 +1437,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importReferenceSet(i: ImportAbleReferenceSet): Future[MessageResponse] = {
     val ds = i.ds.file
-    val action0 = insertMetaData(i.file).flatMap { id =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsReference2 forceInsert ReferenceServiceSet(id,
                                                    i.file.uuid,
                                                    i.file.ploidy,
@@ -1453,7 +1453,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def importGmapReferenceSet(
       i: ImportAbleGmapReferenceSet): Future[MessageResponse] = {
     val ds = i.ds.file
-    val action0 = insertMetaData(i.file).map { id: Int =>
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsGmapReference2 forceInsert GmapReferenceServiceSet(id,
                                                            i.file.uuid,
                                                            i.file.ploidy,
