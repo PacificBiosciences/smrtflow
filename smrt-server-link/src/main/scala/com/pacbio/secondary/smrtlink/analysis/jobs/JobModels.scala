@@ -787,7 +787,8 @@ object JobModels {
   case class PipelineTemplateViewRule(id: String,
                                       name: String,
                                       description: String,
-                                      taskOptions: Seq[PipelineOptionViewRule])
+                                      taskOptions: Seq[PipelineOptionViewRule],
+                                      inputFilters: Option[String] = None)
 
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
   case class DataStoreFileViewRule(sourceId: String,
