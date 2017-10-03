@@ -31,16 +31,7 @@ if [ -z "$BUNDLE_DEST" ]; then
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
 
-CHEM_BUNDLE="${SRC}/chemistry-data-bundle"
-
-if [ ! -d "${CHEM_BUNDLE}" ]; then
-  echo "Unable to find required chemistry bundle dir. Exiting"
-  exit 1
-fi
-
-cd ${CHEM_BUNDLE}
-python bin/generate-manifests.py version.txt
-cd -
+CHEM_VERSION=$(cat $g_progdir/chemistry_version)
 
 cd $SMRTFLOW_ROOT
 SMRTFLOW_SHA="`git rev-parse --short HEAD`"
@@ -88,4 +79,4 @@ fi
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_bundle_dir="${CHEM_BUNDLE}",doc_dir="${DOC_ROOT}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_version="${CHEM_VERSION}",doc_dir="${DOC_ROOT}"

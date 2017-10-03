@@ -59,7 +59,8 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleOptions)
       outputTgz,
       opts.manifest.user,
       opts.manifest.smrtLinkSystemVersion,
-      opts.manifest.dnsName)
+      opts.manifest.dnsName,
+      opts.manifest.comment)
 
     val totalSize = outputTgz.toFile.length()
     val totalSizeMB = totalSize / 1024.0 / 1024.0
