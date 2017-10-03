@@ -177,7 +177,8 @@ object Sim extends App with LazyLogging {
     * @param simArgs  Sim Args
     * @return
     */
-  def runScenario(scenario: Scenario, simArgs: SimArgs): Try[String] = {
+  def runScenario(scenario: Scenario,
+                  simArgs: SimArgs): Try[(Boolean, String)] = {
     val f = for {
       _ <- Future.fromTry(Try(scenario.setUp()))
       result <- scenario.run()
@@ -187,7 +188,8 @@ object Sim extends App with LazyLogging {
       wasSuccessful <- Future.successful(
         result.stepResults.forall(_.result.succeeded))
     } yield
-      s"Completed running ${scenario.name} was successful? $wasSuccessful"
+      (wasSuccessful,
+       s"Completed running ${scenario.name} was successful? $wasSuccessful")
 
     // We always call tear down
     val fx = f.andThen { case _ => Try(scenario.tearDown()) }
@@ -197,29 +199,38 @@ object Sim extends App with LazyLogging {
     Try(Await.result(fx, simArgs.timeout))
   }
 
-  def runScenarioFromArgs(simArgs: SimArgs): Try[String] = {
+  def runScenarioFromArgs(simArgs: SimArgs): Try[(Boolean, String)] = {
 
     for {
       config <- Try(
         simArgs.config.map(p => ConfigFactory.parseFile(p.toFile).resolve()))
       _ <- Try(config.map(printConfig).getOrElse(Unit))
       scenario <- Try(simArgs.loader.load(config))
-      msg <- runScenario(scenario, simArgs)
-    } yield msg
+      (wasSuccessful, msg) <- runScenario(scenario, simArgs)
+    } yield (wasSuccessful, msg)
+  }
+
+  private def exitError(msg: String) = {
+    logger.error(msg)
+    System.err.println(msg + "\n")
+    system.shutdown()
+    System.exit(1)
   }
 
   /// Run Main
-  parseArgs(args).map(runScenarioFromArgs) match {
-    case Success(_) =>
-      println(
-        "Successfully completed running scenario. Exiting with exit code 0.")
-      System.exit(0)
+  parseArgs(args).flatMap(runScenarioFromArgs) match {
+    case Success((wasSuccessful, msg)) =>
+      if (!wasSuccessful) {
+        val exitMsg = s"Scenario failed.  Exiting with exit code 1."
+        exitError(exitMsg)
+      } else {
+        println(
+          "Successfully completed running scenario. Exiting with exit code 0.")
+        System.exit(0)
+      }
     case Failure(ex) =>
       val msg = s"Failed to run scenario. Error $ex\nExiting with exit code 1."
-      logger.error(msg)
-      System.err.println(msg + "\n")
-      system.shutdown()
-      System.exit(1)
+      exitError(msg)
   }
 
 }
