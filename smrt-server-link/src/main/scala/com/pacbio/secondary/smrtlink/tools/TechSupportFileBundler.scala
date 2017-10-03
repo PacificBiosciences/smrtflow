@@ -9,8 +9,8 @@ import scopt.OptionParser
 import spray.json._
 
 import scala.util.{Failure, Success, Try}
-
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
+import com.pacbio.common.models.{Constants, PacBioComponentManifest}
 import com.pacbio.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{
@@ -31,15 +31,16 @@ case class TechSupportFileBundlerOptions(rootUserData: Path,
                                          user: String,
                                          dnsName: Option[String],
                                          smrtLinkVersion: Option[String],
-                                         smrtLinkSystemId: Option[UUID])
-    extends LoggerConfig
+                                         smrtLinkSystemId: Option[UUID],
+                                         comment: String
+                                        ) extends LoggerConfig
 
 object TechSupportFileBundler
     extends CommandLineToolRunner[TechSupportFileBundlerOptions]
     with ConfigLoader
     with FileSizeFormatterUtil {
 
-  override val VERSION = "0.2.1"
+  override val VERSION = "0.3.0"
   override val DESCRIPTION =
     s"""
       |Tech Support Bundler $VERSION
@@ -62,7 +63,8 @@ object TechSupportFileBundler
     System.getProperty("user.name"),
     getDefault("smrtflow.server.dnsName"),
     None,
-    None
+    None,
+    s"Created by $toolId smrtflow version ${Constants.SMRTFLOW_VERSION}"
   )
 
   val parser =
@@ -92,6 +94,13 @@ object TechSupportFileBundler
         .validate(validateDoesNotExist)
         .text(
           s"Optional user to create TechSupport bundle output (tgz) file. Default ${defaults.user}")
+
+      opt[String]("comment")
+        .action { (x, c) =>
+          c.copy(comment = x)
+        }
+        .text(
+          s"Optional user comment or case number for TechSupport bundle output (tgz) file. Default ${defaults.comment}")
 
       def overrideMessage(sx: String) =
         s"Override for $sx. (pulled from userdata/smrtlink-system-config.json)"
@@ -247,7 +256,8 @@ object TechSupportFileBundler
                                                       c.output,
                                                       c.user,
                                                       Some(systemVersion),
-                                                      Some(dnsName))
+                                                      Some(dnsName),
+                                                      Some(c.comment))
       }
     } yield
       s"Successfully wrote TechSupport Bundle to $tgzPath (${humanReadableByteSize(
