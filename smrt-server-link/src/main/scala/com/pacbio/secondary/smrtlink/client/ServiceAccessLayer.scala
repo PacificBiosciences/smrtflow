@@ -55,26 +55,35 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
+
   private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
+
   protected def toJobUrl(jobType: String, jobId: IdAble): String =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}")
+
   protected def toJobResourceUrl(jobType: String,
                                  jobId: IdAble,
                                  resourceType: String): String =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}/$resourceType")
+
   protected def toJobResourceIdUrl(jobType: String,
                                    jobId: IdAble,
                                    resourceType: String,
                                    resourceId: UUID) =
     toUrl(jobRoot(jobType) + s"/${jobId.toIdString}/$resourceType/$resourceId")
+
   private def dsRoot(dsType: String) = s"${ROOT_DS}/${dsType}"
+
   protected def toDataSetsUrl(dsType: String): String = toUrl(dsRoot(dsType))
+
   protected def toDataSetUrl(dsType: String, dsId: IdAble): String =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}")
+
   protected def toDataSetResourcesUrl(dsType: String,
                                       dsId: IdAble,
                                       resourceType: String): String =
     toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType")
+
   protected def toDataSetResourceUrl(dsType: String,
                                      dsId: IdAble,
                                      resourceType: String,
@@ -107,110 +116,150 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   private def getDataSetPipeline[T <: ServiceDataSetMetadata](
       implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
     requestPipe ~> unmarshal[T]
+
   protected def getSubreadSetPipeline =
     getDataSetPipeline[SubreadServiceDataSet]
+
   protected def getHdfSubreadSetPipeline =
     getDataSetPipeline[HdfSubreadServiceDataSet]
+
   protected def getReferenceSetPipeline =
     getDataSetPipeline[ReferenceServiceDataSet]
+
   protected def getGmapReferenceSetPipeline =
     getDataSetPipeline[GmapReferenceServiceDataSet]
+
   protected def getBarcodeSetPipeline =
     getDataSetPipeline[BarcodeServiceDataSet]
+
   protected def getAlignmentSetPipeline =
     getDataSetPipeline[AlignmentServiceDataSet]
+
   protected def getConsensusReadSetPipeline =
     getDataSetPipeline[ConsensusReadServiceDataSet]
+
   protected def getConsensusAlignmentSetPipeline =
     getDataSetPipeline[ConsensusAlignmentServiceDataSet]
+
   protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
 
   // DATASET DETAILS (full object parsed from XML)
   private def getDataSetDetailsPipeline[T <: DataSetType](
       implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
     requestPipe ~> unmarshal[T]
+
   protected def getSubreadSetDetailsPipeline =
     getDataSetDetailsPipeline[SubreadSet]
+
   protected def getHdfSubreadSetDetailsPipeline =
     getDataSetDetailsPipeline[HdfSubreadSet]
+
   protected def getReferenceSetDetailsPipeline =
     getDataSetDetailsPipeline[ReferenceSet]
+
   protected def getGmapReferenceSetDetailsPipeline =
     getDataSetDetailsPipeline[GmapReferenceSet]
+
   protected def getBarcodeSetDetailsPipeline =
     getDataSetDetailsPipeline[BarcodeSet]
+
   protected def getAlignmentSetDetailsPipeline =
     getDataSetDetailsPipeline[AlignmentSet]
+
   protected def getConsensusReadSetDetailsPipeline =
     getDataSetDetailsPipeline[ConsensusReadSet]
+
   protected def getConsensusAlignmentSetDetailsPipeline =
     getDataSetDetailsPipeline[ConsensusAlignmentSet]
+
   protected def getContigSetDetailsPipeline =
     getDataSetDetailsPipeline[ContigSet]
 
   private def getDataSetsPipeline[T <: ServiceDataSetMetadata](
       implicit fmt: FromResponseUnmarshaller[Seq[T]])
     : HttpRequest => Future[Seq[T]] = requestPipe ~> unmarshal[Seq[T]]
+
   protected def getSubreadSetsPipeline =
     getDataSetsPipeline[SubreadServiceDataSet]
+
   protected def getHdfSubreadSetsPipeline =
     getDataSetsPipeline[HdfSubreadServiceDataSet]
+
   protected def getReferenceSetsPipeline =
     getDataSetsPipeline[ReferenceServiceDataSet]
+
   protected def getGmapReferenceSetsPipeline =
     getDataSetsPipeline[GmapReferenceServiceDataSet]
+
   protected def getBarcodeSetsPipeline =
     getDataSetsPipeline[BarcodeServiceDataSet]
+
   protected def getAlignmentSetsPipeline =
     getDataSetsPipeline[AlignmentServiceDataSet]
+
   protected def getConsensusReadSetsPipeline =
     getDataSetsPipeline[ConsensusReadServiceDataSet]
+
   protected def getConsensusAlignmentSetsPipeline =
     getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
+
   protected def getContigSetsPipeline =
     getDataSetsPipeline[ContigServiceDataSet]
 
   protected def getDataStorePipeline
     : HttpRequest => Future[Seq[DataStoreServiceFile]] =
     requestPipe ~> unmarshal[Seq[DataStoreServiceFile]]
+
   protected def getEntryPointsPipeline
     : HttpRequest => Future[Seq[EngineJobEntryPoint]] =
     requestPipe ~> unmarshal[Seq[EngineJobEntryPoint]]
+
   protected def getReportsPipeline
     : HttpRequest => Future[Seq[DataStoreReportFile]] =
     requestPipe ~> unmarshal[Seq[DataStoreReportFile]]
+
   protected def getReportPipeline: HttpRequest => Future[Report] =
     requestPipe ~> unmarshal[Report]
+
   protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] =
     requestPipe ~> unmarshal[Seq[JobTask]]
+
   protected def getJobTaskPipeline: HttpRequest => Future[JobTask] =
     requestPipe ~> unmarshal[JobTask]
+
   protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] =
     requestPipe ~> unmarshal[Seq[JobEvent]]
+
   protected def getJobOptionsPipeline
     : HttpRequest => Future[PipelineTemplatePreset] =
     requestPipe ~> unmarshal[PipelineTemplatePreset]
 
   protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] =
     requestPipe ~> unmarshal[Seq[RunSummary]]
+
   protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] =
     requestPipe ~> unmarshal[RunSummary]
+
   protected def getRunPipeline: HttpRequest => Future[Run] =
     requestPipe ~> unmarshal[Run]
+
   protected def getCollectionsPipeline
     : HttpRequest => Future[Seq[CollectionMetadata]] =
     requestPipe ~> unmarshal[Seq[CollectionMetadata]]
+
   protected def getCollectionPipeline
     : HttpRequest => Future[CollectionMetadata] =
     requestPipe ~> unmarshal[CollectionMetadata]
 
   protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] =
     requestPipe ~> unmarshal[Seq[Project]]
+
   protected def getProjectPipeline: HttpRequest => Future[FullProject] =
     requestPipe ~> unmarshal[FullProject]
 
   protected def getEulaPipeline: HttpRequest => Future[EulaRecord] =
     requestPipe ~> unmarshal[EulaRecord]
+
   protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] =
     requestPipe ~> unmarshal[Seq[EulaRecord]]
 
@@ -220,26 +269,35 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   def getJobPipeline: HttpRequest => Future[EngineJob] =
     requestPipe ~> unmarshal[EngineJob]
+
   // XXX this fails when createdBy is an object instead of a string
   def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] =
     requestPipe ~> unmarshal[Seq[EngineJob]]
+
   def runJobPipeline: HttpRequest => Future[EngineJob] =
     requestPipe ~> unmarshal[EngineJob]
+
   def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] =
     requestPipe ~> unmarshal[Seq[ReportViewRule]]
+
   def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] =
     requestPipe ~> unmarshal[ReportViewRule]
+
   def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] =
     requestPipe ~> unmarshal[PipelineTemplate]
+
   def getPipelineTemplatesPipeline
     : HttpRequest => Future[Seq[PipelineTemplate]] =
     requestPipe ~> unmarshal[Seq[PipelineTemplate]]
+
   def getPipelineTemplateViewRulesPipeline
     : HttpRequest => Future[Seq[PipelineTemplateViewRule]] =
     requestPipe ~> unmarshal[Seq[PipelineTemplateViewRule]]
+
   def getPipelineTemplateViewRulePipeline
     : HttpRequest => Future[PipelineTemplateViewRule] =
     requestPipe ~> unmarshal[PipelineTemplateViewRule]
+
   def getPipelineDataStoreViewRulesPipeline
     : HttpRequest => Future[PipelineDataStoreViewRules] =
     requestPipe ~> unmarshal[PipelineDataStoreViewRules]
@@ -247,12 +305,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   def getPacBioDataBundlesPipeline
     : HttpRequest => Future[Seq[PacBioDataBundle]] =
     requestPipe ~> unmarshal[Seq[PacBioDataBundle]]
+
   def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] =
     requestPipe ~> unmarshal[PacBioDataBundle]
 
   def getServiceManifestsPipeline
     : HttpRequest => Future[Seq[PacBioComponentManifest]] =
     requestPipe ~> unmarshal[Seq[PacBioComponentManifest]]
+
   def getServiceManifestPipeline
     : HttpRequest => Future[PacBioComponentManifest] =
     requestPipe ~> unmarshal[PacBioComponentManifest]
@@ -468,6 +528,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   def getImportDatasetJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.IMPORT_DATASET.id, jobId)
+
   def getMergeDatasetJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.MERGE_DATASETS.id, jobId)
 
@@ -557,8 +618,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   // Runs
 
   protected def getRunUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId")
+
   protected def getCollectionsUrl(runId: UUID): String =
     toUrl(s"${ROOT_RUNS}/$runId/collections")
+
   protected def getCollectionUrl(runId: UUID, collectionId: UUID): String =
     toUrl(s"${ROOT_RUNS}/$runId/collections/$collectionId")
 
@@ -662,6 +725,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getServiceManifestsPipeline {
       Get(toUrl(ROOT_SERVICE_MANIFESTS))
     }
+
   // Added in smrtflow 0.1.11 and SA > 3.2.0
   def getPacBioComponentManifestById(
       manifestId: String): Future[PacBioComponentManifest] =
@@ -671,24 +735,32 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   def getAnalysisJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id)
+
   def getImportJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.IMPORT_DATASET.id)
+
   def getMergeJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.MERGE_DATASETS.id)
+
   def getFastaConvertJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.CONVERT_FASTA_REFERENCE.id)
+
   def getBarcodeConvertJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id)
 
   def getAnalysisJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id, projectId = Some(projectId))
+
   def getImportJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.IMPORT_DATASET.id, projectId = Some(projectId))
+
   def getMergeJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.MERGE_DATASETS.id, projectId = Some(projectId))
+
   def getFastaConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.CONVERT_FASTA_REFERENCE.id,
                   projectId = Some(projectId))
+
   def getBarcodeConvertJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id,
                   projectId = Some(projectId))
@@ -726,14 +798,19 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   def getAnalysisJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.PBSMRTPIPE.id, jobId)
+
   def getImportFastaJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.CONVERT_FASTA_REFERENCE.id, jobId)
+
   def getImportBarcodesJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.CONVERT_FASTA_BARCODES.id, jobId)
+
   def getConvertRsMovieJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.CONVERT_RS_MOVIE.id, jobId)
+
   def getExportDataSetsJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.EXPORT_DATASETS.id, jobId)
+
   def getExportJobsDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.EXPORT_JOBS.id, jobId)
 
@@ -759,12 +836,16 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   // for import-dataset and merge-dataset jobs too
   def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] =
     getJobReport(JobTypeIds.PBSMRTPIPE.id, jobId, reportId)
+
   def getAnalysisJobTasks(jobId: Int): Future[Seq[JobTask]] =
     getJobTasks(JobTypeIds.PBSMRTPIPE.id, jobId)
+
   def getAnalysisJobTask(jobId: Int, taskId: UUID): Future[JobTask] =
     getJobTask(JobTypeIds.PBSMRTPIPE.id, jobId, taskId)
+
   def getAnalysisJobEvents(jobId: Int): Future[Seq[JobEvent]] =
     getJobEvents(JobTypeIds.PBSMRTPIPE.id, jobId)
+
   def getAnalysisJobOptions(jobId: Int): Future[PipelineTemplatePreset] =
     getJobOptions(JobTypeIds.PBSMRTPIPE.id, jobId)
 
@@ -906,7 +987,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   }
 
   def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+    getPacBioDataBundlesPipeline {
+      Get(toPacBioDataBundleUrl(Some(typeId)))
+    }
 
   def getPacBioDataBundleByTypeAndVersionId(typeId: String,
                                             versionId: String) =
@@ -969,7 +1052,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   /**
     * Start import of SMRT Link job from zip file
-    * @param zipPath pathname of ZIP file exported by SMRT Link
+    *
+    * @param zipPath   pathname of ZIP file exported by SMRT Link
     * @param mockJobId if true, job UUID will be re-generated
     * @return new EngineJob object
     */
@@ -979,7 +1063,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
          ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId)))
   }
 
-  def getAlarms() = getAlarmsPipeline { Get(toUrl(ROOT_ALARMS)) }
+  def getAlarms() = getAlarmsPipeline {
+    Get(toUrl(ROOT_ALARMS))
+  }
 
   /**
     * FIXME(mpkocher)(2016-8-22)
@@ -989,84 +1075,70 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * - Raise Custom Exception type for Failed job to distinguish Failed jobs and jobs that exceeded maxTime
     * - replace while loop with recursion
     *
-    * @param jobId Job Id or UUID
+    * @param jobId   Job Id or UUID
     * @param maxTime Max time to poll for the job
-    *
     * @return EngineJob
     */
   def pollForSuccessfulJob(jobId: IdAble,
                            maxTime: Option[FiniteDuration] = None,
                            sleepTime: Int = 5000): Try[EngineJob] = {
-    var exitFlag = true
     var nIterations = 0
+    var continueRunning = true
+    // This is the fundamental control structure for communicating failure
+    var errorMessage: Option[String] = None
+
     val requestTimeOut = 30.seconds
-    var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
     logger.debug(
       s"Polling for core job ${jobId.toIdString} to finish successfully")
 
-    def failIfNotState(state: AnalysisJobStates.JobStates,
-                       job: EngineJob): Try[EngineJob] = {
-      if (job.state == state) Success(job)
-      else
-        Failure(new Exception(
-          s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt} ${job.errorMessage
-            .getOrElse("")}"))
-    }
-
-    def failIfFailedJob(job: EngineJob): Try[EngineJob] = {
-      if (!job.hasFailed) Success(job)
-      else
-        Failure(new Exception(
-          s"Job id:${job.id} name:${job.name} failed. State:${job.state} at ${job.updatedAt}"))
-    }
-
-    def failIfNotSuccessfulJob(job: EngineJob) =
-      failIfNotState(AnalysisJobStates.SUCCESSFUL, job)
-
-    def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
+    def hasExceededMaxRunTime(): Boolean = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
-
-      // This could be cleaned up, but these changes are turning into
-      // a large yakk shaving exercise
       val maxTimeSec: Int = maxTime.map(_.toSeconds.toInt).getOrElse(-1)
 
-      if ((maxTimeSec > 0) && (tCurrent - tStart > maxTimeSec)) {
-        Failure(
-          new Exception(
-            s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
-      } else {
-        Success(job)
-      }
+      ((maxTimeSec > 0) && (tCurrent - tStart > maxTimeSec))
     }
 
-    while (exitFlag) {
+    while (continueRunning) {
       nIterations += 1
       Thread.sleep(sleepTime)
 
-      val tx = for {
-        job <- Try { Await.result(getJob(jobId), requestTimeOut) }
-        notFailedJob <- failIfFailedJob(job)
-        _ <- failIfExceededMaxTime(notFailedJob)
-      } yield notFailedJob
+      val tx2 = Try(Await.result(getJob(jobId), requestTimeOut))
 
-      tx match {
-        case Success(job) =>
-          if (job.state == AnalysisJobStates.SUCCESSFUL) {
-            exitFlag = false
-            runningJob = Some(job)
+      tx2 match {
+        case Success(xjob) =>
+          xjob.state match {
+            case AnalysisJobStates.SUCCESSFUL =>
+              continueRunning = false
+              errorMessage = None
+            case AnalysisJobStates.FAILED =>
+              continueRunning = false
+              errorMessage = xjob.errorMessage
+            case AnalysisJobStates.TERMINATED =>
+              continueRunning = false
+              errorMessage = xjob.errorMessage
+            case _ =>
+              val exceededTime = hasExceededMaxRunTime()
+              continueRunning = true
+              if (exceededTime) {
+                continueRunning = false
+                errorMessage = Some(
+                  s"Job ${xjob.id} Run time exceeded specified limit ($maxTime s)")
+              }
           }
-        case Failure(_) =>
-          exitFlag = false
-          runningJob = None
+        case Failure(errorMsg) =>
+          continueRunning = false
+          errorMessage = Some(s"Job ${jobId.toIdString} Error $errorMsg")
       }
     }
 
-    runningJob match {
-      case Some(job) => failIfNotSuccessfulJob(job)
-      case _ =>
-        Failure(new Exception(
-          s"Failed to run job ${jobId.toIdString}. ${runningJob.map(_.errorMessage).getOrElse("")}"))
+    errorMessage match {
+      case Some(errorMsg) =>
+        Failure(
+          new Exception(s"Failed to run job ${jobId.toIdString}. $errorMsg"))
+      case None =>
+        Try(Await.result(getJob(jobId), requestTimeOut))
+
     }
   }
 
@@ -1088,7 +1160,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     val requestTimeOut = 30.seconds
     var runningJob: Option[EngineJob] = None
     val tStart = java.lang.System.currentTimeMillis() / 1000.0
-    logger.debug(s"Polling for core job ${jobId.toIdString} to complete")
+    logger.debug(s"Polling for core job id:${jobId.toIdString} to complete")
 
     def failIfExceededMaxTime(job: EngineJob): Try[EngineJob] = {
       val tCurrent = java.lang.System.currentTimeMillis() / 1000.0
@@ -1098,9 +1170,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       val maxTimeSec: Int = maxTime.map(_.toSeconds.toInt).getOrElse(-1)
 
       if ((maxTimeSec > 0) && (tCurrent - tStart > maxTimeSec)) {
-        Failure(
-          new Exception(
-            s"Job ${job.id} Run time exceeded specified limit ($maxTime s)"))
+        Failure(new Exception(
+          s"Job ${job.id} ${runningJob.map(_.state).getOrElse("")} Run time exceeded specified limit ($maxTime s)"))
       } else {
         Success(job)
       }
@@ -1111,7 +1182,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       Thread.sleep(sleepTime)
 
       val tx = for {
-        createdJob <- Try { Await.result(getJob(jobId), requestTimeOut) }
+        createdJob <- Try {
+          Await.result(getJob(jobId), requestTimeOut)
+        }
         _ <- failIfExceededMaxTime(createdJob)
       } yield createdJob
 

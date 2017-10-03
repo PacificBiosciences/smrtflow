@@ -115,30 +115,29 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
-  private def updateJobState(uuid: UUID,
-                             state: AnalysisJobStates.JobStates,
-                             message: Option[String]): Future[EngineJob] = {
+  private def updateJobState(
+      uuid: UUID,
+      state: AnalysisJobStates.JobStates,
+      message: Option[String],
+      errorMessage: Option[String]): Future[EngineJob] = {
     dao.updateJobState(
       uuid,
       state,
-      message.getOrElse(s"Updating Job $uuid state to $state"))
-  }
-
-  private def convertAndSetup[T >: ServiceJobOptions](
-      engineJob: EngineJob): Try[(T, FileJobResultsWriter, JobResource)] = {
-    Try {
-      val opts = Converters.convertServiceCoreJobOption(engineJob)
-      val (writer, resource) = setupResources(engineJob)
-      (opts, writer, resource)
-    }
+      message.getOrElse(s"Updating Job $uuid state to $state"),
+      errorMessage
+    )
   }
 
   // Returns the Updated EngineJob
-  private def updateJobStateBlock(uuid: UUID,
-                                  state: AnalysisJobStates.JobStates,
-                                  message: Option[String],
-                                  timeout: FiniteDuration): Try[EngineJob] = {
-    Try { Await.result(updateJobState(uuid, state, message), timeout) }
+  private def updateJobStateBlock(
+      uuid: UUID,
+      state: AnalysisJobStates.JobStates,
+      message: Option[String],
+      timeout: FiniteDuration,
+      errorMessage: Option[String] = None): Try[EngineJob] = {
+    Try {
+      Await.result(updateJobState(uuid, state, message, errorMessage), timeout)
+    }
   }
 
   /**
@@ -241,11 +240,23 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     case NonFatal(ex) =>
       updateJobStateBlock(jobId,
                           AnalysisJobStates.FAILED,
-                          Some(ex.getMessage),
-                          timeout)
+                          Some(s"Failed to Run Job $jobId"),
+                          timeout,
+                          Some(ex.getMessage))
         .map(engineJob =>
           Left(toFailed(
             s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
+  }
+
+  def writeEitherError(
+      either: Either[ResultFailed, ResultSuccess],
+      writer: JobResultWriter): Either[ResultFailed, ResultSuccess] = {
+    either match {
+      case Right(x) => Right(x)
+      case Left(ex) =>
+        writer.writeError(ex.message)
+        Left(ex)
+    }
   }
 
   /**
@@ -294,13 +305,18 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
                    AnalysisJobStates.FAILED,
                    host)
 
+    // removing some type-safeness here. If the resources can't get setup, there's no
+    // clear way to write errors to the file system. Moreover, the writer needs
+    // to be passed everywhere.
+    val (writer, resource) = setupResources(engineJob)
+
     val tx = for {
-      rxs <- convertAndSetup(engineJob)
-      _ <- validateOpts(rxs._1, rxs._2)
+      opts <- Try(Converters.convertServiceCoreJobOption(engineJob))
+      _ <- validateOpts(opts, writer)
       results <- runJobAndImport(engineJob.id,
-                                 rxs._1,
-                                 rxs._3,
-                                 rxs._2,
+                                 opts,
+                                 resource,
+                                 writer,
                                  dao,
                                  config,
                                  startedAt,
@@ -308,10 +324,12 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     } yield Right(results)
 
     tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout, toFailed)) match {
-      case Success(either) => either
+      case Success(either) => writeEitherError(either, writer)
       case Failure(ex) =>
-        logger.error(
-          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}")
+        val msg =
+          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}"
+        logger.error(msg)
+        writer.writeError(msg)
         // this should log the stacktrace. This needs access to the job writer
         Left(toFailed(ex.getMessage))
     }

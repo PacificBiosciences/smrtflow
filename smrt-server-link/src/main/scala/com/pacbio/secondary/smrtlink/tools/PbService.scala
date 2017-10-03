@@ -999,7 +999,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
   private def importFasta(
       path: Path,
       dsType: FileTypes.DataSetBaseType,
-      runJob: () => Future[EngineJob],
+      runJob: => Future[EngineJob],
       getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
       projectName: Option[String],
       barcodeMode: Boolean = false): Int = {
@@ -1008,9 +1008,11 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       return errorExit("Can't continue with an invalid project.")
     val tx = for {
       contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
-      job <- Try { Await.result(runJob(), TIMEOUT) }
-      job <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
-      dataStoreFiles <- Try { Await.result(getDataStore(job.uuid), TIMEOUT) }
+      job <- Try { Await.result(runJob, TIMEOUT) }
+      successfulJob <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
+      dataStoreFiles <- Try {
+        Await.result(getDataStore(successfulJob.id), TIMEOUT)
+      }
     } yield dataStoreFiles
 
     tx match {
@@ -1034,7 +1036,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
                 FileTypes.DS_REFERENCE,
-                () => sal.importFasta(path, nameFinal, organism, ploidy),
+                sal.importFasta(path, nameFinal, organism, ploidy),
                 sal.getImportFastaJobDataStore,
                 projectName)
   }
@@ -1044,7 +1046,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
                         projectName: Option[String] = None): Int =
     importFasta(path,
                 FileTypes.DS_BARCODE,
-                () => sal.importFastaBarcodes(path, name),
+                sal.importFastaBarcodes(path, name),
                 sal.getImportBarcodesJobDataStore,
                 projectName,
                 barcodeMode = true)
