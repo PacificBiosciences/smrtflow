@@ -161,7 +161,11 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
-  // This takes a lot of args and is a bit clumsy, however it's explicit and straightforward
+  /**
+    *  This takes a lot of args and is a bit clumsy, however it's explicit and straightforward
+    *
+    *  Emits a status message of success.
+    */
   private def runJobAndImport[T <: ServiceJobOptions](
       jobIntId: Int,
       opts: T,
@@ -170,17 +174,9 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       dao: JobsDao,
       config: SystemJobConfig,
       startedAt: JodaDateTime,
-      timeout: FiniteDuration): Try[ResultSuccess] = {
+      timeout: FiniteDuration): Try[String] = {
 
     val jobId = resource.jobId
-
-    def toSuccess(msg: String) =
-      ResultSuccess(jobId,
-                    opts.jobTypeId.id,
-                    msg,
-                    computeTimeDeltaFromNow(startedAt),
-                    AnalysisJobStates.SUCCESSFUL,
-                    host)
 
     def andWrite(msg: String) = Try(writer.writeLine(msg))
 
@@ -200,7 +196,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
         s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
       _ <- andWrite(
         s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
-    } yield toSuccess(msg)
+    } yield msg
 
     // This is a little clumsy to get the error message written to the correct place
     // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
@@ -232,19 +228,17 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
-  // This should probably have some re-try mechanism
-  def recoverAndUpdateToFailed(jobId: UUID,
-                               timeout: FiniteDuration,
-                               toFailed: String => ResultFailed)
-    : PartialFunction[Throwable, Try[Either[ResultFailed, ResultSuccess]]] = {
+  def recoverAndUpdateToFailed[T](
+      jobId: UUID,
+      timeout: FiniteDuration): PartialFunction[Throwable, Try[T]] = {
     case NonFatal(ex) =>
       updateJobStateBlock(jobId,
                           AnalysisJobStates.FAILED,
                           Some(s"Failed to Run Job $jobId"),
                           timeout,
                           Some(ex.getMessage))
-        .map(engineJob =>
-          Left(toFailed(
+        .flatMap(engineJob =>
+          Failure(new Exception(
             s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
   }
 
@@ -257,6 +251,39 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
         writer.writeError(ex.message)
         Left(ex)
     }
+  }
+
+  def runner(engineJob: EngineJob,
+             writer: JobResultWriter,
+             resource: JobResource,
+             startedAt: JodaDateTime,
+             toFailed: (String => ResultFailed))(
+      implicit timeout: FiniteDuration): Try[String] = {
+
+    val tx = for {
+      opts <- Try(Converters.convertServiceCoreJobOption(engineJob))
+      _ <- validateOpts(opts, writer)
+      results <- runJobAndImport(engineJob.id,
+                                 opts,
+                                 resource,
+                                 writer,
+                                 dao,
+                                 config,
+                                 startedAt,
+                                 timeout)
+    } yield results
+
+    tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout)) match {
+      case Success(msg) => Success(msg)
+      case Failure(ex) =>
+        val msg =
+          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}"
+        logger.error(msg)
+        writer.writeError(msg)
+        // this should log the stacktrace. This needs access to the job writer
+        Failure(ex)
+    }
+
   }
 
   /**
@@ -305,34 +332,32 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
                    AnalysisJobStates.FAILED,
                    host)
 
-    // removing some type-safeness here. If the resources can't get setup, there's no
-    // clear way to write errors to the file system. Moreover, the writer needs
-    // to be passed everywhere.
-    val (writer, resource) = setupResources(engineJob)
+    def toSuccess(msg: String) =
+      ResultSuccess(engineJob.uuid,
+                    engineJob.jobTypeId,
+                    msg,
+                    computeTimeDeltaFromNow(startedAt),
+                    AnalysisJobStates.FAILED,
+                    host)
 
-    val tx = for {
-      opts <- Try(Converters.convertServiceCoreJobOption(engineJob))
-      _ <- validateOpts(opts, writer)
-      results <- runJobAndImport(engineJob.id,
-                                 opts,
-                                 resource,
-                                 writer,
-                                 dao,
-                                 config,
-                                 startedAt,
-                                 timeout)
-    } yield Right(results)
+    // If the resource failed to setup, the mark the job as failed
+    val trx = Try(setupResources(engineJob))
+      .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
 
-    tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout, toFailed)) match {
-      case Success(either) => writeEitherError(either, writer)
+    // Run the main, update state in db on success or failure
+    val tmain = for {
+      (writer, resource) <- trx
+      results <- runner(engineJob, writer, resource, startedAt, toFailed)
+    } yield results
+
+    // This is the
+    tmain match {
+      case Success(msg) =>
+        Right(toSuccess(msg))
       case Failure(ex) =>
-        val msg =
-          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}"
-        logger.error(msg)
-        writer.writeError(msg)
-        // this should log the stacktrace. This needs access to the job writer
         Left(toFailed(ex.getMessage))
     }
+
   }
 
 }
