@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.services.{
   RoutedHttpService
 }
 import com.pacbio.secondary.smrtlink.time.SystemClock
-import com.pacbio.logging.LoggerOptions
+import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.actors.{
   EventManagerActor,

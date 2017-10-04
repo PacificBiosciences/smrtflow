@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 
 import java.nio.file.Paths
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.contracts.ContractLoaders
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetWriter
 

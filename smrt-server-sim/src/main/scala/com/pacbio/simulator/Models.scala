@@ -9,7 +9,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.concurrent.duration._
 import java.util.UUID
 
-import com.pacbio.logging.LoggerConfig
+import com.pacbio.common.logging.LoggerConfig
 
 object Models
 

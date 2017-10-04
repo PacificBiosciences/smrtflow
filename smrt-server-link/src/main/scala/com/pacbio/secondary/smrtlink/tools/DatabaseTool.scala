@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.tools
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.EngineCoreConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.PacBioIntJobResolver
 import com.pacbio.secondary.smrtlink.analysis.tools.{

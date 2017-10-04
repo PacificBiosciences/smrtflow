@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import akka.actor.ActorSystem
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.tools.CommandLineToolVersion
 import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials

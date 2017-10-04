@@ -8,7 +8,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
 import com.pacbio.common.models.{Constants => CommonConstants}
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.converters.FastaToReferenceConverter
 
 case class FastaToReferenceConfig(fastaFile: String,

@@ -13,7 +13,7 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 import spray.json._
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.actors.SmrtLinkDalProvider
 import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
 import com.pacbio.secondary.smrtlink.analysis.tools.{

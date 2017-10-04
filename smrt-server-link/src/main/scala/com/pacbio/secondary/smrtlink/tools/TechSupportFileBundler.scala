@@ -11,7 +11,7 @@ import spray.json._
 import scala.util.{Failure, Success, Try}
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{
   TechSupportConstants,

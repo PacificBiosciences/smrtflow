@@ -25,7 +25,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ResourceNotFoundError,
   UnprocessableEntityError
 }
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.converters._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
