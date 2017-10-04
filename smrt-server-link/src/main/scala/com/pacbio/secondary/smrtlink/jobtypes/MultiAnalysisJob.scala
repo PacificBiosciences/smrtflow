@@ -87,6 +87,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       entryPoints: Seq[BoundServiceEntryPoint],
       job: DeferredJob,
       parentJobId: Int,
+      user: Option[String],
       smrtLinkVersion: Option[String],
       writer: JobResultWriter): Future[EngineJob] = {
     dao
@@ -120,6 +121,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                      job: DeferredJob,
                      jobId: Option[Int],
                      parentJobId: Int,
+                     user: Option[String],
                      smrtLinkVersion: Option[String],
                      writer: JobResultWriter): Future[EngineJob] = {
     for {
@@ -133,6 +135,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                               engineJobEntryPoints,
                               job,
                               parentJobId,
+                              user,
                               smrtLinkVersion,
                               writer))
     } yield engineJob
@@ -263,6 +266,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
              deferredJob,
              jobId,
              engineJob.id,
+             engineJob.createdBy,
              config.smrtLinkVersion,
              resultsWriter)
         .map(createdJob => Some(createdJob.id))

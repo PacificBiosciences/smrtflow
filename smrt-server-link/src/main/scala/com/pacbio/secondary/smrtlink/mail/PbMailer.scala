@@ -72,6 +72,20 @@ trait PbMailer extends LazyLogging {
   }
 
   /**
+    * Only Analysis Jobs and Multi-Jobs will send email.
+    *
+    */
+  def shouldEmail(jobTypeId: String): Boolean = {
+    JobTypeIds.fromString(jobTypeId).exists { x: JobTypeIds.JobType =>
+      x match {
+        case JobTypeIds.PBSMRTPIPE => true
+        case JobTypeIds.MJOB_MULTI_ANALYSIS => true
+        case _ => false
+      }
+    }
+  }
+
+  /**
     * Send email (if possible)
     *
     * The Job must have the required files defined (i.e., non-optional) and the job must be in a completed state
@@ -87,8 +101,8 @@ trait PbMailer extends LazyLogging {
                 mailPassword: Option[String] = None): Future[String] = {
     mailHost
       .map { host =>
-        Tuple3(job.createdByEmail, job.jobTypeId, job.isComplete) match {
-          case Tuple3(Some(email), JobTypeIds.PBSMRTPIPE.id, true) =>
+        Tuple2(job.createdByEmail, job.isComplete) match {
+          case Tuple2(Some(email), true) if shouldEmail(job.jobTypeId) =>
             // Note, because of the js "#" the URL or URI resolving doesn't work as expected.
             val jobIdUrl = new URL(jobsBaseUrl.toString() + s"/${job.id}")
             val toAddress = new InternetAddress(email)
