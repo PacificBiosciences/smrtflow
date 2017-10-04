@@ -32,8 +32,8 @@ case class TechSupportFileBundlerOptions(rootUserData: Path,
                                          dnsName: Option[String],
                                          smrtLinkVersion: Option[String],
                                          smrtLinkSystemId: Option[UUID],
-                                         comment: String
-                                        ) extends LoggerConfig
+                                         comment: String)
+    extends LoggerConfig
 
 object TechSupportFileBundler
     extends CommandLineToolRunner[TechSupportFileBundlerOptions]
