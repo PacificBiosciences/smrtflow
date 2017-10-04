@@ -106,7 +106,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
 
   }
 
-  private def toDataStoreFile(uuid: UUID, path: Path) = {
+  private def toDataStoreFile(uuid: UUID, name: String, path: Path) = {
     val importedAt = JodaDateTime.now()
     DataStoreFile(
       uuid,
@@ -117,8 +117,8 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
       importedAt,
       path.toAbsolutePath.toString,
       isChunked = false,
-      s"ReferenceSet ${opts.name}",
-      s"Converted Fasta and Imported ReferenceSet ${opts.name}"
+      s"ReferenceSet $name",
+      s"Converted Fasta and Imported ReferenceSet $name"
     )
   }
 
@@ -134,11 +134,10 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   /**
     * Run locally (don't submit to the cluster resources)
     */
-  private def runLocal(
-      dao: JobsDao,
-      opts: ImportFastaJobOptions,
-      job: JobResourceBase,
-      resultsWriter: JobResultWriter): Try[PacBioDataStore] = {
+  private def runLocal(dao: JobsDao,
+                       opts: ImportFastaJobOptions,
+                       job: JobResourceBase,
+                       resultsWriter: JobResultWriter): Try[PacBioDataStore] = {
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath)
@@ -152,7 +151,9 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     def writeFiles(rio: ReferenceSetIO): PacBioDataStore = {
       w(s"Successfully wrote DataSet uuid:${rio.dataset.getUniqueId} name:${rio.dataset.getName} to path:${rio.path}")
       val dsFile =
-        toDataStoreFile(UUID.fromString(rio.dataset.getUniqueId), rio.path)
+        toDataStoreFile(UUID.fromString(rio.dataset.getUniqueId),
+                        rio.dataset.getName,
+                        rio.path)
       val datastore =
         writeDatastoreToJobDir(Seq(dsFile, logFile), job.path)
       w(s"successfully generated datastore with ${datastore.files.length} files")
@@ -191,7 +192,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
 
     pbOpts.toJob.run(job, resultsWriter) match {
       case Right(x) => Success(x)
-      case Left(e) => Failure(new Exception(s"Failed to run job ${e.message}"))
+      case Left(e)  => Failure(new Exception(s"Failed to run job ${e.message}"))
     }
   }
 
@@ -244,7 +245,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     val tr = tx.recover { case ex => toLeft(ex.getMessage) }
 
     tr match {
-      case Success(x) => x
+      case Success(x)  => x
       case Failure(ex) => toLeft(ex.getMessage)
     }
   }
