@@ -13,12 +13,25 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   _
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
+import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
 import scala.util.Try
 
-// Contain for all SmrtpipeJob 'type' options
+/**
+  * Contains all the options for an Analysis/Pbsmrtpipe task
+  *
+  * @param pipelineId      The pbsmrtpipe pipeline Id
+  * @param entryPoints     The entry points to the pipeline (these will be validated from pbsmrtpipe on startup)
+  * @param taskOptions     The task options for the specific pipeline
+  * @param workflowOptions the Workflow Engine level options
+  * @param serviceUri      Complete URI to the Update endpoint for the specific job by IdAble
+  *                        (e.g., http://my-host:9876/smrt-link/job-manager/jobs/[UUID]
+  * @param envPath         No longer supported, should be removed
+  * @param commandTemplate No longer supported, should be removed
+  * @param projectId       Project Id to assign the output results to
+  */
 case class PbSmrtPipeJobOptions(
     pipelineId: String,
     entryPoints: Seq[BoundEntryPoint],
@@ -77,10 +90,20 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
       logger.info(s)
     }
 
-    resultsWriter.writeLine(s"pbsmrtpipe job with Engine opts:")
-    opts.workflowOptions.foreach { x =>
-      resultsWriter.writeLine(s"${x.id} -> ${x.value}")
+    def writeOptions(opts: Seq[ServiceTaskOptionBase], msg: String): Unit = {
+      resultsWriter.writeLine(msg)
+      opts
+        .map(x => s"${x.id} -> ${x.value}")
+        .foreach(resultsWriter.writeLine)
     }
+
+    resultsWriter.writeLine(
+      opts.serviceUri
+        .map(x => s"Update URL:$x")
+        .getOrElse("Updating URL is not configured"))
+
+    writeOptions(opts.workflowOptions, s"PbSmrtPipe job with Engine opts:")
+    writeOptions(opts.taskOptions, s"PbSmrtPipe task options:")
 
     val engineOpts = PbsmrtpipeEngineOptions(opts.workflowOptions)
 
@@ -130,10 +153,8 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
     val datastorePath = job.path.resolve("workflow/datastore.json")
 
     val ds = Try {
-      val source = scala.io.Source.fromFile(datastorePath.toFile)
-      val contents = source.mkString("")
-      val xs = contents.parseJson
-      xs.convertTo[PacBioDataStore]
+      val contents = FileUtils.readFileToString(datastorePath.toFile)
+      contents.parseJson.convertTo[PacBioDataStore]
     } getOrElse {
       writer(
         s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
