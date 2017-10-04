@@ -9,7 +9,7 @@ Usage
 
 Example command-line usage::
 
-  $ ./smrt-server-tools/target/pack/bin/get-smrt-server-status -h
+  $ ./smrt-server-link/target/pack/bin/pbservice -h
   ...
   Usage: ./app_with_logging [options]
   
@@ -79,7 +79,7 @@ There are a few practical use cases that are supported. By default, INFO level e
 
 You'll likely want to capture everything above warnings in a production environment. Use the `--log-level` and `--log-file` flags::
 
-  $ ./smrt-server-tools/target/pack/bin/get-smrt-server-status --host smrtlink-bihourly --port 8081 --log-file /var/log/my_log.log --log-level WARN
+  $ ./smrt-server-link/target/pack/bin/pbservice status --host smrtlink-bihourly --port 8081 --log-file /var/log/my_log.log --log-level WARN
 
 In this case, the normal params exist and only these two alter the logging.
 
@@ -94,15 +94,15 @@ support this versus requiring a custom log config file or property file.
 When working on the code you probably always want to see errors. If that is true, run with `--log2stdout` and
 `--log-level ERROR`::
 
-  $ ./smrt-server-tools/target/pack/bin/some_service --log2stdout --log-level ERROR
+  $ ./smrt-server-link/target/pack/bin/some_service --log2stdout --log-level ERROR
 
 Here is the more verbose, show me all log messages example::
 
-  $ ./smrt-server-tools/target/pack/bin/some_service --log2stdout --log-level DEBUG
+  $ ./smrt-server-link/target/pack/bin/some_service --log2stdout --log-level DEBUG
 
 ### Using a logback.xml config
 
 It is possible to ignore all of the default conventions used by this API and rely on a standard logback.xml config file
 via the `--logback`. This provides the most flexibility possible and relies on a well known, commonly used logging library::
 
-  ./smrt-server-tools/target/pack/bin/some_service --logback logback.xml
+  ./smrt-server-link/target/pack/bin/some_service --logback logback.xml
