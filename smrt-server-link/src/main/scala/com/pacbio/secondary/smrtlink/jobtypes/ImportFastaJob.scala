@@ -63,21 +63,13 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   final val OPT_PLOIDY = "pbcoretools.task_options.ploidy"
   final val DEFAULT_REFERENCE_SET_NAME = "Fasta-Convert"
 
-  private def toURI(baseURL: URL, uuid: UUID): URI = {
-    // there has to be a cleaner way to do this
-    new URI(
-      s"${baseURL.getProtocol}://${baseURL.getHost}:${baseURL.getPort}${baseURL.getPath}/${uuid.toString}")
-  }
-
   private def toPbsmrtPipeJobOptions(opts: ImportFastaJobOptions,
                                      config: SystemJobConfig,
                                      jobUUID: UUID): PbSmrtPipeJobOptions = {
 
     // There's some common code that needs to be pulled out
-    val rootUpdateURL = new URL(
-      s"http://${config.host}:${config.port}/smrt-link/job-manager/jobs/pbsmrtpipe")
-
-    val updateUri = toURI(rootUpdateURL, jobUUID).toURL
+    val updateUrl = new URL(
+      s"http://${config.host}:${config.port}/smrt-link/job-manager/jobs/pbsmrtpipe/${jobUUID.toString}")
 
     def toPipelineOption(id: String, value: String) =
       ServiceTaskStrOption(id, value)
@@ -100,7 +92,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
       taskOptions,
       config.pbSmrtPipeEngineOptions.toPipelineOptions.map(_.asServiceOption),
       envPath,
-      Some(toURI(updateUri, jobUUID)),
+      Some(updateUrl.toURI),
       projectId = opts.getProjectId()
     )
 
