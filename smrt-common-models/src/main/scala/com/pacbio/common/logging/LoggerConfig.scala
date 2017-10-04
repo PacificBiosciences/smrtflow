@@ -18,6 +18,7 @@ import ch.qos.logback.core.util.FileSize
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConversions._
+import scala.util.Properties
 
 /**
   * Mixin for adding shared logger params to SMRT App classes
@@ -26,8 +27,9 @@ import scala.collection.JavaConversions._
   */
 trait LoggerConfig {
 
-  val ROLLOVER_MAX_FILE_SIZE = "100MB"
-  val ROLLOVER_MAX_TOTAL_SIZE = "1GB"
+  val ROLLOVER_MAX_FILE_SIZE = Properties.envOrElse("PB_MAX_LOG_SIZE", "100MB")
+  val ROLLOVER_MAX_TOTAL_SIZE =
+    Properties.envOrElse("PB_MAX_TOTAL_LOG_SIZE", "1GB")
 
   // params for logger configuration
   var logLevel = "INFO"
