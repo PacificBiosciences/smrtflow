@@ -22,7 +22,7 @@ import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
 import com.pacbio.secondary.smrtlink.time.SystemClockProvider
 import com.pacbio.common.utils.OSUtils
-import com.pacbio.logging.LoggerOptions
+import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.models.MimeTypeDetectors

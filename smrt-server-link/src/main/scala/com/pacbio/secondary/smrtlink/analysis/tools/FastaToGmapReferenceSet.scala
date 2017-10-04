@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 
 import java.nio.file.{Files, Paths}
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.converters.GmapReferenceConverter
 import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
 import com.typesafe.scalalogging.LazyLogging

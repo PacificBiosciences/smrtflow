@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 
 import java.nio.file.Paths
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter._
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetWriter
 import org.joda.time.{DateTime => JodaDateTime}

@@ -234,10 +234,8 @@ lazy val smrtflow = project
     .Argument(TestFrameworks.Specs2, "junitxml", "console"))
   .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
   .configs(IntegrationTest)
-  .dependsOn(logging, common, smrtServerLink, smrtServerSim)
-  .aggregate(logging, common, smrtServerLink, smrtServerSim)
-
-lazy val logging = toPacBioProject("smrt-server-logging").settings()
+  .dependsOn(common, smrtServerLink, smrtServerSim)
+  .aggregate(common, smrtServerLink, smrtServerSim)
 
 lazy val common =
   toPacBioProject("smrt-common-models")
@@ -266,12 +264,12 @@ lazy val common =
 
 lazy val smrtServerLink =
   toPacBioProject("smrt-server-link")
-    .dependsOn(logging, common)
+    .dependsOn(common)
     .settings(mainClass in assembly := Some(
                 "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"),
               assemblyJarName in assembly := "smrt-server-link-analysis.jar")
 
 lazy val smrtServerSim =
   toPacBioProject("smrt-server-sim")
-    .dependsOn(logging, common, smrtServerLink)
+    .dependsOn(common, smrtServerLink)
     .settings()

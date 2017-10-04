@@ -8,7 +8,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.pacbio.common.models.CommonModels.IntIdAble
 import com.pacbio.common.models._
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels

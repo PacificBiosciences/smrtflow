@@ -3,7 +3,7 @@ package com.pacbio.simulator
 import java.nio.file.{Path, Paths}
 
 import akka.actor.ActorSystem
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.simulator.scenarios._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging

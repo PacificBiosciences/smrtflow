@@ -11,7 +11,7 @@ import akka.io.IO
 import akka.pattern.{after, ask}
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.client.Retrying
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,

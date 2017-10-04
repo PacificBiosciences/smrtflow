@@ -9,7 +9,7 @@ import scopt.OptionParser
 import spray.json._
 import DefaultJsonProtocol._
 
-import com.pacbio.logging.LoggerConfig
+import com.pacbio.common.logging.LoggerConfig
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure

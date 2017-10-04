@@ -13,7 +13,7 @@ import com.pacificbiosciences.pacbiodatasets._
 import org.joda.time.{DateTime => JodaDateTime}
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import scopt.OptionParser
 
 import scala.util.Try

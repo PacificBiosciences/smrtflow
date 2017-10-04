@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 import com.pacbio.common.models.contracts.ResolvedToolContract
 import com.pacbio.common.models.contracts._
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.contracts.ContractLoaders
 import com.typesafe.scalalogging.LazyLogging

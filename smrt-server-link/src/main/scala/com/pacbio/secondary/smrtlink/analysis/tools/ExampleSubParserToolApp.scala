@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.analysis.tools
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 

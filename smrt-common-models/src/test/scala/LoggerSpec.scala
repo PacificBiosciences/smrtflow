@@ -1,5 +1,4 @@
-package com.pacbio.logging
-
+import java.nio.file.Files
 import java.util
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
@@ -9,11 +8,16 @@ import ch.qos.logback.core.{Appender, Context}
 import ch.qos.logback.core.filter.Filter
 import ch.qos.logback.core.spi.FilterReply
 import ch.qos.logback.core.status.Status
+import ch.qos.logback.core.util.StatusPrinter
+
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.{Logger, LoggerFactory}
 import org.specs2.mutable.Specification
+import org.apache.commons.io.FilenameUtils
 
 import scala.concurrent.{Await, Future}
+
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 
 /**
   * Tests showing that the logging CLI flags work as exepected
@@ -130,5 +134,28 @@ class LoggerSpec extends Specification with LazyLogging {
       logger.error("Show ERROR")
       vals() mustEqual ("ERROR", "Show ERROR")
     }
+    "Set up rollover policy" in {
+      val c2 = new LoggerConfig() {}
+      val tmpFile = Files.createTempFile("analysis", ".log")
+      c2.setFile(tmpFile.toString, "1KB", "2KB")
+      c2.logFile must beEqualTo(tmpFile.toString)
+      (1 to 15).map(x => logger.info(s"Mark $x"))
+      Thread.sleep(1)
+      (1 to 15).map(x => logger.info(s"Mark $x"))
+      //println(tmpFile)
+      //val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
+      //StatusPrinter.print(lc)
+      tmpFile.toFile.exists must beTrue
+      val baseName = FilenameUtils.getName(tmpFile.toString)
+      val nGzLogFiles = tmpFile
+        .getParent()
+        .toFile
+        .listFiles
+        .filter(_.getName().startsWith(baseName))
+        .filter(_.getName().endsWith(".gz"))
+        .size
+      nGzLogFiles must beEqualTo(1)
+    }
   }
+
 }

@@ -55,7 +55,7 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.services.StatusService
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 import com.pacbio.common.utils.TarGzUtils
-import com.pacbio.logging.LoggerOptions
+import com.pacbio.common.logging.LoggerOptions
 
 import scala.util.control.NonFatal
 

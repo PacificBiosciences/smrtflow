@@ -12,7 +12,7 @@ import com.pacbio.secondary.smrtlink.database.{
 }
 import com.pacbio.secondary.smrtlink.models.DataModelParserImplProvider
 import com.pacbio.secondary.smrtlink.services._
-import com.pacbio.logging.LoggerOptions
+import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
 import com.typesafe.scalalogging.LazyLogging

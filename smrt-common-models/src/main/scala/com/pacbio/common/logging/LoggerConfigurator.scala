@@ -1,4 +1,4 @@
-package com.pacbio.logging
+package com.pacbio.common.logging
 
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.Configurator

@@ -4,7 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.text.ParseException
 
-import com.pacbio.logging.LoggerConfig
+import com.pacbio.common.logging.LoggerConfig
 import com.pacbio.common.models.Constants
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}

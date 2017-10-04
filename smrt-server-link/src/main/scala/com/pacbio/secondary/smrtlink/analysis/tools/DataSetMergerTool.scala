@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 import java.io.File
 import java.nio.file.{Path, Paths}
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,

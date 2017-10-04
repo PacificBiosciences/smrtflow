@@ -4,7 +4,7 @@ import java.io.File
 import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure

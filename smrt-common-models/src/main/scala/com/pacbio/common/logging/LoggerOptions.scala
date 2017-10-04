@@ -1,4 +1,4 @@
-package com.pacbio.logging
+package com.pacbio.common.logging
 
 import java.io.File
 import java.nio.file.Files
