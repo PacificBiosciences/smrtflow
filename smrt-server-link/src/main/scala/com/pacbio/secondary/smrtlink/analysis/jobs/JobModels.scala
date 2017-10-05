@@ -784,11 +784,16 @@ object JobModels {
                                     advanced: Boolean,
                                     required: Option[Boolean] = Some(false))
 
-  case class PipelineTemplateViewRule(id: String,
-                                      name: String,
-                                      description: String,
-                                      taskOptions: Seq[PipelineOptionViewRule],
-                                      inputFilters: Option[String] = None)
+  case class PipelineInputFilterRule(field: String,
+                                     operator: String,
+                                     value: String)
+
+  case class PipelineTemplateViewRule(
+      id: String,
+      name: String,
+      description: String,
+      taskOptions: Seq[PipelineOptionViewRule],
+      inputFilters: Option[Seq[PipelineInputFilterRule]] = None)
 
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
   case class DataStoreFileViewRule(sourceId: String,
