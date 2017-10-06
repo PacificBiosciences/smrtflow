@@ -96,7 +96,7 @@ trait PbMailer extends LazyLogging {
     JobTypeIds.fromString(jobTypeId).exists { x: JobTypeIds.JobType =>
       x match {
         case JobTypeIds.PBSMRTPIPE => true
-        case _                     => false
+        case _ => false
       }
     }
   }

@@ -54,7 +54,8 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
   }
 
   def resolve(root: Path, files: Seq[DataStoreFile]): Seq[DataStoreFile] =
-    files.map(f => f.copy(path = resolvePath(Paths.get(f.path), root).toString))
+    files.map(f =>
+      f.copy(path = resolvePath(Paths.get(f.path), root).toString))
 
   def loadFiles(files: Seq[DataStoreFile],
                 root: Option[Path]): Seq[DataStoreFile] = {
@@ -113,7 +114,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     x match {
-      case x: DataStoreFile   => importDataStoreFile(x, jobUUID).map(List(_))
+      case x: DataStoreFile => importDataStoreFile(x, jobUUID).map(List(_))
       case x: PacBioDataStore => importDataStore(x, jobUUID)
     }
   }
@@ -198,7 +199,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       _ <- andWrite(
         s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
       _ <- andWrite(
-        s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
+        s"Successfully completed Job id:${updatedEngineJob.id} job-type:${opts.jobTypeId.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
     } yield msg
 
     // This is a little clumsy to get the error message written to the correct place
@@ -303,7 +304,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       msg <- config.mail
         .map(c => sendCoreJobEmail(updatedJob, baseJobsUrl, c))
         .getOrElse(Future.successful(
-          "Skipping Sending Email. System is not configured for Email sending"))
+          s"Skipping Sending Email for Job $jobId state:${updatedJob.state}. type:${updatedJob.jobTypeId} userEmail:${updatedJob.createdByEmail}, System is not configured for Email sending"))
     } yield msg
   }
 
