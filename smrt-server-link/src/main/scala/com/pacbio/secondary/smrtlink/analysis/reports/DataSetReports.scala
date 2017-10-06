@@ -27,7 +27,7 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 
 object DataSetReports
@@ -91,7 +91,7 @@ object DataSetReports
   def run(srcPath: Path,
           rpt: CallPbReport,
           parentDir: Path,
-          log: JobResultWriter): Option[DataStoreFile] = {
+          log: JobResultsWriter): Option[DataStoreFile] = {
 
     val reportDir = parentDir.resolve(rpt.reportModule)
     reportDir.toFile.mkdir()
@@ -112,7 +112,7 @@ object DataSetReports
 
   def runCombined(srcPath: Path,
                   parentDir: Path,
-                  log: JobResultWriter): Seq[DataStoreFile] = {
+                  log: JobResultsWriter): Seq[DataStoreFile] = {
     val dsFile = parentDir.resolve("datastore.json")
     val rpt = PbReports.SubreadReports
     log.writeLine(s"running report ${rpt.reportModule}")
@@ -137,7 +137,7 @@ object DataSetReports
              dst: DataSetMetaTypes.DataSetMetaType,
              jobPath: Path,
              jobTypeId: JobTypeIds.JobType,
-             log: JobResultWriter): Seq[DataStoreFile] = {
+             log: JobResultsWriter): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()

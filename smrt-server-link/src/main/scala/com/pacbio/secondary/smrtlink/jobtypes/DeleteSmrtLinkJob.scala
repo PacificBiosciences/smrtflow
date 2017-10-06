@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   InvalidJobOptionError,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.DeleteResourcesOptions
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
@@ -81,7 +81,7 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 

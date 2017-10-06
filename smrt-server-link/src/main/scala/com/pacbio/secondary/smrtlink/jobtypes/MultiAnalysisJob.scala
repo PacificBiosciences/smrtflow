@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.actors.{DaoFutureUtils, JobsDao}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models._
@@ -89,7 +89,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       parentJobId: Int,
       user: Option[String],
       smrtLinkVersion: Option[String],
-      writer: JobResultWriter): Future[EngineJob] = {
+      writer: JobResultsWriter): Future[EngineJob] = {
     dao
       .createCoreJob(
         UUID.randomUUID(),
@@ -123,7 +123,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                      parentJobId: Int,
                      user: Option[String],
                      smrtLinkVersion: Option[String],
-                     writer: JobResultWriter): Future[EngineJob] = {
+                     writer: JobResultsWriter): Future[EngineJob] = {
     for {
       resolvedEntryPoints <- resolveEntryPoints(dao, job.entryPoints)
       engineJobEntryPoints <- Future.successful(resolvedEntryPoints.map(f =>
@@ -252,7 +252,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
   override def runWorkflow(
       engineJob: EngineJob,
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Future[MessageResponse] = {
 

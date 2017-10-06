@@ -4,7 +4,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MovieMetadataToHdfSubreadOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -28,7 +28,7 @@ class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions)
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     // SHIM

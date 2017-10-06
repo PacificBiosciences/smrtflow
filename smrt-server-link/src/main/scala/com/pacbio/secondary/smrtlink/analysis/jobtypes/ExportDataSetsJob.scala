@@ -39,7 +39,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
   val jobTypeId = JobTypeIds.EXPORT_DATASETS
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     val startedAt = JodaDateTime.now()
 

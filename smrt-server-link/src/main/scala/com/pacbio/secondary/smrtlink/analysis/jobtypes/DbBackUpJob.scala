@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   BaseCoreJob,
   BaseJobOptions,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -205,7 +205,7 @@ class DbBackUpJob(opts: DbBackUpJobOptions)
 
   override def run(
       job: JobResourceBase,
-      resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+      resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     val createdAt = JodaDateTime.now()
     resultsWriter.writeLine(s"Starting Db Backup with Options $opts")

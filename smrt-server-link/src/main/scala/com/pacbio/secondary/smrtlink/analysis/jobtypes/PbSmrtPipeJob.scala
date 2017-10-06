@@ -82,7 +82,7 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
   import SecondaryJobProtocols._
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
 
     def writer(s: String): Unit = {

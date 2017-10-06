@@ -37,30 +37,21 @@ object EventManagerActor {
 class EventManagerActor(smrtLinkId: UUID,
                         dnsName: Option[String],
                         externalEveUrl: Option[URL],
-                        apiSecret: String,
-                        smrtLinkUiPort: Int,
-                        mailHost: Option[String] = None,
-                        mailPort: Int = 25,
-                        mailUser: Option[String] = None,
-                        mailPassword: Option[String] = None)
+                        apiSecret: String)
     extends Actor
     with LazyLogging
-    with SmrtLinkJsonProtocols
-    with PbMailer {
+    with SmrtLinkJsonProtocols {
 
   import EventManagerActor._
-
-  // If the system is not configured with the DNS name, no emails will be sent.
-  val uiJobsUrl =
-    dnsName.map(d => new URL(s"https://$d:$smrtLinkUiPort/sl/#/analysis/job"))
 
   // This state will be updated when/if a "Eula" message is sent. This will enable/disable sending messages
   // to the external server.
   var enableExternalMessages = false
 
   // If the system is not configured with an event server. No external messages will ever be sent
-  val client: Option[EventServerClient] = externalEveUrl.map(x =>
-    new EventServerClient(x, apiSecret)(context.system))
+  val client: Option[EventServerClient] =
+    externalEveUrl.map(x =>
+      new EventServerClient(x, apiSecret)(context.system))
 
   context.system.scheduler
     .scheduleOnce(10.seconds, self, CheckExternalServerStatus)
@@ -175,21 +166,6 @@ class EventManagerActor(smrtLinkId: UUID,
             "Unable to upload. System is not configured with a external server URL")
       }
 
-    case JobCompletedMessage(job) =>
-      // This is a fire and forget
-      uiJobsUrl match {
-        case Some(jobsBaseUrl) =>
-          sendEmail(job,
-                    jobsBaseUrl,
-                    mailHost,
-                    mailPort,
-                    mailUser,
-                    mailPassword)
-        case _ =>
-          logger.debug(
-            s"System is not configured to send email. Must provide DNS name in SMRT Link System Config")
-      }
-
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }
 }
@@ -205,12 +181,8 @@ trait EventManagerActorProvider {
                 serverId(),
                 dnsName(),
                 externalEveUrl(),
-                apiSecret(),
-                smrtLinkUiPort(),
-                mailHost(),
-                mailPort(),
-                mailUser(),
-                mailPassword()),
+                apiSecret()),
           "EventManagerActor"
-      ))
+      )
+    )
 }

@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -126,10 +126,11 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   /**
     * Run locally (don't submit to the cluster resources)
     */
-  private def runLocal(dao: JobsDao,
-                       opts: ImportFastaJobOptions,
-                       job: JobResourceBase,
-                       resultsWriter: JobResultWriter): Try[PacBioDataStore] = {
+  private def runLocal(
+      dao: JobsDao,
+      opts: ImportFastaJobOptions,
+      job: JobResourceBase,
+      resultsWriter: JobResultsWriter): Try[PacBioDataStore] = {
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile = toMasterDataStoreFile(logPath)
@@ -177,20 +178,20 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     */
   private def runNonLocal(opts: ImportFastaJobOptions,
                           job: JobResourceBase,
-                          resultsWriter: JobResultWriter,
+                          resultsWriter: JobResultsWriter,
                           config: SystemJobConfig): Try[PacBioDataStore] = {
 
     val pbOpts = toPbsmrtPipeJobOptions(opts, config, job.jobId)
 
     pbOpts.toJob.run(job, resultsWriter) match {
       case Right(x) => Success(x)
-      case Left(e)  => Failure(new Exception(s"Failed to run job ${e.message}"))
+      case Left(e) => Failure(new Exception(s"Failed to run job ${e.message}"))
     }
   }
 
   private def shouldRunLocal(opts: ImportFastaJobOptions,
                              job: JobResourceBase,
-                             resultsWriter: JobResultWriter): Boolean = {
+                             resultsWriter: JobResultsWriter): Boolean = {
     val fileSizeMB = Paths.get(opts.path).toFile.length / 1024 / 1024
     fileSizeMB <= LOCAL_MAX_SIZE_MB
   }
@@ -201,7 +202,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   def runner(dao: JobsDao,
              opts: ImportFastaJobOptions,
              job: JobResourceBase,
-             resultsWriter: JobResultWriter,
+             resultsWriter: JobResultsWriter,
              config: SystemJobConfig): Try[PacBioDataStore] = {
     if (shouldRunLocal(opts, job, resultsWriter)) {
       runLocal(dao, opts, job, resultsWriter)
@@ -212,7 +213,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
@@ -237,7 +238,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     val tr = tx.recover { case ex => toLeft(ex.getMessage) }
 
     tr match {
-      case Success(x)  => x
+      case Success(x) => x
       case Failure(ex) => toLeft(ex.getMessage)
     }
   }

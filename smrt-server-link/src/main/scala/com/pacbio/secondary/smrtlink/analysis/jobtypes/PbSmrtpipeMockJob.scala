@@ -184,7 +184,7 @@ class PbSmrtpipeMockJob(opts: MockPbSmrtPipeJobOptions)
   type Out = PacBioDataStore
   val jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
 
-  def run(job: JobResourceBase, resultsWriter: JobResultWriter)
+  def run(job: JobResourceBase, resultsWriter: JobResultsWriter)
     : Either[ResultFailed, PacBioDataStore] = {
 
     val resources = setupJobResourcesAndCreateDirs(job.path)

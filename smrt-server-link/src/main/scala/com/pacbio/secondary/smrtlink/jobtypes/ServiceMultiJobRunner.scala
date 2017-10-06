@@ -9,7 +9,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   FileJobResultsWriter,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
@@ -50,7 +50,7 @@ trait JobRunnerUtils {
   }
 
   def writeErrorToResults(ex: Throwable,
-                          writer: JobResultWriter,
+                          writer: JobResultsWriter,
                           msg: Option[String]): Unit = {
     writer.writeLineError(s"${msg.getOrElse("")} ${ex.getMessage}")
     val sw = new StringWriter
@@ -59,7 +59,7 @@ trait JobRunnerUtils {
   }
 
   def writeError(
-      writer: JobResultWriter,
+      writer: JobResultsWriter,
       msg: Option[String]): PartialFunction[Throwable, Try[String]] = {
     case NonFatal(ex) =>
       writeErrorToResults(ex, writer, msg)

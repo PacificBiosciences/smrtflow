@@ -6,7 +6,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.EngineJobEntryPointRecord
@@ -45,7 +45,7 @@ case class DbBackUpJobOptions(user: String,
 class DbBackUpJob(opts: DbBackUpJobOptions) extends ServiceCoreJob(opts) {
   type Out = PacBioDataStore
   override def run(resources: JobResourceBase,
-                   resultsWriter: JobResultWriter,
+                   resultsWriter: JobResultsWriter,
                    dao: JobsDao,
                    config: SystemJobConfig) = {
 

@@ -53,7 +53,7 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
   val jobTypeId = JobTypeIds.IMPORT_DATASET
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     val startedAt = JodaDateTime.now()
     val createdAt = JodaDateTime.now()

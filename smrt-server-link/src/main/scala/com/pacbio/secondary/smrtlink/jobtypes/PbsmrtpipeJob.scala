@@ -7,7 +7,7 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
   PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions
 }
@@ -58,7 +58,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
