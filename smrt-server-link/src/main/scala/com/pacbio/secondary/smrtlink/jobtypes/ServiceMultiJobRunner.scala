@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.io.{FileWriter, PrintWriter, StringWriter}
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -13,6 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
+  JobConstants,
   JobResource
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
@@ -28,22 +29,30 @@ import scala.util.control.NonFatal
 
 trait JobRunnerUtils {
 
+  /**
+    * Note, this can be called multiple times from the same job.
+    */
   def setupResources(
       engineJob: EngineJob): (FileJobResultsWriter, JobResource) = {
     val output = Paths.get(engineJob.path)
 
+    val stderr = output.resolve(JobConstants.JOB_STDERR).toAbsolutePath
+    val stdout = output.resolve(JobConstants.JOB_STDOUT).toAbsolutePath
+
+    val wasSetup = Files.exists(stdout)
+
     // This abstraction needs to be fixed. This is for legacy interface
     val resource = JobResource(engineJob.uuid, output)
 
-    val stderrFw = new FileWriter(
-      output.resolve("pbscala-job.stderr").toAbsolutePath.toString,
-      true)
-    val stdoutFw = new FileWriter(
-      output.resolve("pbscala-job.stdout").toAbsolutePath.toString,
-      true)
+    val stderrFw = new FileWriter(stderr.toString, true)
+    val stdoutFw = new FileWriter(stdout.toString, true)
 
     val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
-    writer.writeLine(s"Starting to run engine job ${engineJob.id}")
+
+    if (!wasSetup) {
+      writer.writeLine(
+        s"Initial Setup of resources. Starting to run engine job id:${engineJob.id} type:${engineJob.jobTypeId}")
+    }
 
     (writer, resource)
   }
@@ -85,10 +94,15 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
     (opts, writer, resource)
   }
 
-  private def sendMailIfConfigured(jobId: Int, dao: JobsDao): Future[String] = {
-    config.mail
-      .map(m => sendMultiAnalysisJobMail(jobId, dao, m, config.baseJobsUrl))
-      .getOrElse(Future.successful(NOT_CONFIGURED_FOR_MAIL_MSG))
+  private def sendMailIfConfigured(job: EngineJob,
+                                   dao: JobsDao): Future[String] = {
+    if (job.state.isCompleted) {
+      config.mail
+        .map(m => sendMultiAnalysisJobMail(job.id, dao, m, config.baseJobsUrl))
+        .getOrElse(Future.successful(NOT_CONFIGURED_FOR_MAIL_MSG))
+    } else {
+      Future.successful("")
+    }
   }
 
   def andLog(sx: String): Future[String] = Future {
@@ -113,7 +127,8 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
         Try(setupAndConvert(engineJob)))
       job <- Future.successful(opts.toMultiJob())
       msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
-      emailMessage <- sendMailIfConfigured(engineJob.id, dao)
+      updatedJob <- dao.getJobById(engineJob.id)
+      emailMessage <- sendMailIfConfigured(updatedJob, dao)
       _ <- andLog(emailMessage)
       _ <- Future.successful(writer.writeLine(emailMessage))
     } yield msg
@@ -127,7 +142,8 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
                                   AnalysisJobStates.FAILED,
                                   msg,
                                   Some(ex.getMessage))
-          _ <- sendMailIfConfigured(engineJob.id, dao)
+          updatedJob <- dao.getJobById(engineJob.id)
+          _ <- sendMailIfConfigured(updatedJob, dao)
           _ <- Future.failed(ex)
         } yield MessageResponse(msg) // Never get here
     }
