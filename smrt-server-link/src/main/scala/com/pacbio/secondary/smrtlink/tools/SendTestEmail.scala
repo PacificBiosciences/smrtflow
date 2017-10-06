@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 import java.net.URL
+import javax.mail.internet.InternetAddress
 
 import scala.util.Try
 import scala.concurrent.duration._
@@ -15,7 +16,10 @@ import scopt.OptionParser
 import spray.json._
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.actors.SmrtLinkDalProvider
-import com.pacbio.secondary.smrtlink.models.ConfigModels.RootSmrtflowConfig
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{
+  MailConfig,
+  RootSmrtflowConfig
+}
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure,
@@ -28,7 +32,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
 }
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.mail.PbMailer
+import com.pacbio.secondary.smrtlink.mail.{EmailTemplateResult, PbMailer}
 
 case class SendTestEmailOptions(email: String,
                                 host: Option[String],
@@ -39,24 +43,14 @@ case class SendTestEmailOptions(email: String,
 
 object SendTestEmail extends PbMailer {
   def apply(c: SendTestEmailOptions): Future[String] = {
-    val startedAt = JodaDateTime.now()
-    val job = JobModels.EngineJob(
-      1,
-      UUID.randomUUID(),
-      "fake test job",
-      "Hello world!",
-      startedAt,
-      startedAt,
-      AnalysisJobStates.SUCCESSFUL,
-      "pbsmrtpipe",
-      "/",
-      "",
-      Some("nobody"),
-      Some(c.email),
-      None
-    )
-    val jobsBaseUrl = new URL("http://localhost:8243/sl/#/analysis/job")
-    sendEmail(job, jobsBaseUrl, c.host, c.port, c.user, c.password)
+    // FIXME. The host must be defined for the mailing to work.
+    val templateResult = EmailTemplateResult(
+      "SMRT Link Test Email",
+      s"Successfully Sent Test email to ${c.email}")
+    val toAddress = new InternetAddress(c.email)
+    sender(templateResult,
+           toAddress,
+           mailConfig = MailConfig(c.host.get, c.port, c.user, c.password))
   }
 }
 
