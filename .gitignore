@@ -25,6 +25,8 @@ test-data/smrtserver-testdata
 test-output/*
 jobs-root/*
 profile.json
+smrt-server-sim/sim*.log
+smrt-server-sim/sim*.xml
 
 # sbt specific
 .cache
