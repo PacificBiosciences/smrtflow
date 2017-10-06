@@ -158,17 +158,14 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
   private def fetchJobState(
       dao: JobsDao,
-      jobId: Option[Int]): Future[AnalysisJobStates.JobStates] = {
+      jobId: Option[Int]): Future[Option[AnalysisJobStates.JobStates]] = {
     jobId
-      .map { i =>
-        dao.getJobById(i).map(_.state)
-      }
-      .getOrElse(Future.successful(AnalysisJobStates.FAILED))
+      .map(i => dao.getJobById(i).map(j => Some(j.state)))
+      .getOrElse(Future.successful(None)) // The job was NOT create yet
   }
 
-  private def fetchJobStates(
-      dao: JobsDao,
-      jobIds: Seq[Option[Int]]): Future[Seq[AnalysisJobStates.JobStates]] = {
+  private def fetchJobStates(dao: JobsDao, jobIds: Seq[Option[Int]])
+    : Future[Seq[Option[AnalysisJobStates.JobStates]]] = {
     val fetcher = fetchJobState(dao, _: Option[Int])
     runFuturesSequentially(jobIds)(fetcher)
   }
@@ -235,10 +232,11 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
   /**
     * Collapse the Children job states into a reflection of the overall state of the MultiJob
     */
-  private def determineMultiJobState(states: Seq[AnalysisJobStates.JobStates])
-    : AnalysisJobStates.JobStates = {
+  private def determineMultiJobState(
+      states: Seq[AnalysisJobStates.JobStates],
+      default: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
     states match {
-      case Nil => AnalysisJobStates.FAILED
+      case Nil => default
       case s1 :: Nil => reduceFromSingleState(s1)
       case _ => states.reduce(reduceJobStates)
     }
@@ -303,9 +301,14 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     def andJobLog(sx: String) =
       andLog(s"multi-job id:${engineJob.id} $sx")
 
-    def summary(sx: Seq[(Option[Int], AnalysisJobStates.JobStates)]): String =
-      sx.map { case (i, j) => s"${i.getOrElse("ID NOT ASSIGNED YET")}:$j" }
-        .reduce(_ + " " + _)
+    def summary(
+        sx: Seq[(Option[Int], Option[AnalysisJobStates.JobStates])]): String =
+      sx.map {
+          case (Some(i), Some(j)) => s"$i:$j"
+          case _ => ""
+        }
+        .reduceLeftOption(_ + " " + _)
+        .getOrElse("Children Jobs not created yet")
 
     for {
       updatedJobIds <- runFuturesSequentially(items)(runner)
@@ -315,7 +318,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       jobStates <- fetchJobStates(dao, updatedJobIds)
       _ <- andJobLog(
         s"Got MultiJob Child Job Summary (id:state) ${summary(updatedJobIds.zip(jobStates))}")
-      multiJobState <- Future.successful(determineMultiJobState(jobStates))
+      multiJobState <- Future.successful(
+        determineMultiJobState(jobStates.flatten, engineJob.state))
       msg <- updateIfNecessary(multiJobState, updatedWorkflow)
     } yield msg
   }
