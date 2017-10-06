@@ -78,5 +78,12 @@ object ConfigModels {
                              numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS,
                              externalEveUrl: Option[URL],
                              rootDbBackUp: Option[Path],
-                             dbConfig: DatabaseConfig)
+                             dbConfig: DatabaseConfig,
+                             mail: Option[MailConfig],
+                             wso2Port: Int)
+
+  case class MailConfig(host: String,
+                        port: Int,
+                        user: Option[String],
+                        password: Option[String])
 }
