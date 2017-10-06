@@ -18,7 +18,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   ResultSuccess
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.mail.PbMailer
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{
+  MailConfig,
+  SystemJobConfig
+}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
@@ -74,7 +78,8 @@ trait JobRunnerUtils {
 class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
     extends JobRunnerUtils
     with timeUtils
-    with LazyLogging {
+    with LazyLogging
+    with PbMailer {
 
   import CommonModelImplicits._
 
@@ -83,6 +88,12 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
     val opts = Converters.convertServiceMultiJobOption(engineJob)
     val (writer, resource) = setupResources(engineJob)
     (opts, writer, resource)
+  }
+
+  private def sendMailIfConfigured(jobId: Int, dao: JobsDao): Future[String] = {
+    config.mail
+      .map(m => sendMultiAnalysisJobMail(jobId, dao, m, config.baseJobsUrl))
+      .getOrElse(Future.successful(NOT_CONFIGURED_FOR_MAIL_MSG))
   }
 
   /**
@@ -102,6 +113,7 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
         Try(setupAndConvert(engineJob)))
       job <- Future.successful(opts.toMultiJob())
       msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
+      emailMessage <- sendMailIfConfigured(engineJob.id, dao)
     } yield msg
 
     fx.recoverWith {
@@ -113,6 +125,7 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
                                   AnalysisJobStates.FAILED,
                                   msg,
                                   Some(ex.getMessage))
+          _ <- sendMailIfConfigured(engineJob.id, dao)
           _ <- Future.failed(ex)
         } yield MessageResponse(msg) // Never get here
     }

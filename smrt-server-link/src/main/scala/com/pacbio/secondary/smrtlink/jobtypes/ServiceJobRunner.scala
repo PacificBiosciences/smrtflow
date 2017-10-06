@@ -294,15 +294,11 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
   }
 
   private def sendMail(jobId: Int): Future[String] = {
-    // This might require clarification of how dnsName is set, the
-    // wso2 port is essentially a hard coded value
-    val baseJobsUrl = new URL(
-      s"https://${config.host}:${config.wso2Port}/sl/#/analysis/job")
 
     for {
       updatedJob <- dao.getJobById(jobId)
       msg <- config.mail
-        .map(c => sendCoreJobEmail(updatedJob, baseJobsUrl, c))
+        .map(c => sendCoreJobEmail(updatedJob, config.baseJobsUrl, c))
         .getOrElse(Future.successful(
           s"Skipping Sending Email for Job $jobId state:${updatedJob.state}. type:${updatedJob.jobTypeId} userEmail:${updatedJob.createdByEmail}, System is not configured for Email sending"))
     } yield msg
