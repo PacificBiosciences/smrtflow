@@ -167,12 +167,7 @@ trait PbMailer extends LazyLogging {
                          mailConfig: MailConfig,
                          jobsBaseUrl: URL): Future[String] = {
     for {
-      childrenJobIds <- Future.fromTry(
-        Try(
-          updatedJob.workflow.parseJson
-            .convertTo[Seq[Int]])) // This needs to be improved
-      childrenJobs <- Future.sequence(
-        childrenJobIds.map(i => dao.getJobById(i)))
+      childrenJobs <- dao.getMultiJobChildren(updatedJob.id)
       emailInput <- Future.successful(
         toMultiEmailInput(userEmail, updatedJob, jobsBaseUrl, childrenJobs))
       msg <- sender(emailInput,

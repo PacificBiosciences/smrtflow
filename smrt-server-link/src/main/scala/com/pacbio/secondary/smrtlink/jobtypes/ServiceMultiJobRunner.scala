@@ -13,16 +13,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
-  JobResource,
-  JobResourceBase,
-  ResultSuccess
+  JobResource
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.mail.PbMailer
-import com.pacbio.secondary.smrtlink.models.ConfigModels.{
-  MailConfig,
-  SystemJobConfig
-}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
@@ -96,6 +91,11 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
       .getOrElse(Future.successful(NOT_CONFIGURED_FOR_MAIL_MSG))
   }
 
+  def andLog(sx: String): Future[String] = Future {
+    logger.info(sx)
+    sx
+  }
+
   /**
     * Need to fix the EngineJob vs CoreEngineJob confusion
     *
@@ -114,6 +114,8 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
       job <- Future.successful(opts.toMultiJob())
       msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
       emailMessage <- sendMailIfConfigured(engineJob.id, dao)
+      _ <- andLog(emailMessage)
+      _ <- Future.successful(writer.writeLine(emailMessage))
     } yield msg
 
     fx.recoverWith {
