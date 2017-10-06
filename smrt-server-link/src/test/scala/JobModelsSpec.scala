@@ -243,6 +243,16 @@ class JobModelsSpec extends Specification with timeUtils {
       val jrule = rule.toJson.convertTo[PipelineTemplateViewRule]
       jrule must beEqualTo(rule)
       jrule.taskOptions(1).required.getOrElse(false) must beTrue
+      val path = Paths.get(
+        getClass
+          .getResource(
+            "pipeline-template-view-rules/pipeline_template_view_rules-sa3_ds_sv.json")
+          .toURI)
+      val json = Source.fromFile(path.toFile).getLines.mkString.parseJson
+      val rule2 = json.convertTo[PipelineTemplateViewRule]
+      rule2.inputFilters.map(_.size) === Some(1)
+      rule2.taskOptions.size === 3
+      rule2.id === "pbsmrtpipe.pipelines.sa3_ds_sv"
     }
     "PipelineDataStoreRules" in {
       val rules = Seq(
