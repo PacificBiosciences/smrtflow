@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter,
+  JobResultsWriter,
   ExportJob,
   AnalysisJobStates
 }
@@ -125,7 +125,7 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     val fx = for {

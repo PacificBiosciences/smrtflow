@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.ImportDataSetOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -40,7 +40,7 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     // shim layer

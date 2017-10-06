@@ -114,11 +114,7 @@ trait PacBioDataBundleServicesCakeProvider {
                                             daoActor)))
   lazy val eventManagerActor = actorSystem.actorOf(
     Props(
-      new EventManagerActor(systemUUID,
-                            dnsName,
-                            externalEveUrl,
-                            apiSecret,
-                            smrtLinkUiPort)),
+      new EventManagerActor(systemUUID, dnsName, externalEveUrl, apiSecret)),
     "EventManagerActor")
 
   lazy val services: Seq[PacBioService] = Seq(

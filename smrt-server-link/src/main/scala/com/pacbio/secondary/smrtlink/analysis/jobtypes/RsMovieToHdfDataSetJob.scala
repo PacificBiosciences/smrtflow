@@ -41,14 +41,14 @@ class RsMovieToHdfDataSetJob(opts: MovieMetadataToHdfSubreadOptions)
   val jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
     // Just to have Data to import back into the system
     val startedAt = JodaDateTime.now()
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
-      logPath,
-      "Job Master log of the Import Dataset job")
+    val logFile =
+      toMasterDataStoreFile(logPath,
+                            "Job Master log of the Import Dataset job")
 
     val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 

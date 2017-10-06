@@ -35,7 +35,7 @@ trait CoreJobModel extends LazyLogging {
   val jobTypeId: JobTypeIds.JobType
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out]
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out]
 
   def host = InetAddress.getLocalHost.getHostName
 

@@ -23,7 +23,7 @@ trait DataSetImports { self: Specification =>
 
   protected def runImportImpl(path: Path,
                               dsType: DataSetMetaTypes.DataSetMetaType,
-                              resultWriter: JobResultWriter) = {
+                              resultWriter: JobResultsWriter) = {
     val outputDir = Files.createTempDirectory("import-test")
     println(outputDir)
     val opts = ImportDataSetOptions(path, dsType)

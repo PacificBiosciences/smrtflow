@@ -131,11 +131,11 @@ trait DeleteResourcesBase extends MockJobUtils with timeUtils {
   }
 
   def runDelete(job: JobResourceBase,
-                resultsWriter: JobResultWriter): Seq[DeletedFile]
+                resultsWriter: JobResultsWriter): Seq[DeletedFile]
   def makeReport(files: Seq[DeletedFile]): Report
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
     //resultsWriter.writeLine(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
@@ -200,7 +200,7 @@ class DeleteResourcesJob(opts: DeleteResourcesOptions)
     toReport(Seq(opts.path), files)
 
   override def runDelete(job: JobResourceBase,
-                         resultsWriter: JobResultWriter): Seq[DeletedFile] = {
+                         resultsWriter: JobResultsWriter): Seq[DeletedFile] = {
     val startedAt = JodaDateTime.now()
     resultsWriter.writeLine(
       s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
@@ -293,7 +293,7 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
   }
 
   override def runDelete(job: JobResourceBase,
-                         resultsWriter: JobResultWriter): Seq[DeletedFile] = {
+                         resultsWriter: JobResultsWriter): Seq[DeletedFile] = {
     if (opts.paths.isEmpty) throw new Exception("No paths specified")
     val deletedFiles: Seq[DeletedFile] = opts.paths.map { dsPath =>
       if (!dsPath.toFile.isFile) {

@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.DeleteDatasetsOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -138,7 +138,7 @@ class DeleteDataSetJob(opts: DeleteDataSetJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 

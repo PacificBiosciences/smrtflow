@@ -18,7 +18,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter,
+  JobResultsWriter,
   JobImportUtils,
   AnalysisJobStates
 }
@@ -195,7 +195,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     val startedAt = JodaDateTime.now()

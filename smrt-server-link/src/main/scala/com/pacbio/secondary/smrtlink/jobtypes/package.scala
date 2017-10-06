@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter,
+  JobResultsWriter,
   CoreJobModel
 }
 import com.pacbio.secondary.smrtlink.jsonprotocols.{
@@ -64,13 +64,13 @@ package object jobtypes {
       * @return
       */
     def run(resources: JobResourceBase,
-            resultsWriter: JobResultWriter,
+            resultsWriter: JobResultsWriter,
             dao: JobsDao,
             config: SystemJobConfig): Either[ResultFailed, Out]
 
     // Util layer to get the ServiceJobRunner to compose better.
     def runTry(resources: JobResourceBase,
-               resultsWriter: JobResultWriter,
+               resultsWriter: JobResultsWriter,
                dao: JobsDao,
                config: SystemJobConfig): Try[Out] = {
       Try {
@@ -268,7 +268,7 @@ package object jobtypes {
 
     // This needs to be removed, or fixed. This is necessary for multi-jobs and is not used. `runWorkflow` is the method to call
     override def run(resources: JobResourceBase,
-                     resultsWriter: JobResultWriter,
+                     resultsWriter: JobResultsWriter,
                      dao: JobsDao,
                      config: SystemJobConfig) = {
       throw new Exception("Direct call of Run on MultiJob is not supported")
@@ -280,7 +280,7 @@ package object jobtypes {
       */
     def runWorkflow(engineJob: EngineJob,
                     resources: JobResourceBase,
-                    resultsWriter: JobResultWriter,
+                    resultsWriter: JobResultsWriter,
                     dao: JobsDao,
                     config: SystemJobConfig): Future[MessageResponse]
   }

@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
@@ -57,7 +57,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
 
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 

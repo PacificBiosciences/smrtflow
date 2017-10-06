@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.jobtypes
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
@@ -22,7 +22,7 @@ class HelloWorldServiceJob(opts: HelloWorldJobOptions)
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     // shim

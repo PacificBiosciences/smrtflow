@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   BaseCoreJob,
   BaseJobOptions,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{
@@ -35,7 +35,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
   val jobTypeId = JobTypeIds.TS_JOB
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     resultsWriter.writeLine(s"TechSupport Bundle Opts $opts")
 

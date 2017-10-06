@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.analysis.jobtypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   BaseCoreJob,
   BaseJobOptions,
-  JobResultWriter
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
@@ -26,7 +26,7 @@ class SimpleDevJob(opts: SimpleDevJobOptions)
   val jobTypeId = JobTypeIds.SIMPLE
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     // Just to have Data to import back into the system
     val resources = setupJobResourcesAndCreateDirs(job.path)

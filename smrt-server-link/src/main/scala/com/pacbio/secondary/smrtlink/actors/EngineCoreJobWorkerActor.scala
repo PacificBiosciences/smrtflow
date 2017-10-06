@@ -40,7 +40,9 @@ class EngineCoreJobWorkerActor(engineManagerActor: ActorRef,
       // All functionality should be encapsulated in the service running layer. We shouldn't even really handle the Failure case of the Try a in here
       // Within this runEngineJob, it should handle all updating of state on failure
       log.info(s"Worker $self attempting to run $engineJob")
-      val tx = Try { serviceRunner.run(engineJob) } // this blocks
+
+      // This blocks and is already wrapped in a Try
+      val tx = serviceRunner.run(engineJob)
 
       log.info(s"Worker $self Results from ServiceRunner $tx")
 

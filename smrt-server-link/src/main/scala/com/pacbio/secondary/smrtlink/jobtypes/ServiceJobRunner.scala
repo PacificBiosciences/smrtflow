@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.io.{File, FileNotFoundException, IOError}
+import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
@@ -12,7 +13,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   FileJobResultsWriter,
-  JobResultWriter
+  JobResultsWriter,
+  LogJobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -21,6 +23,7 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 import DefaultJsonProtocol._
+import com.pacbio.secondary.smrtlink.mail.PbMailer
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,7 +41,8 @@ import scala.util.{Failure, Success, Try}
 class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     extends timeUtils
     with LazyLogging
-    with JobRunnerUtils {
+    with JobRunnerUtils
+    with PbMailer {
   import CommonModelImplicits._
   import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
@@ -170,7 +174,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       jobIntId: Int,
       opts: T,
       resource: JobResourceBase,
-      writer: JobResultWriter,
+      writer: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig,
       startedAt: JodaDateTime,
@@ -195,7 +199,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       _ <- andWrite(
         s"Updated job ${updatedEngineJob.id} state to ${updatedEngineJob.state}")
       _ <- andWrite(
-        s"Successfully completed job-type:${opts.jobTypeId.id} id:${updatedEngineJob.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
+        s"Successfully completed Job id:${updatedEngineJob.id} job-type:${opts.jobTypeId.id} in ${computeTimeDeltaFromNow(startedAt)} sec")
     } yield msg
 
     // This is a little clumsy to get the error message written to the correct place
@@ -213,7 +217,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     */
   private def validateOpts[T <: ServiceJobOptions](
       opts: T,
-      writer: JobResultWriter): Try[T] = {
+      writer: JobResultsWriter): Try[T] = {
     Try { opts.validate(dao, config) }.flatMap {
       case Some(errors) =>
         val msg = s"Failed to validate Job options $opts Error $errors"
@@ -228,7 +232,15 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
-  def recoverAndUpdateToFailed[T](
+  /**
+    * General util to update the job state. If the state can't be
+    * update successfully in the db, this can potentially leave this
+    * job in an incorrect state.
+    *
+    * @param jobId   : Job UUID
+    * @param timeout Max timeout for the database operation.
+    */
+  private def recoverAndUpdateToFailed[T](
       jobId: UUID,
       timeout: FiniteDuration): PartialFunction[Throwable, Try[T]] = {
     case NonFatal(ex) =>
@@ -242,22 +254,18 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
             s"${ex.getMessage}. Successfully updated job ${engineJob.id} state to ${engineJob.state}.")))
   }
 
-  def writeEitherError(
-      either: Either[ResultFailed, ResultSuccess],
-      writer: JobResultWriter): Either[ResultFailed, ResultSuccess] = {
-    either match {
-      case Right(x) => Right(x)
-      case Left(ex) =>
-        writer.writeError(ex.message)
-        Left(ex)
-    }
-  }
-
-  def runner(engineJob: EngineJob,
-             writer: JobResultWriter,
-             resource: JobResource,
-             startedAt: JodaDateTime,
-             toFailed: (String => ResultFailed))(
+  /**
+    *
+    * Core function for running the job and updating the State in the db.
+    * This needs to be completely self-contained and handle errors such
+    * that the db state is updated successfully with the failed successful
+    * or failed state.
+    *
+    */
+  private def runner(engineJob: EngineJob,
+                     writer: JobResultsWriter,
+                     resource: JobResource,
+                     startedAt: JodaDateTime)(
       implicit timeout: FiniteDuration): Try[String] = {
 
     val tx = for {
@@ -280,11 +288,48 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
           s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}"
         logger.error(msg)
         writer.writeError(msg)
-        // this should log the stacktrace. This needs access to the job writer
         Failure(ex)
     }
 
   }
+
+  private def sendMail(jobId: Int): Future[String] = {
+
+    for {
+      updatedJob <- dao.getJobById(jobId)
+      msg <- config.mail
+        .map(c => sendCoreJobEmail(updatedJob, config.baseJobsUrl, c))
+        .getOrElse(Future.successful(
+          s"Skipping Sending Email for Job $jobId state:${updatedJob.state}. type:${updatedJob.jobTypeId} userEmail:${updatedJob.createdByEmail}, System is not configured for Email sending"))
+    } yield msg
+  }
+
+  // Black hole, we don't fail the job if an exception is raised
+  // during the emailing. Only log to the system log, not locally
+  private def sendMailTry(jobId: Int,
+                          writer: JobResultsWriter,
+                          timeout: FiniteDuration): Try[String] =
+    Try(Await.result(sendMail(jobId), timeout)) match {
+      case Success(msg) =>
+        writer.writeLine(msg)
+        Success(msg)
+      case Failure(ex) =>
+        val msg = s"Failed to send email for job id $jobId ${ex.getMessage}"
+        writer.writeError(msg)
+        Success(msg)
+    }
+
+  // Propagate the original success message
+  def sendMailOnSuccess(jobId: Int,
+                        writer: JobResultsWriter,
+                        timeout: FiniteDuration)(msg: String): Try[String] =
+    sendMailTry(jobId, writer, timeout).map(_ => msg)
+
+  // Propagate the original error message
+  def sendMailOnFailure(jobId: Int,
+                        writer: JobResultsWriter,
+                        timeout: FiniteDuration)(ex: Throwable): Try[String] =
+    sendMailTry(jobId, writer, timeout).flatMap(_ => Failure(ex))
 
   /**
     * This single place is responsible for handling ALL job state and importing results (e.g., import datastore files)
@@ -296,7 +341,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     * 3. Run Job
     * 4. Import datastore (if necessary)
     * 5. Update db state of job
-    * 6. Return an Either[ResultFailed,ResultSuccess]
+    * 6. Return an Success status message (as a string)
     *
     *
     *
@@ -319,44 +364,62 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     *                it is not competing with other importing or db processes.
     *
     */
-  def run(engineJob: EngineJob)(implicit timeout: FiniteDuration = 3.minutes)
-    : Either[ResultFailed, ResultSuccess] = {
+  def runCore(engineJob: EngineJob,
+              writer: JobResultsWriter,
+              resources: JobResource,
+              startedAt: Option[JodaDateTime] = None)(
+      implicit timeout: FiniteDuration = 3.minutes): Try[String] = {
 
-    val startedAt = JodaDateTime.now()
+    val runStartedAt = startedAt.getOrElse(JodaDateTime.now())
 
-    def toFailed(msg: String) =
-      ResultFailed(engineJob.uuid,
-                   engineJob.jobTypeId,
-                   msg,
-                   computeTimeDeltaFromNow(startedAt),
-                   AnalysisJobStates.FAILED,
-                   host)
+    // Enable logging to the System and to the Job log
+    class FileAndLogWriter extends JobResultsWriter {
+      override def write(msg: String): Unit = {
+        logger.info(msg)
+        writer.write(msg)
+      }
 
-    def toSuccess(msg: String) =
-      ResultSuccess(engineJob.uuid,
-                    engineJob.jobTypeId,
-                    msg,
-                    computeTimeDeltaFromNow(startedAt),
-                    AnalysisJobStates.FAILED,
-                    host)
+      override def writeError(msg: String): Unit = {
+        logger.error(msg)
+        writer.writeError(msg)
+      }
+    }
 
-    // If the resource failed to setup, the mark the job as failed
-    val trx = Try(setupResources(engineJob))
-      .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
+    val localAndSystemWriter = new FileAndLogWriter()
 
     // Run the main, update state in db on success or failure
-    val tmain = for {
-      (writer, resource) <- trx
-      results <- runner(engineJob, writer, resource, startedAt, toFailed)
-    } yield results
+    val tmain =
+      runner(engineJob, localAndSystemWriter, resources, runStartedAt)
 
-    // This is the
-    tmain match {
-      case Success(msg) =>
-        Right(toSuccess(msg))
-      case Failure(ex) =>
-        Left(toFailed(ex.getMessage))
-    }
+    tmain.transform(
+      sendMailOnSuccess(engineJob.id, localAndSystemWriter, timeout),
+      sendMailOnFailure(engineJob.id, localAndSystemWriter, timeout))
+  }
+
+  /**
+    * There's a little bit of gymnastics going on here to get the necessary components
+    * to compose AND also have context to the necessary JobWriter that will enable writing
+    * locally to the job log, as well to the system log.
+    *
+    */
+  def run(engineJob: EngineJob, startedAt: Option[JodaDateTime] = None)(
+      implicit timeout: FiniteDuration = 3.minutes): Try[String] = {
+
+    val logOnlyWriter = new LogJobResultsWriter()
+
+    // If the resource failed to setup, the mark the job as failed
+    val tx = Try(setupResources(engineJob))
+      .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
+
+    // to adhere to the transform interface
+    def runCoreJob(x: (FileJobResultsWriter, JobResource)): Try[String] =
+      runCore(engineJob, x._1, x._2, startedAt)
+
+    // If the setup was successful, then call the runCore func, otherwise, just
+    // send an email and only log to the system log.
+    tx.transform[String](
+      runCoreJob,
+      sendMailOnFailure(engineJob.id, logOnlyWriter, timeout))
 
   }
 

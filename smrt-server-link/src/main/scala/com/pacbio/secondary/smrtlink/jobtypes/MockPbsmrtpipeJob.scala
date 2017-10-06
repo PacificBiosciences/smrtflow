@@ -5,7 +5,7 @@ import java.nio.file.Path
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultWriter
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockPbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.models.BoundServiceEntryPoint
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -32,7 +32,7 @@ class MockPbsmrtpipeJob(opts: MockPbsmrtpipeJobOptions)
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
-      resultsWriter: JobResultWriter,
+      resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 

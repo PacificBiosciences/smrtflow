@@ -52,7 +52,7 @@ class MergeDataSetJob(opts: MergeDataSetOptions)
   val jobTypeId = JobTypeIds.MERGE_DATASETS
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     val startedAt = JodaDateTime.now()
 

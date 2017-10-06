@@ -72,7 +72,7 @@ class ConvertImportFastaBarcodesJob(opts: ConvertImportFastaBarcodesOptions)
   }
 
   def run(job: JobResourceBase,
-          resultsWriter: JobResultWriter): Either[ResultFailed, Out] = {
+          resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
 
     def w(sx: String): Unit = {
       logger.debug(sx)

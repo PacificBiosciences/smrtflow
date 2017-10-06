@@ -78,5 +78,19 @@ object ConfigModels {
                              numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS,
                              externalEveUrl: Option[URL],
                              rootDbBackUp: Option[Path],
-                             dbConfig: DatabaseConfig)
+                             dbConfig: DatabaseConfig,
+                             mail: Option[MailConfig],
+                             wso2Port: Int) {
+
+    // Attempting to centralize this
+    // This might require clarification of how dnsName is set, the
+    // wso2 port is essentially a hard coded value
+    def baseJobsUrl = new URL(s"https://$host:$wso2Port/sl/#/analysis/job")
+
+  }
+
+  case class MailConfig(host: String,
+                        port: Int,
+                        user: Option[String],
+                        password: Option[String])
 }

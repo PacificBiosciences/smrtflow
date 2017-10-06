@@ -5,6 +5,7 @@ import org.joda.time.{
   DateTimeZone => JodaDateTimeZone
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import org.joda.time.format.DateTimeFormat
 
 import scalatags.Text.all._
@@ -18,31 +19,10 @@ object MailTemplates {
     def apply(emailInput: T): EmailTemplateResult
   }
 
-  trait SmrtLinkEmailTemplate extends EmailTemplate[SmrtLinkEmailInput] {
-
-    def toSubject(emailInput: SmrtLinkEmailInput): String
-
-    def apply(emailInput: SmrtLinkEmailInput) = {
-      val result = html(
-        body(
-          div(
-            toUser(emailInput),
-            toStatusMessage(emailInput),
-            toSummary(emailInput),
-            toJobLink(emailInput),
-            toFooter(emailInput)
-          )
-        )
-      )
-
-      EmailTemplateResult(toSubject(emailInput), result.toString())
-    }
-  }
-
-  private def toUser(input: SmrtLinkEmailInput) =
+  private def toUser(input: SmrtLinkEmailInputs) =
     p(s"Dear ${input.emailAddress},")
 
-  private def toStatusMessage(input: SmrtLinkEmailInput) = {
+  private def toStatusMessage(input: SmrtLinkEmailInputs) = {
     val msg = if (AnalysisJobStates.isSuccessful(input.jobState)) {
       "Your analysis job has successfully completed."
     } else {
@@ -51,7 +31,7 @@ object MailTemplates {
     p(msg)
   }
 
-  private def toJobLink(input: SmrtLinkEmailInput) = {
+  private def toJobLink(input: SmrtLinkEmailInputs) = {
     val m =
       if (AnalysisJobStates.isSuccessful(input.jobState)) br()
       else toTechSupportSummary(input)
@@ -66,7 +46,7 @@ object MailTemplates {
     formatter.print(dz)
   }
 
-  private def toSummary(input: SmrtLinkEmailInput) =
+  private def toSummary(input: SmrtLinkEmailInputs) =
     p(
       ul(
         li(s"Job ID: ${input.jobId}"),
@@ -79,7 +59,7 @@ object MailTemplates {
     a(href := s"mailto:$address", target := "_top", address)
   }
 
-  private def toTechSupportSummary(input: SmrtLinkEmailInput) =
+  private def toTechSupportSummary(input: SmrtLinkEmailInputs) =
     p(
       "For troubleshooting assistance with this run: ",
       br(),
@@ -94,19 +74,117 @@ object MailTemplates {
       )
     )
 
-  private def toFooter(input: SmrtLinkEmailInput) =
+  private def toFooter(input: SmrtLinkEmailInputs) =
     p(s"Powered by SMRT Link ${input.smrtLinkVersion.getOrElse("")}",
       br(),
       "Pacific Biosciences of California, Inc.")
 
-  object EmailJobSuccessTemplate extends SmrtLinkEmailTemplate {
-    override def toSubject(emailInput: SmrtLinkEmailInput): String =
-      s"SMRT Link Job ${emailInput.jobId} Successfully Completed: ${emailInput.jobName}"
+  trait SmrtLinkCoreJobEmailTemplate
+      extends EmailTemplate[SmrtLinkCoreJobEmailInput] {
+
+    def toSubject(jobId: Int, jobName: String): String
+
+    def apply(emailInput: SmrtLinkCoreJobEmailInput) = {
+      val result = html(
+        body(
+          div(
+            toUser(emailInput),
+            toStatusMessage(emailInput),
+            toSummary(emailInput),
+            toJobLink(emailInput),
+            toFooter(emailInput)
+          )
+        )
+      )
+
+      EmailTemplateResult(toSubject(emailInput.jobId, emailInput.jobName),
+                          result.toString())
+    }
   }
 
-  object EmailJobFailedTemplate extends SmrtLinkEmailTemplate {
-    override def toSubject(emailInput: SmrtLinkEmailInput): String =
-      s"SMRT Link Job ${emailInput.jobId} Failed: ${emailInput.jobName}"
+  object EmailCoreJobSuccessTemplate extends SmrtLinkCoreJobEmailTemplate {
+    override def toSubject(jobId: Int, jobName: String): String =
+      s"SMRT Link Job $jobId Successfully Completed: $jobName"
+  }
+
+  object EmailCoreJobFailedTemplate extends SmrtLinkCoreJobEmailTemplate {
+    override def toSubject(jobId: Int, jobName: String): String =
+      s"SMRT Link Job $jobId Failed: $jobName"
+  }
+
+  trait SmrtLinkMultiJobEmailTemplate
+      extends EmailTemplate[SmrtLinkMultiJobEmailInput] {
+
+    def toSubject(jobId: Int, jobName: String): String
+
+    private def toStatusMessage(input: SmrtLinkEmailInputs) = {
+      val msg = if (AnalysisJobStates.isSuccessful(input.jobState)) {
+        "Your barcoded analysis job set has successfully completed."
+      } else {
+        "An analysis job from your barcoded analysis set has failed."
+      }
+      p(msg)
+    }
+
+    def onlyFailedJobsIfNecessary(
+        input: SmrtLinkMultiJobEmailInput): Seq[EngineJob] = {
+      if (input.wasSuccessful()) {
+        input.childrenJobs
+      } else {
+        input.childrenJobs.filter(_.state == AnalysisJobStates.FAILED)
+      }
+    }
+
+    def toChildrenJobsSummary(input: SmrtLinkMultiJobEmailInput) =
+      ul(
+        onlyFailedJobsIfNecessary(input).map(job =>
+          li(s"${job.id},${job.name}"))
+      )
+
+    def toChildrenHeader(input: SmrtLinkMultiJobEmailInput): String = {
+      if (input.wasSuccessful()) "Children Job Ids"
+      else "Failed Children Job Ids"
+    }
+
+    def toSummary(input: SmrtLinkMultiJobEmailInput) =
+      p(
+        ul(
+          li(s"Job ID: ${input.jobId}"),
+          li(s"Job name: ${input.jobName}"),
+          li(s"Start  time: ${formatDateTime(input.createdAt)}"),
+          li(s"Finish time: ${formatDateTime(input.completedAt)}")
+        ),
+        ul(
+          li(toChildrenHeader(input), toChildrenJobsSummary(input))
+        )
+      )
+
+    def apply(emailInput: SmrtLinkMultiJobEmailInput) = {
+      val result = html(
+        body(
+          div(
+            toUser(emailInput),
+            toStatusMessage(emailInput),
+            toSummary(emailInput),
+            toJobLink(emailInput),
+            toFooter(emailInput)
+          )
+        )
+      )
+
+      EmailTemplateResult(toSubject(emailInput.jobId, emailInput.jobName),
+                          result.toString())
+    }
+  }
+
+  object EmailMultiJobSuccessTemplate extends SmrtLinkMultiJobEmailTemplate {
+    override def toSubject(jobId: Int, jobName: String): String =
+      s"SMRT Link Job $jobId Successfully Completed: $jobName"
+  }
+
+  object EmailMultiJobFailedTemplate extends SmrtLinkMultiJobEmailTemplate {
+    override def toSubject(jobId: Int, jobName: String): String =
+      s"SMRT Link Job $jobId Failed: $jobName"
   }
 
 }

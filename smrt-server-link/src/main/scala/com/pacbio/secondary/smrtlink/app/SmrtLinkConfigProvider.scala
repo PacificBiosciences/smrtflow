@@ -20,7 +20,10 @@ import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.{
 }
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
-import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{
+  MailConfig,
+  SystemJobConfig
+}
 import com.pacbio.secondary.smrtlink.models.{EngineConfig, PacBioDataBundleIO}
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 import com.typesafe.scalalogging.LazyLogging
@@ -169,8 +172,14 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
       engineConfig.numQuickWorkers,
       externalEveUrl(),
       rootDataBaseBackUpDir(),
-      dbConfigSingleton()
+      dbConfigSingleton(),
+      mailConfig(),
+      smrtLinkUiPort()
     )
+  }
+
+  val mailConfig: Singleton[Option[MailConfig]] = Singleton { () =>
+    mailHost().map(h => MailConfig(h, mailPort(), mailUser(), mailPassword()))
   }
 
   // Mail Specific Config
