@@ -12,34 +12,47 @@ object AnalysisJobStates {
   // Changing this to a sealed trait creates ambigious implicit errors with spray
   trait JobStates {
     val stateId: Int
+    def isCompleted: Boolean
   }
 
   case object CREATED extends JobStates {
     val stateId = 1
+    override def isCompleted = false
   }
 
   case object SUBMITTED extends JobStates {
     val stateId = 2
+    override def isCompleted = false
   }
 
   case object RUNNING extends JobStates {
     val stateId = 3
+
+    override def isCompleted = false
   }
 
   case object TERMINATED extends JobStates {
     val stateId = 4
+
+    override def isCompleted = true
   }
 
   case object SUCCESSFUL extends JobStates {
     val stateId = 5
+
+    override def isCompleted = true
   }
 
   case object FAILED extends JobStates {
     val stateId = 6
+
+    override def isCompleted = true
   }
 
   case object UNKNOWN extends JobStates {
     val stateId = 7
+
+    override def isCompleted = false
   }
 
   // sugar
