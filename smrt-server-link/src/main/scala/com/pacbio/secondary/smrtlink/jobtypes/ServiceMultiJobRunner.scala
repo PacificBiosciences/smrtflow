@@ -1,8 +1,5 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.io.{FileWriter, PrintWriter, StringWriter}
-import java.nio.file.{Files, Paths}
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
@@ -11,11 +8,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   FileJobResultsWriter,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  EngineJob,
-  JobConstants,
-  JobResource
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.mail.PbMailer
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -24,57 +17,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Try}
-import scala.util.control.NonFatal
-
-trait JobRunnerUtils {
-
-  /**
-    * Note, this can be called multiple times from the same job.
-    */
-  def setupResources(
-      engineJob: EngineJob): (FileJobResultsWriter, JobResource) = {
-    val output = Paths.get(engineJob.path)
-
-    val stderr = output.resolve(JobConstants.JOB_STDERR).toAbsolutePath
-    val stdout = output.resolve(JobConstants.JOB_STDOUT).toAbsolutePath
-
-    val wasSetup = Files.exists(stdout)
-
-    // This abstraction needs to be fixed. This is for legacy interface
-    val resource = JobResource(engineJob.uuid, output)
-
-    val stderrFw = new FileWriter(stderr.toString, true)
-    val stdoutFw = new FileWriter(stdout.toString, true)
-
-    val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
-
-    if (!wasSetup) {
-      writer.writeLine(
-        s"Initial Setup of resources. Starting to run engine job id:${engineJob.id} type:${engineJob.jobTypeId}")
-    }
-
-    (writer, resource)
-  }
-
-  def writeErrorToResults(ex: Throwable,
-                          writer: JobResultsWriter,
-                          msg: Option[String]): Unit = {
-    writer.writeLineError(s"${msg.getOrElse("")} ${ex.getMessage}")
-    val sw = new StringWriter
-    ex.printStackTrace(new PrintWriter(sw))
-    writer.writeLineError(sw.toString)
-  }
-
-  def writeError(
-      writer: JobResultsWriter,
-      msg: Option[String]): PartialFunction[Throwable, Try[String]] = {
-    case NonFatal(ex) =>
-      writeErrorToResults(ex, writer, msg)
-      Failure(ex)
-  }
-
-}
+import scala.util.Try
 
 /**
   * Created by mkocher on 9/11/17.
@@ -88,9 +31,11 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
   import CommonModelImplicits._
 
   def setupAndConvert[T >: ServiceMultiJobOptions](
-      engineJob: EngineJob): (T, FileJobResultsWriter, JobResource) = {
+      engineJob: EngineJob,
+      dao: JobsDao): (T, FileJobResultsWriter, JobResource) = {
     val opts = Converters.convertServiceMultiJobOption(engineJob)
-    val (writer, resource) = setupResources(engineJob)
+    val (writer, resource) =
+      setupMultiJobResources(engineJob, dao, opts.DEFAULT_TIMEOUT)
     (opts, writer, resource)
   }
 
@@ -105,32 +50,25 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
     }
   }
 
-  def andLog(sx: String): Future[String] = Future {
+  def andLog(sx: String, writer: JobResultsWriter): Future[String] = Future {
+    writer.writeLine(sx)
     logger.info(sx)
     sx
   }
 
-  /**
-    * Need to fix the EngineJob vs CoreEngineJob confusion
-    *
-    * 1. convert EngineJob opts to MultiJobOpts instance
-    * 2. convert to Job (val job = opts.toJob)
-    * 3. then run workflow, job.runWorkflow(dao // What should this return?
-    * 4. update workflow state
-    *
-    * @param engineJob
-    */
-  def runWorkflow(engineJob: EngineJob): Future[MessageResponse] = {
+  def andLogIfNonEmpty(sx: String, writer: JobResultsWriter) =
+    if (sx.isEmpty) Future.successful(sx) else andLog(sx, writer)
+
+  def runner(engineJob: EngineJob): Future[MessageResponse] = {
 
     val fx = for {
       (opts, writer, resources) <- Future.fromTry(
-        Try(setupAndConvert(engineJob)))
+        Try(setupAndConvert(engineJob, dao)))
       job <- Future.successful(opts.toMultiJob())
       msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
       updatedJob <- dao.getJobById(engineJob.id)
       emailMessage <- sendMailIfConfigured(updatedJob, dao)
-      _ <- andLog(emailMessage)
-      _ <- Future.successful(writer.writeLine(emailMessage))
+      _ <- andLogIfNonEmpty(emailMessage, writer)
     } yield msg
 
     fx.recoverWith {
@@ -147,6 +85,26 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
           _ <- Future.failed(ex)
         } yield MessageResponse(msg) // Never get here
     }
+  }
+
+  /**
+    * Core routine for running a multi-analysis job.
+    *
+    * 0. Check if job state is completed
+    * 1. convert EngineJob opts to MultiJobOpts instance
+    * 2. convert to Job (val job = opts.toJob)
+    * 3. then run workflow
+    * 4. update workflow state
+    *
+    * Need to fix the EngineJob vs CoreEngineJob confusion
+    *
+    * @param engineJob (Multi-Analysis Job Type) Engine Job to run
+    */
+  def runWorkflow(engineJob: EngineJob): Future[MessageResponse] = {
+    val msg =
+      s"MultiAnalysis Job ${engineJob.id} is completed (state: ${engineJob.state}), no workflow to run."
+    if (engineJob.state.isCompleted) Future.successful(MessageResponse(msg))
+    else runner(engineJob)
   }
 
 }
