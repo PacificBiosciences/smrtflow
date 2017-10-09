@@ -78,16 +78,6 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       .toSeq
   }
 
-  private def importDataStoreFile(ds: DataStoreFile,
-                                  jobUUID: UUID): Future[MessageResponse] = {
-    if (ds.isChunked) {
-      Future.successful(
-        MessageResponse(s"skipping import of intermediate chunked file $ds"))
-    } else {
-      dao.importDataStoreFile(ds, jobUUID)
-    }
-  }
-
   private def validateDsFile(
       dataStoreFile: DataStoreFile): Future[DataStoreFile] = {
     if (Files.exists(Paths.get(dataStoreFile.path)))
@@ -97,25 +87,34 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
         s"DatastoreFile ${dataStoreFile.uniqueId} name:${dataStoreFile.name} Unable to find path: ${dataStoreFile.path}"))
   }
 
-  private def importDataStore(dataStore: PacBioDataStore, jobUUID: UUID)(
+  private def importDataStore(datastoreFiles: Seq[DataStoreFile],
+                              jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
-    // When a datastore instance is provided, the files must all be resolved to
-    // absolute paths.
-    // Filter out non-chunked files. The are presumed to be intermediate files
 
     for {
-      files <- Future.successful(
-        loadFiles(dataStore.files, None).filter(!_.isChunked))
-      validFiles <- Future.sequence(files.map(validateDsFile))
+      validFiles <- Future.sequence(datastoreFiles.map(validateDsFile))
       results <- dao.importDataStoreFiles(validFiles, jobUUID)
     } yield results
   }
 
+  /**
+    * Import non-chunked Files
+    *
+    * When a datastore instance is provided, the files must all be resolved to absolute paths.
+    *
+    * Filter out non-chunked files. The are presumed to be intermediate files
+    *
+    */
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     x match {
-      case x: DataStoreFile => importDataStoreFile(x, jobUUID).map(List(_))
-      case x: PacBioDataStore => importDataStore(x, jobUUID)
+      case x: DataStoreFile => importDataStore(Seq(x), jobUUID)
+      case x: PacBioDataStore =>
+        val dataStoreFiles = loadFiles(x.files, None)
+        val nonChunkedFiles = dataStoreFiles.filter(f => !f.isChunked)
+        logger.info(
+          s"Job $jobUUID Loaded ${dataStoreFiles.length} raw files, ${nonChunkedFiles.length} Non-Chunked files")
+        importDataStore(nonChunkedFiles, jobUUID)
     }
   }
 
@@ -152,9 +151,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     * @param timeout timeout for the entire importing process (file IO + db insert)
     * @return
     */
-  private def importer(jobId: UUID,
-                       x: Any,
-                       timeout: FiniteDuration): Try[String] = {
+  def importer(jobId: UUID, x: Any, timeout: FiniteDuration): Try[String] = {
     x match {
       case ds: ImportAble =>
         Try(
@@ -408,7 +405,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     val logOnlyWriter = new LogJobResultsWriter()
 
     // If the resource failed to setup, the mark the job as failed
-    val tx = Try(setupResources(engineJob))
+    val tx = Try(setupCoreJobResources(engineJob))
       .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
 
     // to adhere to the transform interface
