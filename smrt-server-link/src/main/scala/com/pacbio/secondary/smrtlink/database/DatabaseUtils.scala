@@ -18,7 +18,7 @@ case class DatabaseConfig(dbName: String,
                           password: String,
                           server: String = "localhost",
                           port: Int = 5432,
-                          maxConnections: Int = 10) {
+                          maxConnections: Int = 20) {
 
   val jdbcURI =
     s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
