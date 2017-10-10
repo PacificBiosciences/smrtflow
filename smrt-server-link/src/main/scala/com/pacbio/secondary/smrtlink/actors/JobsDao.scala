@@ -1528,7 +1528,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       serviceFiles <- Future.successful(files.map(f =>
         toDataStoreServiceFile(f, job.id, job.uuid, isActive = true)))
       _ <- andLog(
-        s"Attempting to import datastore with ${serviceFiles.length} files for job ${job.id}")
+        s"Attempting to import datastore ${serviceFiles.length} files for job ${job.id}")
       importAbleFiles <- Future.successful(
         serviceFiles.map(
           dsf =>

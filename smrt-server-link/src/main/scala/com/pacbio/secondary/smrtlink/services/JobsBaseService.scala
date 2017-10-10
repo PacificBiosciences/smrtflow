@@ -358,11 +358,12 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                 complete {
                   created {
                     dao.getJobById(jobId).flatMap { engineJob =>
-                      dao.updateJobTask(UpdateJobTask(engineJob.id,
-                                                      taskUUID,
-                                                      r.state,
-                                                      r.message,
-                                                      r.errorMessage))
+                      dao.updateJobTask(
+                        UpdateJobTask(engineJob.id,
+                                      taskUUID,
+                                      r.state,
+                                      r.message,
+                                      r.errorMessage))
                     }
                   }
                 }
@@ -455,8 +456,13 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             entity(as[DataStoreFile]) { dsf =>
               complete {
                 created {
-                  dao.getJobById(jobId).flatMap { engineJob =>
-                    dao.importDataStoreFile(dsf, engineJob.uuid)
+                  if (dsf.isChunked) {
+                    Future.successful(MessageResponse(
+                      s"Chunked Files are not importable. Skipping Importing of DataStoreFile uuid:${dsf.uniqueId} path:${dsf.path}"))
+                  } else {
+                    dao.getJobById(jobId).flatMap { engineJob =>
+                      dao.importDataStoreFile(dsf, engineJob.uuid)
+                    }
                   }
                 }
               }
@@ -484,19 +490,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                   }
               }
             }
-        } ~
-        path(JOB_DATASTORE_PREFIX) {
-          post {
-            entity(as[DataStoreFile]) { dsf =>
-              complete {
-                created {
-                  dao.getJobById(jobId).flatMap { engineJob =>
-                    dao.importDataStoreFile(dsf, engineJob.uuid)
-                  }
-                }
-              }
-            }
-          }
         } ~
         path("resources") {
           parameter('id) { id =>
