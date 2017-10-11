@@ -527,8 +527,8 @@ trait JobTypeSettingProtocol
   implicit val engineJobFormat = jsonFormat20(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
-  implicit val datastoreFileFormat = jsonFormat10(DataStoreFile)
-  implicit val datastoreFormat = jsonFormat4(PacBioDataStore)
+  implicit val datastoreFileFormat = jsonFormat10(DataStoreFile.apply)
+  implicit val datastoreFormat = jsonFormat4(PacBioDataStore.apply)
   implicit val boundEntryPointFormat = jsonFormat2(BoundEntryPoint)
   implicit val entryPointFormat = jsonFormat3(EntryPoint)
   implicit val jobEventFormat = jsonFormat6(JobEvent)
