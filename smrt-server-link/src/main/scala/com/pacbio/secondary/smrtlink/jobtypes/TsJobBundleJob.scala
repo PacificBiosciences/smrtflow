@@ -43,7 +43,8 @@ case class TsJobBundleJobOptions(jobId: IdAble,
                                  description: Option[String],
                                  projectId: Option[Int] = Some(
                                    JobConstants.GENERAL_PROJECT_ID))
-    extends ServiceJobOptions {
+    extends ServiceJobOptions
+    with TsJobUtils {
 
   import CommonModelImplicits._
 
@@ -66,15 +67,6 @@ case class TsJobBundleJobOptions(jobId: IdAble,
       engineJob <- dao.getJobById(jobId)
       validJob <- onlyAllowFailed(engineJob)
     } yield validJob
-  }
-
-  def validateEveUrl(eveURL: Option[URL]): Future[URL] = {
-    eveURL match {
-      case Some(u) => Future.successful(u)
-      case _ =>
-        Future.failed(new UnprocessableEntityError(
-          "External EVE URL is not configured in System. Unable to send message to TechSupport"))
-    }
   }
 
   /**
@@ -105,10 +97,12 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
     with TsJobUtils {
   type Out = PacBioDataStore
 
-  def createBundle(failedJobPath: Path,
-                   job: JobResourceBase,
-                   resultsWriter: JobResultsWriter,
-                   manifest: TsJobManifest): (PacBioDataStore, Path) = {
+  def createBundle(
+      failedJobPath: Path,
+      job: JobResourceBase,
+      resultsWriter: JobResultsWriter,
+      manifest: TsJobManifest,
+      stdoutDataStoreFile: DataStoreFile): (PacBioDataStore, Path) = {
     resultsWriter.writeLine(s"TechSupport Bundle Opts $opts")
 
     val outputTgz =
@@ -128,10 +122,6 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
 
     // Create DataStore
     val createdAt = JodaDateTime.now()
-
-    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logDsFile =
-      toMasterDataStoreFile(logPath, s"Job Master log of ${jobTypeId.id}")
 
     val manifestDs = DataStoreFile(
       UUID.randomUUID(),
@@ -159,11 +149,8 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
       s"TechSupport Bundle for Job type:${manifest.jobTypeId} id: ${manifest.jobTypeId}"
     )
 
-    // This should add the stdout as the "log"
-    val ds = PacBioDataStore(createdAt,
-                             createdAt,
-                             "0.2.0",
-                             Seq(dsFile, logDsFile, manifestDs))
+    val ds =
+      PacBioDataStore.fromFiles(Seq(dsFile, stdoutDataStoreFile, manifestDs))
     FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
 
     resultsWriter.writeLine(
@@ -196,9 +183,6 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    // This should be configurable from the SystemJobConfig
-    val maxUploadTimeOut = 5.minutes
-
     val startedAt = JodaDateTime.now()
 
     // This needs to be fixed
@@ -206,10 +190,10 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
 
     // Add stdout/log proactively so errors are exposed
     val tx = for {
-      _ <- addStdOutLogToDataStore(resources.jobId,
-                                   dao,
-                                   stdoutLog,
-                                   opts.projectId)
+      stdoutDsFile <- addStdOutLogToDataStore(resources.jobId,
+                                              dao,
+                                              stdoutLog,
+                                              opts.projectId)
       eveUrl <- opts.validateEveUrl(config.externalEveUrl)
       failedJob <- opts.getJob(dao)
       manifest <- Future.successful(
@@ -223,11 +207,12 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
           createBundle(Paths.get(failedJob.path),
                        resources,
                        resultsWriter,
-                       manifest)))
+                       manifest,
+                       stdoutDsFile)))
       _ <- upload(eveUrl, config.eveApiSecret, tgzPath, resultsWriter)
     } yield dataStore
 
-    convertTry(runAndBlock(tx, maxUploadTimeOut),
+    convertTry(runAndBlock(tx, DEFAULT_MAX_UPLOAD_TIME),
                resultsWriter,
                startedAt,
                resources.jobId)
