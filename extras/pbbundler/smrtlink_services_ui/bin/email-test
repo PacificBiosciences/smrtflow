@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+rootBundleDir=$(dirname "${__dir}")
+
+config="${rootBundleDir}/application.json"
+
+if ! [ -e "$config" ]; then
+    echo "file ${config} does not exist. Run apply-config"
+    exit 1
+fi
+
+logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" "${config}")
+logStartFile=${logDir}/email-test.log
+
+export JAVA_OPTS="-Dconfig.file=${config}"
+
+"${rootBundleDir}/tools/bin/send-test-email" \
+    --log-file "${logStartFile}" \
+    "$@"
+exit $?

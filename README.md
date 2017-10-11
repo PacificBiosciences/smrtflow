@@ -42,6 +42,21 @@ fasta-to-reference --help
 
 See the [full docs for details](http://smrtflow.readthedocs.io/) for details and examples of using SL tools, such as `pbservice` or `fasta-to-reference`.
 
+## Style Guide
+
+[scalafmt](http://scalameta.org/scalafmt) with default settings.
+
+To reformat all code (this should be done prior to PR)
+
+```bash
+$> sbt scalafmt
+```
+
+To Test if the code is correctly formatted. This will return a non-zero exit code if the code is not formatted consistently with the scalafmt spec. The CI tests will verify that the code is properly formatted.
+
+```bash
+$> sbt scalafmt::test
+```
 
 ## Runtime dependencies
 
@@ -146,8 +161,8 @@ import java.nio.file.Paths
 f: String = "/Users/mkocher/gh_mk_projects/smrtflow/PacBioTestData/data/SubreadSet/m54006_160504_020705.tiny.subreadset.xml"
 @ val px = Paths.get(f)
 px: java.nio.file.Path = /Users/mkocher/gh_mk_projects/smrtflow/PacBioTestData/data/SubreadSet/m54006_160504_020705.tiny.subreadset.xml
-@ import com.pacbio.secondary.analysis.datasets.io._
-import com.pacbio.secondary.analysis.datasets.io._
+@ import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 
 @ val sset = DataSetLoader.loadSubreadSet(px)
 sset: com.pacificbiosciences.pacbiodatasets.SubreadSet = com.pacificbiosciences.pacbiodatasets.SubreadSet@62c0ff68

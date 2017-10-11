@@ -1,31 +1,30 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.common.services.ServiceComposer
-import com.pacbio.secondary.analysis.jobs.JobModels.PipelineTemplateViewRule
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateViewRule
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.SecondaryAnalysisJsonProtocols
-
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import spray.json._
 import spray.httpx.SprayJsonSupport._
 
-
 /**
- *
- * Created by mkocher on 9/24/15.
- */
-class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) extends JobsBaseMicroService {
+  *
+  * Created by mkocher on 9/24/15.
+  */
+class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule])
+    extends SmrtLinkBaseRouteMicroService {
 
-  import SecondaryAnalysisJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val PTVR_PREFIX = "pipeline-template-view-rules"
 
-  val manifest = PacBioComponentManifest(toServiceId("secondary.pipeline_template_view_rules"),
+  val manifest = PacBioComponentManifest(
+    toServiceId("secondary.pipeline_template_view_rules"),
     "Pipeline Template View Rules Service Service",
     "0.1.0",
-    "Analysis PiplineTemplate View RulesService")
+    "Analysis PiplineTemplate View RulesService"
+  )
 
   val ptvrs = PipelineTemplateViewRulesResourceLoader.loadResources
 
@@ -38,33 +37,37 @@ class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule]) exte
           }
         }
       } ~
-      pathEnd {
-        get {
-          complete {
-            ptvrs
+        pathEnd {
+          get {
+            complete {
+              ptvrs
+            }
           }
-        }
-      } ~
-      path(Segment) { sx =>
-        get {
-          complete {
-            ok {
-              ptvrs.find(_.id == sx)
-                .getOrElse(throw new ResourceNotFoundError(s"Unable to find Pipeline Template View Rule $sx"))
+        } ~
+        path(Segment) { sx =>
+          get {
+            complete {
+              ok {
+                ptvrs
+                  .find(_.id == sx)
+                  .getOrElse(throw new ResourceNotFoundError(
+                    s"Unable to find Pipeline Template View Rule $sx"))
+              }
             }
           }
         }
-      }
     }
 }
 
-trait PipelineTemplateViewRulesServiceProvider {
-  this: ServiceComposer =>
+trait PipelineTemplateViewRulesServiceProvider { this: ServiceComposer =>
 
-  lazy val pipelineTemplateViewRules = PipelineTemplateViewRulesResourceLoader.loadResources
+  lazy val pipelineTemplateViewRules =
+    PipelineTemplateViewRulesResourceLoader.loadResources
 
-  val pipelineTemplateViewRulesService: Singleton[PipelineTemplateViewRulesService] =
-    Singleton(() => new PipelineTemplateViewRulesService(pipelineTemplateViewRules))
+  val pipelineTemplateViewRulesService
+    : Singleton[PipelineTemplateViewRulesService] =
+    Singleton(
+      () => new PipelineTemplateViewRulesService(pipelineTemplateViewRules))
 
   addService(pipelineTemplateViewRulesService)
 }

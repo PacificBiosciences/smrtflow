@@ -1,4 +1,4 @@
-import com.pacbio.common.models.{ServiceStatus, PacBioJsonProtocol}
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
@@ -13,7 +13,7 @@ class SanitySpec extends Specification with Specs2RouteTest {
   val routes = Api.routes
   val eventManagerActorX = Api.providers.eventManagerActor()
 
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   "Service list" should {
     "return a list of services" in {

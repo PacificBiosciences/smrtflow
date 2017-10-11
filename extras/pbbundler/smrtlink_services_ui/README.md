@@ -58,12 +58,6 @@ Executables in [BUNDLE_ROOT]/tools/bin
 - *amclient* Tool to access WSO2 API manager
 - *bundler-validate-config* Validate Bundler SL System config JSON format (schema version 2 format)
 
-
-##### Legacy Tools
-
-- [BUNDLE_ROOT]/tools/bin/bundler-migrate-legacy-db *Legacy SQLite* database migration tool to convert Sqlite (SL System 3.x to 4.0.0) to PostgreSQL 9.6 format
-- [BUNDLE_ROOT]/tools/bin/bundler-migrate-legacy-config Migration config.json (1.0) to (*smrtlink-system-config.json*) format
-  
   
 ### SMRT Link pbbundle Installing and Upgrading
    
@@ -75,16 +69,13 @@ has the following structure:
 ```json
 {
     "PB_DB_URI": "/path/to/sqlite.file.db",
-    "PREVIOUS_INSTALL_DIR": "/path/to/old/smrtlink/installation/smrtlink-analysis-gui",
-    "_comment": <optional comment>
+    "_comment": "Optional Comment"
 }
 ```
 
 Keys
 
-- PB_DB_URI Option[Path] path to the sqlite file
 - PREVIOUS_INSTALL_DIR Path to the root directory of the SMRT Link analysis GUI subcomponent. There must be a relative `wso2am-2.0.0` directory within the root dir provided.
-
 
 
 **Note** the SL 4.0.0 to SL 4.1.0 has a special case for handling the importing of the legacy 4.0.0 sqlite database to the 4.1.0 Postgres database.
@@ -93,26 +84,20 @@ A Summary of the import process
 
 1. If Postgres db creation and users is not been initialized, it will
     - start up the db (if necessary)
-    - run the creation and initialization
+    - run the creation and initialization of both Postgres DBs, the SMRT Link DB and the WSO2 DB
     - perform and Postgres to Postgres SQL migrations
     - shut down the db (if it was not originally running)
-2. If the [BUNDLE_ROOT]/migration-config.json file exists, and has a non `null` for *PB_DB_URI*
-    - Check for the [BUNDLE_ROOT]/legacy-migration.json
-        - if the import was already successful, skip legacy import
-        - else perform the SQLITE to Postgres importing/migration, then write the state to [BUNDLE_ROOT]/legacy-migration.json
-    - [TODO] Clarify this. For failed SQLITE importing/migration, there is not currently a retry method (this would require dropping the tables)
-3. shut down the db (if it was not originally running)
 
-4. If [BUNDLE_ROOT]/migration-config.json exists and has a PREVIOUS_INSTALL_DIR that points to an existing directory,
+2. If [BUNDLE_ROOT]/migration-config.json exists and has a PREVIOUS_INSTALL_DIR that points to an existing directory,
     - start the wso2 from the old installation
     - pull out the user-role assignments
     - shut down the old wso2
-5. Start the new wso2 and do initial configuration
+3. Start the new wso2 and do initial configuration
     - create roles
     - configure API definitions
-6. If we got user-role assignments in step 4,
+4. If we got user-role assignments in step 4,
     - import those into the new wso2
-8. Shut down the new wso2
+5. Shut down the new wso2
 
 
 ### Configuration
@@ -174,5 +159,5 @@ Example:
 - *SL Analysis Services* sl-analysis.pid will contain the process id of the SMRT Link Analysis web services
 - *SL Analysis Services* sl-analysis.std{out|err} has the SMRT Link Analysis standard out and error. If there are errors starting the webservices, the stdout and stderr is the first place to look. The SL Analysis log file will contain further details.
 - *SL Analysis log* file is configured in the "smrtflow.pacBioSystem.logDir" key
-- *Tomcat UI Logs* file is in [BUNDLE_ROOT]/apache-tomcat-8.0.26/logs/
+- *Tomcat UI Logs* file is in [BUNDLE_ROOT]/tomcat_8.5.20/logs/
 - *WSO2 API Manager logs* are in [BUNDLE_ROOT]/wso2am-2.0.0/repository/logs

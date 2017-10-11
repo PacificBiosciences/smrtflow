@@ -55,12 +55,13 @@ SL_SERVICES_APP_CONF=${__root}/application.json
 SL_SERVICES_TOOLS_DIR=${__root}/tools
 AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json
+BASE_ROLES=${__root}/base-role-assignments.json
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 MAX_RETRIES=30
 
 export PATH=${SL_SERVICES_TOOLS_DIR}/bin:${SL_SERVICES_TOOLS_DIR}/tools/bin:$PATH
 
-TOMCAT_DIR="$__dir/../apache-tomcat-8.0.26"
+TOMCAT_DIR="$__dir/../tomcat_current"
 WSO2_DIR="$__dir/../wso2am-2.0.0"
 
 
@@ -199,7 +200,12 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF}"
 env "$client_env" ${AMCLIENT} create-roles \
-       --creds-json ${WSO2_CREDS} --host localhost --log-file ${logStartFile}
+       --creds-json ${WSO2_CREDS} \
+       --host localhost --log-file ${logStartFile}
+
+env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
+       --creds-json ${WSO2_CREDS} \
+       --host localhost --log-file ${logStartFile}
 
 env "$client_env" \
      ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \

@@ -12,13 +12,17 @@ import spray.http.HttpRequest
 import spray.http._
 import spray.httpx.SprayJsonSupport
 import akka.actor.ActorSystem
-import com.pacbio.common.client.{ServiceAccessLayer, UrlUtils}
-import com.pacbio.secondary.smrtlink.models.{SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
+import mbilski.spray.hmac.{
+  Authentication,
+  DefaultSigner,
+  Directives,
+  SignerConfig
+}
 
 /**
   * Create a Client for the Eve Server.
@@ -29,10 +33,15 @@ import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConf
   * @param baseUrl note, this is the base URL of the system, not http://my-server:8080/my-events.
   * @param actorSystem
   */
-class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: ActorSystem) extends ServiceAccessLayer(baseUrl)(actorSystem) with DefaultSigner with SignerConfig with LazyLogging{
+class EventServerClient(baseUrl: URL, apiSecret: String)(
+    implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(baseUrl)(actorSystem)
+    with DefaultSigner
+    with SignerConfig
+    with LazyLogging {
 
   import SprayJsonSupport._
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   private val SEGMENT_EVENTS = "events"
   private val SEGMENT_FILES = "files"
@@ -51,24 +60,31 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: A
     * @param apiSecret   API Secret used in the auth hashing algo
     * @param actorSystem Actor System
     */
-  def this(host: String, port: Int, apiSecret: String)(implicit actorSystem: ActorSystem) {
+  def this(host: String, port: Int, apiSecret: String)(
+      implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
   }
 
   val sender = sendReceive
 
   // Useful for debugging
-  val logRequest: HttpRequest => HttpRequest = { r => println(r.toString); r }
-  val logResponse: HttpResponse => HttpResponse = { r => println(r.toString); r }
+  val logRequest: HttpRequest => HttpRequest = { r =>
+    println(r.toString); r
+  }
+  val logResponse: HttpResponse => HttpResponse = { r =>
+    println(r.toString); r
+  }
 
-    /**
+  /**
     * Add the HMAC auth key
     *
     * @param method HTTP method
     * @param segment Segment of the URL
     * @return
     */
-  def sendReceiveAuthenticated(method: String, segment: String):HttpRequest => Future[HttpResponse] = {
+  def sendReceiveAuthenticated(
+      method: String,
+      segment: String): HttpRequest => Future[HttpResponse] = {
     val key = generate(apiSecret, s"$method+$segment", timestamp)
     val authHeader = s"hmac uid:$key"
     // addHeader("Authentication", s"hmac uid:$key") ~> logRequest ~> sender ~> logResponse
@@ -84,33 +100,61 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(implicit actorSystem: A
     * @return
     */
   def toApiUrl(segment: String): URL = {
-    new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, s"$PREFIX_BASE/$segment")
+    new URL(baseUrl.getProtocol,
+            baseUrl.getHost,
+            baseUrl.getPort,
+            s"$PREFIX_BASE/$segment")
   }
 
-  val toUploadUrl: URL = new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, PREFIX_FILES)
+  val toUploadUrl: URL = new URL(baseUrl.getProtocol,
+                                 baseUrl.getHost,
+                                 baseUrl.getPort,
+                                 PREFIX_FILES)
 
   val eventsUrl = toApiUrl(SEGMENT_EVENTS)
   val filesUrl = toApiUrl(SEGMENT_FILES)
 
-  def smrtLinkSystemEventPipeline(method: String, segment: String): HttpRequest => Future[SmrtLinkSystemEvent] =
+  def smrtLinkSystemEventPipeline(
+      method: String,
+      segment: String): HttpRequest => Future[SmrtLinkSystemEvent] =
     sendReceiveAuthenticated(method, segment) ~> unmarshal[SmrtLinkSystemEvent]
 
-  def sendSmrtLinkSystemEvent(event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline("POST", PREFIX_EVENTS) { Post(eventsUrl.toString, event)}
+  def sendSmrtLinkSystemEvent(
+      event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
+    smrtLinkSystemEventPipeline("POST", PREFIX_EVENTS) {
+      Post(eventsUrl.toString, event)
+    }
 
-  def sendSmrtLinkSystemEventWithBlockingRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3, timeOutPerCall: FiniteDuration) =
-    callWithBlockingRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries, timeOutPerCall)
+  def sendSmrtLinkSystemEventWithBlockingRetry(
+      event: SmrtLinkSystemEvent,
+      numRetries: Int = 3,
+      timeOutPerCall: FiniteDuration) =
+    callWithBlockingRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](
+      sendSmrtLinkSystemEvent,
+      event,
+      numRetries,
+      timeOutPerCall)
 
-  def sendSmrtLinkSystemWithRetry(event: SmrtLinkSystemEvent, numRetries: Int = 3): Future[SmrtLinkSystemEvent] = {
-    callWithRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](sendSmrtLinkSystemEvent, event, numRetries)
+  def sendSmrtLinkSystemWithRetry(
+      event: SmrtLinkSystemEvent,
+      numRetries: Int = 3): Future[SmrtLinkSystemEvent] = {
+    callWithRetry[SmrtLinkSystemEvent, SmrtLinkSystemEvent](
+      sendSmrtLinkSystemEvent,
+      event,
+      numRetries)
   }
 
   def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
     val multiForm = MultipartFormData(
-      Seq(BodyPart(pathTgz.toFile, "techsupport_tgz", ContentType(MediaTypes.`application/octet-stream`)))
+      Seq(
+        BodyPart(pathTgz.toFile,
+                 "techsupport_tgz",
+                 ContentType(MediaTypes.`application/octet-stream`)))
     )
 
-    smrtLinkSystemEventPipeline("POST", PREFIX_FILES) { Post(toUploadUrl.toString, multiForm) }
+    smrtLinkSystemEventPipeline("POST", PREFIX_FILES) {
+      Post(toUploadUrl.toString, multiForm)
+    }
   }
 
 }

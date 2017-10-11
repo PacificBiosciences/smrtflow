@@ -17,16 +17,24 @@ import scala.concurrent.duration._
 import collection.JavaConversions._
 import collection.JavaConverters._
 import com.pacbio.common.utils.TarGzUtils
-import com.pacbio.secondary.analysis.jobs.JobModels.{BundleTypes, TsSystemStatusManifest}
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  BundleTypes,
+  TsSystemStatusManifest
+}
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.app._
-import com.pacbio.secondary.smrtlink.models.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 
 /**
   * Created by mkocher on 2/19/17.
   */
-class EventServerSpec extends Specification with Specs2RouteTest with LazyLogging with DefaultSigner with SignerConfig{
+class EventServerSpec
+    extends Specification
+    with Specs2RouteTest
+    with LazyLogging
+    with DefaultSigner
+    with SignerConfig {
 
   // Run Tests sequentially
   sequential
@@ -34,16 +42,28 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
   import SmrtLinkJsonProtocols._
 
   val smrtLinkSystemId = UUID.randomUUID()
-  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId, EventTypes.TEST, 1, UUID.randomUUID(), JodaDateTime.now(), JsObject.empty, None)
-
+  val exampleMessage = SmrtLinkSystemEvent(smrtLinkSystemId,
+                                           EventTypes.TEST,
+                                           1,
+                                           UUID.randomUUID(),
+                                           JodaDateTime.now(),
+                                           JsObject.empty,
+                                           None)
 
   lazy val totalRoutes = SmrtEventServer.allRoutes
   lazy val eventMessageDir = SmrtEventServer.eventMessageDir
   lazy val fileUploadOutputDir = SmrtEventServer.eventUploadFilesDir
   lazy val apiSecret = SmrtEventServer.apiSecret
 
-  val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(), BundleTypes.TEST, 1, JodaDateTime.now(),
-    UUID.randomUUID(), None, None, "testuser", Some("Test/Mock Message"))
+  val exampleTsManifest = TsSystemStatusManifest(UUID.randomUUID(),
+                                                 BundleTypes.TEST,
+                                                 1,
+                                                 JodaDateTime.now(),
+                                                 UUID.randomUUID(),
+                                                 None,
+                                                 None,
+                                                 "testuser",
+                                                 Some("Test/Mock Message"))
 
   // This is blocking
   def setupApp() = {
@@ -83,38 +103,51 @@ class EventServerSpec extends Specification with Specs2RouteTest with LazyLoggin
       }
     }
     "Successfully Post Event to Server" in {
-      Post("/api/v1/events", exampleMessage) ~> addHeader("Authentication", toAuth("POST", "/api/v1/events")) ~> totalRoutes ~> check {
+      Post("/api/v1/events", exampleMessage) ~> addHeader(
+        "Authentication",
+        toAuth("POST", "/api/v1/events")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Check files were written to file system and Delete tmp dir" in {
 
-      val smrtLinkSystemEventsDir = eventMessageDir.resolve(smrtLinkSystemId.toString)
+      val smrtLinkSystemEventsDir =
+        eventMessageDir.resolve(smrtLinkSystemId.toString)
       Files.exists(smrtLinkSystemEventsDir)
 
-      val messagePath = smrtLinkSystemEventsDir.resolve(s"${exampleMessage.uuid}.json")
+      val messagePath =
+        smrtLinkSystemEventsDir.resolve(s"${exampleMessage.uuid}.json")
       Files.exists(messagePath) must beTrue
     }
     "Sanity test for file uploading Service" in {
       val f = Files.createTempDirectory("example-upload")
 
-      val tsManifestPath = f.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+      val tsManifestPath =
+        f.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
 
-      FileUtils.write(tsManifestPath.toFile, exampleTsManifest.toJson.prettyPrint)
+      FileUtils.write(tsManifestPath.toFile,
+                      exampleTsManifest.toJson.prettyPrint)
 
-      val tgzPath = f.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ).toAbsolutePath
+      val tgzPath =
+        f.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ).toAbsolutePath
 
       val numTimes = 1000
-      val data:CharSequence = (0 until numTimes).map(i => s"Line $i").reduce(_ + "\n" + _)
+      val data: CharSequence =
+        (0 until numTimes).map(i => s"Line $i").reduce(_ + "\n" + _)
 
       TarGzUtils.createTarGzip(f, tgzPath.toFile)
       logger.info(s"Created tmp file $tgzPath")
 
       val multiForm = MultipartFormData(
-        Seq(BodyPart(tgzPath.toFile, "techsupport_tgz", ContentType(MediaTypes.`application/octet-stream`)))
+        Seq(
+          BodyPart(tgzPath.toFile,
+                   "techsupport_tgz",
+                   ContentType(MediaTypes.`application/octet-stream`)))
       )
 
-      Post("/api/v1/files", multiForm) ~> addHeader("Authentication", toAuth("POST", "/api/v1/files")) ~> totalRoutes ~> check {
+      Post("/api/v1/files", multiForm) ~> addHeader(
+        "Authentication",
+        toAuth("POST", "/api/v1/files")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         FileUtils.deleteQuietly(f.toFile)
       }

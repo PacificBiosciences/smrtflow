@@ -1,6 +1,9 @@
+.PHONY: clean jsonclean dataclean
+
 SHELL=/bin/bash
 STRESS_RUNS=1
 STRESS_NAME=run
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 clean:
 	rm -f secondary-smrt-server*.log 
@@ -21,44 +24,45 @@ build:
 tools:
 	sbt clean pack
 
-tools-sim:
+tools-smrt-server-sim:
 	sbt smrt-server-sim/{compile,pack}
 
 xsd-java:
 	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
 	xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
 
-tools-smrt-analysis:
-	sbt smrt-analysis/{compile,pack}
-
 tools-smrt-server-link:
-	sbt smrt-server-link/{compile,pack}
+	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
-	sbt clean smrt-analysis/pack smrt-server-base/pack smrt-server-link/pack
-	cp -r smrt-server-base/target/pack/* smrt-analysis/target/pack/
-	cp -r smrt-server-link/target/pack/* smrt-analysis/target/pack/
-	rm -rf smrt-analysis/target/pack/bin/*.bat
-	cd smrt-analysis && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
-
-generate-test-pipeline-json:
-	pbsmrtpipe show-templates --output-templates-json smrt-server-link/src/main/resources/resolved-pipeline-templates
+	rm -rf smrt-*/target/pack/*
+	sbt smrt-server-link/pack
+	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 repl:
 	sbt smrtflow/test:console
 
-get-pbdata: PacBioTestData
+get-pbdata: repos/PacBioTestData
 
-PacBioTestData:
-	git clone https://github.com/PacificBiosciences/PacBioTestData.git
+repos/chemistry-data-bundle:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/chemistry-data-bundle.git
+
+repos/pacbiotestdata:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sat/pacbiotestdata.git
+
+repos/pbpipeline-resources:
+	mkdir -p repos
+	cd repos && git clone --depth 1 http://$$USER@bitbucket.nanofluidics.com:7990/scm/sl/pbpipeline-resources.git
 
 import-pbdata: insert-pbdata
 
 insert-pbdata:
-	pbservice import-dataset PacBioTestData --debug
+	pbservice import-dataset repos/pacbiotestdata --debug
 
 insert-mock-data:
 	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
@@ -73,19 +77,40 @@ start-smrt-server-link-jar:
 	sbt "smrt-server-link/{compile,pack}"
 	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
-test:
+test: validate-pacbio-manifests
+	sbt scalafmt::test
 	sbt -batch "test-only -- junitxml html console"
 
-test-int-install-pytools:
-	@echo "This should be done in a virtualenv!"
-	@echo "assuming virtualenvwrapper is installed"
-	virtualenv ./ve
-	. ./ve/bin/activate
-	pip install -r INT_REQUIREMENTS.txt
-	@echo "successfully installed integration testing tools"
+test-int-clean: db-reset-prod
+	rm -rf jobs-root
+
+test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
+test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084
+test-int: export PATH := ${ROOT_DIR}/smrt-server-link/target/pack/bin:${ROOT_DIR}/smrt-server-sim/target/pack/bin:${PATH}
+test-int: export PB_TEST_DATA_FILES := ${ROOT_DIR}/repos/pacbiotestdata/data/files.json
+test-int: export PB_SERVICES_MANIFEST_FILE := ${ROOT_DIR}/extras/int-test-smrtlink-system-pacbio-manifest.json
+test-int: export SMRT_PIPELINE_BUNDLE_DIR := ${ROOT_DIR}/repos/pbpipeline-resources
+
+test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-resources tools-smrt-server-link tools-smrt-server-sim
+	@echo "PATH"
+	@echo $$PATH
+	@echo "TEST DATA"
+	@echo $$PB_TEST_DATA_FILES
+	rm -rf jobs-root
+	sbt -batch -no-colors "smrt-server-sim/it:test"
 
 jsontest:
-	$(eval JSON := `find . -name '*.json' -not -path '*/\.*' | grep -v 'target/scala'`)
+	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v './repos/' | grep -v './jobs-root/' | grep -v './tmp/' | grep -v 'target/scala'`)
+	@for j in $(JSON); do \
+		echo $$j ;\
+		python -m json.tool $$j >/dev/null || exit 1 ;\
+	done
+
+validate-run-xml:
+	xmllint --noout --schema ./smrt-common-models/src/main/resources/pb-common-xsds/PacBioDataModel.xsd ./smrt-server-link/src/test/resources/runCreate2.xml
+
+validate-pacbio-manifests:
+	$(eval JSON := `find . -name 'pacbio-manifest.json'`)
 	@for j in $(JSON); do \
 		echo $$j ;\
 		python -m json.tool $$j >/dev/null || exit 1 ;\
@@ -95,14 +120,6 @@ test-data/smrtserver-testdata:
 	mkdir -p test-data
 	rsync --progress -az --delete login14-biofx01:/mnt/secondary/Share/smrtserver-testdata test-data/
 
-test-int-import-references:
-	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-references/
-
-test-int-import-subreads:
-	pbservice import-dataset --debug --port=8070 test-data/smrtserver-testdata/ds-subreads/
-
-test-int-import-data: test-int-import-references test-int-import-subreads
-
 test-int-run-analysis:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-01.json
 
@@ -111,16 +128,6 @@ test-int-run-analysis-stress:
 
 test-int-run-analysis-trigger-failure:
 	pbservice run-analysis --debug --port=8070 --block ./smrt-server-link/src/test/resources/analysis-dev-diagnostic-stress-trigger-fail-01.json 
-
-test-int-get-status:
-	pbservice status --debug --port=8070 
-
-test-int-run-sanity: test-int-get-status test-int-import-data test-int-run-analysis
-
-test-sim:
-	sbt "smrt-server-link/assembly"
-	sbt "smrt-server-sim/pack"
-	python extras/run_sim_local.py DataSetScenario
 
 validate-report-view-rules:
 	find ./smrt-server-link/src/main/resources/report-view-rules -name "*.json" -print0 | xargs -0L1 python -m json.tool
@@ -153,6 +160,28 @@ full-stress-run: test-data/smrtserver-testdata
 	    psql -tAF$$'\t' smrtlink -c "select je.* from job_events je inner join engine_jobs ej on je.job_id=ej.job_id where ej.state != 'SUCCESSFUL'" > $$OUTDIR/unsuccessful-job-events ; \
 	done
 
+db-setup-test:
+ifndef PGPORT
+	$(error PGPORT is undefined)
+endif
+ifndef PGDATA
+	$(error PGDATA is undefined)
+endif
+	initdb
+	perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $(PGPORT)/" "$(PGDATA)/postgresql.conf"
+	pg_ctl -w -l "$(PGDATA)/postgresql.log" start
+	createdb smrtlinkdb
+	psql -d smrtlinkdb -f ./extras/db-init.sql
+	psql -d smrtlinkdb -f ./extras/test-db-init.sql
+
+db-reset-prod:
+	psql -f ./extras/db-drop.sql
+	psql -f ./extras/db-init.sql
+
+db-reset-test:
+	psql -f ./extras/test-db-drop.sql
+	psql -f ./extras/test-db-init.sql
+
 validate-swagger-smrtlink:
 	swagger validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
@@ -160,3 +189,6 @@ validate-swagger-eve:
 	swagger validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
 
 validate-swagger: validate-swagger-smrtlink validate-swagger-eve
+
+check-shell:
+	shellcheck -e SC1091 extras/pbbundler/bamboo_build_smrtflow.sh

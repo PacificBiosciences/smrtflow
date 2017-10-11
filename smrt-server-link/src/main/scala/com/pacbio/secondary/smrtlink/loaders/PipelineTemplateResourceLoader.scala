@@ -1,13 +1,14 @@
 package com.pacbio.secondary.smrtlink.loaders
 
-import com.pacbio.secondary.analysis.jobs.JobModels.PipelineTemplate
-import com.pacbio.secondary.analysis.pbsmrtpipe.PbsmrtpipeConstants
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import spray.json._
 
-trait PipelineTemplateResourceLoader extends JsonAndEnvResourceLoader[PipelineTemplate]{
+trait PipelineTemplateResourceLoader
+    extends BundleResourceLoader[PipelineTemplate] {
 
   val ENV_VAR = PbsmrtpipeConstants.ENV_PIPELINE_TEMPLATE_DIR
-
+  val BUNDLE_ENV_VAR = PbsmrtpipeConstants.ENV_BUNDLE_DIR
   val ROOT_DIR_PREFIX = "resolved-pipeline-templates"
 
   override def loadMessage(pt: PipelineTemplate) =
@@ -18,4 +19,3 @@ trait PipelineTemplateResourceLoader extends JsonAndEnvResourceLoader[PipelineTe
 
 }
 object PipelineTemplateResourceLoader extends PipelineTemplateResourceLoader
-

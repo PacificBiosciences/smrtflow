@@ -1,0 +1,9 @@
+[
+    {
+        "dependencies": [],
+        "description": "Test SMRT Link System Manifest to set the SMRT Link System version for integration testing",
+        "id": "smrtlink",
+        "name": "SMRT Link System",
+        "version": "9.9.9"
+    }
+]

@@ -3,14 +3,18 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import akka.testkit.TestActorRef
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.{PacBioDateTimeFormat, FakeClockProvider}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.{
+  FakeClockProvider,
+  PacBioDateTimeFormat
+}
 import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.RunService
+import com.pacbio.secondary.smrtlink.services.{RunService, ServiceComposer}
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
@@ -18,29 +22,39 @@ import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import spray.http.HttpHeaders.RawHeader
 import spray.httpx.SprayJsonSupport._
-import spray.routing.{AuthorizationFailedRejection, AuthenticationFailedRejection, Directives}
+import spray.routing.{
+  AuthenticationFailedRejection,
+  AuthorizationFailedRejection,
+  Directives
+}
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class RunSpec
-  extends Specification
-  with Directives
-  with Specs2RouteTest
-  with NoTimeConversions
-  with PacBioServiceErrors {
+    extends Specification
+    with Directives
+    with Specs2RouteTest
+    with NoTimeConversions
+    with PacBioServiceErrors {
 
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import Authenticator._
 
   val RUN_ID = UUID.randomUUID()
   val RUN_NAME = s"Run-$RUN_ID"
   val RUN_SUMMARY = "Fake Data Model"
-  val CREATED_AT = new JodaDateTime(2016, 4, 15, 2, 25, PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
+  val CREATED_AT = new JodaDateTime(
+    2016,
+    4,
+    15,
+    2,
+    25,
+    PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
   val CREATED_BY = "jsnow"
 
   def instrumentName(id: String) = s"Inst$id"
@@ -50,12 +64,20 @@ class RunSpec
   val SUMMARY_1 = "Well Sample 1"
   val WELL_NAME_1 = "A01"
   val EXTERNAL_RESOURCE_ID_1 = UUID.randomUUID()
-  val CONTEXT_ID_1 = s"mSim_${new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)}"
+  val CONTEXT_ID_1 =
+    s"mSim_${new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)}"
   val STATUS_1 = SupportedAcquisitionStates.READY
   val INSTRUMENT_ID_1 = 54001.toString
   val MOVIE_MINUTES_1 = 60.0
-  val STARTED_AT_1 = new JodaDateTime(2016, 4, 15, 2, 26, PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
-  val PATH_URI_1 = Paths.get(s"/pbi/collections/xfer-test/$CONTEXT_ID_1/1_A01/$RUN_ID/")
+  val STARTED_AT_1 = new JodaDateTime(
+    2016,
+    4,
+    15,
+    2,
+    26,
+    PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
+  val PATH_URI_1 =
+    Paths.get(s"/pbi/collections/xfer-test/$CONTEXT_ID_1/1_A01/$RUN_ID/")
 
   val SUBREAD_ID_2 = UUID.randomUUID()
   val NAME_2 = "WellSample2"
@@ -69,39 +91,45 @@ class RunSpec
   val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
   val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
-  val FAKE_RUN_DATA_MODEL = XmlTemplateReader
-    .fromStream(getClass.getResourceAsStream("/fake_run_data_model.xml"))
-    .globally().substituteAll(
-      "{RUN_ID}"                 -> (() => RUN_ID),
-      "{RUN_NAME}"               -> (() => RUN_NAME),
-      "{RUN_SUMMARY}"            -> (() => RUN_SUMMARY),
-      "{CREATED_AT}"             -> (() => CREATED_AT),
-      "{CREATED_BY}"             -> (() => CREATED_BY),
+  private def getRunDataModelFromTemplate(resourcePath: String,
+                                          runId: UUID = RUN_ID) = {
+    XmlTemplateReader
+      .fromStream(getClass.getResourceAsStream(resourcePath))
+      .globally()
+      .substituteAll(
+        "{RUN_ID}" -> (() => runId),
+        "{RUN_NAME}" -> (() => RUN_NAME),
+        "{RUN_SUMMARY}" -> (() => RUN_SUMMARY),
+        "{CREATED_AT}" -> (() => CREATED_AT),
+        "{CREATED_BY}" -> (() => CREATED_BY),
+        "{SUBREAD_ID_1}" -> (() => SUBREAD_ID_1),
+        "{NAME_1}" -> (() => NAME_1),
+        "{SUMMARY_1}" -> (() => SUMMARY_1),
+        "{WELL_NAME_1}" -> (() => WELL_NAME_1),
+        "{EXTERNAL_RESOURCE_ID_1}" -> (() => EXTERNAL_RESOURCE_ID_1),
+        "{CONTEXT_ID_1}" -> (() => CONTEXT_ID_1),
+        "{STATUS_1}" -> (() => STATUS_1.value()),
+        "{INSTRUMENT_ID_1}" -> (() => INSTRUMENT_ID_1),
+        "{MOVIE_MINUTES_1}" -> (() => MOVIE_MINUTES_1),
+        "{STARTED_AT_1}" -> (() => STARTED_AT_1),
+        "{PATH_URI_1}" -> (() => PATH_URI_1),
+        "{SUBREAD_ID_2}" -> (() => SUBREAD_ID_2),
+        "{NAME_2}" -> (() => NAME_2),
+        "{WELL_NAME_2}" -> (() => WELL_NAME_2),
+        "{EXTERNAL_RESOURCE_ID_2}" -> (() => EXTERNAL_RESOURCE_ID_2),
+        "{STATUS_2}" -> (() => STATUS_2.value()),
+        "{MOVIE_MINUTES_2}" -> (() => MOVIE_MINUTES_2),
+        "{ACQ_1_STARTED_AT}" -> (() => ACQ_1_STARTED_AT),
+        "{ACQ_1_COMPLETED_AT}" -> (() => ACQ_1_COMPLETED_AT),
+        "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
+        "{RUN_COMPLETED_AT}" -> (() => RUN_COMPLETED_AT)
+      )
+      .result()
+      .mkString
+  }
 
-      "{SUBREAD_ID_1}"           -> (() => SUBREAD_ID_1),
-      "{NAME_1}"                 -> (() => NAME_1),
-      "{SUMMARY_1}"              -> (() => SUMMARY_1),
-      "{WELL_NAME_1}"            -> (() => WELL_NAME_1),
-      "{EXTERNAL_RESOURCE_ID_1}" -> (() => EXTERNAL_RESOURCE_ID_1),
-      "{CONTEXT_ID_1}"           -> (() => CONTEXT_ID_1),
-      "{STATUS_1}"               -> (() => STATUS_1.value()),
-      "{INSTRUMENT_ID_1}"        -> (() => INSTRUMENT_ID_1),
-      "{MOVIE_MINUTES_1}"        -> (() => MOVIE_MINUTES_1),
-      "{STARTED_AT_1}"           -> (() => STARTED_AT_1),
-      "{PATH_URI_1}"             -> (() => PATH_URI_1),
-
-      "{SUBREAD_ID_2}"           -> (() => SUBREAD_ID_2),
-      "{NAME_2}"                 -> (() => NAME_2),
-      "{WELL_NAME_2}"            -> (() => WELL_NAME_2),
-      "{EXTERNAL_RESOURCE_ID_2}" -> (() => EXTERNAL_RESOURCE_ID_2),
-      "{STATUS_2}"               -> (() => STATUS_2.value()),
-      "{MOVIE_MINUTES_2}"        -> (() => MOVIE_MINUTES_2),
-
-      "{ACQ_1_STARTED_AT}"       -> (() => ACQ_1_STARTED_AT),
-      "{ACQ_1_COMPLETED_AT}"     -> (() => ACQ_1_COMPLETED_AT),
-      "{RUN_TRANS_COMPLETED_AT}" -> (() => RUN_TRANS_COMPLETED_AT),
-      "{RUN_COMPLETED_AT}"       -> (() => RUN_COMPLETED_AT)
-    ).result().mkString
+  val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
+    "/run-data-models/fake_run_data_model.xml")
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
@@ -110,17 +138,19 @@ class RunSpec
   val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
   val ADMIN_CREDENTIALS_2 = RawHeader(JWT_HEADER, ADMIN_USER_2_LOGIN)
 
-  object TestProviders extends
-    ServiceComposer with
-    RunServiceActorProvider with
-    InMemoryRunDaoProvider with
-    AuthenticatorImplProvider with
-    JwtUtilsProvider with
-    FakeClockProvider with
-    DataModelParserImplProvider {
+  object TestProviders
+      extends ServiceComposer
+      with RunServiceActorProvider
+      with InMemoryRunDaoProvider
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with FakeClockProvider
+      with DataModelParserImplProvider {
 
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          Some(UserRecord(jwt))
     })
   }
 
@@ -131,7 +161,31 @@ class RunSpec
 
   trait daoSetup extends Scope {
     TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()
-    Await.ready(TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)), 10.seconds)
+    Await.ready(
+      TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
+      10.seconds)
+  }
+
+  "Data model parser" should {
+    "Parse XML string" in {
+      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
+      val run = results.run
+      run.uniqueId === RUN_ID
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === None
+      run.summary === Some(RUN_SUMMARY)
+    }
+    "Parse XML including chemistry" in {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml",
+        newId)
+      val results = DataModelParserImpl(dataModel)
+      val run = results.run
+      run.uniqueId === newId
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+    }
   }
 
   "Run Service" should {
@@ -146,7 +200,8 @@ class RunSpec
     }
 
     "return a subset of all runs" in new daoSetup {
-      Get(s"/smrt-link/runs?createdBy=$CREATED_BY") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs?createdBy=$CREATED_BY") ~> addHeader(
+        READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
@@ -208,11 +263,18 @@ class RunSpec
         run.numCellsFailed === 0
         run.completedAt === Some(RUN_COMPLETED_AT)
         run.transfersCompletedAt === Some(RUN_TRANS_COMPLETED_AT)
+        run.chemistrySwVersion === None
+      }
+    }
+    "return a specific run xml" in new daoSetup {
+      Get(s"/smrt-link/runs/$RUN_ID/datamodel") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+        status.isSuccess must beTrue
       }
     }
 
     "return a run set of collections" in new daoSetup {
-      Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addHeader(
+        READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collections = responseAs[Seq[CollectionMetadata]]
         collections.size === 2
@@ -250,7 +312,8 @@ class RunSpec
     }
 
     "return a specific collection" in new daoSetup {
-      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(
+        READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collect1 = responseAs[CollectionMetadata]
 
@@ -295,15 +358,40 @@ class RunSpec
       }
     }
 
+    "create a run where chemistry version is defined" in new daoSetup {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml",
+        newId)
+      val create = RunCreate(dataModel)
+      Post("/smrt-link/runs", create) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val run = responseAs[RunSummary]
+        run.uniqueId === newId
+        run.createdBy === Some(CREATED_BY)
+        run.reserved === false
+        run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+      }
+
+      Get(s"/smrt-link/runs/$newId") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val run = responseAs[Run]
+        run.uniqueId === newId
+        run.createdBy === Some(CREATED_BY)
+        run.reserved === false
+        run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+      }
+    }
+
     "update a run" in new daoSetup {
       val newStatus = SupportedAcquisitionStates.COMPLETE
-      val newModel = FAKE_RUN_DATA_MODEL.replace(STATUS_1.value(), newStatus.value())
+      val newModel =
+        FAKE_RUN_DATA_MODEL.replace(STATUS_1.value(), newStatus.value())
 
-      val update1 = RunUpdate(
-        dataModel = None,
-        reserved = Some(true))
+      val update1 = RunUpdate(dataModel = None, reserved = Some(true))
 
-      Post(s"/smrt-link/runs/$RUN_ID", update1) ~> addHeader(ADMIN_CREDENTIALS_2) ~> routes ~> check {
+      Post(s"/smrt-link/runs/$RUN_ID", update1) ~> addHeader(
+        ADMIN_CREDENTIALS_2) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.reserved === true
@@ -316,11 +404,10 @@ class RunSpec
         run.dataModel === FAKE_RUN_DATA_MODEL
       }
 
-      val update2 = RunUpdate(
-        dataModel = Some(newModel),
-        reserved = None)
+      val update2 = RunUpdate(dataModel = Some(newModel), reserved = None)
 
-      Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addHeader(ADMIN_CREDENTIALS_2) ~> routes ~> check {
+      Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addHeader(
+        ADMIN_CREDENTIALS_2) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.numCellsCompleted === 1
@@ -335,7 +422,8 @@ class RunSpec
         run.dataModel === newModel
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(
+        READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collection = responseAs[CollectionMetadata]
 
@@ -395,8 +483,10 @@ class RunSpec
         status.intValue === 422
       }
 
-      val update = RunUpdate(dataModel = Some(<run id="0" foo="A">AAA</run>.mkString))
-      Post(s"/smrt-link/runs/$RUN_ID", update) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
+      val update =
+        RunUpdate(dataModel = Some(<run id="0" foo="A">AAA</run>.mkString))
+      Post(s"/smrt-link/runs/$RUN_ID", update) ~> addHeader(
+        ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.intValue === 422
       }
     }

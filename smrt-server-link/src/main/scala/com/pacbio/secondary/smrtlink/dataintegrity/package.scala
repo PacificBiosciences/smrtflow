@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink
 
 import java.nio.file.{Files, Paths}
 
-import com.pacbio.secondary.analysis.engine.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.models.DataSetMetaDataSet
 import com.typesafe.scalalogging.LazyLogging
@@ -14,7 +14,7 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Created by mkocher on 2/15/17.
   */
-package object dataintegrity extends LazyLogging{
+package object dataintegrity extends LazyLogging {
 
   trait BaseDataIntegrity {
 

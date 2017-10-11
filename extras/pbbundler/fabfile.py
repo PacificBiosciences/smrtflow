@@ -166,28 +166,31 @@ def _raise_non_none_if_not_exists(path_or_none, custom_message=None):
 
 def _copy_and_extract_tomcat(tomcat_tgz, output_dir):
 
-    name = os.path.basename(tomcat_tgz)
+    tomcat_rootdir_rel = local('tar --wildcards --exclude="*/*" --show-transformed-names -tf "{p}" "*"'.format(p=tomcat_tgz), capture=True)
+    if tomcat_rootdir_rel == "":
+        raise ValueError("Unable to determine tomcat root directory from {f}".format(f=tomcat_tgz))
 
-    rx = re.compile('apache-tomcat-\d+.\d+.\d+')
-    m = re.match(rx, name)
-
-    if m is None:
-        raise ValueError("Unable to determine tomcat name from {f} using regex {r}".format(f=tomcat_tgz, r=rx.pattern))
-
-    tomcat_output = os.path.join(output_dir, m.group())
+    tomcat_rootdir = os.path.join(output_dir, tomcat_rootdir_rel)
 
     with lcd(output_dir):
-        if not os.path.exists(tomcat_output):
+        if not os.path.exists(tomcat_rootdir):
             local("tar xvfz {p}".format(p=tomcat_tgz))
         else:
-            log.debug("Tomcat already exists {}, skipping copying".format(tomcat_output))
+            log.debug("Tomcat already exists {}, skipping tarball extract".format(tomcat_rootdir))
 
-    return tomcat_output
+    # Point the 'tomcat_current' link at the tarball output
+    tomcat_current_link = os.path.join(output_dir, "tomcat_current")
+    if os.path.lexists(tomcat_current_link):
+        os.remove(tomcat_current_link)
+    os.symlink(tomcat_rootdir_rel, tomcat_current_link)
+
+    return tomcat_current_link
 
 
 def _archive_tomcat_webapp_root(tomcat_output_dir):
     webapp_path = os.path.join(tomcat_output_dir, 'webapps')
-    shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
+    if os.path.exists(os.path.join(webapp_path, 'ROOT')):
+        shutil.move(os.path.join(webapp_path, 'ROOT'), os.path.join(webapp_path, 'ROOT.bak'))
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
@@ -303,43 +306,6 @@ def _update_tomcat_users_xml(bundle_dir, tomcat_output_dir):
     log.info("Copied tomcat-users.xml from {s} to {d}".format(s=src, d=dest))
 
 
-def __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir):
-    """
-    Copy all resolved pipeline templates into smrt-server-link within smrtflow.
-
-    Note, this will overwrite all existing files
-    """
-
-    def to_scala_path(x):
-        return os.path.join(services_root_dir, x)
-
-    if resolved_pipeline_templates_dir is not None:
-        target_json_dir = to_scala_path(
-            "smrt-server-link/src/main/resources/resolved-pipeline-templates")
-        if os.path.exists(target_json_dir):
-            log.warn("removing old resolved pipeline templates dir {d}".format(
-                d=target_json_dir))
-            shutil.rmtree(target_json_dir)
-        os.mkdir(target_json_dir)
-        log.info("copying resolved pipeline templates in {d}...".format(
-            d=resolved_pipeline_templates_dir))
-        nfiles = 0
-        for json_file in os.listdir(resolved_pipeline_templates_dir):
-            src_file = os.path.join(resolved_pipeline_templates_dir, json_file)
-            if json_file.endswith(".json"):
-                nfiles += 1
-                target_file = os.path.join(target_json_dir, json_file)
-                if os.path.exists(target_file):
-                    os.remove(target_file)
-                log.debug("  cp {s} {t}".format(s=src_file, t=target_file))
-                shutil.copyfile(src_file, target_file)
-        if nfiles == 0:
-            # the services require at least one. MK this should fixed.
-            emsg = "No resolved pipeline templates found in {d}. SMRT Link " \
-                   "services requires at least one pipeline template".format(d=resolved_pipeline_templates_dir)
-            raise ValueError(emsg)
-
-
 def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     """
     Extract and add custom
@@ -353,10 +319,10 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     t0 = time.time()
     log.info("Unzipping and building WS02 bundle from '{}'".format(wso2_api_manager_zip))
     with ZipFile(wso2_api_manager_zip) as z:
+        zip_top_level = set(p.split(os.path.sep)[0] for p in z.namelist()).pop()
         z.extractall(output_bundle_root_dir)
 
-    name = "wso2am-2.0.0"
-    wso2_output_dir = os.path.join(output_bundle_root_dir, name)
+    wso2_output_dir = os.path.join(output_bundle_root_dir, zip_top_level)
 
     def to_wp(r):
         # Output path relative to wso2
@@ -390,7 +356,6 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
 
 
 def _build_smrtlink_services(services_root_dir, output_bundle_dir,
-                             resolved_pipeline_templates_dir=None,
                              ivy_cache=None,
                              analysis_server="smrt-server-link"):
     """
@@ -399,8 +364,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     :param services_root_dir: smrtflow root directory to the scala services
     code
     :param output_bundle_dir: Path to output bundle directory
-    :param resolved_pipeline_templates_dir: Path to directory containing
-    resolved pipeline template JSON files
     :param ivy_cache: Custom ivy-cache location
     :param analysis_server: sbt smrt-server subproject name
 
@@ -410,11 +373,6 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
     # Build Scala Services
     def to_scala_path(x):
         return os.path.join(services_root_dir, x)
-
-    if resolved_pipeline_templates_dir is not None:
-        __copy_pipeline_templates(resolved_pipeline_templates_dir, services_root_dir)
-    else:
-        log.warn("No Resolved Pipeline Templates dir provided")
 
     sbt_cmd = _to_sbt_cmd(ivy_cache)
 
@@ -438,11 +396,10 @@ def _build_smrtlink_services(services_root_dir, output_bundle_dir,
 def build_smrtlink_services_ui(version,
                                smrtlink_ui_dir,
                                smrtflow_root_dir,
-                               resolved_pipeline_templates_dir,
                                publish_to=None,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
-                               tomcat_tgz="apache-tomcat-8.0.26.tar.gz",
+                               tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
                                chemistry_version=None,
                                doc_dir=None
                                ):
@@ -459,9 +416,6 @@ def build_smrtlink_services_ui(version,
     :param smrtflow_root_dir: Root Directory to the smrtflow repo (e.g.,
 
     Example: /Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow)
-
-    :param resolved_pipeline_templates_dir: Directory containing resolved
-    pipeline template JSON files
 
     :param publish_to: Copy the bundle.tgz to output directory. Ignore if
     not given
@@ -484,11 +438,10 @@ def build_smrtlink_services_ui(version,
     $> fab build_smrtlink_services_ui:"0.2.2-1234",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/ui/main/apps/smrtlink",
     "/Users/mkocher/workspaces/mk_mb_pbbundler/smrtflow",
-    "/Users/mkocher/workspaces/mk_mb_pbbundler/resolved-pipeline-templates",
     ivy_cache="~/.ivy-cache-custom",
     analysis_server="smrt-server-link",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
-    tomcat_tgz=/path/to/apache-tomcat-8.0.26.tar.gz
+    tomcat_tgz=/path/to/tomcat-pbtarball_8.5.20.tar.gz
 
 
     Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
@@ -504,7 +457,6 @@ def build_smrtlink_services_ui(version,
 
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
     smrtlink_ui_dir = to_p(smrtlink_ui_dir)
-    resolved_pipeline_templates_dir = to_p(resolved_pipeline_templates_dir)
     wso2_api_manager_zip = to_p(wso2_api_manager_zip)
     tomcat_tgz = to_p(tomcat_tgz)
     doc_dir = to_p(doc_dir) if doc_dir is not None else doc_dir
@@ -512,7 +464,6 @@ def build_smrtlink_services_ui(version,
     # Validation to fail early
     _raise_if_not_exists(smrtlink_ui_dir, "SMRTLink UI not found.")
     _raise_if_not_exists(smrtflow_root_dir, "smrtflow services not found.")
-    _raise_if_not_exists(resolved_pipeline_templates_dir, "pbsmrtpipe Resources not found.")
     _raise_if_not_exists(wso2_api_manager_zip, "Unable to find wso2 API Manager zip '{}'".format(wso2_api_manager_zip))
     _raise_if_not_exists(tomcat_tgz, "Unable to find tomcat from '{}'".format(tomcat_tgz))
 
@@ -580,7 +531,6 @@ def build_smrtlink_services_ui(version,
 
     # Build Scala SMRT Link Analysis Services
     _build_smrtlink_services(smrtflow_root_dir, output_bundle_dir,
-                             resolved_pipeline_templates_dir=resolved_pipeline_templates_dir,
                              ivy_cache=ivy_cache,
                              analysis_server="smrt-server-link")
     # build simulator tools

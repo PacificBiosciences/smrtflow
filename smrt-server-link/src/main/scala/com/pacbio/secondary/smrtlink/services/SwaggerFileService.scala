@@ -1,10 +1,9 @@
 package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorSystem
-import com.pacbio.common.actors.ActorSystemProvider
-import com.pacbio.common.dependency.Singleton
-import com.pacbio.common.models.PacBioComponentManifest
-import com.pacbio.common.services.ServiceComposer
+import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import spray.json._
 import spray.routing._
@@ -13,17 +12,18 @@ import spray.httpx.SprayJsonSupport._
 import spray.routing.RoutingSettings
 import spray.routing.directives.FileAndResourceDirectives
 
-
-class SwaggerFileService(swaggerResourceName: String)(implicit actorSystem: ActorSystem) extends SmrtLinkBaseMicroService with FileAndResourceDirectives{
+class SwaggerFileService(swaggerResourceName: String)(
+    implicit actorSystem: ActorSystem)
+    extends SmrtLinkBaseMicroService
+    with FileAndResourceDirectives {
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
 
-  val manifest = PacBioComponentManifest(
-    toServiceId("swagger_file"),
-    "Swagger JSON file Service",
-    "0.1.0",
-    "Swagger Service Endpoints")
+  val manifest = PacBioComponentManifest(toServiceId("swagger_file"),
+                                         "Swagger JSON file Service",
+                                         "0.1.0",
+                                         "Swagger Service Endpoints")
 
   val routes =
     pathPrefix("swagger") {

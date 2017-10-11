@@ -1,18 +1,23 @@
-
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
 import akka.actor.ActorRefFactory
 import spray.json._
-import com.pacbio.common.actors.ActorRefFactoryProvider
-import com.pacbio.common.auth._
-import com.pacbio.common.dependency.{SetBindings, Singleton}
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.common.models._
-import com.pacbio.common.services.{PacBioServiceErrors, ServiceComposer}
-import com.pacbio.common.time.FakeClockProvider
-import com.pacbio.secondary.analysis.configloaders.{EngineCoreConfigLoader, PbsmrtpipeConfigLoader}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
+import com.pacbio.secondary.smrtlink.time.FakeClockProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders.{
+  EngineCoreConfigLoader,
+  PbsmrtpipeConfigLoader
+}
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
-import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.actors.{
+  ActorRefFactoryProvider,
+  SmrtLinkDalProvider,
+  _
+}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.secondary.smrtlink.models._
@@ -25,15 +30,16 @@ import slick.driver.PostgresDriver.api.Database
   * not necessary to drop and create+migrate the db) This should be re-evaluated.
   *
   */
-class EulaServiceSpec extends Specification
+class EulaServiceSpec
+    extends Specification
     with Specs2RouteTest
     with SetupMockData
     with PacBioServiceErrors
     with JobServiceConstants
     with SmrtLinkConstants
-    with TestUtils{
+    with TestUtils {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   sequential
 
@@ -42,44 +48,46 @@ class EulaServiceSpec extends Specification
   val testSmrtLinkVersion = "1.2.3"
 
   trait TestEulaServiceProvider {
-    this: JobsDaoActorProvider
-        with SmrtLinkConfigProvider
-        with AuthenticatorProvider
-        with ServiceComposer =>
+    this: JobsDaoProvider
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with AuthenticatorProvider
+      with ServiceComposer =>
 
     val eulaService: Singleton[EulaService] =
       Singleton { () =>
-        new EulaService(Some(testSmrtLinkVersion), jobsDaoActor(), authenticator())
+        new EulaService(Some(testSmrtLinkVersion), jobsDao(), authenticator())
       }
 
     addService(eulaService)
   }
 
-  object TestProviders extends
-      ServiceComposer with
-      ProjectServiceProvider with
-      SmrtLinkConfigProvider with
-      PbsmrtpipeConfigLoader with
-      EngineCoreConfigLoader with
-      JobRunnerProvider with
-      TestEulaServiceProvider with
-      DataSetServiceProvider with
-      JobsDaoActorProvider with
-      EventManagerActorProvider with
-      JobsDaoProvider with
-      TestDalProvider with
-      AuthenticatorImplProvider with
-      JwtUtilsProvider with
-      FakeClockProvider with
-      SetBindings with
-      ActorRefFactoryProvider {
+  object TestProviders
+      extends ServiceComposer
+      with ProjectServiceProvider
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with PbsmrtpipeConfigLoader
+      with EngineCoreConfigLoader
+      with TestEulaServiceProvider
+      with DataSetServiceProvider
+      with EventManagerActorProvider
+      with JobsDaoProvider
+      with AuthenticatorImplProvider
+      with JwtUtilsProvider
+      with FakeClockProvider
+      with SetBindings
+      with ActorRefFactoryProvider {
 
     // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => new JwtUtils {
-      override def parse(jwt: String): Option[UserRecord] = if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
+      new JwtUtils {
+        override def parse(jwt: String): Option[UserRecord] =
+          if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
     })
 
-    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(system)
+    override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(
+      system)
   }
 
   override val dao: JobsDao = TestProviders.jobsDao()

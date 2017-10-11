@@ -7,7 +7,8 @@ import ammonite.repl._
   */
 trait SmrtLinkReplTool {
 
-  val predef = """
+  val predef =
+    """
                  |import java.nio.file.{Files, Path, Paths}
                  |import java.util.UUID
                  |
@@ -28,12 +29,12 @@ trait SmrtLinkReplTool {
                  |import com.pacbio.secondary.smrtlink.models._
                  |import com.pacbio.common.models.CommonModelImplicits._
                  |import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer => S}
-                 |import com.pacbio.secondary.analysis.datasets.io.ImplicitDataSetIOLoader._
-                 |import com.pacbio.secondary.analysis.datasets.io.DataSetLoader._
-                 |import com.pacbio.secondary.analysis.engine.EngineConfig
-                 |import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
+                 |import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetIOLoader._
+                 |import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader._
+                 |import com.pacbio.secondary.smrtlink.models.EngineConfig
+                 |import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, PacBioIntJobResolver}
                  |import com.pacbio.secondary.smrtlink.actors.JobsDao
-                 |import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+                 |import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
                  |
                  |//This will make the repl hang on exit. Need to call actorSystem.shutdown()
                  |//implicit val actorSystem = ActorSystem("smrtlink-repl")
@@ -57,8 +58,6 @@ trait SmrtLinkReplTool {
   val repl = ammonite.Main(predef = predef, welcomeBanner = welcomeBanner)
 
 }
-
-
 
 object SmrtLinkReplApp extends App with SmrtLinkReplTool {
 

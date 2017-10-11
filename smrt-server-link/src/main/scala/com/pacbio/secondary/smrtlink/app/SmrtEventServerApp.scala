@@ -27,37 +27,53 @@ import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.routing._
 import DefaultJsonProtocol._
-import mbilski.spray.hmac.{Authentication, DefaultSigner, Directives, SignerConfig}
-import com.pacbio.common.app.StartupFailedException
-import com.pacbio.common.file.FileSizeFormatterUtil
-import com.pacbio.common.models.{Constants, PacBioComponentManifest}
-import com.pacbio.common.services.utils.StatusGenerator
-import com.pacbio.common.services.{PacBioService, RoutedHttpService, StatusService}
-import com.pacbio.common.time.SystemClock
-import com.pacbio.secondary.analysis.configloaders.ConfigLoader
+import mbilski.spray.hmac.{
+  Authentication,
+  DefaultSigner,
+  Directives,
+  SignerConfig
+}
+import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
+import com.pacbio.common.models.Constants
+import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
+import com.pacbio.secondary.smrtlink.services.{
+  PacBioService,
+  RoutedHttpService
+}
+import com.pacbio.secondary.smrtlink.time.SystemClock
+import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{EventTypes, SmrtLinkJsonProtocols, SmrtLinkSystemEvent}
-import com.pacbio.common.services.PacBioServiceErrors.UnprocessableEntityError
-import com.pacbio.common.utils.{SmrtServerIdUtils, TarGzUtils}
-import com.pacbio.logging.LoggerOptions
-import com.pacbio.secondary.analysis.jobs.JobModels.TsSystemStatusManifest
-import com.pacbio.secondary.analysis.techsupport.TechSupportConstants
-import com.pacbio.secondary.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.models.{
+  EventTypes,
+  PacBioComponentManifest,
+  SmrtLinkSystemEvent
+}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.TsSystemStatusManifest
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.services.StatusService
+import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
+import com.pacbio.common.utils.TarGzUtils
+import com.pacbio.common.logging.LoggerOptions
 
 import scala.util.control.NonFatal
-
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
 
 case class EveAccount(secret: String)
 
-case class EveAuth(a: Option[EveAccount], s: Option[String]) extends Authentication[EveAccount] with DefaultSigner with SignerConfig {
-  def accountAndSecret(uuid: String): (Option[EveAccount], Option[String]) = (a, s)
+case class EveAuth(a: Option[EveAccount], s: Option[String])
+    extends Authentication[EveAccount]
+    with DefaultSigner
+    with SignerConfig {
+  def accountAndSecret(uuid: String): (Option[EveAccount], Option[String]) =
+    (a, s)
 }
 
 // Push this back to FileSystemUtils in common
-trait EveFileUtils extends LazyLogging{
+trait EveFileUtils extends LazyLogging {
   def createDirIfNotExists(p: Path): Path = {
     if (!Files.exists(p)) {
       logger.info(s"Creating dir(s) $p")
@@ -82,6 +98,7 @@ trait EveFileUtils extends LazyLogging{
   *
   */
 trait EventProcessor {
+
   /**
     * Name of the processor
     */
@@ -99,7 +116,7 @@ trait EventProcessor {
 /**
   * Logging of the Event
   */
-class EventLoggingProcessor extends EventProcessor with LazyLogging{
+class EventLoggingProcessor extends EventProcessor with LazyLogging {
 
   val name = "Logging Processor"
 
@@ -118,9 +135,12 @@ class EventLoggingProcessor extends EventProcessor with LazyLogging{
   *
   * @param rootDir
   */
-class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLogging with EveFileUtils{
+class EventFileWriterProcessor(rootDir: Path)
+    extends EventProcessor
+    with LazyLogging
+    with EveFileUtils {
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val name = s"File Writer Event Processor to Dir $rootDir"
 
@@ -128,19 +148,21 @@ class EventFileWriterProcessor(rootDir: Path) extends EventProcessor with LazyLo
     createDirIfNotExists(rootDir.resolve(uuid.toString))
 
   def writeEvent(e: SmrtLinkSystemEvent): SmrtLinkSystemEvent = {
-    val eventPath = createSmrtLinkSystemDir(e.smrtLinkId).resolve(s"${e.uuid}.json")
-    writeToFile(e.toJson.toString + "\n", eventPath)    // logstash requires the json string to be on one line and has a newline at the end
+    val eventPath =
+      createSmrtLinkSystemDir(e.smrtLinkId).resolve(s"${e.uuid}.json")
+    writeToFile(e.toJson.toString + "\n", eventPath) // logstash requires the json string to be on one line and has a newline at the end
     e
   }
 
-  def process(event: SmrtLinkSystemEvent) = Future {writeEvent(event)}
+  def process(event: SmrtLinkSystemEvent) = Future { writeEvent(event) }
 }
-
 
 trait EventServiceBaseMicroService extends PacBioService {
 
   // Note, Using a single prefix of "api/v1" will not work as "expected"
-  override def prefixedRoutes = pathPrefix("api" / "v1") { super.prefixedRoutes }
+  override def prefixedRoutes = pathPrefix("api" / "v1") {
+    super.prefixedRoutes
+  }
 }
 
 /**
@@ -150,28 +172,37 @@ trait EventServiceBaseMicroService extends PacBioService {
   * @param rootOutputDir root output dir for events
   * @param rootUploadFilesDir root output dir for files
   */
-class EventService(eventProcessor: EventProcessor,
-                   rootOutputDir: Path,
-                   rootUploadFilesDir: Path, apiSecret: String, swaggerResourceName: String)(implicit actorSystem: ActorSystem)
-    extends EventServiceBaseMicroService with LazyLogging with timeUtils with FileSizeFormatterUtil{
+class EventService(
+    eventProcessor: EventProcessor,
+    rootOutputDir: Path,
+    rootUploadFilesDir: Path,
+    apiSecret: String,
+    swaggerResourceName: String)(implicit actorSystem: ActorSystem)
+    extends EventServiceBaseMicroService
+    with LazyLogging
+    with timeUtils
+    with FileSizeFormatterUtil {
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   implicit var auth = EveAuth(Some(EveAccount(apiSecret)), Some(apiSecret))
 
   val PREFIX_EVENTS = "events"
   val PREFIX_FILES = "files"
 
-  val manifest = PacBioComponentManifest("events", "Event Services", "0.1.0",
+  val manifest = PacBioComponentManifest(
+    "events",
+    "Event Services",
+    "0.1.0",
     "SMRT Server Event and general Messages service")
 
   logger.info(s"Creating Service with Event Processor ${eventProcessor.name}")
 
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
-    case Some(value) => Future { value}
+    case Some(value) => Future { value }
     case _ => Future.failed(new UnprocessableEntityError(message))
   }
 
@@ -222,7 +253,6 @@ class EventService(eventProcessor: EventProcessor,
 
   def routes = eventRoutes ~ filesRoute ~ swaggerFile
 
-
   /**
     * Unzip the .tar.gz or .tgz file next to the tar-zipped file. Then extract the TS Bundle manifest from the
     * tech-support-manifest.json in the root directory. The TS manifest json file must adhere to the
@@ -240,7 +270,7 @@ class EventService(eventProcessor: EventProcessor,
     */
   def createImportEvent(file: File) = {
 
-    val parent:Path = file.toPath.toAbsolutePath.getParent
+    val parent: Path = file.toPath.toAbsolutePath.getParent
 
     // this is kinda sloppy
     val name = file.getName.replace(".tar.gz", "").replace(".tgz", "")
@@ -250,7 +280,8 @@ class EventService(eventProcessor: EventProcessor,
     // This will create the output dir
     TarGzUtils.uncompressTarGZ(file, outputDir.toFile)
 
-    val manifestPath = outputDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+    val manifestPath =
+      outputDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
 
     val mxStr = FileUtils.readFileToString(manifestPath.toFile, "UTF-8")
 
@@ -259,19 +290,25 @@ class EventService(eventProcessor: EventProcessor,
     // Casting to TsSystem because this is the "base" concrete type.
     val manifest = manifestJson.convertTo[TsSystemStatusManifest]
 
-
     // The model here is to try to be a pass-through layer. There's chances for collisions here
     // depending on models defined by users. Here we create the event and
     // add the unzipped bundle path to the event. See comments above
     val eventJson = manifestJson.asJsObject
 
-    val bundleJx:Map[String, JsValue] = Map("uploadedBundlePath" -> JsString(outputDir.toAbsolutePath.toString))
+    val bundleJx: Map[String, JsValue] = Map(
+      "uploadedBundlePath" -> JsString(outputDir.toAbsolutePath.toString))
 
     val bundleJson = JsObject(eventJson.fields ++ bundleJx)
 
     val eventId = UUID.randomUUID()
 
-    SmrtLinkSystemEvent(manifest.smrtLinkSystemId, manifest.bundleTypeId, manifest.bundleTypeVersion, eventId, JodaDateTime.now(), bundleJson, manifest.dnsName)
+    SmrtLinkSystemEvent(manifest.smrtLinkSystemId,
+                        manifest.bundleTypeId,
+                        manifest.bundleTypeVersion,
+                        eventId,
+                        JodaDateTime.now(),
+                        bundleJson,
+                        manifest.dnsName)
   }
 
   /**
@@ -292,26 +329,27 @@ class EventService(eventProcessor: EventProcessor,
     // Content-Disposition: form-data; filename=example.tgz; name=techsupport_tgz
     def extractFileName(sx: String): Option[String] = {
       sx.split(";")
-          .map(f => f.trim)
-          .find(_.startsWith("filename="))
-          .flatMap(_.split("filename=").lastOption)
+        .map(f => f.trim)
+        .find(_.startsWith("filename="))
+        .flatMap(_.split("filename=").lastOption)
     }
 
-    headers.find(h => h.is("content-disposition"))
-        .flatMap(x => extractFileName(x.value))
-        .map { fileName =>
-          logger.info(s"Found Filename '$fileName' from headers.")
-          fileName
-        }
+    headers
+      .find(h => h.is("content-disposition"))
+      .flatMap(x => extractFileName(x.value))
+      .map { fileName =>
+        logger.info(s"Found Filename '$fileName' from headers.")
+        fileName
+      }
   }
 
   def isSupportedFileExt(exts: Seq[String], fileName: String): Boolean =
     exts.map(ext => fileName.endsWith(ext)).reduce(_ || _)
 
-
   def onlyAllowTarGz(fileName: String): Future[String] = {
     val supportedExts = Seq(".tgz", ".tar.gz")
-    val errorMessage = s"Invalid file '$fileName'. Supported types ${supportedExts.reduce(_ + ", " + _)}"
+    val errorMessage =
+      s"Invalid file '$fileName'. Supported types ${supportedExts.reduce(_ + ", " + _)}"
     if (isSupportedFileExt(supportedExts, fileName)) Future(fileName)
     else Future.failed(throw new UnprocessableEntityError(errorMessage))
   }
@@ -328,7 +366,8 @@ class EventService(eventProcessor: EventProcessor,
     val fm = DateTimeFormat.forPattern("MM")
     val fd = DateTimeFormat.forPattern("dd")
 
-    val outputDir = rootUploadFilesDir.resolve(s"${now.getYear}/${fm.print(now)}/${fd.print(now)}")
+    val outputDir = rootUploadFilesDir.resolve(
+      s"${now.getYear}/${fm.print(now)}/${fd.print(now)}")
 
     logger.info(s"Resolved to output dir $outputDir")
 
@@ -342,16 +381,23 @@ class EventService(eventProcessor: EventProcessor,
     f
   }
 
-  def processBodyPart(m: BodyPart, saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
+  def processBodyPart(
+      m: BodyPart,
+      saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
     for {
-      fileName <- failIfNone("Unable to find filename in headers")(processHeaders(m.headers))
+      fileName <- failIfNone("Unable to find filename in headers")(
+        processHeaders(m.headers))
       validFileName <- onlyAllowTarGz(fileName)
-      file <- Future.fromTry(saver(resolveOutputFile(validFileName), new ByteArrayInputStream(m.entity.data.toByteArray)))
+      file <- Future.fromTry(
+        saver(resolveOutputFile(validFileName),
+              new ByteArrayInputStream(m.entity.data.toByteArray)))
     } yield file
   }
 
-  def processForm(formData: MultipartFormData, saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
-    val bodyPart:Option[BodyPart] = formData.fields.flatMap {
+  def processForm(
+      formData: MultipartFormData,
+      saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
+    val bodyPart: Option[BodyPart] = formData.fields.flatMap {
       case m: BodyPart if processHeaders(m.headers).isDefined => Some(m)
       case _ => None
     }.lastOption
@@ -379,24 +425,31 @@ class EventService(eventProcessor: EventProcessor,
   def processUpload(formData: MultipartFormData): Future[SmrtLinkSystemEvent] = {
     for {
       file <- processForm(formData, saveAttachmentByteArray)
-      event <- Future { createImportEvent(file)}
+      event <- Future { createImportEvent(file) }
       processedEvent <- eventProcessor.process(event)
     } yield processedEvent
   }
 
-  private def saveAttachmentByteArray(outputFile: File, content: ByteArrayInputStream): Try[File] = {
-    saveAttachment[ByteArrayInputStream](outputFile, content,
-      { (is, os) =>
+  private def saveAttachmentByteArray(
+      outputFile: File,
+      content: ByteArrayInputStream): Try[File] = {
+    saveAttachment[ByteArrayInputStream](
+      outputFile,
+      content, { (is, os) =>
         val buffer = new Array[Byte](16384)
-        Iterator.continually(is.read(buffer))
-            .takeWhile(_ != -1)
-            .foreach(read => os.write(buffer, 0, read))
+        Iterator
+          .continually(is.read(buffer))
+          .takeWhile(_ != -1)
+          .foreach(read => os.write(buffer, 0, read))
         outputFile
       }
     )
   }
 
-  private def saveAttachment[T](outputFile: File, content: T, writeFile: (T, OutputStream) => File): Try[File] = {
+  private def saveAttachment[T](
+      outputFile: File,
+      content: T,
+      writeFile: (T, OutputStream) => File): Try[File] = {
 
     logger.info(s"Writing to output: $outputFile")
     val fos = new java.io.FileOutputStream(outputFile)
@@ -406,7 +459,8 @@ class EventService(eventProcessor: EventProcessor,
     Try {
       writeFile(content, fos)
       val runTime = computeTimeDeltaFromNow(startedAt)
-      logger.info(s"Successfully saved content ${humanReadableByteSize(outputFile.length())} in $runTime sec to $outputFile")
+      logger.info(s"Successfully saved content ${humanReadableByteSize(
+        outputFile.length())} in $runTime sec to $outputFile")
       fos.close()
       outputFile
     } match {
@@ -430,8 +484,9 @@ class EventService(eventProcessor: EventProcessor,
   * Note that every definition must use a lazy val or def to use the
   * cake pattern correctly.
   */
-
-trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
+trait BaseServiceConfigCakeProvider
+    extends ConfigLoader
+    with SmrtServerIdUtils {
   lazy val systemName = "smrt-server"
   lazy val systemPort = conf.getInt("smrtflow.server.port")
   lazy val systemHost = "0.0.0.0"
@@ -442,45 +497,56 @@ trait BaseServiceConfigCakeProvider extends ConfigLoader with SmrtServerIdUtils{
   lazy val eveUrl = new URL(s"https:$systemHost:$systemPort")
 }
 
-trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider{
+trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
 
   override lazy val systemName = "smrt-eve"
   // This should be loaded from the application.conf with an ENV var mapping
-  lazy val eventMessageDir: Path = Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
+  lazy val eventMessageDir: Path =
+    Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
   // Make this independently configurable
   lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
 }
 
-trait ActorSystemCakeProvider {
-  this: BaseServiceConfigCakeProvider =>
+trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
   implicit lazy val actorSystem = ActorSystem(systemName)
 }
 
 trait EventServicesCakeProvider {
   this: ActorSystemCakeProvider with EventServiceConfigCakeProvider =>
 
-  lazy val statusGenerator = new StatusGenerator(new SystemClock(), systemName, systemUUID, Constants.SMRTFLOW_VERSION)
+  lazy val statusGenerator = new StatusGenerator(new SystemClock(),
+                                                 systemName,
+                                                 systemUUID,
+                                                 Constants.SMRTFLOW_VERSION)
 
   lazy val eventProcessor = new EventFileWriterProcessor(eventMessageDir)
   // All Service instances go here
   lazy val services: Seq[PacBioService] = Seq(
-    new EventService(eventProcessor, eventMessageDir, eventUploadFilesDir, apiSecret, swaggerJson)(actorSystem),
+    new EventService(eventProcessor,
+                     eventMessageDir,
+                     eventUploadFilesDir,
+                     apiSecret,
+                     swaggerJson)(actorSystem),
     new StatusService(statusGenerator)
   )
 }
 
-trait RootEventServerCakeProvider extends RouteConcatenation{
+trait RootEventServerCakeProvider extends RouteConcatenation {
   this: ActorSystemCakeProvider with EventServicesCakeProvider =>
 
-  lazy val allRoutes:Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
+  lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
 
-  lazy val rootService = actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
+  lazy val rootService =
+    actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
-trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUtils{
+trait EventServerCakeProvider
+    extends LazyLogging
+    with timeUtils
+    with EveFileUtils {
   this: RootEventServerCakeProvider
-      with EventServiceConfigCakeProvider
-      with ActorSystemCakeProvider =>
+    with EventServiceConfigCakeProvider
+    with ActorSystemCakeProvider =>
 
   implicit val timeout = Timeout(30.seconds)
 
@@ -489,7 +555,7 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
 
   // Mocked out. Fail the future if any invalid option is detected
   def validateOption(): Future[String] =
-    Future {"Successfully validated System options."}
+    Future { "Successfully validated System options." }
 
   /**
     * Pre System Startup
@@ -502,16 +568,22 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
   private def preStartUpHook(): Future[String] =
     for {
       validMsg <- validateOption()
-      createdDir <- Future {createDirIfNotExists(eventMessageDir)}
-      createdFilesDir <- Future {createDirIfNotExists(eventUploadFilesDir)}
-      message <- Future { s"Successfully created $createdDir and $createdFilesDir" }
+      createdDir <- Future { createDirIfNotExists(eventMessageDir) }
+      createdFilesDir <- Future { createDirIfNotExists(eventUploadFilesDir) }
+      message <- Future {
+        s"Successfully created $createdDir and $createdFilesDir"
+      }
     } yield s"$validMsg\n$message\nSuccessfully executed preStartUpHook"
 
-
   private def startServices(): Future[String] = {
-    (IO(Http)(actorSystem) ? Http.Bind(rootService, systemHost, port = systemPort)) flatMap  {
-      case r: Http.CommandFailed => Future.failed(new BindException(s"Failed to bind to $systemHost:$systemPort"))
-      case _ => Future {s"Successfully started up on $systemHost:$systemPort" }
+    (IO(Http)(actorSystem) ? Http.Bind(rootService,
+                                       systemHost,
+                                       port = systemPort)) flatMap {
+      case r: Http.CommandFailed =>
+        Future.failed(
+          new BindException(s"Failed to bind to $systemHost:$systemPort"))
+      case _ =>
+        Future { s"Successfully started up on $systemHost:$systemPort" }
     }
   }
 
@@ -521,15 +593,23 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
     * @return
     */
   def attemptSendSelfEvent(e: SmrtLinkSystemEvent): Future[String] = {
-    eventServiceClient.sendSmrtLinkSystemEvent(e)
-        .map(e => s"Self Client successfully created startup event $e")
-        .recover { case NonFatal(ex) => s"WARNING Unable to create self start up message from client. ${ex.getMessage}"}
+    eventServiceClient
+      .sendSmrtLinkSystemEvent(e)
+      .map(e => s"Self Client successfully created startup event $e")
+      .recover {
+        case NonFatal(ex) =>
+          s"WARNING Unable to create self start up message from client. ${ex.getMessage}"
+      }
   }
 
   def attemptSelfStatus: Future[String] = {
     eventServiceClient.getStatus
-        .map(status => s"Self Client Successfully got Status ${status.version} ${status.message}")
-        .recover { case NonFatal(ex) => s"WARNING Unable to create self start up message from client. ${ex.getMessage}"}
+      .map(status =>
+        s"Self Client Successfully got Status ${status.version} ${status.message}")
+      .recover {
+        case NonFatal(ex) =>
+          s"WARNING Unable to create self start up message from client. ${ex.getMessage}"
+      }
   }
 
   /**
@@ -543,20 +623,25 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
     */
   private def postStartUpHook(): Future[String] = {
 
-    def toMessage(m: String): Map[String, JsValue] = Map("eveSystemStartup" -> JsString(m))
+    def toMessage(m: String): Map[String, JsValue] =
+      Map("eveSystemStartup" -> JsString(m))
 
     def toEvent(m: String) =
-      SmrtLinkSystemEvent(systemUUID, EventTypes.SERVER_STARTUP, 1,
+      SmrtLinkSystemEvent(
+        systemUUID,
+        EventTypes.SERVER_STARTUP,
+        1,
         UUID.randomUUID(),
-        JodaDateTime.now, JsObject(toMessage(m)),
-        Some(java.net.InetAddress.getLocalHost.getCanonicalHostName))
+        JodaDateTime.now,
+        JsObject(toMessage(m)),
+        Some(java.net.InetAddress.getLocalHost.getCanonicalHostName)
+      )
 
     for {
       statusMsg <- attemptSelfStatus
       sentEventMsg <- attemptSendSelfEvent(toEvent(statusMsg))
     } yield s"$statusMsg\n$sentEventMsg\nSuccessfully ran PostStartup Hook"
   }
-
 
   /**
     * Public method for starting the Entire System
@@ -574,8 +659,13 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
       preMessage <- preStartUpHook()
       startMessage <- startServices()
       postStartMessage <- postStartUpHook()
-    } yield Seq(preMessage, startMessage, postStartMessage, s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec").reduce(_ + "\n" + _)
-
+    } yield
+      Seq(
+        preMessage,
+        startMessage,
+        postStartMessage,
+        s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec")
+        .reduce(_ + "\n" + _)
 
     val result = Try { Await.result(fx, startupTimeOut) }
 
@@ -593,12 +683,12 @@ trait EventServerCakeProvider extends LazyLogging with timeUtils with EveFileUti
 }
 
 // Construct the Applications from Components. This will be used in the Tests as well
-object SmrtEventServer extends EventServiceConfigCakeProvider
+object SmrtEventServer
+    extends EventServiceConfigCakeProvider
     with ActorSystemCakeProvider
     with EventServicesCakeProvider
     with RootEventServerCakeProvider
     with EventServerCakeProvider {}
-
 
 object SmrtEventServerApp extends App {
 
@@ -607,5 +697,3 @@ object SmrtEventServerApp extends App {
   LoggerOptions.parseAddDebug(args)
   startSystem()
 }
-
-

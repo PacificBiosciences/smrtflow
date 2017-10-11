@@ -2,12 +2,17 @@ package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
 import java.net.URL
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.analysis.tools.{CommandLineToolRunner, ToolFailure}
-import com.pacbio.secondary.smrtlink.models.ConfigModels.{Wso2Credentials, RootSmrtflowConfig}
-import com.pacbio.common.models.XmlTemplateReader
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.secondary.smrtlink.analysis.tools.{
+  CommandLineToolRunner,
+  ToolFailure
+}
+import com.pacbio.secondary.smrtlink.models.ConfigModels.{
+  RootSmrtflowConfig,
+  Wso2Credentials
+}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
@@ -15,14 +20,16 @@ import scopt.OptionParser
 import scala.util.Try
 import spray.json._
 import DefaultJsonProtocol._
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
+import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
+import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 
-
-case class ApplyConfigToolOptions(rootDir: Path, templateDir: Option[Path] = None) extends LoggerConfig
+case class ApplyConfigToolOptions(rootDir: Path,
+                                  templateDir: Option[Path] = None)
+    extends LoggerConfig
 
 object ApplyConfigConstants {
 
-  val TOMCAT_VERSION = "apache-tomcat-8.0.26"
+  val TOMCAT_VERSION = "tomcat_current"
   val WSO2_VERSION = "wso2am-2.0.0"
 
   // This must be relative as
@@ -38,6 +45,7 @@ object ApplyConfigConstants {
   val STATIC_FILE_DIR = "sl"
 
   val UI_API_SERVER_CONFIG_JSON = "api-server.config.json"
+  val UI_APP_CONFIG_JSON = "app-config.json"
 
   // Tomcat
   val TOMCAT_SERVER_XML = "server.xml"
@@ -47,16 +55,23 @@ object ApplyConfigConstants {
   val SSL_KEYSTORE_FILE = ".keystore"
   val UI_PROXY_FILE = "_sl-ui_.xml"
   val READONLY_USERSTORE_FILE = "ReadOnlyUserStoreSynapseConfig.xml"
+  val WSO2_DB = "wso2am"
 
   // Relative Tomcat
   val REL_TOMCAT_ENV_SH = s"$TOMCAT_VERSION/bin/setenv.sh"
   val REL_TOMCAT_SERVER_XML = s"$TOMCAT_VERSION/conf/$TOMCAT_SERVER_XML"
   val REL_TOMCAT_REDIRECT_JSP = s"$TOMCAT_VERSION/webapps/ROOT/$TOMCAT_INDEX"
 
-  val REL_TOMCAT_UI_API_SERVER_CONFIG = s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_API_SERVER_CONFIG_JSON"
+  val REL_TOMCAT_UI_API_SERVER_CONFIG =
+    s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_API_SERVER_CONFIG_JSON"
 
-  val REL_WSO2_API_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
-  val REL_WSO2_SEQ_DIR = s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/sequences"
+  val REL_TOMCAT_UI_APP_CONFIG =
+    s"$TOMCAT_VERSION/webapps/ROOT/$STATIC_FILE_DIR/$UI_APP_CONFIG_JSON"
+
+  val REL_WSO2_API_DIR =
+    s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/api"
+  val REL_WSO2_SEQ_DIR =
+    s"$WSO2_VERSION/repository/deployment/server/synapse-configs/default/sequences"
   val REL_WSO2_LOG_DIR = s"$WSO2_VERSION/repository/logs"
   val REL_WSO2_CONF_DIR = s"$WSO2_VERSION/repository/conf"
 
@@ -70,6 +85,9 @@ object ApplyConfigConstants {
   // Wso2 Related Templates
   val USER_MGT_XML = "user-mgt.xml"
   val JNDI_PROPERTIES = "jndi.properties"
+  val METRICS_XML = "metrics.xml"
+  val MASTER_DATASOURCES_XML = "master-datasources.xml"
+  val MASTER_DATASOURCES_DEST = "datasources/master-datasources.xml"
 }
 
 trait Resolver {
@@ -82,7 +100,7 @@ trait Resolver {
   *
   * @param rootDir
   */
-class BundleOutputResolver(override val rootDir: Path) extends Resolver{
+class BundleOutputResolver(override val rootDir: Path) extends Resolver {
   val jvmArgs = resolve(ApplyConfigConstants.JVM_ARGS)
 
   val jvmLogArgs = resolve(ApplyConfigConstants.JVM_LOG_ARGS)
@@ -91,7 +109,8 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val smrtLinkAppConfig = resolve(ApplyConfigConstants.SL_APP_CONFIG_JSON)
 
-  val smrtLinkInternalConfig = resolve(ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
+  val smrtLinkInternalConfig = resolve(
+    ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
 
   val tomcatEnvSh = resolve(ApplyConfigConstants.REL_TOMCAT_ENV_SH)
 
@@ -99,7 +118,10 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val tomcatServerXml = resolve(ApplyConfigConstants.REL_TOMCAT_SERVER_XML)
 
-  val uiApiServerConfig = resolve(ApplyConfigConstants.REL_TOMCAT_UI_API_SERVER_CONFIG)
+  val uiApiServerConfig = resolve(
+    ApplyConfigConstants.REL_TOMCAT_UI_API_SERVER_CONFIG)
+
+  val uiAppConfig = resolve(ApplyConfigConstants.REL_TOMCAT_UI_APP_CONFIG)
 
   val keyStoreFile = resolve(ApplyConfigConstants.SSL_KEYSTORE_FILE)
 
@@ -113,7 +135,13 @@ class BundleOutputResolver(override val rootDir: Path) extends Resolver{
 
   val userMgtConfig = wso2ConfDir.resolve(ApplyConfigConstants.USER_MGT_XML)
 
-  val jndiPropertiesConfig = wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
+  val metricsXmlConfig = wso2ConfDir.resolve(ApplyConfigConstants.METRICS_XML)
+
+  val masterDatasourcesConfig =
+    wso2ConfDir.resolve(ApplyConfigConstants.MASTER_DATASOURCES_DEST)
+
+  val jndiPropertiesConfig =
+    wso2ConfDir.resolve(ApplyConfigConstants.JNDI_PROPERTIES)
 }
 
 class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
@@ -128,13 +156,17 @@ class TemplateOutputResolver(override val rootDir: Path) extends Resolver {
   val tomcatUsers = resolve(ApplyConfigConstants.T_TOMCAT_USERS_XML)
 
   val uiProxyXml = resolveWso2Template(ApplyConfigConstants.UI_PROXY_FILE)
-  val readOnlyUserStore = resolveWso2Template(ApplyConfigConstants.READONLY_USERSTORE_FILE)
+  val readOnlyUserStore = resolveWso2Template(
+    ApplyConfigConstants.READONLY_USERSTORE_FILE)
   val userMgtXml = resolveWso2Template(ApplyConfigConstants.USER_MGT_XML)
-  val jndiProperties = resolveWso2Template(ApplyConfigConstants.JNDI_PROPERTIES)
+  val metricsXml = resolveWso2Template(ApplyConfigConstants.METRICS_XML)
+  val jndiProperties = resolveWso2Template(
+    ApplyConfigConstants.JNDI_PROPERTIES)
+  val masterDatasources = resolveWso2Template(
+    ApplyConfigConstants.MASTER_DATASOURCES_XML)
 }
 
-
-object ApplyConfigUtils extends LazyLogging{
+object ApplyConfigUtils extends LazyLogging {
 
   import ConfigModelsJsonProtocol._
 
@@ -144,13 +176,22 @@ object ApplyConfigUtils extends LazyLogging{
     file
   }
 
+  def loadJson(file: File) = {
+    logger.debug(s"Loading and converting to JSON $file")
+    FileUtils.readFileToString(file).parseJson
+  }
+
   def loadSmrtLinkSystemConfig(path: Path): RootSmrtflowConfig =
-    FileUtils.readFileToString(path.toFile, "UTF-8")
-        .parseJson.convertTo[RootSmrtflowConfig]
+    FileUtils
+      .readFileToString(path.toFile, "UTF-8")
+      .parseJson
+      .convertTo[RootSmrtflowConfig]
 
   def loadWso2Credentials(path: Path): Wso2Credentials =
-    FileUtils.readFileToString(path.toFile, "UTF-8")
-      .parseJson.convertTo[Wso2Credentials]
+    FileUtils
+      .readFileToString(path.toFile, "UTF-8")
+      .parseJson
+      .convertTo[Wso2Credentials]
 
   def validateConfig(c: RootSmrtflowConfig): RootSmrtflowConfig = {
     logger.warn(s"validation of config not implemented $c")
@@ -163,14 +204,15 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   def writeJvmLogArgs(outputFile: File, logDir: Path, logLevel: String): File = {
-    val sx = s"--log-file $logDir/secondary-smrt-server.log --log-level $logLevel"
+    val sx =
+      s"--log-file $logDir/secondary-smrt-server.log --log-level $logLevel"
     writeAndLog(outputFile, sx)
   }
 
   def setupWso2LogDir(rootDir: Path, logDir: Path): Path = {
     val wso2LogDir = rootDir.resolve(ApplyConfigConstants.REL_WSO2_LOG_DIR)
     val symlink = logDir.resolve("wso2")
-    if (! Files.exists(symlink)) {
+    if (!Files.exists(symlink)) {
       Files.createSymbolicLink(symlink, wso2LogDir)
     } else {
       logger.warn(s"Path $symlink already exists")
@@ -179,12 +221,27 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   type M = Map[String, Option[String]]
-  case class ApiServerConfig(auth: M, `events-url`: M, `smrt-link`: M, `smrt-link-backend`: M, `smrt-view`: M, `tech-support`: M)
+  case class ApiServerConfig(auth: M,
+                             `events-url`: M,
+                             `smrt-link`: M,
+                             `smrt-link-backend`: M,
+                             `smrt-view`: M,
+                             `tech-support`: M)
 
-  private def toApiUIServer(authUrl: URL, eventsUrl: Option[URL], smrtLink: URL, smrtLinkBackendUrl: URL, smrtView: URL, techSupport: Option[URL]): ApiServerConfig = {
+  private def toApiUIServer(authUrl: URL,
+                            eventsUrl: Option[URL],
+                            smrtLink: URL,
+                            smrtLinkBackendUrl: URL,
+                            smrtView: URL,
+                            techSupport: Option[URL]): ApiServerConfig = {
     def toM(u: URL): M = Map("default-server" -> Some(u.toString))
     def toO(u: Option[URL]): M = Map("default-server" -> u.map(_.toString))
-    ApiServerConfig(toM(authUrl), toO(eventsUrl), toM(smrtLink), toM(smrtLinkBackendUrl), toM(smrtView), toO(techSupport))
+    ApiServerConfig(toM(authUrl),
+                    toO(eventsUrl),
+                    toM(smrtLink),
+                    toM(smrtLinkBackendUrl),
+                    toM(smrtView),
+                    toO(techSupport))
   }
   private def writeApiServerConfig(c: ApiServerConfig, output: File): File = {
     implicit val converterFormat = jsonFormat6(ApiServerConfig)
@@ -203,11 +260,34 @@ object ApplyConfigUtils extends LazyLogging{
                             eventsUrl: Option[URL],
                             smrtLinkUrl: URL,
                             smrtLinkBackendUrl: URL,
-                            smrtViewUrl: URL, techSupportUrl: Option[URL] = None): File = {
+                            smrtViewUrl: URL,
+                            techSupportUrl: Option[URL] = None): File = {
 
-    val c = toApiUIServer(authUrl, eventsUrl, smrtLinkUrl, smrtLinkBackendUrl, smrtViewUrl, techSupportUrl)
+    val c = toApiUIServer(authUrl,
+                          eventsUrl,
+                          smrtLinkUrl,
+                          smrtLinkBackendUrl,
+                          smrtViewUrl,
+                          techSupportUrl)
     writeApiServerConfig(c, outputFile)
     outputFile
+  }
+
+  /**
+    * Use a pass through layer to overwrite the "enableCellReuse" key in the
+    * UI app-config.json
+    *
+    */
+  def updateUiAppConfig(uiAppConfigJson: File,
+                        enableCellReuse: Boolean): File = {
+
+    val jx = loadJson(uiAppConfigJson)
+
+    val nx = JsObject("enableCellReuse" -> JsBoolean(enableCellReuse))
+
+    val total = new JsObject(jx.asJsObject.fields ++ nx.fields)
+
+    writeAndLog(uiAppConfigJson, total.toJson.prettyPrint.toString)
   }
 
   def updateTomcatSetupEnvSh(output: File, tomcatMem: Int): File = {
@@ -229,9 +309,10 @@ object ApplyConfigUtils extends LazyLogging{
                          tomcatPort: Int): File = {
 
     val xmlNode = XmlTemplateReader
-        .fromFile(tomcatServerTemplate)
-        .globally()
-        .substitute("${TOMCAT_PORT}", tomcatPort).result()
+      .fromFile(tomcatServerTemplate)
+      .globally()
+      .substitute("${TOMCAT_PORT}", tomcatPort)
+      .result()
 
     writeAndLog(outputTomcatServerXml, xmlNode.mkString)
   }
@@ -242,7 +323,11 @@ object ApplyConfigUtils extends LazyLogging{
     *
     * @param outputFile
     */
-  def updateUIProxyXml(outputFile: File, smrtLinkStaticUITemplateXml: File, host: String, tomcatPort: Int, smrtLinkStaticDir: String): File = {
+  def updateUIProxyXml(outputFile: File,
+                       smrtLinkStaticUITemplateXml: File,
+                       host: String,
+                       tomcatPort: Int,
+                       smrtLinkStaticDir: String): File = {
 
     // Not really clear how to use this API
     def a(): String = smrtLinkStaticDir.toString
@@ -251,13 +336,14 @@ object ApplyConfigUtils extends LazyLogging{
 
     val subs: Map[String, () => Any] =
       Map("${STATIC_FILE_DIR}" -> a,
-        "${TOMCAT_PORT}" -> b,
-        "${TOMCAT_HOST}" -> c)
+          "${TOMCAT_PORT}" -> b,
+          "${TOMCAT_HOST}" -> c)
 
-    val xmlNode = XmlTemplateReader.
-        fromFile(smrtLinkStaticUITemplateXml)
-        .globally()
-        .substituteMap(subs).result()
+    val xmlNode = XmlTemplateReader
+      .fromFile(smrtLinkStaticUITemplateXml)
+      .globally()
+      .substituteMap(subs)
+      .result()
 
     writeAndLog(outputFile, xmlNode.mkString)
   }
@@ -268,23 +354,30 @@ object ApplyConfigUtils extends LazyLogging{
     *
     * @return
     */
-  def updateWso2Redirect(outputFile: File, indexJspTemplate: File, host: String, wso2Port: Int, staticDirName: String): File = {
+  def updateWso2Redirect(outputFile: File,
+                         indexJspTemplate: File,
+                         host: String,
+                         wso2Port: Int,
+                         staticDirName: String): File = {
 
     // This is not XML, use a template search/replace model. Note, Host doesn't NOT have the protocol
     val sx = FileUtils.readFileToString(indexJspTemplate)
     val output = sx
-        .replace("${STATIC_FILE_DIR}", staticDirName)
-        .replace("${WSO2_HOST}", host)
-        .replace("${WSO2_PORT}", wso2Port.toString)
+      .replace("${STATIC_FILE_DIR}", staticDirName)
+      .replace("${WSO2_HOST}", host)
+      .replace("${WSO2_PORT}", wso2Port.toString)
 
     writeAndLog(outputFile, output)
   }
 
   /**
-   * #10, #11 (update_user_mgt, update_jndi_properties)
-   * - Sub WSO2 username and password in conf files
-   */
-  def updateWso2ConfFile(outputFile: File, inputTemplateFile: File, wso2User: String, wso2Password: String): File = {
+    * #10, #11 (update_user_mgt, update_jndi_properties)
+    * - Sub WSO2 username and password in conf files
+    */
+  def updateWso2ConfFile(outputFile: File,
+                         inputTemplateFile: File,
+                         wso2User: String,
+                         wso2Password: String): File = {
     val out = FileUtils
       .readFileToString(inputTemplateFile, "UTF-8")
       .replaceAllLiterally("${WSO2_USER}", wso2User)
@@ -294,20 +387,59 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
-   * #12
-   * update synapse config to enforce only reads on the read-only userstore API
-   */
-  def updateReadOnlyUserstore(wso2SeqDir: Path, inputTemplateFile: File, wso2User: String) = {
+    * #12
+    * update synapse config to enforce only reads on the read-only userstore API
+    */
+  def updateReadOnlyUserstore(wso2SeqDir: Path,
+                              inputTemplateFile: File,
+                              wso2User: String) = {
     val apiName = "ReadOnlyRemoteUserStoreService"
     val apiVersion = "1"
     val seqName = s"${wso2User}--${apiName}:v${apiVersion}--In"
     val outFile = wso2SeqDir.resolve(s"${seqName}.xml").toFile
     val xmlNode = XmlTemplateReader
-        .fromFile(inputTemplateFile)
-        .globally()
-        .substitute("${SEQUENCE_NAME}", seqName).result()
+      .fromFile(inputTemplateFile)
+      .globally()
+      .substitute("${SEQUENCE_NAME}", seqName)
+      .result()
 
     writeAndLog(outFile, xmlNode.mkString)
+  }
+
+  /**
+    * #13
+    * disable metrics
+    */
+  def updateMetricsConfig(outputPath: Path, metricsXml: Path) = {
+    Files.copy(metricsXml, outputPath, StandardCopyOption.REPLACE_EXISTING)
+  }
+
+  /**
+    * #14
+    * Configure wso2 for postgres
+    */
+  def updateMasterDatasources(outputFile: File,
+                              masterDatasourceTemplate: File,
+                              dbHost: String,
+                              dbPort: Int,
+                              dbUser: String,
+                              dbPass: String) = {
+    val subs: Map[String, () => Any] =
+      Map(
+        "${DB_HOST}" -> (() => dbHost),
+        "${DB_PORT}" -> (() => dbPort.toString),
+        "${DB_USER}" -> (() => dbUser),
+        "${DB_PASS}" -> (() => dbPass),
+        "${WSO2_DB}" -> (() => ApplyConfigConstants.WSO2_DB)
+      )
+
+    val xmlNode = XmlTemplateReader
+      .fromFile(masterDatasourceTemplate)
+      .globally()
+      .substituteMap(subs)
+      .result()
+
+    writeAndLog(outputFile, xmlNode.mkString)
   }
 
   /**
@@ -324,17 +456,15 @@ object ApplyConfigUtils extends LazyLogging{
     * @param output               output file to write to
     * @return
     */
-  def writeApplicationJson(smrtLinkSystemConfig: File, internalConfig: File, output: File): Path = {
-
-    def loadJson(file: File) = {
-      logger.debug(s"Loading and converting to JSON $file")
-      FileUtils.readFileToString(file).parseJson
-    }
+  def writeApplicationJson(smrtLinkSystemConfig: File,
+                           internalConfig: File,
+                           output: File): Path = {
 
     val j1 = loadJson(smrtLinkSystemConfig)
     val j2 = loadJson(internalConfig)
 
-    val jTotal: JsObject = new JsObject(j1.asJsObject.fields ++ j2.asJsObject.fields)
+    val jTotal: JsObject = new JsObject(
+      j1.asJsObject.fields ++ j2.asJsObject.fields)
 
     writeAndLog(output, jTotal.prettyPrint.toString)
 
@@ -342,40 +472,49 @@ object ApplyConfigUtils extends LazyLogging{
   }
 
   /**
-   * 1.  Load and Validate smrtlink-system-config.json
-   * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
-   * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
-   * 4.  (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
-   * 5.  (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
-   * 6.  (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
-   * 7.  (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
-   * 8.  (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
-   * 9.  (update_redirect) write index.jsp to tomcat root
-   * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
-   * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
-   * 12. (update_readonly_userstore) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/sequences
-   */
+    * 1.  Load and Validate smrtlink-system-config.json
+    * 2.  Setup Log to location defined in config JSON (Not Applicable. JVM_OPTS will do this?)
+    * 3.  Null host (?) clarify this interface (Unclear what to do here. Set the host to fqdn?)
+    * 4.  (write_services_jvm_args) write jvm args (/ROOT_BUNDLE/services-jvm-args)
+    * 5.  (write_services_args) write jvm log (/ROOT_BUNDLE/services-log-args)
+    * 6.  (update_server_path_in_ui) Update UI api-server.config.json within the Tomcat dir (webapps/ROOT/sl/api-server.config.json)
+    * 7.  (update_tomcat) Update Tomcat XML (TOMCAT_ROOT/conf/server.xml) and .keystore file in /ROOT_BUNDLE
+    * 8.  (update_sl_ui) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/api/_sl-ui_.xml
+    * 9.  (update_redirect) write index.jsp to tomcat root
+    * 10. (update_user_mgt) Updates wso2-2.0.0/repository/conf/user-mgt.xml
+    * 11. (update_jndi_properties) Updates wso2-2.0.0/repository/conf/jndi.properties
+    * 12. (update_readonly_userstore) Updates wso2-2.0.0/repository/deployment/server/synapse-configs/default/sequences
+    * 13. Copy metrics config (to disable metrics)
+    * 14. Configure wso2 to use postgres
+    */
   def run(opts: ApplyConfigToolOptions): String = {
 
     // if templateDir is not provided, a dir "templates" dir within
     // the rootBundleDir
     val rootBundleDir = opts.rootDir
 
-    val templatePath = opts.templateDir.getOrElse(opts.rootDir.resolve("templates"))
+    val templatePath =
+      opts.templateDir.getOrElse(opts.rootDir.resolve("templates"))
 
-    val smrtLinkConfigPath = rootBundleDir.resolve(ApplyConfigConstants.SL_CONFIG_JSON)
+    val smrtLinkConfigPath =
+      rootBundleDir.resolve(ApplyConfigConstants.SL_CONFIG_JSON)
 
     val smrtLinkConfig = loadSmrtLinkSystemConfig(smrtLinkConfigPath)
 
     val c = validateConfig(smrtLinkConfig)
 
-    val internalConfig = rootBundleDir.resolve(ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
+    val internalConfig =
+      rootBundleDir.resolve(ApplyConfigConstants.SL_INTERNAL_CONFIG_JSON)
 
-    val appConfig = rootBundleDir.resolve(ApplyConfigConstants.SL_APP_CONFIG_JSON)
+    val appConfig =
+      rootBundleDir.resolve(ApplyConfigConstants.SL_APP_CONFIG_JSON)
 
-    writeApplicationJson(smrtLinkConfigPath.toFile, internalConfig.toFile, appConfig.toFile)
+    writeApplicationJson(smrtLinkConfigPath.toFile,
+                         internalConfig.toFile,
+                         appConfig.toFile)
 
-    val wso2CredentialsPath = rootBundleDir.resolve(ApplyConfigConstants.WSO2_CREDENTIALS_JSON)
+    val wso2CredentialsPath =
+      rootBundleDir.resolve(ApplyConfigConstants.WSO2_CREDENTIALS_JSON)
 
     val wso2Credentials = loadWso2Credentials(wso2CredentialsPath)
 
@@ -387,7 +526,8 @@ object ApplyConfigUtils extends LazyLogging{
       case Some(x) => x
       case _ =>
         val fqdnHost = java.net.InetAddress.getLocalHost.getCanonicalHostName
-        logger.warn(s"Null dnsName set for smrtflow.server.dnsName. Using $fqdnHost")
+        logger.warn(
+          s"Null dnsName set for smrtflow.server.dnsName. Using $fqdnHost")
         fqdnHost
     }
 
@@ -408,46 +548,95 @@ object ApplyConfigUtils extends LazyLogging{
     val templateResolver = new TemplateOutputResolver(templatePath)
 
     // #4
-    writeJvmArgs(resolver.jvmArgs.toFile, c.pacBioSystem.smrtLinkServerMemoryMin, c.pacBioSystem.smrtLinkServerMemoryMax)
+    writeJvmArgs(resolver.jvmArgs.toFile,
+                 c.pacBioSystem.smrtLinkServerMemoryMin,
+                 c.pacBioSystem.smrtLinkServerMemoryMax)
 
     // #5
-    writeJvmLogArgs(resolver.jvmLogArgs.toFile, c.pacBioSystem.logDir, defaultLogLevel)
+    writeJvmLogArgs(resolver.jvmLogArgs.toFile,
+                    c.pacBioSystem.logDir,
+                    defaultLogLevel)
 
     // #6
-    updateApiServerConfig(resolver.uiApiServerConfig.toFile, authUrl, c.smrtflow.server.eventUrl, smrtLinkUrl, smrtLinkBackEndUrl, smrtViewUrl, techSupportUrl)
+    updateApiServerConfig(resolver.uiApiServerConfig.toFile,
+                          authUrl,
+                          c.smrtflow.server.eventUrl,
+                          smrtLinkUrl,
+                          smrtLinkBackEndUrl,
+                          smrtViewUrl,
+                          techSupportUrl)
 
     // #7a
-    updateTomcatSetupEnvSh(resolver.tomcatEnvSh.toFile, c.pacBioSystem.tomcatMemory)
+    updateTomcatSetupEnvSh(resolver.tomcatEnvSh.toFile,
+                           c.pacBioSystem.tomcatMemory)
 
     // 7b
-    updateTomcatConfig(resolver.tomcatServerXml.toFile, templateResolver.serverXml.toFile, c.pacBioSystem.tomcatPort)
+    updateTomcatConfig(resolver.tomcatServerXml.toFile,
+                       templateResolver.serverXml.toFile,
+                       c.pacBioSystem.tomcatPort)
 
     // #8
-    updateUIProxyXml(resolver.uiProxyConfig.toFile, templateResolver.uiProxyXml.toFile, host, c.pacBioSystem.tomcatPort, ApplyConfigConstants.STATIC_FILE_DIR)
+    updateUIProxyXml(resolver.uiProxyConfig.toFile,
+                     templateResolver.uiProxyXml.toFile,
+                     host,
+                     c.pacBioSystem.tomcatPort,
+                     ApplyConfigConstants.STATIC_FILE_DIR)
 
     // #9
-    updateWso2Redirect(resolver.tomcatIndexJsp.toFile, templateResolver.indexJsp.toFile, host, wso2Port, ApplyConfigConstants.STATIC_FILE_DIR)
+    updateWso2Redirect(resolver.tomcatIndexJsp.toFile,
+                       templateResolver.indexJsp.toFile,
+                       host,
+                       wso2Port,
+                       ApplyConfigConstants.STATIC_FILE_DIR)
 
     // #10
-    updateWso2ConfFile(resolver.userMgtConfig.toFile, templateResolver.userMgtXml.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
+    updateWso2ConfFile(resolver.userMgtConfig.toFile,
+                       templateResolver.userMgtXml.toFile,
+                       wso2Credentials.wso2User,
+                       wso2Credentials.wso2Password)
 
     // #11
-    updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile, templateResolver.jndiProperties.toFile, wso2Credentials.wso2User, wso2Credentials.wso2Password)
+    updateWso2ConfFile(resolver.jndiPropertiesConfig.toFile,
+                       templateResolver.jndiProperties.toFile,
+                       wso2Credentials.wso2User,
+                       wso2Credentials.wso2Password)
 
-    // #22
-    updateReadOnlyUserstore(resolver.wso2SeqDir, templateResolver.readOnlyUserStore.toFile, wso2Credentials.wso2User)
+    // #12
+    updateReadOnlyUserstore(resolver.wso2SeqDir,
+                            templateResolver.readOnlyUserStore.toFile,
+                            wso2Credentials.wso2User)
+
+    // #13
+    updateMetricsConfig(resolver.metricsXmlConfig, templateResolver.metricsXml)
+
+    // #14
+    val dbProps = c.smrtflow.db.properties
+    updateMasterDatasources(
+      resolver.masterDatasourcesConfig.toFile,
+      templateResolver.masterDatasources.toFile,
+      // if the db ever ends up on another machine,
+      // "localhost" should become dbProps.serverName
+      "localhost",
+      dbProps.portNumber,
+      dbProps.user,
+      dbProps.password
+    )
 
     setupWso2LogDir(rootBundleDir, c.pacBioSystem.logDir)
+
+    updateUiAppConfig(
+      resolver.uiAppConfig.toFile,
+      smrtLinkConfig.pacBioSystem.enableCellReuse.getOrElse(false))
 
     "Successfully Completed apply-config"
   }
 }
 
-
 object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
 
-  val VERSION = "0.2.0"
-  val DESCRIPTION = "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
+  val VERSION = "0.3.0"
+  val DESCRIPTION =
+    "Apply smrtlink-system-config.json to SubComponents of the SMRT Link system"
   val toolId = "smrtflow.tools.apply_config"
 
   val defaults = ApplyConfigToolOptions(null)
@@ -466,14 +655,14 @@ object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
   lazy val parser = new OptionParser[ApplyConfigToolOptions]("apply-config") {
 
     arg[File]("root-dir")
-        .action((x, c) => c.copy(rootDir = x.toPath.toAbsolutePath))
-        .validate(validateIsDir)
-        .text("Root directory of the SMRT Link Analysis GUI bundle")
+      .action((x, c) => c.copy(rootDir = x.toPath.toAbsolutePath))
+      .validate(validateIsDir)
+      .text("Root directory of the SMRT Link Analysis GUI bundle")
 
     opt[File]("template-dir")
-        .action((x, c) => c.copy(templateDir = Some(x.toPath)))
-        .validate(validateIsDir)
-        .text("Override path to template directory. By default 'template' dir within <ROOT-DIR> will be used")
+      .action((x, c) => c.copy(templateDir = Some(x.toPath)))
+      .validate(validateIsDir)
+      .text("Override path to template directory. By default 'template' dir within <ROOT-DIR> will be used")
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -495,10 +684,11 @@ object ApplyConfigTool extends CommandLineToolRunner[ApplyConfigToolOptions] {
     Try { ApplyConfigUtils.run(opts) }
 
   // for backward compat with old API
-  def run(config: ApplyConfigToolOptions) = Left(ToolFailure(toolId, 0, "NOT SUPPORTED"))
+  def run(config: ApplyConfigToolOptions) =
+    Left(ToolFailure(toolId, 0, "NOT SUPPORTED"))
 }
 
 object ApplyConfigToolApp extends App {
   import ApplyConfigTool._
-  runnerWithArgs(args)
+  runnerWithArgsAndExit(args)
 }

@@ -1,18 +1,30 @@
-import com.pacbio.common.models.{PacBioJsonProtocol, ServiceStatus}
-import com.pacbio.secondary.smrtlink.app.SecondaryAnalysisProviders
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
+import com.pacbio.secondary.smrtlink.app.{
+  BaseServer,
+  SmrtLinkApi,
+  SmrtLinkProviders
+}
 import org.specs2.mutable.Specification
 import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
-
+/**
+  * This should be used as a sanity test to make sure routes are found and the
+  * routes are correctly configured.
+  *
+  */
 class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
 
-  import PacBioJsonProtocol._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  val providers = new SecondaryAnalysisProviders {}
-  val totalRoutes = providers.routes()
-  val eventManagerActorX = providers.eventManagerActor()
+  object TestProviders extends BaseServer with SmrtLinkApi {
+    override val host = providers.serverHost()
+    override val port = providers.serverPort()
+  }
 
+  val totalRoutes = TestProviders.providers.routes
+  val eventManagerActor = TestProviders.providers.eventManagerActor()
+  val engineManagerActor = TestProviders.providers.engineManagerActor()
 
   "Service list" should {
     "return a list of services" in {

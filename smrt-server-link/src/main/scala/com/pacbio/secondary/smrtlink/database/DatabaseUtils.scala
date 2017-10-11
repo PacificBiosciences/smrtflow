@@ -18,9 +18,10 @@ case class DatabaseConfig(dbName: String,
                           password: String,
                           server: String = "localhost",
                           port: Int = 5432,
-                          maxConnections: Int = 10) {
+                          maxConnections: Int = 20) {
 
-  val jdbcURI = s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
+  val jdbcURI =
+    s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
 
   /**
     * Util to create a new PG datasource instance. The caller should explicitly call .close() when the
@@ -46,9 +47,10 @@ case class DatabaseConfig(dbName: String,
   def toDatabase = Database.forURL(jdbcURI, driver = "org.postgresql.Driver")
 }
 
-trait DatabaseUtils extends LazyLogging{
+trait DatabaseUtils extends LazyLogging {
 
   object Migrator {
+
     /**
       * Run the Flyway Migrations and return the number of successfully applied
       * migrations
@@ -56,7 +58,8 @@ trait DatabaseUtils extends LazyLogging{
       * @param dataSource Postgres Datasource
       * @return
       */
-    def apply(dataSource: PGPoolingDataSource, target: MigrationVersion = MigrationVersion.LATEST): Int = {
+    def apply(dataSource: PGPoolingDataSource,
+              target: MigrationVersion = MigrationVersion.LATEST): Int = {
       val flyway = new Flyway()
 
       flyway.setBaselineOnMigrate(true)
@@ -67,7 +70,8 @@ trait DatabaseUtils extends LazyLogging{
       flyway.setTarget(target)
 
       // does this close the connection to datasource if an exception is raised?
-      println(s"Attempting to apply db migrations to $flyway with datasource ${dataSource.getUrl}")
+      println(
+        s"Attempting to apply db migrations to $flyway with datasource ${dataSource.getUrl}")
       val numMigrations = flyway.migrate()
       println(s"Successfully applied $numMigrations db migration(s)")
       numMigrations
@@ -75,6 +79,7 @@ trait DatabaseUtils extends LazyLogging{
   }
 
   object TestConnection {
+
     /**
       * Test Connection to Postgres Database
       *
@@ -87,15 +92,18 @@ trait DatabaseUtils extends LazyLogging{
         conn = source.getConnection()
         s"Successfully connected to datasource ${source.getUrl}"
         // use connection
-      } catch  {
+      } catch {
         case e: SQLException => {
-          logger.error(s"Failed to connect to ${source.getUrl} Error code ${e.getErrorCode}\n ${e.getMessage}")
+          logger.error(
+            s"Failed to connect to ${source.getUrl} Error code ${e.getErrorCode}\n ${e.getMessage}")
           throw e
         }
       } finally {
         if (conn != null) {
           try { conn.close(); } catch {
-            case e: SQLException => logger.error(s"Unable to close db connection to ${source.getUrl} ${e.getMessage}")
+            case e: SQLException =>
+              logger.error(
+                s"Unable to close db connection to ${source.getUrl} ${e.getMessage}")
           }
         }
       }
@@ -108,7 +116,8 @@ trait DatabaseUtils extends LazyLogging{
     * @return
     */
   def createTables(db: Database): Future[String] = {
-    db.run(TableModels.schema.create).map(_ => "Successfully Created SMRT Link Tables")
+    db.run(TableModels.schema.create)
+      .map(_ => "Successfully Created SMRT Link Tables")
   }
 
   /**
@@ -117,7 +126,8 @@ trait DatabaseUtils extends LazyLogging{
     * @return
     */
   def dropTables(db: Database): Future[String] = {
-    db.run(TableModels.schema.drop).map(_ => "Successfully Dropped SMRT Link Tables")
+    db.run(TableModels.schema.drop)
+      .map(_ => "Successfully Dropped SMRT Link Tables")
   }
 
   /**

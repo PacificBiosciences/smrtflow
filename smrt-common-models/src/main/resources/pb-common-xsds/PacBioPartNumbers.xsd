@@ -31,9 +31,11 @@
 			<xs:enumeration value="BDK"/>
 			<xs:enumeration value="TPK"/>
 			<xs:enumeration value="SQK"/>
+			<xs:enumeration value="CCK"/>
 			<xs:enumeration value="CPK"/>
 			<xs:enumeration value="OSE"/>
 			<xs:enumeration value="CMO"/>
+			<xs:enumeration value="PRK"/>
 			<xs:enumeration value="Other"/>
 		</xs:restriction>
 	</xs:simpleType>

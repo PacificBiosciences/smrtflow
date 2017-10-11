@@ -9,7 +9,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scala.concurrent.duration._
 import java.util.UUID
 
-import com.pacbio.logging.LoggerConfig
+import com.pacbio.common.logging.LoggerConfig
 
 object Models
 
@@ -44,22 +44,27 @@ object StepResult {
   case object SUPPRESSED extends Result(true, "", "", true)
 
   // Step failed
-  case class FAILED(sm: String, lm: String) extends Result(false, sm, lm, false)
+  case class FAILED(sm: String, lm: String)
+      extends Result(false, sm, lm, false)
 
   // Step threw an exception (this will be generated automatically; no need to try-catch inside the step)
-  case class EXCEPTION(sm: String, lm: String) extends Result(false, sm, lm, false)
+  case class EXCEPTION(sm: String, lm: String)
+      extends Result(false, sm, lm, false)
 
   // Step was skipped because a previous step failed
   case object SKIPPED extends Result(false, "", "", true)
 
-  object FAILED{
+  object FAILED {
     def apply(msg: String): FAILED = FAILED(msg, failureLongMsg(msg))
   }
   object EXCEPTION {
-    def apply(ex: Throwable): EXCEPTION = EXCEPTION(ex.getMessage, throwableLongMsg(ex))
+    def apply(ex: Throwable): EXCEPTION =
+      EXCEPTION(ex.getMessage, throwableLongMsg(ex))
   }
 }
-case class StepResult(name: String, runTimeMillis: Long, result: StepResult.Result)
+case class StepResult(name: String,
+                      runTimeMillis: Long,
+                      result: StepResult.Result)
 
 case class ScenarioResult(name: String,
                           runTimeMillis: Long,
@@ -69,6 +74,7 @@ case class ScenarioResult(name: String,
 case class SimArgs(loader: ScenarioLoader = ExampleScenarioLoader,
                    config: Option[Path] = None,
                    outputXML: Option[Path] = None,
-                   timeout: Duration = 15.minutes) extends LoggerConfig
+                   timeout: Duration = 15.minutes)
+    extends LoggerConfig
 
-case class RunDesignTemplateInfo(xml : String, subreadsetUuid : UUID)
+case class RunDesignTemplateInfo(xml: String, subreadsetUuid: UUID)

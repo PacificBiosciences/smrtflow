@@ -6,8 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 
-trait VarSteps {
-  this: Scenario =>
+trait VarSteps { this: Scenario =>
 
   // Trait for steps that produce a value which can be assigned to a ScenarioVar
   trait VarStep[T] extends Step with LazyLogging {
@@ -34,7 +33,8 @@ trait VarSteps {
       output(r)
       SUCCEEDED
     }
-    protected final def output(value: T): Unit = outputVar.foreach(_.set(value))
+    protected final def output(value: T): Unit =
+      outputVar.foreach(_.set(value))
   }
 
   object Var {
@@ -47,7 +47,7 @@ trait VarSteps {
     private[VarSteps] var value: Option[T] = init
     private[VarSteps] def set(v: T) = value = Some(v)
 
-    def := (step: VarStep[T]): Step = {
+    def :=(step: VarStep[T]): Step = {
       step.outputVar = Some(this)
       step
     }
@@ -58,18 +58,24 @@ trait VarSteps {
 
     def mapWith[U](map: T => U): Var[U] = new MappedVar[T, U](this, map)
 
-    def ? (cond: T => Boolean): Var[Boolean] = mapWith[Boolean](cond)
+    def ?(cond: T => Boolean): Var[Boolean] = mapWith[Boolean](cond)
 
-    def ==? (value: T): Var[Boolean] = ? (_ == value)
-    def !=? (value: T): Var[Boolean] = ? (_ != value)
+    def ==?(value: T): Var[Boolean] = ?(_ == value)
+    def !=?(value: T): Var[Boolean] = ?(_ != value)
 
-    def ==? (other: Var[T]): Var[Boolean] = mapWith { v => v == other.get}
-    def !=? (other: Var[T]): Var[Boolean] = mapWith { v => v != other.get}
+    def ==?(other: Var[T]): Var[Boolean] = mapWith { v =>
+      v == other.get
+    }
+    def !=?(other: Var[T]): Var[Boolean] = mapWith { v =>
+      v != other.get
+    }
   }
 
-  private[VarSteps] class MappedVar[F, T](from: Var[F], map: F => T) extends Var[T](None) {
-    override def := (step: VarStep[T]): Step =
-      throw new UnsupportedOperationException("Illegal assignment to MappedVar")
+  private[VarSteps] class MappedVar[F, T](from: Var[F], map: F => T)
+      extends Var[T](None) {
+    override def :=(step: VarStep[T]): Step =
+      throw new UnsupportedOperationException(
+        "Illegal assignment to MappedVar")
 
     override def get: T = map(from.get)
   }

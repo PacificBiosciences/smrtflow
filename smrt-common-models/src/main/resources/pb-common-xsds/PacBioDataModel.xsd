@@ -343,6 +343,11 @@ The experiment object is intended to be packagable, such that the metadata of al
 There will be one SubreadSet placeholder created per collection.</xs:documentation>
 									</xs:annotation>
 								</xs:element>
+								<xs:element name="MultiJobId" type="xs:unsignedInt" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Id of the SMRT Link MultiJob that will create Jobs to process the Outputs (e.g. SubreadSets) of this Run.</xs:documentation>
+									</xs:annotation>
+								</xs:element>
 							</xs:sequence>
 						</xs:complexType>
 					</xs:element>

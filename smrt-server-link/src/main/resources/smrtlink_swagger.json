@@ -308,6 +308,97 @@
         }
       ]
     },
+    "/smrt-link/alarms": {
+      "get": {
+        "description": "Get a List of SMRT Link System Level AlarmStatus instances",
+        "responses": {
+          "200": {
+            "description": "Returns a List of SmrtLink System Level Alarm Status instances",
+            "schema": {
+              "$ref": "#/definitions/ListAlarmStatus"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/alarms/{alarmId}": {
+      "get": {
+        "description": "Get a SMRT Link System Alarm Status by Id",
+        "parameters": [
+          {
+            "description": "Alarm Id (e.g., smrtlink.alarms.job_dir)",
+            "required": true,
+            "type": "string",
+            "name": "alarmId",
+            "in": "path"
+          }],
+        "responses": {
+          "200": {
+            "description": "SMRT Link System Alarm Status by Id",
+            "schema": {
+              "$ref": "#/definitions/AlarmStatus"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/loggers": {
+      "post": {
+        "description": "Log a message to the server",
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "description": "Log message",
+            "schema": {
+              "$ref": "#/definitions/ClientLogMessage"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Returns a message",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-auth-type": "None",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/runs": {
       "post": {
         "description": "Create a new instrument run record",
@@ -479,6 +570,33 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "x-scope": "run-qc",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/smrt-link/runs/{runId}/datamodel": {
+      "get": {
+        "description": "Retrieve an existing run XML record by ID",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Run XML"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "runId",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "text/xml"
         ],
         "x-scope": "run-qc",
         "x-auth-type": "Application & Application User",
@@ -1138,6 +1256,7 @@
         "x-throttling-tier": "Unlimited"
       },
       "put": {
+        "description": "Update a dataset record",
         "responses": {
           "default": {
             "description": "Return value"
@@ -1153,6 +1272,15 @@
             "type": "string",
             "name": "typeOrId",
             "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset update request (all fields optional)",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DataSetUpdateRequest"
+            }
           }
         ],
         "consumes": [
@@ -1328,6 +1456,33 @@
             "schema": {
               "$ref": "#/definitions/BarcodeSetDetails"
             }
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "dataset-id",
+            "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/datasets/barcodes/{dataset-id}/record-names": {
+      "get": {
+        "description": "Get a list of Barcode Id/Names from the BarcodeSet external resources",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value"
           }
         },
         "parameters": [
@@ -1871,6 +2026,44 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/pipeline-datastore-view-rules/{pipelineId}": {
+      "get": {
+        "description": "Get a datastore view rule definitions for a specific pipeline (with optional version)",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "pipelineId",
+            "in": "path",
+            "description": "Full pbsmrtpipe pipeline ID (Example: pbsmrtpipe.pipelines.sa3_sat)"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "version",
+            "in": "query",
+            "description": "Specific version of SMRT Link to retrieve rules for, defaulting to the current version if not specified (Example, 5.0)"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Pipeline datastore view rules",
+            "schema": {
+              "$ref": "#/definitions/PipelineDatastoreViewRule"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/secondary-analysis/job-manager/job-types": {
       "get": {
         "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
@@ -2131,6 +2324,78 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/DataSetExportServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/export-jobs": {
+      "post": {
+        "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs.  These will be listed individually in the job datastore with sourceId 'pbscala::export-jobs' and fileTypeId 'PacBio.FileTypes.zip'.",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job export job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ExportSmrtLinkJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/import-job": {
+      "post": {
+        "description": "Import a SMRT Link job from a ZIP file previously generated by the export-jobs service",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job import job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ImportSmrtLinkJobOptions"
             }
           }
         ],
@@ -2958,8 +3223,9 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/status": {
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis": {
       "get": {
+        "description": "Returns a list of EngineMultiJobs for the `multi-analysis` Multi-Job type.",
         "x-scope": "data-management",
         "produces": [
           "application/json"
@@ -2970,12 +3236,166 @@
             "description": "Return value"
           },
           "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "post": {
+        "description": "Create and START a multi-job using one or more deferred jobs",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
             "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Def job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MultiAnalysisJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}": {
+      "get": {
+        "description": "Get a EngineMultiJob for the `multi-analysis` Multi-Job type by job Id",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "put": {
+        "description": "Update the job settings for the `multi-analysis` Multi-Job type by job Id. Updating is ONLY supported for jobs in the CREATED state",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
+      "delete": {
+        "description": "Delete an `multi-analysis` Multi-Job type by job Id. Delete is ONLY supported for jobs in the CREATED state",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
       }
     },
+    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
+      "get": {
+        "description": "Get the Child Core Jobs that are generated from the Multi-Job",
+        "x-scope": "data-management",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          }
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/ServiceJobs"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+
 
     "/secondary-analysis/datastore-files/{uuid}/download": {
       "get": {
@@ -3741,6 +4161,16 @@
           "type": "string",
           "title": "Run Name",
           "description": ""
+        },
+        "dnaBarcodeName": {
+          "type": ["string", "null"],
+          "title": "DNA Barcode Name",
+          "description": "Barcode labels (may be null or multiple)"
+        },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "title": "Parent dataset UUID",
+          "description": "UUID of parent, if any"
         },
         "datasetType": {
                "type": "string",
@@ -4716,6 +5146,12 @@
           "type": "string",
           "title": "Summary",
           "description": "Run Summary"
+        },
+        "multiJobId": {
+          "default": null,
+          "type": ["integer", "null"],
+          "title": "MultiJob Id",
+          "description": "Multi-Job Id if configured to run Analysis jobs when the Run collections/subreadsets has successfully been imported into SL"
         }
       },
       "required": [
@@ -5691,6 +6127,43 @@
         }
       }
     },
+    "ExportSmrtLinkJobOptions": {
+      "properties": {
+        "ids": {
+          "type": "array",
+          "title": "Job IDs",
+          "description": "Integer IDs or UUIDs of jobs in SMRT Link database",
+          "items": {
+            "type": ["integer", "string"]
+          }
+        },
+        "outputPath": {
+          "type": "string",
+          "title": "Output directory",
+          "description": "Path to output ZIP files containing jobs (must be writable)"
+        },
+        "includeEntryPoints": {
+          "type": "boolean",
+          "default": false,
+          "title": "Include Entry Points",
+          "description": "Include input datasets in exported ZIP files"
+        }
+      }
+    },
+    "ImportSmrtLinkJobOptions": {
+      "properties": {
+        "zipPath": {
+          "type": "string",
+          "title": "ZIP file",
+          "description": "ZIP file of exported SMRT Link job"
+        },
+        "mockJobId": {
+          "type": ["boolean", "null"],
+          "title": "Mock unique IDs",
+          "description": "If present, UUIDs for the job and its datastore files will be mocked to facilitate export/import testing on the same system"
+        }
+      }
+    },
     "DataSetDeleteServiceOptions": {
       "properties": {
         "datasetType": {
@@ -6013,6 +6486,243 @@
       "items": {
         "$ref": "#/definitions/EngineJobEntryPoint"
       }
+    },
+    "ClientLogMessage": {
+      "properties": {
+        "level": {
+          "type": "string",
+          "title": "log level",
+          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL"]
+        },
+        "message": {
+          "type": "string",
+          "title": "log message"
+        },
+        "sourceId": {
+          "type": "string",
+          "title": "source of the log message"
+        }
+      }
+    },
+    "MessageResponse": {
+      "properties": {
+        "message": {
+          "type": "string",
+          "title": "message"
+        }
+      }
+    },
+    "AlarmStatus": {
+      "properties": {
+        "id": {
+          "description": "SMRT Link System Alarm Id.",
+          "title": "Alarm Id",
+          "type": "string"
+        },
+        "message": {
+          "description": "Details of the Alarm Status",
+          "title": "Message Details",
+          "type": ["null", "string"]
+        },
+        "severity": {
+          "default": "CLEAR",
+          "description": "An explanation about the purpose of this instance.",
+          "title": "Severity",
+          "type": "string",
+          "enum": ["CLEAR", "WARN", "ERROR", "CRITICAL", "FATAL", "FATAL_IMMEDIATE"]
+        },
+        "value": {
+          "description": "Computed value of severity",
+          "title": "Value",
+          "type": "number"
+        },
+        "updatedAt": {
+          "description": "Time when the Alarm Status was computed",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": ["id", "message", "severity", "value"],
+      "example": {
+        "updatedAt": "2017-07-11T14:59:27.364Z",
+        "id": "smrtlink.alarms.job_dir",
+        "value": 0.78,
+        "message": "Job dir is 78% full.",
+        "severity": "CLEAR"
+      }
+    },
+    "ListAlarmStatus": {
+      "description": "A List of SMRT Link System Status Instances",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AlarmStatus"
+      }
+    },
+    "DeferredEntryPoint": {
+      "properties": {
+        "entryId": {
+          "description": "Pipeline Entry Point binding id (Example eid_subread)",
+          "title": "EntryPoint",
+          "type": "string"
+        },
+        "fileTypeId": {
+          "description": "File type id for the binding entry point(Example: PacBio.DataSet.SubreadSet) ",
+          "title": "File Type Id",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "UUID of Entry Point. This does NOT need to be currently resolvable in the system.",
+          "title": "File UUID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DeferredJob": {
+      "description": "A model for creating Deferred jobs that when the entry points all resolvable, the analysis job(s) will be created.",
+      "properties": {
+        "description": {
+          "description": "Description of the Job. This will be used to create the analysis job",
+          "title": "Deferred Analysis Job Description",
+          "type": "string"
+        },
+        "entryPoints": {
+          "description": "List of EntryPoint to",
+          "items": {
+            "$ref": "#/definitions/DeferredEntryPoint"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "Job Name",
+          "title": "Job Name",
+          "type": "string"
+        },
+        "pipelineId": {
+          "description": "Pipeline Id (Example: pbsmrtpipe.pipelines.dev_01_ds)",
+          "title": "Pipeline Id",
+          "type": "string"
+        },
+        "projectId": {
+          "default": 1,
+          "description": "Associate a Multi-Job with a Project",
+          "title": "Project Id",
+          "type": "integer"
+        },
+        "taskOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Task options",
+          "description": "Pipeline-specific task options"
+        },
+        "workflowOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOption"
+          },
+          "title": "Pipeline Engine options",
+          "description": "Pipeline Engine options (May not be used or supported. The System global settings will be used)"
+        }
+      },
+      "type": "object",
+      "required": [
+        "entryPoints",
+        "pipelineId",
+        "taskOptions",
+        "workflowOptions",
+        "name",
+        "projectId"
+      ],
+      "example": {
+        "description": "A MultiAnalysis Example Job",
+        "name": "An example MultiJob",
+        "projectId": 1,
+        "jobs": [
+          {
+            "entryPoints": [
+              {
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "uuid": "47919a2d-2d6e-4499-863c-67b0433e6a2a",
+                "entryId": "eid_subread"
+              }
+            ],
+            "pipelineId": "pbsmrtpipe.pipelines.dev_01_ds",
+            "taskOptions": [],
+            "workflowOptions": [],
+            "name": "Job 1",
+            "description": "Job 1 description",
+            "projectId": 1
+          },
+          {
+            "entryPoints": [
+              {
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "uuid": "af916621-ab06-46cc-94f2-bc922c48b277",
+                "entryId": "eid_subread"
+              }
+            ],
+            "pipelineId": "pbsmrtpipe.pipelines.dev_01_ds",
+            "taskOptions": [],
+            "workflowOptions": [],
+            "name": "Job 1",
+            "description": "Job 1 description",
+            "projectId": 1
+          }
+        ]
+      }
+    },
+    "MultiAnalysisJobOptions": {
+      "description": "Multi-Analysis Job creation interface. SMRT Link will poll for the entry points to be resolved, then create the analysis jobs and poll for a terminal state.",
+      "properties": {
+        "jobs": {
+          "description": "List of Deferred Job",
+          "items": {
+            "$ref": "#/definitions/DeferredJob"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "Description of the MultiJob",
+          "title": "Description",
+          "type": "string"
+        },
+           "name": {
+          "description": "Job Name",
+          "title": "Job Name",
+          "type": "string"
+        },
+        "projectId": {
+          "default": 1,
+          "description": "Associate a Multi-Job with a Project",
+          "title": "Project Id",
+          "type": "integer"
+        },
+        "submit": {
+          "default": false,
+          "description": "Automatically submit the job upon creation. This will yield the job uneditable.",
+          "title": "Submit",
+          "type": ["null", "boolean"]
+        }
+      }
+    },
+    "DataSetUpdateRequest": {
+      "description": "Encapsulates multiple independent update parameters, all optional",
+      "properties": {
+        "isActive": {
+          "description": "If False, set dataset to inactive (hidden)",
+          "type": ["string", "null"],
+          "title": "Is active"
+        },
+        "bioSampleName": {
+          "description": "Applies to SubreadSets only",
+          "type": ["string", "null"],
+          "title": "Biological sample name"
+        }
+      }
     }
   }
+
 }

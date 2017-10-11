@@ -1,10 +1,8 @@
-import com.pacbio.common.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import spray.httpx.SprayJsonSupport._
-
 
 class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 
@@ -15,7 +13,7 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 
   val routes = Api.routes
 
-  import SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   "Bundle Service tests" should {
     "Uptime should be >0" in {
@@ -66,12 +64,14 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
       }
     }
     "Get SampleCalculatorParams.json file in 'chemistry'" in {
-      Get("/smrt-link/bundles/chemistry/active/files/SampleCalculatorParams.json") ~> routes ~> check {
+      Get(
+        "/smrt-link/bundles/chemistry/active/files/SampleCalculatorParams.json") ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }
     "Get PacBioAutomationConstraints.xml file in 'chemistry'" in {
-      Get("/smrt-link/bundles/chemistry/active/files/definitions/PacBioAutomationConstraints.xml") ~> routes ~> check {
+      Get(
+        "/smrt-link/bundles/chemistry/active/files/definitions/PacBioAutomationConstraints.xml") ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }

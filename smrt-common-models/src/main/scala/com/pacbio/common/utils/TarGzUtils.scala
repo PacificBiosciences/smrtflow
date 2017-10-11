@@ -23,10 +23,12 @@ trait TarGzUtils {
 
     dest.mkdir()
 
-    var tarIn:TarArchiveInputStream = null
+    var tarIn: TarArchiveInputStream = null
 
     try {
-      tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(new FileInputStream(tarFile))))
+      tarIn = new TarArchiveInputStream(
+        new GzipCompressorInputStream(
+          new BufferedInputStream(new FileInputStream(tarFile))))
       var tarEntry = tarIn.getNextTarEntry
       while (tarEntry != null) {
 
@@ -34,8 +36,7 @@ trait TarGzUtils {
         val destPath = new File(dest, tarEntry.getName)
         if (tarEntry.isDirectory) {
           destPath.mkdirs()
-        }
-        else {
+        } else {
           // Create any necessary parent dirs
           val parent = destPath.getParentFile
           if (!Files.exists(parent.toPath)) {
@@ -73,7 +74,9 @@ trait TarGzUtils {
     dest
   }
 
-  def createTarGzip(inputDirectoryPath: Path, outputFile: File, bufferSize: Int = 4096): File = {
+  def createTarGzip(inputDirectoryPath: Path,
+                    outputFile: File,
+                    bufferSize: Int = 4096): File = {
 
     val fileOutputStream: FileOutputStream = null
     val bufferedOutputStream: BufferedOutputStream = null
@@ -83,21 +86,29 @@ trait TarGzUtils {
     try {
 
       val fileOutputStream: FileOutputStream = new FileOutputStream(outputFile)
-      val bufferedOutputStream: BufferedOutputStream = new BufferedOutputStream(fileOutputStream)
-      val gzipOutputStream: GzipCompressorOutputStream = new GzipCompressorOutputStream(bufferedOutputStream)
-      val tarArchiveOutputStream: TarArchiveOutputStream = new TarArchiveOutputStream(gzipOutputStream)
+      val bufferedOutputStream: BufferedOutputStream =
+        new BufferedOutputStream(fileOutputStream)
+      val gzipOutputStream: GzipCompressorOutputStream =
+        new GzipCompressorOutputStream(bufferedOutputStream)
+      val tarArchiveOutputStream: TarArchiveOutputStream =
+        new TarArchiveOutputStream(gzipOutputStream)
 
-      tarArchiveOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
-      tarArchiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
+      tarArchiveOutputStream.setBigNumberMode(
+        TarArchiveOutputStream.BIGNUMBER_POSIX)
+      tarArchiveOutputStream.setLongFileMode(
+        TarArchiveOutputStream.LONGFILE_GNU)
 
       val files = FileUtils.listFiles(inputDirectoryPath.toFile,
-        new RegexFileFilter("^(.*?)"),
-        DirectoryFileFilter.DIRECTORY)
+                                      new RegexFileFilter("^(.*?)"),
+                                      DirectoryFileFilter.DIRECTORY)
 
       for (currentFile <- files) {
 
-        val relativeFilePath: String = new File(inputDirectoryPath.toUri).toURI.relativize(new File(currentFile.getAbsolutePath).toURI).getPath
-        val tarEntry: TarArchiveEntry = new TarArchiveEntry(currentFile, relativeFilePath)
+        val relativeFilePath: String = new File(inputDirectoryPath.toUri).toURI
+          .relativize(new File(currentFile.getAbsolutePath).toURI)
+          .getPath
+        val tarEntry: TarArchiveEntry =
+          new TarArchiveEntry(currentFile, relativeFilePath)
 
         tarEntry.setSize(currentFile.length)
         tarArchiveOutputStream.putArchiveEntry(tarEntry)
@@ -106,7 +117,7 @@ trait TarGzUtils {
         val data = new Array[Byte](bufferSize)
         var nRead = -1
         var nWritten = 0
-        while ( {
+        while ({
           nRead = input.read(data); nRead > 0
         }) {
           tarArchiveOutputStream.write(data, 0, nRead)

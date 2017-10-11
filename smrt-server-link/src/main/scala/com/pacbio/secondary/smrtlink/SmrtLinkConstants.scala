@@ -1,8 +1,7 @@
 package com.pacbio.secondary.smrtlink
 
-import com.pacbio.secondary.analysis.constants.FileTypes.TGZ
-import com.pacbio.secondary.analysis.jobs.JobModels.JobConstants
-
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.TGZ
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 
 trait SmrtLinkConstants {
   val BASE_PREFIX = "smrt-link"
@@ -14,9 +13,10 @@ trait SmrtLinkConstants {
 
 trait JobServiceConstants {
   val ROOT_SL_PREFIX = "smrt-link"
-  val ROOT_SERVICE_PREFIX = "secondary-analysis"
-  val SERVICE_PREFIX = "job-manager"
+  val ROOT_SA_PREFIX = "secondary-analysis"
+  val JOB_MANAGER_PREFIX = "job-manager"
   val JOB_ROOT_PREFIX = "jobs"
+  val JOB_MULTI_ROOT_PREFIX = "multi-jobs"
   // Per Job Option/Settings
   val JOB_OPTIONS = "options"
   // Job tasks

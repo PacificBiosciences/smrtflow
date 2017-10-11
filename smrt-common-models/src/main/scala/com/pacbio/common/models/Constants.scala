@@ -15,19 +15,20 @@ trait Constants {
   // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "4.0.1"
   // Git SHA1 (previously Perforce CHANGELIST) that was used to generate the XSDs
-  final val XSD_CHANGELIST = "38a37d1"
+  final val XSD_CHANGELIST = "e16db4b"
 
   private def getMajorMinorPatch(prop: Properties): Option[String] =
-    Try {prop.getProperty("version").replace("-SNAPSHOT", "")}.toOption
+    Try { prop.getProperty("version").replace("-SNAPSHOT", "") }.toOption
 
   private def getGitShortSha(prop: Properties): Option[String] =
-    Try {prop.getProperty("sha1").substring(0, 7) }.toOption
+    Try { prop.getProperty("sha1").substring(0, 7) }.toOption
 
   // From the bamboo build number
   private def getBuildNumber(prop: Properties): Option[Int] =
-    Try { prop.getProperty("buildNumber").toInt}.toOption
+    Try { prop.getProperty("buildNumber").toInt }.toOption
 
-  private def getMetadata(shortSha: Option[String], buildNumber: Option[Int]): String = {
+  private def getMetadata(shortSha: Option[String],
+                          buildNumber: Option[Int]): String = {
     (shortSha, buildNumber) match {
       case (Some(sha), Some(n)) => s"+$n.$sha"
       case (None, Some(n)) => s"s+$n"
@@ -82,16 +83,13 @@ trait Constants {
         val prop = new Properties
         prop.load(in)
         getSmrtFlowVersion(prop)
-      }
-      finally {
+      } finally {
         in.close()
       }
-    }
-    else {
+    } else {
       "unknown version"
     }
   }
 }
 
 object Constants extends Constants
-

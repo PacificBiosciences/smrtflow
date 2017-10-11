@@ -1,13 +1,12 @@
-
 package com.pacbio.secondary.smrtlink.testkit
 
 import java.nio.file.{Path, Paths}
 
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import spray.json._
 
 import scala.collection.immutable.Seq
-
 
 object TestkitModels {
 
@@ -19,40 +18,51 @@ object TestkitModels {
     val op: String
   }
 
-  case class ReportAttributeLongRule(attrId: String, value: Long, op: String) extends ReportAttributeRule
+  case class ReportAttributeLongRule(attrId: String, value: Long, op: String)
+      extends ReportAttributeRule
 
-  case class ReportAttributeDoubleRule(attrId: String, value: Double, op: String) extends ReportAttributeRule
+  case class ReportAttributeDoubleRule(attrId: String,
+                                       value: Double,
+                                       op: String)
+      extends ReportAttributeRule
 
-  case class ReportAttributeBooleanRule(attrId: String, value: Boolean, op: String) extends ReportAttributeRule
+  case class ReportAttributeBooleanRule(attrId: String,
+                                        value: Boolean,
+                                        op: String)
+      extends ReportAttributeRule
 
-  case class ReportAttributeStringRule(attrId: String, value: String, op: String = "eq") extends ReportAttributeRule
+  case class ReportAttributeStringRule(attrId: String,
+                                       value: String,
+                                       op: String = "eq")
+      extends ReportAttributeRule
 
   case class ReportTestRules(reportId: String, rules: Seq[ReportAttributeRule])
 
-  case class TestkitConfig(
-    testId: String,
-    jobType: String,
-    description: String,
-    pipelineId: Option[String],
-    workflowXml: Option[String],
-    presetXml: Option[String],
-    presetJson: Option[String],
-    entryPoints: Seq[EntryPointPath],
-    reportTests: Seq[ReportTestRules])
+  case class TestkitConfig(testId: String,
+                           jobType: String,
+                           description: String,
+                           pipelineId: Option[String],
+                           workflowXml: Option[String],
+                           presetXml: Option[String],
+                           presetJson: Option[String],
+                           entryPoints: Seq[EntryPointPath],
+                           reportTests: Seq[ReportTestRules])
 
 }
 
-trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJsonProtocols {
+trait TestkitJsonProtocol extends SmrtLinkJsonProtocols {
 
   import TestkitModels._
 
   implicit val entryPointPathFormat = jsonFormat2(EntryPointPath)
   implicit val reportLongRuleFormat = jsonFormat3(ReportAttributeLongRule)
   implicit val reportDoubleRuleFormat = jsonFormat3(ReportAttributeDoubleRule)
-  implicit val reportBooleanRuleFormat = jsonFormat3(ReportAttributeBooleanRule)
+  implicit val reportBooleanRuleFormat = jsonFormat3(
+    ReportAttributeBooleanRule)
   implicit val reportStringRuleFormat = jsonFormat3(ReportAttributeStringRule)
 
-  implicit object reportAttributeRuleFormat extends JsonFormat[ReportAttributeRule] {
+  implicit object reportAttributeRuleFormat
+      extends JsonFormat[ReportAttributeRule] {
     def write(rar: ReportAttributeRule) = rar match {
       case rlr: ReportAttributeLongRule => rlr.toJson
       case rdr: ReportAttributeDoubleRule => rdr.toJson
@@ -68,10 +78,13 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
         }
         case Seq(JsString(id), JsBoolean(value), JsString(op)) =>
           ReportAttributeBooleanRule(id, value, op)
-        case _ => jsRule.asJsObject.getFields("attrId", "value") match {
-          case Seq(JsString(id), JsString(value)) => ReportAttributeStringRule(id, value)
-          case x => deserializationError(s"Expected attribute rule, got ${x}")
-        }
+        case _ =>
+          jsRule.asJsObject.getFields("attrId", "value") match {
+            case Seq(JsString(id), JsString(value)) =>
+              ReportAttributeStringRule(id, value)
+            case x =>
+              deserializationError(s"Expected attribute rule, got ${x}")
+          }
       }
     }
   }
@@ -89,29 +102,34 @@ trait TestkitJsonProtocol extends SmrtLinkJsonProtocols with SecondaryAnalysisJs
    * the same time).
    */
   implicit object reportRulesFormat extends JsonFormat[ReportTestRules] {
-    def write(rtr: ReportTestRules) = JsObject(
-      "reportId" -> JsString(rtr.reportId),
-      "rules" -> rtr.rules.toJson)
+    def write(rtr: ReportTestRules) =
+      JsObject("reportId" -> JsString(rtr.reportId),
+               "rules" -> rtr.rules.toJson)
 
     def read(jsValue: JsValue): ReportTestRules = {
       jsValue.asJsObject.getFields("reportId", "rules") match {
         case Seq(JsString(rptId), JsArray(rules)) =>
           ReportTestRules(rptId, rules.map(_.convertTo[ReportAttributeRule]))
         case Seq(JsString(rptId), JsObject(rules)) => {
-          ReportTestRules(rptId, (for ((k,v) <- rules) yield {
-            val keyFields = k.split("__")
-            val id = keyFields(0)
-            val op = if (keyFields.size == 2) keyFields(1) else "eq"
-            v match {
-              case JsNumber(nv) => {
-                if (nv.isValidInt) ReportAttributeLongRule(id, nv.toLong, op)
-                else ReportAttributeDoubleRule(id, nv.toDouble, op)
+          ReportTestRules(
+            rptId,
+            (for ((k, v) <- rules) yield {
+              val keyFields = k.split("__")
+              val id = keyFields(0)
+              val op = if (keyFields.size == 2) keyFields(1) else "eq"
+              v match {
+                case JsNumber(nv) => {
+                  if (nv.isValidInt) ReportAttributeLongRule(id, nv.toLong, op)
+                  else ReportAttributeDoubleRule(id, nv.toDouble, op)
+                }
+                case JsBoolean(bv) => ReportAttributeBooleanRule(id, bv, op)
+                case JsString(sv) => ReportAttributeStringRule(id, sv, op)
+                case x =>
+                  deserializationError(
+                    s"Expected report attribute rule, got ${x}")
               }
-              case JsBoolean(bv) => ReportAttributeBooleanRule(id, bv, op)
-              case JsString(sv) => ReportAttributeStringRule(id, sv, op)
-              case x => deserializationError(s"Expected report attribute rule, got ${x}")
-            }
-          }).toList)
+            }).toList
+          )
         }
         case x => deserializationError(s"Expected report test rule, got ${x}")
       }
@@ -127,24 +145,25 @@ object MockConfig extends TestkitJsonProtocol {
 
   def makeCfg: TestkitConfig = {
     val entryPoints = Seq(
-        EntryPointPath("eid_subread", Paths.get("/path/to/subreadset.xml")),
-        EntryPointPath("eid_ref_dataset", Paths.get("/path/to/referenceset.xml")))
-      val reportTests = Seq(ReportTestRules(
+      EntryPointPath("eid_subread", Paths.get("/path/to/subreadset.xml")),
+      EntryPointPath("eid_ref_dataset",
+                     Paths.get("/path/to/referenceset.xml")))
+    val reportTests = Seq(
+      ReportTestRules(
         "example_report",
-        Seq(
-          ReportAttributeLongRule("mapped_reads_n", 100, "gt"),
-          ReportAttributeDoubleRule("concordance", 0.85, "ge"),
-          ReportAttributeStringRule("instrument", "54006"))))
-      TestkitConfig(
-        "test_job",
-        "pbsmrtpipe",
-        "example test config",
-        Some("pbsmrtpipe.pipelines.sa3_sat"),
-        None,
-        Some("preset.xml"),
-        None,
-        entryPoints,
-        reportTests)
+        Seq(ReportAttributeLongRule("mapped_reads_n", 100, "gt"),
+            ReportAttributeDoubleRule("concordance", 0.85, "ge"),
+            ReportAttributeStringRule("instrument", "54006"))
+      ))
+    TestkitConfig("test_job",
+                  "pbsmrtpipe",
+                  "example test config",
+                  Some("pbsmrtpipe.pipelines.sa3_sat"),
+                  None,
+                  Some("preset.xml"),
+                  None,
+                  entryPoints,
+                  reportTests)
   }
 
   def showCfg: Unit = println(makeCfg.toJson.prettyPrint)

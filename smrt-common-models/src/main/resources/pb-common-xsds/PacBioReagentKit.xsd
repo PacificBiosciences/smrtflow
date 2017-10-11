@@ -179,6 +179,7 @@
 			<xs:enumeration value="PEGDilBuffer"/>
 			<xs:enumeration value="ExtraBuffer"/>
 			<xs:enumeration value="PrewetBuffer"/>
+			<xs:enumeration value="ProtK"/>
 		</xs:restriction>
 	</xs:simpleType>
 </xs:schema>

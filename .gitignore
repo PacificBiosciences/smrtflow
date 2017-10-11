@@ -18,11 +18,15 @@ extras/pbbundler/built-bundles/*
 
 # Test Data
 PacBioTestData
+# Misc repos used for integration testing and data
+repos/*
 
 test-data/smrtserver-testdata
 test-output/*
 jobs-root/*
 profile.json
+smrt-server-sim/sim*.log
+smrt-server-sim/sim*.xml
 
 # sbt specific
 .cache
@@ -51,3 +55,6 @@ db/*
 
 # node
 node_modules/*
+
+# test detritus
+pg/

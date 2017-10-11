@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by mkocher on 7/12/16.
   */
-trait EnvResourceLoader[T] extends ResourceLoaderBase[T] with LazyLogging{
+trait EnvResourceLoader[T] extends ResourceLoaderBase[T] with LazyLogging {
 
   // This will point to a directory or a list of directories
   // example MY_VAR=/path/to/stuff:/path/to/resources
@@ -20,8 +20,8 @@ trait EnvResourceLoader[T] extends ResourceLoaderBase[T] with LazyLogging{
     val d = dir.toFile
     if (d.exists && d.isDirectory) {
       d.listFiles
-          .filter(_.isFile)
-          .map(_.toPath.toAbsolutePath.toFile)
+        .filter(_.isFile)
+        .map(_.toPath.toAbsolutePath.toFile)
     } else {
       Seq.empty[File]
     }
@@ -35,28 +35,27 @@ trait EnvResourceLoader[T] extends ResourceLoaderBase[T] with LazyLogging{
         logger.info(s"${loadMessage(r)} from ${file.toPath}")
         Option(r)
       case Failure(ex) =>
-        logger.error(s"Failed to load resource from ${file.toPath}. Error ${ex.getMessage}")
+        logger.error(
+          s"Failed to load resource from ${file.toPath}. Error ${ex.getMessage}")
         None
     }
   }
 
   def loadFromDir(path: Path): Seq[T] = {
     getListOfFiles(path)
-        .filter(_.toString.endsWith(".json"))
-        .flatMap(f => loadFrom(f))
+      .filter(_.toString.endsWith(".json"))
+      .flatMap(f => loadFrom(f))
   }
 
   def parseValue(sx: String): Seq[T] =
     sx.split(":")
-        .map(p => Paths.get(p))
-        .flatMap(loadFromDir)
+      .map(p => Paths.get(p))
+      .flatMap(loadFromDir)
 
   def loadResourcesFromEnv: Seq[T] = {
     scala.util.Properties
-        .envOrNone(ENV_VAR)
-        .map(parseValue)
-        .getOrElse(Seq.empty[T])
+      .envOrNone(ENV_VAR)
+      .map(parseValue)
+      .getOrElse(Seq.empty[T])
   }
-
-
 }

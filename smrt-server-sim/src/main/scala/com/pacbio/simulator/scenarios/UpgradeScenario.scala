@@ -10,25 +10,39 @@ import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
 
-import com.pacbio.secondary.analysis.externaltools.{PacBioTestData, PbReports}
-import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer, ClientUtils}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PbReports
+}
+import com.pacbio.secondary.smrtlink.client.{
+  SmrtLinkServiceAccessLayer,
+  ClientUtils
+}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.analysis.constants.FileTypes
-import com.pacbio.secondary.analysis.jobs.{AnalysisJobStates, JobModels, OptionTypes}
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobModels,
+  OptionTypes
+}
 import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
 object UpgradeScenarioLoader extends ScenarioLoader {
-  override def load(config: Option[Config])(implicit system: ActorSystem): Scenario = {
-    require(config.isDefined, "Path to config file must be specified for UpgradeScenario")
-    require(PacBioTestData.isAvailable, "PacBioTestData must be configured for UpgradeScenario")
+  override def load(config: Option[Config])(
+      implicit system: ActorSystem): Scenario = {
+    require(config.isDefined,
+            "Path to config file must be specified for UpgradeScenario")
+    require(PacBioTestData.isAvailable,
+            "PacBioTestData must be configured for UpgradeScenario")
     val c: Config = config.get
 
-    new UpgradeScenario(getHost(c), getPort(c),
-      // FIXME I'd rather pass this as a cmdline arg but it's difficult
-      c.getString("preUpgrade").toBoolean)
+    new UpgradeScenario(getHost(c),
+                        getPort(c),
+                        // FIXME I'd rather pass this as a cmdline arg but it's difficult
+                        c.getString("preUpgrade").toBoolean)
   }
 }
 
@@ -45,9 +59,10 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   override def getReference = testdata.getFile("lambdaNEB")
 
   // options need to be empty because JSON format changed since 4.0
-  private val cleanOpts = Var(diagnosticOptsCore.copy(
-    taskOptions=Seq.empty[ServiceTaskOptionBase],
-    workflowOptions=Seq.empty[ServiceTaskOptionBase]))
+  private val cleanOpts = Var(
+    diagnosticOptsCore.copy(
+      taskOptions = Seq.empty[ServiceTaskOptionBase],
+      workflowOptions = Seq.empty[ServiceTaskOptionBase]))
   val preUpgradeSteps = setupSteps ++ Seq(
     jobId := RunAnalysisPipeline(cleanOpts),
     jobStatus := WaitForJob(jobId),
@@ -56,16 +71,20 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   val diagnosticJobTests = Seq(
     jobId := GetLastAnalysisJobId,
     dataStore := GetAnalysisJobDataStore(jobId),
-    fail(s"Expected at least one datastore file") IF dataStore.mapWith(_.size) ==? 0,
+    fail(s"Expected at least one datastore file") IF dataStore
+      .mapWith(_.size) ==? 0,
     jobReports := GetAnalysisJobReports(jobId),
     fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
     report := GetReport(jobReports.mapWith(_(0).dataStoreFile.uuid)),
-    fail("Wrong report UUID in datastore") IF jobReports.mapWith(_(0).dataStoreFile.uuid) !=? report.mapWith(_.uuid),
+    fail("Wrong report UUID in datastore") IF jobReports.mapWith(
+      _(0).dataStoreFile.uuid) !=? report.mapWith(_.uuid),
     job := GetJob(jobId),
-    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(_.smrtlinkVersion) ==? None,
+    fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
+      _.smrtlinkVersion) ==? None,
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
-    fail("Wrong entry point UUID") IF entryPoints.mapWith(_(0).datasetUUID) !=? refUuid
+    fail("Wrong entry point UUID") IF entryPoints
+      .mapWith(_(0).datasetUUID) !=? refUuid
   )
 
   // XXX unused, unnecessary?

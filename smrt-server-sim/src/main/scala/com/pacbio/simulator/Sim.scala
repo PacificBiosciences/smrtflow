@@ -1,12 +1,11 @@
 package com.pacbio.simulator
 
-import java.io.PrintWriter
 import java.nio.file.{Path, Paths}
 
 import akka.actor.ActorSystem
-import com.pacbio.logging.{LoggerConfig, LoggerOptions}
+import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.simulator.scenarios._
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.format.ISODateTimeFormat
 import resource._
@@ -14,38 +13,42 @@ import scopt.OptionParser
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 import scala.xml._
 
-object Sim extends App with LazyLogging{
+object Sim extends App with LazyLogging {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   implicit val system: ActorSystem = ActorSystem("sim")
 
-  final val VERSION = "0.1.0"
+  final val VERSION = "0.2.0"
   final val TOOL_ID = "scenario-runner"
 
   // Add new scenario loaders here
   final val LOADERS: Map[String, ScenarioLoader] = Map(
-    "ExampleScenario"   -> ExampleScenarioLoader,
+    "ExampleScenario" -> ExampleScenarioLoader,
     "RunDesignScenario" -> RunDesignScenarioLoader,
     "DataSetScenario" -> DataSetScenarioLoader,
     "ProjectsScenario" -> ProjectsScenarioLoader,
     "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
     "StressTest" -> StressTestScenarioLoader,
     "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader,
-    "SqliteToPostgresScenario" -> SqliteToPostgresScenarioLoader,
     "UpgradeScenario" -> UpgradeScenarioLoader,
     "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
     "LargeMergeScenario" -> LargeMergeScenarioLoader,
     "TechSupportScenario" -> TechSupportScenarioLoader,
-    "DbBackUpScenario" -> DbBackUpScenarioLoader
+    "DbBackUpScenario" -> DbBackUpScenarioLoader,
+    "MultiAnalysisScenario" -> MultiAnalysisScenarioLoader,
+    "SampleNamesScenario" -> SampleNamesScenarioLoader
   )
 
   final val DESCRIPTION =
     """Runs simulator scenarios.
       |
       |Includes the following scenario loaders:
-    """.stripMargin + "\n" + LOADERS.keys.map(name => s" - $name\n").reduce(_ + _)
+    """.stripMargin + "\n" + LOADERS.keys.toSeq.sorted
+      .map(name => s" - $name\n")
+      .reduce(_ + _)
 
   val parser = new OptionParser[SimArgs](TOOL_ID) {
     head(s"Simulator Scenario Runner v$VERSION")
@@ -57,7 +60,7 @@ object Sim extends App with LazyLogging{
 
     arg[String]("config-file") valueName "<file>" action { (v, c) =>
       c.copy(config = Some(Paths.get(v)))
-    } optional() text "Path to a config file. (E.g.: /etc/pacbio/example.conf) " +
+    } optional () text "Path to a config file. (E.g.: /etc/pacbio/example.conf) " +
       "Optional, but may be required by the scenario loader."
 
     opt[String]('o', "output-xml") valueName "<file>" action { (v, c) =>
@@ -72,17 +75,13 @@ object Sim extends App with LazyLogging{
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  val simArgs: SimArgs = parser.parse(args, SimArgs()).getOrElse {
-    System.exit(1)
-    null // unreachable, but required for return type
-  }
-
   def outputXML(result: ScenarioResult,
                 outputPath: Path,
                 requirements: Seq[String]): Unit = {
     import StepResult._
 
-    def millisToSecs(m: Long): Double = Duration(m, MILLISECONDS).toUnit(SECONDS)
+    def millisToSecs(m: Long): Double =
+      Duration(m, MILLISECONDS).toUnit(SECONDS)
 
     val steps = result.stepResults
     val scenarioName = result.name
@@ -92,7 +91,10 @@ object Sim extends App with LazyLogging{
     val runTimeSecs = millisToSecs(result.runTimeMillis)
     logger.info(s"Ran ${steps.length} Steps.")
 
-    def stepToXml(klassName: String, stepName: String, stepRunTimeSecs: Double, stepResult: StepResult) = {
+    def stepToXml(klassName: String,
+                  stepName: String,
+                  stepRunTimeSecs: Double,
+                  stepResult: StepResult) = {
       <testcase
       name={stepName}
       classname={klassName}
@@ -108,11 +110,12 @@ object Sim extends App with LazyLogging{
     }
 
     def stepsToXml(stepResults: Seq[StepResult]) = {
-      stepResults.zipWithIndex.map { case(stepResult, i) =>
-        val stepName = f"${i+1}%04d-${stepResult.name}"
-        val className = s"Simulator.$scenarioName"
-        val stepRunTimeSecs = millisToSecs(stepResult.runTimeMillis)
-        stepToXml(className, stepName, stepRunTimeSecs, stepResult)
+      stepResults.zipWithIndex.map {
+        case (stepResult, i) =>
+          val stepName = f"${i + 1}%04d-${stepResult.name}"
+          val className = s"Simulator.$scenarioName"
+          val stepRunTimeSecs = millisToSecs(stepResult.runTimeMillis)
+          stepToXml(className, stepName, stepRunTimeSecs, stepResult)
       }
     }
 
@@ -139,37 +142,95 @@ object Sim extends App with LazyLogging{
   }
 
   // EXECUTION
-
-  var scenario: Scenario = null
-  var result: ScenarioResult = null
-  var succeeded: Boolean = false
-  try {
-    // Construct scenario
-    val config = simArgs.config.map{p => ConfigFactory.parseFile(p.toFile).resolve()}
-
-    config.foreach { c =>
-      import scala.collection.JavaConversions.asScalaSet
-      println("\nConfigs:")
-      c.entrySet().foreach { e =>
-        println(s"${e.getKey}: ${e.getValue.render()}")
-      }
-      println()
-    }
-    scenario = simArgs.loader.load(config)
-
-    // run scenario
-    val f = Future { scenario.setUp() }.flatMap { _ => scenario.run() }.andThen { case _ => scenario.tearDown() }
-    result = Await.result(f, simArgs.timeout)
-    succeeded = result.stepResults.forall(_.result.succeeded)
-
-    // output results
-    simArgs.outputXML.foreach {
-      outputXML(result, _, scenario.requirements)
-    }
-
-  } finally {
-    system.shutdown()
+  def writeOutput(result: ScenarioResult,
+                  requirements: Seq[String],
+                  output: Path): Future[Unit] = {
+    Future.successful(outputXML(result, output, requirements))
   }
 
-  if (succeeded) System.exit(0) else System.exit(1)
+  def parseArgs(rawArgs: Seq[String]): Try[SimArgs] = {
+    Try(
+      parser
+        .parse(rawArgs, SimArgs())
+        .getOrElse(throw new Exception(s"Failed to parse options $rawArgs")))
+  }
+
+  def printConfig(config: Config): Unit = {
+    import scala.collection.JavaConversions.asScalaSet
+    println("\nConfigs:")
+    config.entrySet().foreach { e =>
+      println(s"${e.getKey}: ${e.getValue.render()}")
+    }
+    println()
+  }
+
+  def printAndLog(sx: String): String = {
+    logger.info(sx)
+    println(sx)
+    sx
+  }
+
+  /**
+    * Run the loaded Scenario and write the output (if provided in the Sim args)
+    *
+    * @param scenario Loaded Scenario
+    * @param simArgs  Sim Args
+    * @return
+    */
+  def runScenario(scenario: Scenario,
+                  simArgs: SimArgs): Try[(Boolean, String)] = {
+    val f = for {
+      _ <- Future.fromTry(Try(scenario.setUp()))
+      result <- scenario.run()
+      _ <- simArgs.outputXML
+        .map(p => writeOutput(result, scenario.requirements, p))
+        .getOrElse(Future.successful(Unit))
+      wasSuccessful <- Future.successful(
+        result.stepResults.forall(_.result.succeeded))
+    } yield
+      (wasSuccessful,
+       s"Completed running ${scenario.name} was successful? $wasSuccessful")
+
+    // We always call tear down
+    val fx = f.andThen { case _ => Try(scenario.tearDown()) }
+
+    printAndLog(
+      s"Starting to run scenario ${scenario.name} with timeout ${simArgs.timeout}")
+    Try(Await.result(fx, simArgs.timeout))
+  }
+
+  def runScenarioFromArgs(simArgs: SimArgs): Try[(Boolean, String)] = {
+
+    for {
+      config <- Try(
+        simArgs.config.map(p => ConfigFactory.parseFile(p.toFile).resolve()))
+      _ <- Try(config.map(printConfig).getOrElse(Unit))
+      scenario <- Try(simArgs.loader.load(config))
+      (wasSuccessful, msg) <- runScenario(scenario, simArgs)
+    } yield (wasSuccessful, msg)
+  }
+
+  private def exitError(msg: String) = {
+    logger.error(msg)
+    System.err.println(msg + "\n")
+    system.shutdown()
+    System.exit(1)
+  }
+
+  /// Run Main
+  parseArgs(args).flatMap(runScenarioFromArgs) match {
+    case Success((wasSuccessful, msg)) =>
+      if (!wasSuccessful) {
+        val exitMsg = s"Scenario failed.  Exiting with exit code 1."
+        exitError(exitMsg)
+      } else {
+        println(
+          "Successfully completed running scenario. Exiting with exit code 0.")
+        System.exit(0)
+      }
+    case Failure(ex) =>
+      val msg = s"Failed to run scenario. Error $ex\nExiting with exit code 1."
+      exitError(msg)
+  }
+
 }

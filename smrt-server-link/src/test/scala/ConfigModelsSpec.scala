@@ -1,16 +1,15 @@
 import java.nio.file.{Path, Paths}
 
+import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import org.apache.commons.io.FileUtils
-
 import org.specs2.mutable.Specification
 import spray.json._
 import com.pacbio.secondary.smrtlink.models.ConfigModels._
-import com.pacbio.secondary.smrtlink.models.ConfigModelsJsonProtocol
 
 /**
   * Created by mkocher on 1/4/17.
   */
-class ConfigModelsSpec extends Specification{
+class ConfigModelsSpec extends Specification {
 
   import ConfigModelsJsonProtocol._
 
@@ -30,6 +29,7 @@ class ConfigModelsSpec extends Specification{
       val config = jx.convertTo[RootSmrtflowConfig]
       config.comment must beSome
       config.smrtflow.server.port === 8077
+      config.pacBioSystem.enableCellReuse must beSome(true)
     }
 
     "Load credentials file successfully" in {

@@ -1,0 +1,209 @@
+<pbdm:PacBioDataModel xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbdm="http://pacificbiosciences.com/PacBioDataModel.xsd">
+  <pbdm:ExperimentContainer ExperimentId="xfer-test" Description="simulator-test" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+    <pbdm:InvestigatorName>Default</pbdm:InvestigatorName>
+    <pbdm:CreatedDate>0001-01-01</pbdm:CreatedDate>
+    <pbdm:Runs>
+      <pbdm:Run Status="Starting" UniqueId="{RUN_ID}" MetaType="Run" TimeStampedName="r54001_20151222_200323" Name="{RUN_NAME}" Description="{RUN_SUMMARY}" CreatedAt="{CREATED_AT}" CreatedBy="{CREATED_BY}" ModifiedAt="0001-01-01T00:00:00">
+        <pbdm:Outputs>
+          <pbdm:SubreadSets>
+			  <pbds:SubreadSet UniqueId="{SUBREAD_ID_1}" MetaType="SubreadSetCollection" TimeStampedName="54001-SubreadSetCollection-2015-03-22T20:03:23.972Z">
+				  <pbbase:ExternalResources>
+					  <pbbase:ExternalResource UniqueId="{EXTERNAL_RESOURCE_ID_1}" MetaType="ExternalResource" TimeStampedName="54001-ExternalResource-2015-03-22T20:03:23.972Z"/>
+				  </pbbase:ExternalResources>
+				  <pbds:DataSetMetadata>
+					  <pbds:TotalLength>0</pbds:TotalLength>
+					  <pbds:NumRecords>0</pbds:NumRecords>
+					  <pbmeta:Collections>
+						  <pbmeta:CollectionMetadata Description="{SUMMARY_1}" Context="{CONTEXT_ID_1}" Status="{STATUS_1}" InstrumentId="{INSTRUMENT_ID_1}" InstrumentName="Inst{INSTRUMENT_ID_1}" UniqueId="{SUBREAD_ID_1}" MetaType="CollectionMetadata" TimeStampedName="54001-CollectionMetadata-2015-03-22T20:03:23.972Z" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+							  <pbmeta:InstCtrlVer>1.2.3.1234</pbmeta:InstCtrlVer>
+							  <pbmeta:SigProcVer>4.5.6.1234</pbmeta:SigProcVer>
+							  <pbmeta:RunDetails>
+								  <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
+								  <pbmeta:Name>Run_201512222002</pbmeta:Name>
+								  <pbmeta:CreatedBy>{CREATED_BY}</pbmeta:CreatedBy>
+								  <pbmeta:WhenCreated>0001-01-01T00:00:00</pbmeta:WhenCreated>
+								  <pbmeta:WhenStarted>{STARTED_AT_1}</pbmeta:WhenStarted>
+							  </pbmeta:RunDetails>
+							  <pbmeta:WellSample Name="{NAME_1}" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+								  <pbmeta:WellName>{WELL_NAME_1}</pbmeta:WellName>
+								  <pbmeta:Concentration>0.0</pbmeta:Concentration>
+								  <pbmeta:InsertSize>10000</pbmeta:InsertSize>
+								  <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+								  <pbmeta:StageHotstartEnabled>false</pbmeta:StageHotstartEnabled>
+								  <pbmeta:SizeSelectionEnabled>true</pbmeta:SizeSelectionEnabled>
+								  <pbmeta:UseCount>0</pbmeta:UseCount>
+								  <pbmeta:DNAControlComplex>DNA Internal Control Complex SQ v1</pbmeta:DNAControlComplex>
+							  </pbmeta:WellSample>
+							  <pbmeta:Automation Name="Workflow_Diffusion.py">
+								  <pbbase:AutomationParameters>
+									  <pbbase:AutomationParameter ValueDataType="Double" SimpleValue="0.0125" Name="Exposure" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="Double" SimpleValue="{MOVIE_MINUTES_1}" Name="MovieLength" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="JSON" SimpleValue="[[0,0,1080,1920]]" Name="sequencingPixelROI" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="JSON" SimpleValue="[[103,224,4,32],[103,704,4,32],[103,1184,4,32],[103,1664,4,32],[373,224,4,32],[373,704,4,32],[373,1184,4,32],[373,1664,4,32],[643,224,4,32],[643,704,4,32],[643,1184,4,32],[643,1664,4,32],[913,224,4,32],[913,704,4,32],[913,1184,4,32],[913,1664,4,32]]" Name="traceFilePixelROI" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="String" SimpleValue="false" Name="UseStageHotStart" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="Int32" SimpleValue="0" Name="CollectionNumber"/>
+									  <pbbase:AutomationParameter ValueDataType="Int32" SimpleValue="0" Name="CellReuseIndex"/>
+								  </pbbase:AutomationParameters>
+							  </pbmeta:Automation>
+							  <pbmeta:CollectionNumber>0</pbmeta:CollectionNumber>
+							  <pbmeta:CellIndex>0</pbmeta:CellIndex>
+							  <pbmeta:CellPac PartNumber="100-513-100" LotNumber="007777" Barcode="00000133635864116306218170" ExpirationDate="2015-02-14"/>
+							  <pbmeta:TemplatePrepKit MinInsertSize="500" MaxInsertSize="20000" PartNumber="100-259-100" Barcode="222222100259100100716" Name="SMRTbell™ Template Prep Kit" Description="The SMRTbell™ Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb." Tags="Template Prep Kit, TPK" Version="1.0">
+								  <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+								  <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+								  <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+								  <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+							  </pbmeta:TemplatePrepKit>
+							  <pbmeta:BindingKit PartNumber="100-619-300" Barcode="222222100619300100716" Name="Sequel™ Binding Kit 1.0" Description="The Sequel Binding Kit 1.0 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions." Tags="Binding Kit, BDK" Version="1.0"/>
+							  <pbmeta:SequencingKitPlate PartNumber="100-620-000" LotNumber="002222" Barcode="002222100620000123115" ExpirationDate="2015-12-31"/>
+							  <pbmeta:Primary>
+								  <pbmeta:AutomationName>SequelAlpha</pbmeta:AutomationName>
+								  <pbmeta:ConfigFileName>SqlPoC_SubCrf_2C2A-t2.xml</pbmeta:ConfigFileName>
+								  <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+								  <pbmeta:OutputOptions>
+									  <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+									  <pbmeta:CollectionPathUri>{PATH_URI_1}</pbmeta:CollectionPathUri>
+									  <pbmeta:CopyFiles>
+										  <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+										  <pbmeta:CollectionFileCopy>Bam</pbmeta:CollectionFileCopy>
+										  <pbmeta:CollectionFileCopy>DarkFrame</pbmeta:CollectionFileCopy>
+									  </pbmeta:CopyFiles>
+									  <pbmeta:Readout>Bases</pbmeta:Readout>
+									  <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+								  </pbmeta:OutputOptions>
+							  </pbmeta:Primary>
+							  <pbmeta:Secondary>
+								  <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>
+								  <pbmeta:AutomationParameters>
+									  <pbmeta:AutomationParameter ValueDataType="String" SimpleValue="DefaultSecondaryAnalysisReferenceName" Name="Reference" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+								  </pbmeta:AutomationParameters>
+								  <pbmeta:CellCountInJob>0</pbmeta:CellCountInJob>
+							  </pbmeta:Secondary>
+							  <pbmeta:UserDefinedFields>
+								  <pbbase:DataEntities ValueDataType="String" SimpleValue="DefaultUserDefinedFieldLIMS" Name=" LIMS_IMPORT "/>
+							  </pbmeta:UserDefinedFields>
+                <pbmeta:ComponentVersions>
+                    <pbmeta:VersionInfo Name="ics" Version="5.1.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="iui" Version="5.1.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="chemistry" Version="5.0.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="pa" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="paws" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="ppa" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="realtime" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="transfer" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="smrttools" Version="5.0.0.6784" />
+                    <pbmeta:VersionInfo Name="smrtinub" Version="5.0.0.6656" />
+                    <pbmeta:VersionInfo Name="smrtlink" Version="5.0.0.6792" />
+                    <pbmeta:VersionInfo Name="smrtimisc" Version="5.0.0.6792" />
+                    <pbmeta:VersionInfo Name="smrtview" Version="5.0.0.6656" />
+                    <pbmeta:VersionInfo Name="smrtlink-analysisservices-gui" Version="5.0.0.6752" />
+                </pbmeta:ComponentVersions>
+						  </pbmeta:CollectionMetadata>
+					  </pbmeta:Collections>
+				  </pbds:DataSetMetadata>
+			  </pbds:SubreadSet>
+			  <pbds:SubreadSet UniqueId="{SUBREAD_ID_2}" MetaType="SubreadSetCollection" TimeStampedName="54001-SubreadSetCollection-2015-03-22T20:03:23.972Z">
+				  <pbbase:ExternalResources>
+					  <pbbase:ExternalResource UniqueId="{EXTERNAL_RESOURCE_ID_2}" MetaType="ExternalResource" TimeStampedName="54001-ExternalResource-2015-03-22T20:03:23.972Z"/>
+				  </pbbase:ExternalResources>
+				  <pbds:DataSetMetadata>
+					  <pbds:TotalLength>0</pbds:TotalLength>
+					  <pbds:NumRecords>0</pbds:NumRecords>
+					  <pbmeta:Collections>
+						  <pbmeta:CollectionMetadata Status="{STATUS_2}" UniqueId="{SUBREAD_ID_2}" MetaType="CollectionMetadata" TimeStampedName="54001-CollectionMetadata-2015-03-22T20:03:23.972Z" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+							  <pbmeta:InstCtrlVer>1.2.3.1234</pbmeta:InstCtrlVer>
+							  <pbmeta:SigProcVer>4.5.6.1234</pbmeta:SigProcVer>
+							  <pbmeta:RunDetails>
+								  <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
+								  <pbmeta:Name>Run_201512222002</pbmeta:Name>
+								  <pbmeta:WhenCreated>0001-01-01T00:00:00</pbmeta:WhenCreated>
+							  </pbmeta:RunDetails>
+							  <pbmeta:WellSample Name="{NAME_2}" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00">
+								  <pbmeta:WellName>{WELL_NAME_2}</pbmeta:WellName>
+								  <pbmeta:Concentration>0.0</pbmeta:Concentration>
+								  <pbmeta:InsertSize>10000</pbmeta:InsertSize>
+								  <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+								  <pbmeta:StageHotstartEnabled>false</pbmeta:StageHotstartEnabled>
+								  <pbmeta:SizeSelectionEnabled>true</pbmeta:SizeSelectionEnabled>
+								  <pbmeta:UseCount>0</pbmeta:UseCount>
+								  <pbmeta:DNAControlComplex>DNA Internal Control Complex SQ v1</pbmeta:DNAControlComplex>
+							  </pbmeta:WellSample>
+							  <pbmeta:Automation Name="Workflow_Diffusion.py">
+								  <pbbase:AutomationParameters>
+									  <pbbase:AutomationParameter ValueDataType="Double" SimpleValue="0.0125" Name="Exposure" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="Double" SimpleValue="{MOVIE_MINUTES_2}" Name="MovieLength" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="JSON" SimpleValue="[[0,0,1080,1920]]" Name="sequencingPixelROI" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="JSON" SimpleValue="[[103,224,4,32],[103,704,4,32],[103,1184,4,32],[103,1664,4,32],[373,224,4,32],[373,704,4,32],[373,1184,4,32],[373,1664,4,32],[643,224,4,32],[643,704,4,32],[643,1184,4,32],[643,1664,4,32],[913,224,4,32],[913,704,4,32],[913,1184,4,32],[913,1664,4,32]]" Name="traceFilePixelROI" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="String" SimpleValue="false" Name="UseStageHotStart" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+									  <pbbase:AutomationParameter ValueDataType="Int32" SimpleValue="0" Name="CollectionNumber"/>
+									  <pbbase:AutomationParameter ValueDataType="Int32" SimpleValue="0" Name="CellReuseIndex"/>
+								  </pbbase:AutomationParameters>
+							  </pbmeta:Automation>
+							  <pbmeta:CollectionNumber>0</pbmeta:CollectionNumber>
+							  <pbmeta:CellIndex>0</pbmeta:CellIndex>
+							  <pbmeta:CellPac PartNumber="100-513-100" LotNumber="007777" Barcode="00000133635864116306218170" ExpirationDate="2015-02-14"/>
+							  <pbmeta:TemplatePrepKit MinInsertSize="500" MaxInsertSize="20000" PartNumber="100-259-100" Barcode="222222100259100100716" Name="SMRTbell™ Template Prep Kit" Description="The SMRTbell™ Template Prep Kit contains reagent supplies to perform SMRTbell library preparations of primer-annealed SMRTbell libraries for insert sizes ranging from 500 bp to over 20 kb." Tags="Template Prep Kit, TPK" Version="1.0">
+								  <pbbase:LeftAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:LeftAdaptorSequence>
+								  <pbbase:LeftPrimerSequence>aacggaggaggagga</pbbase:LeftPrimerSequence>
+								  <pbbase:RightAdaptorSequence>ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</pbbase:RightAdaptorSequence>
+								  <pbbase:RightPrimerSequence>aacggaggaggagga</pbbase:RightPrimerSequence>
+							  </pbmeta:TemplatePrepKit>
+							  <pbmeta:BindingKit PartNumber="100-619-300" Barcode="222222100619300100716" Name="Sequel™ Binding Kit 1.0" Description="The Sequel Binding Kit 1.0 contains reagent supplies to bind prepared DNA template libraries to the Sequel Polymerase 1.0 in preparation for sequencing on the Sequel System. The result is a DNA polymerase/template complex. Sequel Binding Kit 1.0 should be used only with Sequel Sequencing Kit 1.0. Reagent quantities support 24 binding reactions." Tags="Binding Kit, BDK" Version="1.0"/>
+							  <pbmeta:SequencingKitPlate PartNumber="100-620-000" LotNumber="002222" Barcode="002222100620000123115" ExpirationDate="2015-12-31"/>
+							  <pbmeta:Primary>
+								  <pbmeta:AutomationName>SequelAlpha</pbmeta:AutomationName>
+								  <pbmeta:ConfigFileName>SqlPoC_SubCrf_2C2A-t2.xml</pbmeta:ConfigFileName>
+								  <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+								  <pbmeta:OutputOptions>
+									  <pbmeta:ResultsFolder>Analysis_Results</pbmeta:ResultsFolder>
+									  <pbmeta:CopyFiles>
+										  <pbmeta:CollectionFileCopy>Fasta</pbmeta:CollectionFileCopy>
+										  <pbmeta:CollectionFileCopy>Bam</pbmeta:CollectionFileCopy>
+										  <pbmeta:CollectionFileCopy>DarkFrame</pbmeta:CollectionFileCopy>
+									  </pbmeta:CopyFiles>
+									  <pbmeta:Readout>Bases</pbmeta:Readout>
+									  <pbmeta:MetricsVerbosity>Minimal</pbmeta:MetricsVerbosity>
+								  </pbmeta:OutputOptions>
+							  </pbmeta:Primary>
+							  <pbmeta:Secondary>
+								  <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>
+								  <pbmeta:AutomationParameters>
+									  <pbmeta:AutomationParameter ValueDataType="String" SimpleValue="DefaultSecondaryAnalysisReferenceName" Name="Reference" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00"/>
+								  </pbmeta:AutomationParameters>
+								  <pbmeta:CellCountInJob>0</pbmeta:CellCountInJob>
+							  </pbmeta:Secondary>
+							  <pbmeta:UserDefinedFields>
+								  <pbbase:DataEntities ValueDataType="String" SimpleValue="DefaultUserDefinedFieldLIMS" Name=" LIMS_IMPORT "/>
+							  </pbmeta:UserDefinedFields>
+                <pbmeta:ComponentVersions>
+                    <pbmeta:VersionInfo Name="ics" Version="5.1.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="iui" Version="5.1.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="chemistry" Version="5.0.0.SNAPSHOT9346" />
+                    <pbmeta:VersionInfo Name="pa" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="paws" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="ppa" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="realtime" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="transfer" Version="5.0.0.SNAPSHOT5803" />
+                    <pbmeta:VersionInfo Name="smrttools" Version="5.0.0.6784" />
+                    <pbmeta:VersionInfo Name="smrtinub" Version="5.0.0.6656" />
+                    <pbmeta:VersionInfo Name="smrtlink" Version="5.0.0.6792" />
+                    <pbmeta:VersionInfo Name="smrtimisc" Version="5.0.0.6792" />
+                    <pbmeta:VersionInfo Name="smrtview" Version="5.0.0.6656" />
+                    <pbmeta:VersionInfo Name="smrtlink-analysisservices-gui" Version="5.0.0.6752" />
+                </pbmeta:ComponentVersions>
+						  </pbmeta:CollectionMetadata>
+					  </pbmeta:Collections>
+				  </pbds:DataSetMetadata>
+			  </pbds:SubreadSet>
+          </pbdm:SubreadSets>
+        </pbdm:Outputs>
+		  <pbdm:RecordedEvents>
+			<pbdm:RecordedEvent Name="AcquisitionInitializeInfo" CreatedAt="{ACQ_1_STARTED_AT}" SimpleValue="{&quot;RunReferenceName&quot;:&quot;{RUN_NAME}&quot;,&quot;CollectionNumber&quot;:0,&quot;Cell&quot;:{&quot;TraySlot&quot;:1,&quot;CellNumber&quot;:1,&quot;SerialNumber&quot;:&quot;BA031566&quot;,&quot;PartNumber&quot;:&quot;101-008-000&quot;,&quot;Lot&quot;:&quot;320574&quot;,&quot;ExpirationDate&quot;:&quot;2017 April 22&quot;},&quot;MovieContext&quot;:&quot;m54119_170412_194541&quot;,&quot;MovieMinutes&quot;:600,&quot;PreExtensionMinutes&quot;:120,&quot;WellPlateSlot&quot;:1,&quot;Well&quot;:&quot;C01&quot;,&quot;WellUsage&quot;:1}" Context="{SUBREAD_ID_1}" />
+			<pbdm:RecordedEvent Name="AcquisitionCompletion" CreatedAt="{ACQ_1_COMPLETED_AT}" SimpleValue="Complete" Context="{SUBREAD_ID_1}" />
+			<pbdm:RecordedEvent Name="RunTransfersCompletion" CreatedAt="{RUN_TRANS_COMPLETED_AT}" SimpleValue="AllSucceeded" Context="{RUN_ID}" />
+			<pbdm:RecordedEvent Name="RunCompletion" CreatedAt="{RUN_COMPLETED_AT}" SimpleValue="Complete" Context="{RUN_ID}" />
+		  </pbdm:RecordedEvents>
+      </pbdm:Run>
+    </pbdm:Runs>
+  </pbdm:ExperimentContainer>
+</pbdm:PacBioDataModel>

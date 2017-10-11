@@ -15,7 +15,9 @@ migrationState=${rootBundleDir}/legacy-migration.json
 userRoles=${rootBundleDir}/user-roles.json
 adminCreds=${rootBundleDir}/wso2-credentials.json
 # for the wso2 consumer key/secret
-appConfig=${rootBundleDir}/apache-tomcat-8.0.26/webapps/ROOT/sl/app-config.json
+appConfig=${rootBundleDir}/tomcat_current/webapps/ROOT/sl/app-config.json
+newWso2=${rootBundleDir}/wso2am-2.0.0
+wso2Templates=${rootBundleDir}/templates/templates-wso2
 
 if ! [ -e "$config" ]; then
     echo "file ${config} does not exist. Generate smrtlink-sytem-config.json and/or run bin/apply-config"
@@ -32,13 +34,10 @@ logFile=${logDir}/upgrade.log
 # To enable tools called from dbctrl
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
-# For both upgrade and a fresh install make the logging verbose to the log file
-if [ -e "$legacyConfig" ]; then
-    ${rootBundleDir}/bin/dbctrl migrate -c ${config} --legacy-migration-json ${migrationState} --migration-config ${legacyConfig} --log-file=${logFile} --log-level=DEBUG
-else
-    # Install from a fresh install (create users/db/tables if necessary)
-    ${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG
-fi
+
+# Install from a fresh install (create users/db/tables if necessary)
+${rootBundleDir}/bin/dbctrl setup -c ${config} --log-file=${logFile} --log-level=DEBUG --wso2-dir=${newWso2} --wso2-init=${wso2Templates}/wso2-init.sql
+${rootBundleDir}/bin/dbctrl start -c ${config} --log-file=${logFile} --log-level=DEBUG
 
 
 # configure/upgrade wso2
@@ -65,9 +64,19 @@ function waitThenKill {
     sleep 60
 }
 
+function cleanUp {
+    local wso2Pid=$1; shift;
+
+    echo 'cleaning up'
+
+    ${rootBundleDir}/bin/dbctrl stop -c ${config} --log-file=${logFile} --log-level=DEBUG
+
+    kill ${wso2Pid} 2> /dev/null || true
+    waitThenKill ${wso2Pid}
+}
+
 clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
 
-newWso2=${rootBundleDir}/wso2am-2.0.0
 amClient=${rootBundleDir}/tools/bin/amclient
 amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${logFile}"
 
@@ -98,7 +107,7 @@ if [ -e "${legacyConfig}" ]; then
             bash ${oldWso2}/bin/wso2server.sh --start
             sleep 5
             wso2Pid=$(< ${oldWso2}/wso2carbon.pid)
-            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
+            trap "cleanUp ${wso2Pid}" EXIT
 
             env "$clientEnv" ${amClient} get-roles-users ${amClientArgs} --role-json ${userRoles}
             bash ${oldWso2}/bin/wso2server.sh --stop
@@ -112,7 +121,7 @@ if [ -e "${legacyConfig}" ]; then
             bash ${newWso2}/bin/wso2server.sh --start
             sleep 5
             wso2Pid=$(< ${newWso2}/wso2carbon.pid)
-            trap "echo 'cleaning up'; kill ${wso2Pid} 2> /dev/null || true; waitThenKill ${wso2Pid}" EXIT
+            trap "cleanUp ${wso2Pid}" EXIT
 
             env "$clientEnv" ${amClient} create-roles ${amClientArgs}
             env "$clientEnv" ${amClient} set-roles-users ${amClientArgs} --role-json ${userRoles}
@@ -126,3 +135,5 @@ if [ -e "${legacyConfig}" ]; then
 fi
 
 trap - EXIT
+
+${rootBundleDir}/bin/dbctrl stop -c ${config} --log-file=${logFile} --log-level=DEBUG

@@ -43,18 +43,18 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                     <InstCtrlVer>String</InstCtrlVer>
                     <SigProcVer>String</SigProcVer>
                     <RunDetails>
+                      <TimeStampedName>timestampname</TimeStampedName>
                       <Name>run 1</Name>
                       <CreatedBy>String</CreatedBy>
-                      <WhenCreated>
-                      0001-01-01T00:00:00</WhenCreated>
-                      <WhenStarted>
-                      0001-01-01T00:00:00</WhenStarted>
+                      <WhenCreated>2017-06-16T17:43:03.356213Z</WhenCreated>
+                      <WhenStarted>2017-06-16T17:43:03.356213Z</WhenStarted>
                     </RunDetails>
                     <WellSample Name="eColi"
                     CreatedAt="0001-01-01T00:00:00"
                     ModifiedAt="0001-01-01T00:00:00">
                       <WellName>A01</WellName>
                       <Concentration>0</Concentration>
+                      <InsertSize>1</InsertSize>
                       <SampleReuseEnabled>
                       false</SampleReuseEnabled>
                       <StageHotstartEnabled>
@@ -94,10 +94,6 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                         ModifiedAt="0001-01-01T00:00:00"
                         ValueDataType="JSON"
                         SimpleValue="[[103,224,64,64],[103,704,64,64],[103,1184,64,64],[103,1664,64,64],[373,224,64,64],[373,704,64,64],[373,1184,64,64],[373,1664,64,64],[643,224,64,64],[643,704,64,64],[643,1184,64,64],[643,1664,64,64],[913,224,64,64],[913,704,64,64],[913,1184,64,64],[913,1664,64,64]]" />
-                        <AutomationParameter xsi:type="SequencingChemistry"
-                        Name="Sequel Dye Set v3.0"
-                        CreatedAt="0001-01-01T00:00:00"
-                        ModifiedAt="0001-01-01T00:00:00" />
                         <AutomationParameter Name="UseStageHotStart"
                         CreatedAt="0001-01-01T00:00:00"
                         ModifiedAt="0001-01-01T00:00:00"
@@ -134,26 +130,19 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                       DefaultPrimaryAutomationName</AutomationName>
                       <ConfigFileName>
                       DefaultPrimaryConfigFileName</ConfigFileName>
+                      <SequencingCondition>seqcondition</SequencingCondition>
                       <OutputOptions>
                         <ResultsFolder>
                         Analysis_Results</ResultsFolder>
                         <CollectionPathUri>
                         /DefaultCollectionPathUri</CollectionPathUri>
                         <CopyFiles>
-                          <CollectionFileCopy>
-                          Movie</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Trace</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Pulse</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Base</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Fasta</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Bam</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Baz</CollectionFileCopy>
+                          <CollectionFileCopy>DarkFrame</CollectionFileCopy>
+                          <CollectionFileCopy>Trace</CollectionFileCopy>
+                          <CollectionFileCopy>StatsH5</CollectionFileCopy>
+                          <CollectionFileCopy>Fasta</CollectionFileCopy>
+                          <CollectionFileCopy>Bam</CollectionFileCopy>
+                          <CollectionFileCopy>Baz</CollectionFileCopy>
                         </CopyFiles>
                         <Readout>Bases</Readout>
                         <MetricsVerbosity>High</MetricsVerbosity>
@@ -208,18 +197,18 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                     <InstCtrlVer>String</InstCtrlVer>
                     <SigProcVer>String</SigProcVer>
                     <RunDetails>
+                      <TimeStampedName>timestampname</TimeStampedName>
                       <Name>run 1</Name>
                       <CreatedBy>String</CreatedBy>
-                      <WhenCreated>
-                      0001-01-01T00:00:00</WhenCreated>
-                      <WhenStarted>
-                      0001-01-01T00:00:00</WhenStarted>
+                      <WhenCreated>2017-06-16T17:43:03.356213Z</WhenCreated>
+                      <WhenStarted>2017-06-16T17:43:03.356213Z</WhenStarted>
                     </RunDetails>
                     <WellSample Name="eColi"
                     CreatedAt="0001-01-01T00:00:00"
                     ModifiedAt="0001-01-01T00:00:00">
                       <WellName>A02</WellName>
                       <Concentration>0</Concentration>
+                      <InsertSize>1</InsertSize>
                       <SampleReuseEnabled>
                       false</SampleReuseEnabled>
                       <StageHotstartEnabled>
@@ -260,10 +249,6 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                         ModifiedAt="0001-01-01T00:00:00"
                         ValueDataType="JSON"
                         SimpleValue="[[103,224,64,64],[103,704,64,64],[103,1184,64,64],[103,1664,64,64],[373,224,64,64],[373,704,64,64],[373,1184,64,64],[373,1664,64,64],[643,224,64,64],[643,704,64,64],[643,1184,64,64],[643,1664,64,64],[913,224,64,64],[913,704,64,64],[913,1184,64,64],[913,1664,64,64]]" />
-                        <AutomationParameter xsi:type="SequencingChemistry"
-                        Name="Sequel Dye Set v3.0"
-                        CreatedAt="0001-01-01T00:00:00"
-                        ModifiedAt="0001-01-01T00:00:00" />
                         <AutomationParameter Name="UseStageHotStart"
                         CreatedAt="0001-01-01T00:00:00"
                         ModifiedAt="0001-01-01T00:00:00"
@@ -298,28 +283,19 @@ xmlns="http://pacificbiosciences.com/PacBioDataModel.xsd">
                     <Primary>
                       <AutomationName>
                       DefaultPrimaryAutomationName</AutomationName>
-                      <ConfigFileName>
-                      DefaultPrimaryConfigFileName</ConfigFileName>
+                      <ConfigFileName>DefaultPrimaryConfigFileName</ConfigFileName>
+                      <SequencingCondition>sequencing-conditions</SequencingCondition>
                       <OutputOptions>
                         <ResultsFolder>
                         Analysis_Results</ResultsFolder>
                         <CollectionPathUri>
                         /DefaultCollectionPathUri</CollectionPathUri>
                         <CopyFiles>
-                          <CollectionFileCopy>
-                          Movie</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Trace</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Pulse</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Base</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Fasta</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Bam</CollectionFileCopy>
-                          <CollectionFileCopy>
-                          Baz</CollectionFileCopy>
+                          <CollectionFileCopy>Trace</CollectionFileCopy>
+                          <CollectionFileCopy>StatsH5</CollectionFileCopy>
+                          <CollectionFileCopy>Fasta</CollectionFileCopy>
+                          <CollectionFileCopy>Bam</CollectionFileCopy>
+                          <CollectionFileCopy>Baz</CollectionFileCopy>
                         </CopyFiles>
                         <Readout>Bases</Readout>
                         <MetricsVerbosity>High</MetricsVerbosity>

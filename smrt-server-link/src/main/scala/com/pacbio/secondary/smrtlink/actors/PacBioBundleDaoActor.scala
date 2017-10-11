@@ -3,10 +3,9 @@ package com.pacbio.secondary.smrtlink.actors
 import java.nio.file.Path
 
 import akka.actor.{Actor, ActorRef, Props}
-import com.pacbio.common.actors.ActorRefFactoryProvider
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.models.PacBioDataBundleIO
-import com.pacbio.common.dependency.Singleton
+import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.typesafe.scalalogging.LazyLogging
 
 // Central Interface for interacting/mutating the PacBioDataBundleDao
@@ -24,7 +23,9 @@ object PacBioBundleDaoActor {
 
 }
 
-class PacBioBundleDaoActor(dao: PacBioBundleDao, rootBundleDir: Path) extends Actor with LazyLogging{
+class PacBioBundleDaoActor(dao: PacBioBundleDao, rootBundleDir: Path)
+    extends Actor
+    with LazyLogging {
 
   import PacBioBundleDaoActor._
 
@@ -57,5 +58,10 @@ trait PacBioBundleDaoActorProvider {
   this: ActorRefFactoryProvider with SmrtLinkConfigProvider =>
 
   val pacBioBundleDaoActor: Singleton[ActorRef] =
-    Singleton(() =>  actorRefFactory().actorOf(Props(classOf[PacBioBundleDaoActor], new PacBioBundleDao(pacBioBundles()), pacBioBundleRoot())))
+    Singleton(
+      () =>
+        actorRefFactory().actorOf(
+          Props(classOf[PacBioBundleDaoActor],
+                new PacBioBundleDao(pacBioBundles()),
+                pacBioBundleRoot())))
 }

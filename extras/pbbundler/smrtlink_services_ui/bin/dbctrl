@@ -10,7 +10,7 @@ import tempfile
 import datetime
 from collections import namedtuple
 
-__version__ = "0.2.2"
+__version__ = "0.3.1"
 __author__ = "mkocher"
 
 log = logging.getLogger(__name__)
@@ -28,17 +28,20 @@ _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _LOG_STDOUT_FORMAT = "%(message)ss"
 # Default Log file name that will be used if an explicit log file is not provided
 _DEFAULT_LOG_FILE_NAME = "dbctrl.log"
+# This will only be used when postgres is started up
+_DEFAULT_POSTGRES_LOG_FILE_NAME = "postgres.log"
+# Name of database to create for wso2
+_WSO2_DB_NAME = "wso2am"
 
 REQUIRED_EXES = ('initdb',
                  'pg_ctl',
                  'createdb',
                  'psql',
                  'createuser',
-                 'bundler-migrate-legacy-db',
                  'smrt-db-tool')
 
 
-class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, pg_backup_dir, host, port, user, password")):
+class DbConfig(namedtuple("DbConfig", ["db_name", "pg_data_dir", "pg_backup_dir", "host", "port", "user", "password", "log_file"])):
     def to_fd(self):
         # used in .format(**_d)
         return dict(t=self.port, h=self.host, g=self.pg_data_dir, b=self.pg_backup_dir, n=self.db_name, u=self.user, p=self.password)
@@ -50,29 +53,28 @@ class DbConfig(namedtuple("DbConfig", "db_name, pg_data_dir, pg_backup_dir, host
 
 
 class MigrationStatus(object):
-    def __init__(self, was_successful, updated_at, db_path, comment):
+    # (mkocher)(2017-7-26) Keeping this here for now. This might be necessary for the interface with installer.
+    def __init__(self, was_successful, updated_at, comment):
         # should this have more than one state?
         self.was_successful = was_successful
         self.updated_at = updated_at
-        self.db_path = db_path
         self.comment = comment
 
     def __repr__(self):
         _d = dict(s=self.was_successful, u=self.updated_at,
-                  p=self.db_path, k=self.__class__.__name__)
-        return "<{k} successful:{s} updated at:{u} sqlite:{p} >".format(**_d)
+                  k=self.__class__.__name__)
+        return "<{k} successful:{s} updated at:{u} >".format(**_d)
 
     def to_dict(self):
 
         _d = dict(was_successful=self.was_successful,
                   updated_at=str(self.updated_at),
-                  db_path=self.db_path,
                   comment=self.comment)
         return _d
 
     @staticmethod
     def from_d(d):
-        return MigrationStatus(d['was_successful'], d['updated_at'], d['db_path'], d['comment'])
+        return MigrationStatus(d['was_successful'], d['updated_at'], d['comment'])
 
     def write(self, output_file):
         d = self.to_dict()
@@ -82,19 +84,19 @@ class MigrationStatus(object):
 
 
 class MigrationConfig(object):
-    def __init__(self, wso2_root_path, sqlite_path=None):
+    # (mkocher)(2017-7-26) Keeping this here for now. This is no longer directly used in here, but keeping
+    def __init__(self, wso2_root_path):
         self.wso2_root_dir = wso2_root_path
-        self.sqlite_path = sqlite_path
 
     def __repr__(self):
-        _d = dict(k=self.__class__.__name__, w=self.wso2_root_dir, s=self.sqlite_path)
-        return "<{k} sqlite:{s} wso2 root:{w} >".format(**_d)
+        _d = dict(k=self.__class__.__name__,
+                  w=self.wso2_root_dir)
+        return "<{k} wso2 root:{w} >".format(**_d)
 
     @staticmethod
     def from_d(d):
         wso2_root_path = d['PREVIOUS_INSTALL_DIR']
-        sqlite_path = d['PB_DB_URI']
-        return MigrationConfig(wso2_root_path, sqlite_path)
+        return MigrationConfig(wso2_root_path)
 
 
 def subparser_builder(subparser, subparser_id, description, options_func, exe_func):
@@ -126,11 +128,11 @@ def get_parser():
     def builder(subparser_id, description, options_func, exe_func):
         subparser_builder(sp, subparser_id, description, options_func, exe_func)
 
-    def migrate_opts(px):
-        px.add_argument('--migration-config', required=True,
-                        help="Path to SL <= 4.0.0 Migration Config JSON file")
-        px.add_argument('-m', '--legacy-migration-json', default=_MIGRATION_JSON,
-                        help="Output path to Legacy Migration Status JSON file (to persist migration status)")
+    def create_opts(px):
+        px.add_argument('--wso2-dir', required=False,
+                        help="Path to WSO2 directory containing a dbscripts directory with sql files")
+        px.add_argument('--wso2-init', required=False,
+                        help="Path to sql file with wso2 initialization data")
         base_opts(px)
         return px
 
@@ -143,20 +145,21 @@ def get_parser():
     args_db_start = load_and_func(db_start)
     args_db_stop = load_and_func(db_stop)
     args_db_init = load_and_func(db_init)
-    args_db_create = load_and_func(db_create)
     args_db_verify = load_and_func(db_verify)
-    args_db_setup = load_and_func(db_setup_and_migrate_if_necessary)
 
-    def args_db_migrate(args):
-        return db_legacy_migrate(load_db_config(args.config), args.migration_config, args.legacy_migration_json)
+    def args_db_create(args):
+        dbc = load_db_config(args.config)
+        return db_create(dbc, dbc.db_name)
+
+    def args_db_setup(args):
+        dbc = load_db_config(args.config)
+        return db_setup(dbc, args.wso2_dir, args.wso2_init)
 
     desc_status = "Get status of the database. Will return non-zero exit code if db is not accessible"
     desc_start = "Start database server. Will skip startup if already running"
     desc_stop = "Stop Database server if db is running. "
     desc_init = "Initialize SL Postgres database server (will start up db and shutdown after initialization)"
     desc_create = "Create SL Postgres database (init must be called first)"
-    desc_migrate = "Setup the initial Postgres db,tables,user (if necessary) and migrate/import legacy " \
-                   "SL <= 4.0.0 SQLite into Postgres"
     desc_verify = "Verify Postgres is running, Postgres tables have been created and" \
                   "migrations have successfully be applied."
     desc_setup = "Setup Postgres db,tables,user and apply Postgres schema Migration. " \
@@ -166,12 +169,19 @@ def get_parser():
     builder("start", desc_start, base_opts, args_db_start)
     builder("stop", desc_stop, base_opts, args_db_stop)
     builder("init", desc_init, base_opts, args_db_init)
-    builder("create", desc_create, base_opts, args_db_create)
-    builder("migrate", desc_migrate, migrate_opts, args_db_migrate)
+    builder("create", desc_create, create_opts, args_db_create)
     builder("verify", desc_verify, base_opts, args_db_verify)
-    builder("setup", desc_setup, base_opts, args_db_setup)
+    builder("setup", desc_setup, create_opts, args_db_setup)
 
     return p
+
+def _get_log_dir_from_d(d):
+    p = d['pacBioSystem']['logDir'].encode("utf8", "ignore")
+    return os.path.abspath(p)
+
+
+def load_psql_log_path_from_d(d):
+    return os.path.join(_get_log_dir_from_d(d), _DEFAULT_POSTGRES_LOG_FILE_NAME)
 
 
 def load_db_config(path):
@@ -195,25 +205,15 @@ def load_db_config(path):
     password = to_a(d['smrtflow']['db']['properties']['password'])
     user = to_a(d['smrtflow']['db']['properties']['user'])
 
-    return DbConfig(db_name, pg_data_dir, pg_backup_dir, host, port, user, password)
+    psql_log_file = load_psql_log_path_from_d(d)
+
+    return DbConfig(db_name, pg_data_dir, pg_backup_dir, host, port, user, password, psql_log_file)
 
 
 def load_log_dir(path):
     """Load the System Level Logging dir from the System config."""
     d = json.load(open(path, 'r'))
-    return d['pacBioSystem']['logDir'].encode("utf8", "ignore")
-
-
-def call_import_legacy_sqlite(sqlite_db_path, dbc):
-    """:type dbc: DbConfig"""
-
-    cmd = "bundler-migrate-legacy-db {q} --user {u} --password {p} --server {h} --port {t} --db-name {n} --log-level INFO --log2stdout"
-    _d = dbc.to_fd()
-    _d['q'] = sqlite_db_path
-    env = os.environ.copy()
-    env["JAVA_OPTS"] = _JAVA_OPTS
-
-    return _run_raise_on_failure(cmd.format(**_d), env=env, runner_func=_run_cmd_and_log)
+    return _get_log_dir_from_d(d)
 
 
 def _run_cmd(cmd, env=None):
@@ -296,11 +296,18 @@ def _start_db_or_raise(dbc):
     return was_started
 
 
-def _to_cmd(dbc, action):
-    """:type dbc: DbConfig"""
+def _to_cmd(dbc, action, log_file=None):
+    """
+    The log file is only really configurable for start action
+    :type dbc: DbConfig
+    """
     _d = dbc.to_fd()
     _d['a'] = action
-    cmd = "pg_ctl {a} -w --pgdata {g} -o \"-p {t} -h {h}\"".format(**_d)
+    if log_file is None:
+        _d['x'] = ''
+    else:
+        _d['x'] = '-l {}'.format(log_file)
+    cmd = "pg_ctl {a} {x} -w --pgdata {g} -o \"-p {t} -h {h}\"".format(**_d)
     return cmd
 
 
@@ -360,43 +367,51 @@ def db_init(dbc):
     return rcode
 
 
-def _get_tables(dbc):
-    """Get all tables that have SL db name and user"""
+def _get_dbs(dbc, db_name):
+    """Get all databases that have the given db name and user"""
     cmd = "psql -lqtA --port={t} --no-password --host={h} -U {u}".format(**dbc.to_fd())
     p = subprocess.Popen(cmd, shell=True, env=dbc.to_env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     if p.returncode == 0:
-        return [line.strip().split("|") for line in p.stdout.readlines() if line.startswith("{n}|{u}".format(**dbc.to_fd()))]
+        return [line.strip().split("|") for line in p.stdout.readlines() if line.startswith("{db_name}|{user}".format(db_name=db_name, user=dbc.user))]
     else:
-        log.error("Failed to get db tables")
+        log.error("Failed to get db list")
         return []
 
 
-def db_create(dbc):
+def db_create(dbc, db_name):
     """Will create a postgres SL db
 
+
+    :param db_name: Database name
+
+    :type db_name: str
     :type dbc: DbConfig
     """
 
     was_started = check_if_running(dbc)
     _start_db_or_raise(dbc)
 
-    table_names = _get_tables(dbc)
+    db_names = _get_dbs(dbc, db_name)
 
-    if not table_names:
+    if not db_names:
         _d = dbc.to_fd()
         env = dbc.to_env()
-        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {n}".format(**_d)
+        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {db_name}".format(db_name=db_name, **_d)
         rcode = _run_cmd_and_log(cmd, env=env)
     else:
         rcode = 0
-        log.debug("Founds tables {}".format(table_names))
+        log.debug("Founds databases {}".format(db_names))
 
     # if the db was original running, keep it running, otherwise, shut it down
     if not was_started:
         db_stop(dbc)
 
     return rcode
+
+
+def db_create_main(dbc):
+    return db_create(dbc, dbc.db_name)
 
 
 def db_start(dbc, fail_early=True):
@@ -406,7 +421,7 @@ def db_start(dbc, fail_early=True):
         _fail_status_early(dbc)
 
     if not check_if_running(dbc):
-        return _run_cmd_and_log(_to_cmd(dbc, "start"))
+        return _run_cmd_and_log(_to_cmd(dbc, "start", log_file=dbc.log_file))
     else:
         log.info("Database is already started. Skipping startup")
         return 0
@@ -445,19 +460,54 @@ def db_verify(dbc):
     cmd = "smrt-db-tool migrate --log2stdout --user {u} --password {p} --server {h} --port {t} --db-name {n}".format(**dbc.to_fd())
     return _run_cmd_and_log(cmd)
 
+def db_create_wso2(dbc, wso2_dir, wso2_init):
+    wso2_script_files = [
+        "{wso2_dir}/dbscripts/postgresql.sql".format(wso2_dir=wso2_dir),
+        "{wso2_dir}/dbscripts/mb-store/postgresql-mb.sql".format(wso2_dir=wso2_dir),
+        "{wso2_dir}/dbscripts/apimgt/postgresql.sql".format(wso2_dir=wso2_dir),
+        wso2_init
+    ]
 
-def db_setup_and_migrate_if_necessary(dbc):
-    """ Runs the initial Postgres Migration
+    if wso2_dir is None:
+        log.info("No WSO2 directory provided. Skipping creation for WSO2 database")
+        return 0
+
+    db_names = _get_dbs(dbc, _WSO2_DB_NAME)
+    if not db_names:
+        createdb_result = db_create(dbc, _WSO2_DB_NAME)
+
+        if createdb_result == 0:
+            env = dbc.to_env()
+            for script in wso2_script_files:
+                cmd = "psql -q --port={t} --no-password --host={h} -U {u} -f {script} {db_name}".format(script=script, db_name=_WSO2_DB_NAME, **dbc.to_fd())
+                script_result = _run_cmd_and_log(cmd, env=env)
+                if script_result != 0:
+                    return script_result
+            return 0
+        else:
+            # the db creation failed, there's nothing more we can do here. The wso2 tables won't be created.
+            return createdb_result
+    return 0
+
+
+def db_setup(dbc, wso2_dir=None, wso2_init=None):
+    """ Creates the postgres database(s)
 
     1. create initial db (if necessary)
     2. create user (if necessary)
-    3. create SL tables (if necessary)
-    4. run all Postgres Migrations
 
     Note, this doesn't handle the legacy migration
 
-    :type dbc: DbConfig"""
+    :param wso2_dir: Optional Path to the WSO2 directory
+    :type wso2_dir: None | str
+
+    :param wso2_init: Optional Path to wso2 init script
+    :type wso2_init: None | str
+
+    :type dbc: DbConfig
+    """
     def to_b(n):
+        # to boolean func that returns True if the exit code == 0
         return True if n == 0 else False
 
     def _apply_funcs(funcs, init_state):
@@ -474,83 +524,22 @@ def db_setup_and_migrate_if_necessary(dbc):
         else:
             return init_state
 
+    def _wso2_create_wrapper(dbc_):
+        return db_create_wso2(dbc_, wso2_dir, wso2_init)
+
     was_started = check_if_running(dbc, fail_early=False)
 
     # if the db is running, then db init, createdb was successful
     if was_started:
-        db_funcs = [db_create, db_start_no_fail_early]
+        db_funcs = [_wso2_create_wrapper, db_create_main, db_start_no_fail_early]
         was_successful = _apply_funcs(db_funcs, True)
     else:
-        db_funcs = [db_create, db_start_no_fail_early, db_init]
+        db_funcs = [_wso2_create_wrapper, db_create_main, db_start_no_fail_early, db_init]
         was_successful = _apply_funcs(db_funcs, True)
 
     if not was_started:
         log.debug("Initial state of db was not running. Calling shutdown")
         return db_stop(dbc)
-
-    return 0 if was_successful else 1
-
-
-def db_legacy_migrate(dbc, migration_config_json, migration_status_json):
-    """
-
-    1. Load legacy-migration.json (if exists)
-    2. Call legacy importing tool
-    3. Write Legacy Migration JSON
-
-    :type dbc: DbConfig
-    """
-    was_successful = False
-    config_d = json.load(open(migration_config_json))
-
-    migration_conf = MigrationConfig.from_d(config_d)
-    log.info("Loaded migration config {}".format(migration_conf))
-
-    sqlite_db_path = migration_conf.sqlite_path
-    n = db_setup_and_migrate_if_necessary(dbc)
-
-    if n == 0:
-        was_started = check_if_running(dbc)
-
-        if sqlite_db_path is not None:
-            if os.path.exists(migration_status_json):
-                d = json.load(open(migration_status_json))
-                m = MigrationStatus.from_d(d)
-                if m.was_successful:
-                    log.info("Migration was successful. Skipping {}".format(m))
-                    was_successful = True
-                else:
-                    # Try migration again?
-                    sys.stderr.write("Retries of a FAILED migration/import of a legacy SQLITE db is not supported\n")
-                    was_successful = False
-            else:
-                # Try a new importing
-                was_started = check_if_running(dbc)
-                _start_db_or_raise(dbc)
-
-                try:
-                    log.info("Attempting to call legacy import from {}".format(sqlite_db_path))
-                    _ = call_import_legacy_sqlite(sqlite_db_path, dbc)
-                    comment = "Successfully imported legacy data"
-                    was_successful = True
-                    m = MigrationStatus(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
-                except Exception as e:
-                    was_successful = False
-                    comment = "Failed to import legacy data. {}".format(str(e))
-                    log.exception(e)
-                    m = MigrationStatus(was_successful, datetime.datetime.now(), sqlite_db_path, comment)
-
-                m.write(migration_status_json)
-        else:
-            log.info("Legacy SQLITE PATH is null, skipping legacy import")
-            was_successful = True
-
-        # shutdown the db if it was not originally started
-        if not was_started:
-            db_stop(dbc)
-
-    else:
-        log.error("Initial postgres startup or setup FAILED (exit code {})".format(n))
 
     return 0 if was_successful else 1
 

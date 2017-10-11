@@ -4,7 +4,8 @@ import java.io.File
 
 object MimeTypeProperties {
 
-  private def suffix(path: String): String = path.reverse.takeWhile(_ != '.').reverse
+  private def suffix(path: String): String =
+    path.reverse.takeWhile(_ != '.').reverse
 
   val DEFAULT: String = "text/plain"
 
@@ -202,5 +203,4 @@ object MimeTypeProperties {
     "json" -> "application/json"
   )
 
-  
 }
