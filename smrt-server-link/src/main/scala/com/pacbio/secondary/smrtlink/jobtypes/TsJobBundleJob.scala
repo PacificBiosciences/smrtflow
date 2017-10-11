@@ -8,17 +8,25 @@ import com.pacbio.common.models.CommonModels._
 import com.pacbio.common.models.CommonModelImplicits
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  TsJobBundleJobOptions => OldTsJobBundleJobOptions
-}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
+import com.pacbio.secondary.smrtlink.analysis.techsupport.{
+  TechSupportConstants,
+  TechSupportUtils
+}
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.EngineJobEntryPointRecord
+
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
+
+import org.apache.commons.io.FileUtils
+import spray.json._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -92,8 +100,95 @@ case class TsJobBundleJobOptions(jobId: IdAble,
 }
 
 class TsJobBundleJob(opts: TsJobBundleJobOptions)
-    extends ServiceCoreJob(opts) {
+    extends ServiceCoreJob(opts)
+    with MockJobUtils
+    with TsJobUtils {
   type Out = PacBioDataStore
+
+  def createBundle(failedJobPath: Path,
+                   job: JobResourceBase,
+                   resultsWriter: JobResultsWriter,
+                   manifest: TsJobManifest): (PacBioDataStore, Path) = {
+    resultsWriter.writeLine(s"TechSupport Bundle Opts $opts")
+
+    val outputTgz =
+      job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
+    val outputDs = job.path.resolve("datastore.json")
+
+    val manifestPath =
+      job.path.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+
+    FileUtils.writeStringToFile(manifestPath.toFile,
+                                manifest.toJson.prettyPrint)
+
+    TechSupportUtils.writeJobBundleTgz(failedJobPath, manifest, outputTgz)
+
+    val totalSizeMB = outputTgz.toFile.length / 1024.0 / 1024.0
+    resultsWriter.writeLine(s"Total file size $totalSizeMB MB")
+
+    // Create DataStore
+    val createdAt = JodaDateTime.now()
+
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+    val logDsFile =
+      toMasterDataStoreFile(logPath, s"Job Master log of ${jobTypeId.id}")
+
+    val manifestDs = DataStoreFile(
+      UUID.randomUUID(),
+      "ts-manifest-0",
+      FileTypes.JSON.fileTypeId,
+      manifestPath.toFile.length(),
+      createdAt,
+      createdAt,
+      manifestPath.toAbsolutePath.toString,
+      false,
+      "TS System Status Manifest",
+      "Tech Support System Status Manifest"
+    )
+
+    val dsFile = DataStoreFile(
+      UUID.randomUUID(),
+      "ts-bundle-job-0",
+      FileTypes.TS_TGZ.fileTypeId,
+      outputTgz.toFile.length(),
+      createdAt,
+      createdAt,
+      outputTgz.toAbsolutePath.toString,
+      isChunked = false,
+      s"TS Job ${manifest.jobTypeId} id:${manifest.jobId} Bundle",
+      s"TechSupport Bundle for Job type:${manifest.jobTypeId} id: ${manifest.jobTypeId}"
+    )
+
+    // This should add the stdout as the "log"
+    val ds = PacBioDataStore(createdAt,
+                             createdAt,
+                             "0.2.0",
+                             Seq(dsFile, logDsFile, manifestDs))
+    FileUtils.writeStringToFile(outputDs.toFile, ds.toJson.prettyPrint)
+
+    resultsWriter.writeLine(
+      s"Successfully created TS TGZ bundle ${manifest.id}")
+    (ds, outputTgz)
+  }
+
+  /// "host" is a bit unclear here. This is propagated from the dnsName
+  def toTsJobManifest(uuid: UUID,
+                      engineJob: EngineJob,
+                      dnsName: Option[String],
+                      smrtLinkVersion: Option[String],
+                      smrtLinkSystemId: UUID): TsJobManifest = TsJobManifest(
+    uuid,
+    BundleTypes.JOB,
+    1,
+    JodaDateTime.now(),
+    smrtLinkSystemId,
+    dnsName,
+    smrtLinkVersion,
+    opts.user,
+    Some(opts.comment),
+    engineJob.jobTypeId,
+    engineJob.id
+  )
 
   override def run(
       resources: JobResourceBase,
@@ -101,31 +196,40 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    val engineJob = Await.result(opts.getJob(dao), opts.DEFAULT_TIMEOUT)
+    // This should be configurable from the SystemJobConfig
+    val maxUploadTimeOut = 5.minutes
 
-    val name =
-      opts.name.getOrElse(s"TS Bundle for Failed Job ${opts.jobId.toIdString}")
-    val jobPath: Path = Paths.get(engineJob.path)
+    val startedAt = JodaDateTime.now()
 
-    /// Is this really the same as "host". Or is this loaded from the SL config?
-    val dnsName: Option[String] = Some(config.host)
+    // This needs to be fixed
+    val stdoutLog = resources.path.resolve(JobConstants.JOB_STDOUT)
 
-    val manifest = TsJobManifest(
-      resources.jobId,
-      BundleTypes.JOB,
-      1,
-      JodaDateTime.now(),
-      config.smrtLinkSystemId,
-      dnsName,
-      config.smrtLinkVersion,
-      opts.user,
-      Some(opts.comment),
-      engineJob.jobTypeId,
-      engineJob.id
-    )
+    // Add stdout/log proactively so errors are exposed
+    val tx = for {
+      _ <- addStdOutLogToDataStore(resources.jobId,
+                                   dao,
+                                   stdoutLog,
+                                   opts.projectId)
+      eveUrl <- opts.validateEveUrl(config.externalEveUrl)
+      failedJob <- opts.getJob(dao)
+      manifest <- Future.successful(
+        toTsJobManifest(resources.jobId,
+                        failedJob,
+                        Some(config.host),
+                        config.smrtLinkVersion,
+                        config.smrtLinkSystemId))
+      (dataStore, tgzPath) <- Future.fromTry(
+        Try(
+          createBundle(Paths.get(failedJob.path),
+                       resources,
+                       resultsWriter,
+                       manifest)))
+      _ <- upload(eveUrl, config.eveApiSecret, tgzPath, resultsWriter)
+    } yield dataStore
 
-    // Note, this can be dramatically improved now that after the
-    val oldOpts = OldTsJobBundleJobOptions(jobPath, manifest)
-    oldOpts.toJob.run(resources, resultsWriter)
+    convertTry(runAndBlock(tx, maxUploadTimeOut),
+               resultsWriter,
+               startedAt,
+               resources.jobId)
   }
 }
