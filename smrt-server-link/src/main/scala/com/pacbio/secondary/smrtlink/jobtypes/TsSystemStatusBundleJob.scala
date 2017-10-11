@@ -35,7 +35,7 @@ case class TsSystemStatusBundleJobOptions(user: String,
                                           projectId: Option[Int] = Some(
                                             JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions
-    with TsJobUtils {
+    with TsJobValidationUtils {
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
   override def toJob() = new TsSystemStatusBundleJob(this)
 
@@ -67,7 +67,8 @@ case class TsSystemStatusBundleJobOptions(user: String,
 class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
-    with TsJobUtils {
+    with TsTgzUploadUtils
+    with TsJobValidationUtils {
   type Out = PacBioDataStore
 
   def createRun(
@@ -189,7 +190,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
                                               dao,
                                               stdoutLog,
                                               opts.projectId)
-      eveUrl <- opts.validateEveUrl(config.externalEveUrl)
+      eveUrl <- validateEveUrl(config.externalEveUrl)
       systemRoot <- validateSmrtLinkSystemRoot(config.smrtLinkSystemRoot)
       (dataStore, tgzPath) <- Future.fromTry(
         Try(

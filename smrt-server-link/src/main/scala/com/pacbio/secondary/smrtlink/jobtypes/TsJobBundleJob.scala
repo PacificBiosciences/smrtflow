@@ -44,7 +44,7 @@ case class TsJobBundleJobOptions(jobId: IdAble,
                                  projectId: Option[Int] = Some(
                                    JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions
-    with TsJobUtils {
+    with TsJobValidationUtils {
 
   import CommonModelImplicits._
 
@@ -94,7 +94,7 @@ case class TsJobBundleJobOptions(jobId: IdAble,
 class TsJobBundleJob(opts: TsJobBundleJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
-    with TsJobUtils {
+    with TsTgzUploadUtils {
   type Out = PacBioDataStore
 
   def createBundle(

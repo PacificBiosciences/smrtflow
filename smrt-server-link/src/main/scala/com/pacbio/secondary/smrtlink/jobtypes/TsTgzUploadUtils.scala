@@ -14,14 +14,17 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * Created by mkocher on 10/11/17.
+  * These are defined as defs, so they can be mixed into ServiceJobOptions
+  * This CAN NOT mixing LazyLogging because of the ServiceJobOptions serialization
+  * which will raise runtime errors
+  *
+  * Example:
+  *
+  * Caused by: java.lang.RuntimeException:
+  * Case class com.pacbio.secondary.smrtlink.jobtypes.TsSystemStatusBundleJobOptions declares additional fields
+  *
   */
-trait TsJobUtils extends LazyLogging {
-
-  // These are defined as defs, so they can be mixed into ServiceJobOptions
-
-  // This should be configurable from the SystemJobConfig
-  def DEFAULT_MAX_UPLOAD_TIME = 5.minutes
+trait TsJobValidationUtils {
 
   private def notConfigured(msg: String) =
     s"System is not configured $msg. Unable to create or upload TGZ Bundle"
@@ -40,6 +43,15 @@ trait TsJobUtils extends LazyLogging {
           "External EVE URL is not configured in System. Unable to send message to TechSupport"))
     }
   }
+}
+
+/**
+  * Created by mkocher on 10/11/17.
+  */
+trait TsTgzUploadUtils extends LazyLogging {
+
+  // This should be configurable from the SystemJobConfig
+  def DEFAULT_MAX_UPLOAD_TIME = 5.minutes
 
   // This is pretty painful to create a new actor system and shut it down for this client useage
   def upload(eveUrl: URL,
@@ -56,8 +68,8 @@ trait TsJobUtils extends LazyLogging {
 
     val f = client.upload(tgz).map { event =>
       val msg = s"Successfully uploaded $tgz. Created Event ${event.uuid}"
-      logger.info(msg)
       writer.writeLine(msg)
+      logger.info(msg)
       msg
     }
 
