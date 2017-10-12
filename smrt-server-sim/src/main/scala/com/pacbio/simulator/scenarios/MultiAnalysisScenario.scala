@@ -75,7 +75,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
       uuid,
       "eid_subread")
 
-    val numSubreadSets = 384
+    val numSubreadSets = 16
     val numSubreadsetOpt = ServiceTaskIntOption(
       "pbsmrtpipe.task_options.num_subreadsets",
       numSubreadSets)
