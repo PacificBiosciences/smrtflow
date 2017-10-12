@@ -174,7 +174,8 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
       rootDataBaseBackUpDir(),
       dbConfigSingleton(),
       mailConfig(),
-      smrtLinkUiPort()
+      smrtLinkUiPort(),
+      apiSecret()
     )
   }
 

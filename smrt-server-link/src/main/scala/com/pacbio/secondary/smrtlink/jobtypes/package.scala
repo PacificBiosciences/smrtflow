@@ -3,9 +3,12 @@ package com.pacbio.secondary.smrtlink
 import java.nio.file.{Path, Paths}
 import java.io.{PrintWriter, StringWriter}
 import java.net.InetAddress
+import java.util.UUID
 
+import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
   DataSetMetaTypes,
@@ -13,10 +16,12 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  CoreJobModel,
   InvalidJobOptionError,
-  JobResultsWriter,
-  CoreJobModel
+  JobResultsWriter
 }
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.jsonprotocols.{
   ServiceJobTypeJsonProtocols,
   SmrtLinkJsonProtocols
@@ -42,7 +47,10 @@ package object jobtypes {
 
   import com.pacbio.common.models.CommonModelImplicits._
 
-  trait ServiceCoreJobModel extends LazyLogging with DataSetFileUtils {
+  trait ServiceCoreJobModel
+      extends LazyLogging
+      with DataSetFileUtils
+      with timeUtils {
     type Out
     val jobTypeId: JobTypeIds.JobType
 
@@ -68,6 +76,26 @@ package object jobtypes {
             dao: JobsDao,
             config: SystemJobConfig): Either[ResultFailed, Out]
 
+    // This is really clumsy and duplicated. This needs to be simplified.
+    def convertTry[Out](tx: => Try[Out],
+                        writer: JobResultsWriter,
+                        startedAt: JodaDateTime,
+                        jobUUID: UUID): Either[ResultFailed, Out] = {
+      tx match {
+        case Success(x) => Right(x)
+        case Failure(ex) =>
+          val runTime = computeTimeDeltaFromNow(startedAt)
+          val msg = s"Failed to Run ${ex.getMessage}"
+          Left(
+            ResultFailed(jobUUID,
+                         jobTypeId.id,
+                         msg,
+                         runTime,
+                         AnalysisJobStates.FAILED,
+                         host))
+      }
+    }
+
     // Util layer to get the ServiceJobRunner to compose better.
     def runTry(resources: JobResourceBase,
                resultsWriter: JobResultsWriter,
@@ -92,6 +120,25 @@ package object jobtypes {
           resultsWriter.writeLineError(sw.toString)
           Failure(new Exception(msg))
       }
+    }
+
+    /**
+      * Util to add Stdout/Log "Master" DataStore File
+      *
+      * @param dao Jobs DAO
+      * @param path Path to the Master/StdoutLog file
+      * @return
+      */
+    def addStdOutLogToDataStore(
+        jobId: UUID,
+        dao: JobsDao,
+        path: Path,
+        projectId: Option[Int]): Future[DataStoreFile] = {
+
+      val file = DataStoreFile.fromMaster(path)
+
+      dao.importDataStoreFile(file, jobId, projectId).map(_ => file)
+
     }
 
     def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =

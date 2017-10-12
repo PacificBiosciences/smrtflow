@@ -57,7 +57,8 @@ class ServiceJobRunnerSpec
     dbConfig = TestProviders.dbConfig,
     wso2Port = 8234,
     mail = None,
-    rootDbBackUp = None
+    rootDbBackUp = None,
+    eveApiSecret = "test-key"
   )
 
   val serviceJobRunner = new ServiceJobRunner(dao, config)

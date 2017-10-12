@@ -80,7 +80,8 @@ object ConfigModels {
                              rootDbBackUp: Option[Path],
                              dbConfig: DatabaseConfig,
                              mail: Option[MailConfig],
-                             wso2Port: Int) {
+                             wso2Port: Int,
+                             eveApiSecret: String) {
 
     // Attempting to centralize this
     // This might require clarification of how dnsName is set, the
