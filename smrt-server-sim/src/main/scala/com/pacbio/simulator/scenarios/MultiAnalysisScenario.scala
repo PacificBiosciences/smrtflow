@@ -103,8 +103,8 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
     testData.files
       .find(_.id == testFileId)
       .map(f => Future.successful(f))
-      .getOrElse(
-        Future.failed(new Exception(s"Unable to find TestFile id $testFileId")))
+      .getOrElse(Future.failed(
+        new Exception(s"Unable to find TestFile id $testFileId")))
   }
 
   def validateJobWasSuccessful(job: EngineJob): Future[EngineJob] = {
