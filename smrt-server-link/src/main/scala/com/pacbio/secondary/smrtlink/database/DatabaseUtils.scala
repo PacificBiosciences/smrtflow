@@ -6,19 +6,19 @@ import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationVersion
-import org.postgresql.ds.PGPoolingDataSource
+import org.postgresql.ds.PGSimpleDataSource
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 // Need to be able to instantiate this from application.conf
-case class DatabaseConfig(dbName: String,
-                          username: String,
-                          password: String,
-                          server: String = "localhost",
-                          port: Int = 5432,
-                          maxConnections: Int = 20) {
+case class SmrtLinkDatabaseConfig(dbName: String,
+                                  username: String,
+                                  password: String,
+                                  server: String = "localhost",
+                                  port: Int = 5432,
+                                  maxConnections: Int = 20) {
 
   val jdbcURI =
     s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
@@ -26,13 +26,16 @@ case class DatabaseConfig(dbName: String,
   /**
     * Util to create a new PG datasource instance. The caller should explicitly call .close() when the
     * datasource is no longer needed.
+    *
+    * This should only be used for migrations
+    *
     * @return
     */
-  def toDataSource: PGPoolingDataSource = {
+  def toDataSource: PGSimpleDataSource = {
     // Who should be responsible for calling .close() on the datasource ?
-    val source = new PGPoolingDataSource()
+    val source = new PGSimpleDataSource()
 
-    source.setDataSourceName(s"smrtlink-db-${UUID.randomUUID()}")
+    //source.setDataSourceName(s"smrtlink-db-${UUID.randomUUID()}")
     // Localhost
     source.setServerName(server)
     source.setPortNumber(port)
@@ -40,9 +43,11 @@ case class DatabaseConfig(dbName: String,
     source.setUser(username)
     source.setPassword(password)
     // Does this require to be 1 for the migrations to be applied?
-    source.setMaxConnections(maxConnections)
+    //source.setMaxConnections(maxConnections)
     source
   }
+
+  def toX = Database.forConfig("")
 
   def toDatabase = Database.forURL(jdbcURI, driver = "org.postgresql.Driver")
 }
@@ -58,7 +63,7 @@ trait DatabaseUtils extends LazyLogging {
       * @param dataSource Postgres Datasource
       * @return
       */
-    def apply(dataSource: PGPoolingDataSource,
+    def apply(dataSource: PGSimpleDataSource,
               target: MigrationVersion = MigrationVersion.LATEST): Int = {
       val flyway = new Flyway()
 
@@ -86,7 +91,7 @@ trait DatabaseUtils extends LazyLogging {
       * @param source Postgres DataSource
       * @return
       */
-    def apply(source: PGPoolingDataSource): String = {
+    def apply(source: PGSimpleDataSource): String = {
       var conn: Connection = null
       try {
         conn = source.getConnection()

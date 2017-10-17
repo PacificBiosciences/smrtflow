@@ -44,7 +44,7 @@ import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.{
-  DatabaseConfig => SmrtLinkDbConfig
+  SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
 import com.pacificbiosciences.pacbiodatasets._
 import org.postgresql.util.PSQLException

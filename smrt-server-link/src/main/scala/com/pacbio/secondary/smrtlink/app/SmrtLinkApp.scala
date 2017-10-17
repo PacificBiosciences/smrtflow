@@ -133,8 +133,8 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
 
     // Start Up validation
     val startUpValidation = for {
-      connMessage <- Future { TestConnection(dataSource) }
-      migrationMessage <- Future { Migrator(dataSource) }
+      connMessage <- Future.successful(TestConnection(dataSource))
+      migrationMessage <- Future.successful(Migrator(dataSource))
       summary <- providers.jobsDao().getSystemSummary("Database Startup Test")
       jobDir <- Future.successful(
         createJobDir(providers.engineConfig.pbRootJobDir))
@@ -149,7 +149,8 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
            .pbSmrtPipeEngineOptions
            .summary()}""".stripMargin
 
-    startUpValidation.andThen { case _ => dataSource.close() }
+    // Is this auto closing the datasource?
+    //startUpValidation.andThen { case _ => dataSource.clo }
 
     startUpValidation.onFailure {
       case NonFatal(e) =>
