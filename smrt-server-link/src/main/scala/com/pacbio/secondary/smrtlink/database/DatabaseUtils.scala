@@ -24,30 +24,22 @@ case class SmrtLinkDatabaseConfig(dbName: String,
     s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
 
   /**
-    * Util to create a new PG datasource instance. The caller should explicitly call .close() when the
-    * datasource is no longer needed.
-    *
-    * This should only be used for migrations
+    * Util to create a new PG datasource instance. This should ONLY be used for migrations.
     *
     * @return
     */
   def toDataSource: PGSimpleDataSource = {
-    // Who should be responsible for calling .close() on the datasource ?
+    //MK. It's not clear to me how this gets closed
     val source = new PGSimpleDataSource()
 
-    //source.setDataSourceName(s"smrtlink-db-${UUID.randomUUID()}")
     // Localhost
     source.setServerName(server)
     source.setPortNumber(port)
     source.setDatabaseName(dbName)
     source.setUser(username)
     source.setPassword(password)
-    // Does this require to be 1 for the migrations to be applied?
-    //source.setMaxConnections(maxConnections)
     source
   }
-
-  def toX = Database.forConfig("")
 
   def toDatabase = Database.forURL(jdbcURI, driver = "org.postgresql.Driver")
 }
