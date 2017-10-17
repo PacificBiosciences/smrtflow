@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<pipeline-template-preset id="MyPreset">
+    <options>
+        <option id="pbsmrtpipe.options.chunk_mode">
+            <value>True</value>
+        </option>
+    </options>
+</pipeline-template-preset>
