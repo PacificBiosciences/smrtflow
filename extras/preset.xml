@@ -7,8 +7,5 @@
         <option id="pbsmrtpipe.options.distributed_mode">
             <value>False</value>
         </option>
-        <option id="pbsmrtpipe.options.cluster_manager">
-            <value>pbsmrtpipe.cluster_templates.sge_pacbio_prod66</value>
-        </option>
     </options>
 </pipeline-template-preset>
