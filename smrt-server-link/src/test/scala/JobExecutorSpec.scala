@@ -51,7 +51,7 @@ import com.pacbio.secondary.smrtlink.services.{
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.mockito.internal.matchers.GreaterThan
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 class JobExecutorSpec
     extends Specification

@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.9.0-SNAPSHOT"
+version in ThisBuild := "0.10.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -61,7 +61,7 @@ val akkaV = "2.3.6"
 
 val sprayV = "1.3.3"
 
-val slickV = "3.1.1"
+val slickV = "3.2.1"
 
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 

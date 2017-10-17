@@ -10,7 +10,7 @@ import org.joda.time.format.{
   DateTimeFormatter => JodaDateTimeFormatter,
   ISODateTimeFormat
 }
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 /**
   * Provides standardized (ISO) formats for dates, times, and datetimes. All formats use the local
