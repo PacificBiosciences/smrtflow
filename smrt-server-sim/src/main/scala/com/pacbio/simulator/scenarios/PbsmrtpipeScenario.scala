@@ -8,9 +8,12 @@ import java.util.UUID
 import java.io.{File, PrintWriter}
 
 import scala.collection._
+import spray.json._
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import spray.httpx.UnsuccessfulResponseException
+import org.apache.commons.io.FileUtils
+
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -156,6 +159,17 @@ trait PbsmrtpipeScenarioCore
                              INT.optionTypeId)
       )
     ))
+  protected val chunkOpts = Var(
+    PbSmrtPipeServiceOptions(
+      "subreads-chunk-test",
+      "pbsmrtpipe.pipelines.dev_subreads_chunk",
+      Seq(
+        BoundServiceEntryPoint("eid_subread",
+                               "PacBio.DataSet.SubreadSet",
+                               subreadsUuid.get)),
+      Seq.empty[ServiceTaskOptionBase],
+      Seq.empty[ServiceTaskOptionBase]
+    ))
 
   protected val jobId: Var[UUID] = Var()
   protected val jobId2: Var[UUID] = Var()
@@ -195,6 +209,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
 
   import OptionTypes._
   import JobModels._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   override val name = "PbsmrtpipeScenario"
   override val smrtLinkClient =
@@ -207,6 +222,24 @@ class PbsmrtpipeScenario(host: String, port: Int)
     dataStoreFiles.mapWith { ds =>
       Paths.get(ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId).head.path)
     }
+
+  private def getJobDataStoreFromFile(job: EngineJob) = {
+    val dsPath = Paths.get(job.path).resolve("workflow/datastore.json")
+    FileUtils
+      .readFileToString(dsPath.toFile)
+      .parseJson
+      .convertTo[PacBioDataStore]
+  }
+
+  private def findChunkedDataStoreFiles(
+      job: EngineJob,
+      filesServices: Seq[DataStoreServiceFile]): Int = {
+    val filesJson = getJobDataStoreFromFile(job).files
+    val uuidsServices = filesServices.map(_.uuid).toSet
+    filesJson
+      .filter(_.isChunked)
+      .count(uuidsServices contains _.uniqueId)
+  }
 
   val diagnosticJobTests = Seq(
     projectId := CreateProject(projectName, projectDesc),
@@ -357,7 +390,15 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Wrong id") IF pipelineRules
       .mapWith(_.id) !=? "pbsmrtpipe.pipelines.sa3_sat"
   )
+  val chunkTests = Seq(
+    jobId := RunAnalysisPipeline(chunkOpts),
+    WaitForSuccessfulJob(jobId),
+    job := GetJob(jobId),
+    dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
+    fail("Found at least one chunked file in services datastore") IF
+      dataStore.mapWith(ds => findChunkedDataStoreFiles(job.get, ds)) !=? 0
+  )
   // TODO SAT job?  this is problematic because of the added depenendencies;
   // we need to check for pbalign and GenomicConsensus first
-  override val steps = setupSteps ++ diagnosticJobTests ++ miscTests
+  override val steps = setupSteps ++ diagnosticJobTests ++ miscTests ++ chunkTests
 }
