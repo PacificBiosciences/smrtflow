@@ -36,6 +36,7 @@ trait ExportUtils {
     * @param basePath  directory from which this resource is being reference (i.e. directory of the current dataset)
     * @param destPath  base destination path in the zip file
     * @param archiveRoot  optional root directory for the entire export
+    * @return tuple of (newResourcePath, zipDestPath)
     */
   protected def relativizeResourcePath(
       resource: Path,
@@ -48,12 +49,23 @@ trait ExportUtils {
         // base path, we convert it to the corresponding relative path first
         val finalPath = basePath.relativize(resource)
         (finalPath, destPath.resolve(finalPath))
-      } else if (archiveRoot.isDefined && resource.startsWith(archiveRoot.get)) {
-        (basePath.relativize(resource),
-         archiveRoot.get.relativize(resource).normalize())
+      } else if (archiveRoot.isDefined) {
+        if (resource.startsWith(archiveRoot.get)) {
+          // not a subdirectory of the base path, but part of the same archival
+          // directory
+          (basePath.relativize(resource),
+           archiveRoot.get.relativize(resource).normalize())
+        } else {
+          val resourceDestPath = Paths.get(s"external-resources/${resource}")
+          val finalPath =
+            basePath
+              .relativize(archiveRoot.get.resolve(resourceDestPath))
+              .normalize()
+          (finalPath, resourceDestPath)
+        }
       } else {
-        val finalPath = Paths.get(s".${resource}")
-        (finalPath, destPath.resolve(finalPath).normalize())
+        val resourceDestPath = Paths.get(s"./${resource}")
+        (resourceDestPath, destPath.resolve(resourceDestPath).normalize())
       }
     } else {
       // FIXME what if the resource is relative and outside basePath?
@@ -91,8 +103,6 @@ trait ExportUtils {
   * Core zip export machinery, independent of input type
   */
 abstract class ExportBase(zipPath: Path) extends ExportUtils with LazyLogging {
-  // XXX note that because of this mutable tracking variable, this trait should
-  // always be used as a mixin for self-contained classes
   protected val haveFiles = mutable.Set.empty[String]
   protected val BUFFER_SIZE = 2048
 

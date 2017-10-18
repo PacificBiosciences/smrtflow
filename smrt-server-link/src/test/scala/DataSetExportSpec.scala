@@ -67,8 +67,9 @@ class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
                                        "/data/movie1",
                                        "movie1",
                                        Some("/data"))
-      resource5.toString must beEqualTo("./data2/barcodes/2.xml")
-      dest5.toString must beEqualTo("movie1/data2/barcodes/2.xml")
+      resource5.toString must beEqualTo(
+        "../external-resources/data2/barcodes/2.xml")
+      dest5.toString must beEqualTo("external-resources/data2/barcodes/2.xml")
       // absolute, archiveRoot includes path
       val (resource6, dest6) =
         toPaths("/data/jobs/1/tasks/task-1/subreads.bam",
