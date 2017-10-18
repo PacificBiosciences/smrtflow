@@ -16,6 +16,10 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+object EngineMultiJobManagerActor {
+  case class CheckForRunnableMultiJobWork(multiJobId: IdAble)
+}
+
 /**
   * Created by mkocher on 9/11/17.
   */
@@ -25,12 +29,13 @@ class EngineMultiJobManagerActor(dao: JobsDao,
     extends Actor
     with ActorLogging {
 
+  import EngineMultiJobManagerActor._
   import CommonModelImplicits._
 
   val runner = new ServiceMultiJobRunner(dao, config)
 
   //MK Probably want to have better model for this
-  val checkForWorkInterval = 5.seconds
+  val checkForWorkInterval = 30.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(
     5.seconds,
@@ -48,7 +53,7 @@ class EngineMultiJobManagerActor(dao: JobsDao,
       s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
-  def checkForWorkById(ix: IdAble) = {
+  def checkForWorkById(ix: IdAble): Unit = {
     dao
       .getMultiJobById(ix)
       .map(engineJob => runner.runWorkflow(engineJob))
@@ -63,13 +68,22 @@ class EngineMultiJobManagerActor(dao: JobsDao,
     dao
       .getNextRunnableEngineMultiJobs()
       .map(jobs => jobs.map(_.id))
-      .map(ids => ids.map(checkForWorkById(_)))
+      .foreach { ids =>
+        {
+          ids.foreach { ix =>
+            self ! CheckForRunnableMultiJobWork(ix)
+          }
+        }
+      }
   }
 
   override def receive: Receive = {
     case CheckForRunnableJob =>
       //log.info(s"$self Checking for MultiJob Work")
       checkForWork()
+
+    case CheckForRunnableMultiJobWork(multiJobId) =>
+      checkForWorkById(multiJobId)
 
     case x =>
       log.warning(s"Unsupported message $x to $self")
