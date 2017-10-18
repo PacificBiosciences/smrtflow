@@ -50,7 +50,7 @@ import spray.routing.directives.FileAndResourceDirectives
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -212,20 +212,32 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     ContentType(mediaType)
   }
 
+  //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up.
   private def resolveJobResource(fx: Future[EngineJob], id: String)(
       implicit ec: ExecutionContext): Future[HttpEntity] = {
-    fx.map { engineJob =>
-        JobResourceUtils.getJobResource(engineJob.path, id)
+    fx.flatMap { engineJob =>
+        // Any IO heavy operation within a Future needs to be
+        // wrapped in an explicit blocking {} call
+        Future {
+          blocking {
+            JobResourceUtils.getJobResource(engineJob.path, id)
+          }
+        }
       }
       .recover {
-        case NonFatal(e) => None
+        case NonFatal(_) => None
       }
       .flatMap {
         case Some(x) =>
           val mtype =
             if (id.endsWith(".png")) MediaTypes.`image/png`
             else MediaTypes.`text/plain`
-          Future { HttpEntity(ContentType(mtype), HttpData(new File(x))) }
+          Future {
+            blocking {
+              // MK. It's not completely clear if this blocking wrapping is necessary
+              HttpEntity(ContentType(mtype), HttpData(new File(x)))
+            }
+          }
         case None =>
           Future.failed(
             throw new ResourceNotFoundError(
