@@ -14,12 +14,16 @@ SMRT_PIPELINE_BUNDLE_DIR=$(readlink -f repos/pbpipeline-resources)
 export SMRT_PIPELINE_BUNDLE_DIR="${SMRT_PIPELINE_BUNDLE_DIR}"
 
 source /mnt/software/Modules/current/init/bash
-module load jdk/1.8.0_71 sbt postgresql
+module load jdk/1.8.0_144 sbt postgresql
 
 ROOT_REPOS="${SMRTFLOW_ROOT_DIR}/repos"
 
-# MK. It's not clear to me why this is explicitly being set.
+PSQL_LOG="${SMRTFLOW_ROOT_DIR}/postgresql.log"
+
+# We currently have a pretty poor model for cleaning up tmp files within the scala code
+# set this globablly so all tests will run with this configuration
 TDIR="$(pwd)/tmp"
+export TMP="${TDIR}"
 
 # Cleanup from any previous build (if exists)
 rm -rf "$TDIR"
@@ -29,11 +33,14 @@ mkdir "$TDIR"
 # Validate JSON files within the root directory. Note any dirs that are added to the root will be processed.
 make jsontest
 
-# postgres initialization
+# cleanup from previous run if necessary
 rm -rf "$PGDATA" && mkdir -p "$PGDATA"
+rm -rf "${PSQL_LOG}"
+
+# postgres initialization
 initdb
 perl -pi.orig -e "s/#port\s*=\s*(\d+)/port = $PGPORT/" "$PGDATA/postgresql.conf"
-pg_ctl -w -l "$PGDATA/postgresql.log" start
+pg_ctl -w -l "${PSQL_LOG}" start
 createdb smrtlinkdb
 psql -d smrtlinkdb < "${SMRTFLOW_ROOT_DIR}/extras/db-init.sql"
 psql -d smrtlinkdb < "${SMRTFLOW_ROOT_DIR}/extras/test-db-init.sql"
@@ -41,7 +48,7 @@ export SMRTFLOW_DB_PORT=$PGPORT
 export SMRTFLOW_TEST_DB_PORT=$PGPORT
 
 # MK. Disabling nexus publishing. I don't believe we're using the artifacts anywhere. Add "publish" here to push to nexus.
-env TMP="$TDIR" sbt -no-colors compile scalafmt::test test
+sbt -no-colors compile scalafmt::test test
 
 #https://github.com/conda/conda/issues/3200 This appears to be fixed in 4.4.0
 set +o nounset
