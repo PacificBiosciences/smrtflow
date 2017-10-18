@@ -118,12 +118,12 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
   def getProjectIds(projectId: Option[Int],
                     user: Option[UserRecord]): Future[Seq[Int]] =
     (projectId, user) match {
-      case (Some(id), _) => Future(Seq(id))
+      case (Some(id), _) => Future.successful(Seq(id))
       case (None, Some(u)) =>
         dao
           .getUserProjects(u.userId)
           .map(_.map(_.project.id) :+ GENERAL_PROJECT_ID)
-      case (None, None) => Future(Nil)
+      case (None, None) => Future.successful(Nil)
     }
 
   // Need to add boilerplate getters here to plug into the current model and adhere to the interface
