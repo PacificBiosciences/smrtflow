@@ -9,7 +9,10 @@ import com.pacbio.secondary.smrtlink.analysis.tools.{
   ToolSuccess
 }
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils}
+import com.pacbio.secondary.smrtlink.database.{
+  SmrtLinkDatabaseConfig,
+  DatabaseUtils
+}
 import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
@@ -112,20 +115,20 @@ object DatabaseTool
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
   }
 
-  def runStatus(dbConfig: DatabaseConfig): DatabaseConfig = {
+  def runStatus(dbConfig: SmrtLinkDatabaseConfig): SmrtLinkDatabaseConfig = {
     println(s"Attempting to connect to db with $dbConfig")
     val message = TestConnection(dbConfig.toDataSource)
     println(message)
     dbConfig
   }
 
-  def runMigrate(dbConfig: DatabaseConfig): Unit = {
+  def runMigrate(dbConfig: SmrtLinkDatabaseConfig): Unit = {
     val result = Migrator(dbConfig.toDataSource)
     println(s"Number of successfully applied migrations $result")
     runSummary(dbConfig)
   }
 
-  def runSummary(dbConfig: DatabaseConfig): Unit = {
+  def runSummary(dbConfig: SmrtLinkDatabaseConfig): Unit = {
     //FIXME(mpkocher)(2016-12-13) Requiring the JobsDao to have the jobResolver is not awesome
     val jobResolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
@@ -147,7 +150,11 @@ object DatabaseTool
   def run(c: DatabaseToolOptions): Either[ToolFailure, ToolSuccess] = {
 
     val dbConfig =
-      DatabaseConfig(c.dbName, c.username, c.password, c.server, c.port)
+      SmrtLinkDatabaseConfig(c.dbName,
+                             c.username,
+                             c.password,
+                             c.server,
+                             c.port)
     val startedAt = JodaDateTime.now()
     val runStatusMigrate = runStatus _ andThen runMigrate
     val runStatusSummary = runStatus _ andThen runSummary

@@ -2,7 +2,7 @@ package db.migration
 
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 
 import scala.concurrent.Future

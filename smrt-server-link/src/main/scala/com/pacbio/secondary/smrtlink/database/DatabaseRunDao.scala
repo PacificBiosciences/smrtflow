@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.control.NonFatal

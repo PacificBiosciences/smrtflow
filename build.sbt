@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.9.0-SNAPSHOT"
+version in ThisBuild := "0.10.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -61,7 +61,7 @@ val akkaV = "2.3.6"
 
 val sprayV = "1.3.3"
 
-val slickV = "3.1.1"
+val slickV = "3.2.1"
 
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
@@ -117,7 +117,7 @@ lazy val baseSettings = Seq(
   "joda-time" % "joda-time" % "2.4",
   "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
   "org.apache.avro" % "avro" % "1.8.0",
-  "org.apache.commons" % "commons-dbcp2" % "2.0.1",
+  "org.apache.commons" % "commons-dbcp2" % "2.1.1",
   "org.eclipse.persistence" % "eclipselink" % "2.6.0",
   "org.eclipse.persistence" % "org.eclipse.persistence.moxy" % "2.6.0",
   "org.flywaydb" % "flyway-core" % "4.0.3",
@@ -127,7 +127,7 @@ lazy val baseSettings = Seq(
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
   "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test,it",
-  "org.postgresql" % "postgresql" % "9.4.1212",
+  "org.postgresql" % "postgresql" % "42.1.4",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",

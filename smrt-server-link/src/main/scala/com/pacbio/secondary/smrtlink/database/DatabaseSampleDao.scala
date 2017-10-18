@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.models._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 class DatabaseSampleDao(db: Database, clock: Clock) extends SampleDao {
 

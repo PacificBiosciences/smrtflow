@@ -29,7 +29,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 trait SetupMockData extends MockUtils with InitializeTables {
 

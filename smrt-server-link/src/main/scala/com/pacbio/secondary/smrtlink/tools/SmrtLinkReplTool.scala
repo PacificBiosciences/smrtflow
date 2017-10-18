@@ -24,7 +24,7 @@ trait SmrtLinkReplTool {
                  |
                  |println("Import SL core models, SL Client and DataSet loading utils")
                  |
-                 |import slick.driver.PostgresDriver.api._
+                 |import slick.jdbc.PostgresProfile.api._
                  |
                  |import com.pacbio.secondary.smrtlink.models._
                  |import com.pacbio.common.models.CommonModelImplicits._

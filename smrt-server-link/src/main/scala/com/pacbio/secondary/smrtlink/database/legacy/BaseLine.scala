@@ -4,7 +4,7 @@ import java.util.UUID
 import java.nio.file.{Path, Paths}
 
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 // This is a potential problem
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat

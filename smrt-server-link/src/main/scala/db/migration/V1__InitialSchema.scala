@@ -3,7 +3,9 @@ package db.migration
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
+import slick.jdbc.PostgresProfile.api._
+
 import slick.jdbc.JdbcBackend.DatabaseDef
 
 import com.pacbio.secondary.smrtlink.database.legacy.BaseLine
