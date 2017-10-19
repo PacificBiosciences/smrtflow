@@ -18,7 +18,7 @@
                     <username>${DB_USER}</username>
                     <password>${DB_PASS}</password>
                     <driverClassName>org.postgresql.Driver</driverClassName>
-                    <maxActive>50</maxActive>
+                    <maxActive>25</maxActive>
                     <maxWait>60000</maxWait>
                     <testOnBorrow>true</testOnBorrow>
                     <validationQuery>SELECT 1</validationQuery>
@@ -41,7 +41,7 @@
                     <password>${DB_PASS}</password>
                     <defaultAutoCommit>false</defaultAutoCommit>
                     <driverClassName>org.postgresql.Driver</driverClassName>
-                    <maxActive>50</maxActive>
+                    <maxActive>25</maxActive>
                     <maxWait>60000</maxWait>
                     <testOnBorrow>true</testOnBorrow>
                     <validationQuery>SELECT 1</validationQuery>
@@ -85,7 +85,7 @@
                     <username>${DB_USER}</username>
                     <password>${DB_PASS}</password>
                     <driverClassName>org.postgresql.Driver</driverClassName>
-                    <maxActive>50</maxActive>
+                    <maxActive>25</maxActive>
                     <maxWait>60000</maxWait>
                     <testOnBorrow>true</testOnBorrow>
                     <validationQuery>SELECT 1</validationQuery>

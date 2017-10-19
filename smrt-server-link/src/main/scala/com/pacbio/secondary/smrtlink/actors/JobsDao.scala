@@ -32,7 +32,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, blocking}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import slick.sql.FixedSqlAction
@@ -1524,22 +1524,41 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       files: Seq[DataStoreFile],
       jobId: UUID,
       projectId: Option[Int] = None): Future[Seq[MessageResponse]] = {
+
+    val importPrefix = "Attempting to import"
+    val successPrefix = "Successfully imported"
+
+    def toMessage(prefix: String, ix: Int): String = {
+      files match {
+        case item :: Nil =>
+          s"$prefix datastore for job $ix file type:${item.fileTypeId} uuid:${item.uniqueId} ${item.path}"
+        case _ =>
+          s"$prefix datastore files for job $ix ${files.length} files"
+      }
+    }
+
+    // Note, Due to the IO heavy nature, this needs to be wrapped in an explicit blocking
+    // operation to be used within a Future
+    def loadServiceFiles[T >: ImportAbleServiceFile](
+        serviceFiles: Seq[DataStoreServiceFile],
+        createdBy: Option[String],
+        projectId: Int): Future[Seq[T]] = Future {
+      blocking {
+        serviceFiles.map(dsf =>
+          loadImportAbleFile(DsServiceJobFile(dsf, createdBy, projectId)))
+      }
+    }
+
     for {
       job <- getJobById(jobId)
       serviceFiles <- Future.successful(files.map(f =>
         toDataStoreServiceFile(f, job.id, job.uuid, isActive = true)))
-      _ <- andLog(
-        s"Attempting to import datastore ${serviceFiles.length} files for job ${job.id}")
-      importAbleFiles <- Future.successful(
-        serviceFiles.map(
-          dsf =>
-            loadImportAbleFile(
-              DsServiceJobFile(dsf,
-                               job.createdBy,
-                               projectId.getOrElse(job.projectId)))))
+      _ <- andLog(toMessage(importPrefix, job.id))
+      importAbleFiles <- loadServiceFiles(serviceFiles,
+                                          job.createdBy,
+                                          projectId.getOrElse(job.projectId))
       messages <- Future.sequence(importAbleFiles.map(importImportAbleFile))
-      _ <- andLog(
-        s"Successfully import datastore with import-able (${importAbleFiles.length} files) for job ${job.id}")
+      _ <- andLog(toMessage(successPrefix, job.id))
     } yield messages
   }
 
