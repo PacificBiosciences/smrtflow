@@ -355,7 +355,7 @@ def db_init(dbc):
         f.write(dbc.password)
 
     _d = dict(g=dbc.pg_data_dir, u=dbc.user, t=t)
-    cmd = "initdb --pgdata {g} --username {u} --pwfile={t}".format(**_d)
+    cmd = "initdb --pgdata {g} --username {u} --pwfile={t} --encoding=UTF-8 --locale=en_US.UTF-8".format(**_d)
 
     rcode = _run_cmd_and_log(cmd)
 
@@ -397,7 +397,7 @@ def db_create(dbc, db_name):
     if not db_names:
         _d = dbc.to_fd()
         env = dbc.to_env()
-        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} {db_name}".format(db_name=db_name, **_d)
+        cmd = "createdb --no-password --echo --port={t} --host={h} --username={u} --encoding=UTF-8 --locale=en_US.UTF-8 {db_name}".format(db_name=db_name, **_d)
         rcode = _run_cmd_and_log(cmd, env=env)
     else:
         rcode = 0
