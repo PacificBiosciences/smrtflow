@@ -59,7 +59,7 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
   def andLogIfNonEmpty(sx: String, writer: JobResultsWriter) =
     if (sx.isEmpty) Future.successful(sx) else andLog(sx, writer)
 
-  def runner(engineJob: EngineJob): Future[MessageResponse] = {
+  private def runner(engineJob: EngineJob): Future[MessageResponse] = {
 
     val fx = for {
       (opts, writer, resources) <- Future.fromTry(

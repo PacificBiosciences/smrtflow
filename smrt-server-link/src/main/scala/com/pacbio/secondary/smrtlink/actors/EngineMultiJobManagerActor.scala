@@ -86,7 +86,7 @@ class EngineMultiJobManagerActor(dao: JobsDao,
         log.debug(s"${tail.length} MultiJobs remaining to check for updates")
         dao
           .getMultiJobById(item)
-          .map(engineJob => runner.runner(engineJob))
+          .map(engineJob => runner.runWorkflow(engineJob))
           .andThen { case _ => self ! CheckForWorkSequentially(tail) }
 
     }
