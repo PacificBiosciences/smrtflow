@@ -32,7 +32,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, blocking}
+import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import slick.sql.FixedSqlAction
@@ -139,11 +139,11 @@ trait DaoFutureUtils {
   }
 
   def runFuturesSequentially[T, U](items: TraversableOnce[T])(
-      fx: T => Future[U]): Future[List[U]] = {
+      fx: T => Future[U])(implicit ec: ExecutionContext): Future[List[U]] = {
     items.foldLeft(Future.successful[List[U]](Nil)) { (f, item) =>
       f.flatMap { x =>
         fx(item).map(_ :: x)
-      }
+      }(ec)
     } map (_.reverse)
   }
 }
