@@ -117,27 +117,25 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     *
     *
     */
-  private def runJob(dao: JobsDao,
-                     job: DeferredJob,
-                     jobId: Option[Int],
-                     parentJobId: Int,
-                     user: Option[String],
-                     smrtLinkVersion: Option[String],
-                     writer: JobResultsWriter): Future[EngineJob] = {
+  private def createJobIfResolvableEntryPoints(
+      dao: JobsDao,
+      job: DeferredJob,
+      parentJobId: Int,
+      user: Option[String],
+      smrtLinkVersion: Option[String],
+      writer: JobResultsWriter): Future[EngineJob] = {
+
     for {
       resolvedEntryPoints <- resolveEntryPoints(dao, job.entryPoints)
       engineJobEntryPoints <- Future.successful(resolvedEntryPoints.map(f =>
         BoundServiceEntryPoint(f._1.entryId, f._1.fileTypeId, f._2.uuid)))
-      engineJob <- jobId
-        .map(i => dao.getJobById(i))
-        .getOrElse(
-          createPbsmrtpipeJob(dao,
-                              engineJobEntryPoints,
-                              job,
-                              parentJobId,
-                              user,
-                              smrtLinkVersion,
-                              writer))
+      engineJob <- createPbsmrtpipeJob(dao,
+                                       engineJobEntryPoints,
+                                       job,
+                                       parentJobId,
+                                       user,
+                                       smrtLinkVersion,
+                                       writer)
     } yield engineJob
   }
 
@@ -258,17 +256,29 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
     val noJobId: Option[Int] = None
 
+
+    /**
+      * Responsible for creating the Job if the job id isn't already assigned and if
+      * the deferred entry points are resolvable.
+      *
+      */
     def runner(xs: (DeferredJob, Option[Int])): Future[Option[Int]] = {
-      val (deferredJob, jobId) = xs
-      runJob(dao,
-             deferredJob,
-             jobId,
-             engineJob.id,
-             engineJob.createdBy,
-             config.smrtLinkVersion,
-             resultsWriter)
-        .map(createdJob => Some(createdJob.id))
-        .recoverWith { case _ => Future.successful(noJobId) }
+      val (deferredJob, jobIdOpt) = xs
+
+      val createOrNull =
+        createJobIfResolvableEntryPoints(dao,
+                                         deferredJob,
+                                         engineJob.id,
+                                         engineJob.createdBy,
+                                         config.smrtLinkVersion,
+                                         resultsWriter)
+          .map(job => Some(job.id))
+          .recoverWith { case _ => Future.successful(noJobId) }
+
+      // Skip any db lookups
+      jobIdOpt
+        .map(jobId => Future.successful(Some(jobId)))
+        .getOrElse(createOrNull)
     }
 
     /**
