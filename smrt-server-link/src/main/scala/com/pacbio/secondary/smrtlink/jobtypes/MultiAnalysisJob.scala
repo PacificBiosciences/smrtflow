@@ -305,12 +305,13 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         sx: Seq[(Option[Int], Option[AnalysisJobStates.JobStates])]): String =
       sx.map {
           case (Some(i), Some(j)) => s"$i:$j"
-          case _ => ""
+          case _ => "" // If the Job has an Id, then it has a State.
         }
         .reduceLeftOption(_ + " " + _)
         .getOrElse("Children Jobs not created yet")
 
-    for {
+    // From Scratch case
+    val f1 = for {
       updatedJobIds <- runFuturesSequentially(items)(runner)
       _ <- andJobLog(s"Job Ids $updatedJobIds")
       updatedWorkflow <- Future.successful(
@@ -322,5 +323,25 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         determineMultiJobState(jobStates.flatten, engineJob.state))
       msg <- updateIfNecessary(multiJobState, updatedWorkflow)
     } yield msg
+
+    // Use case where all the jobs have already been created. Here we can skip the overhead by
+    // getting all the job states in a single call.
+    // The workflow state only captures the jobIds created, hence, it should NEVER need to be updated here.
+    val fcached = for {
+      jobsIdStates <- dao
+        .getMultiJobChildren(engineJob.id)
+        .map(items => items.map(j => (j.id, j.state)))
+      updatedMultiJobState <- Future.successful(
+        determineMultiJobState(jobsIdStates.map(_._2), engineJob.state))
+      _ <- andLog(s"Got MultiJob Child Job Summary (id:state) ${summary(
+        jobsIdStates.map(x => (Some(x._1), Some(x._2))))}")
+      msg <- updateIfNecessary(updatedMultiJobState, workflow)
+    } yield msg
+
+    if (workflow.jobIds.length == opts.jobs.length) {
+      fcached
+    } else {
+      f1
+    }
   }
 }
