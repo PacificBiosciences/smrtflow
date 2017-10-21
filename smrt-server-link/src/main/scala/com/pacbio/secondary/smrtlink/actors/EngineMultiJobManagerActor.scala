@@ -2,7 +2,7 @@ package com.pacbio.secondary.smrtlink.actors
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.pacbio.common.models.CommonModelImplicits
-import com.pacbio.common.models.CommonModels.IdAble
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
@@ -18,6 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object EngineMultiJobManagerActor {
   case class CheckForRunnableMultiJobWork(multiJobId: IdAble)
+  case class CheckForWorkSequentially(multiJobIds: List[Int])
 }
 
 /**
@@ -64,17 +65,31 @@ class EngineMultiJobManagerActor(dao: JobsDao,
       }
   }
 
+  def checkForWorkByIntId(id: Int): Unit = checkForWorkById(IntIdAble(id))
+
   def checkForWork(): Unit = {
-    dao
-      .getNextRunnableEngineMultiJobs()
-      .map(jobs => jobs.map(_.id))
-      .foreach { ids =>
-        {
-          ids.foreach { ix =>
-            self ! CheckForRunnableMultiJobWork(ix)
-          }
-        }
-      }
+    dao.getNextRunnableEngineMultiJobs().foreach { jobs =>
+      self ! CheckForWorkSequentially(jobs.map(_.id).toList)
+    }
+  }
+
+  /**
+    * Run this sequentially to throttle db usage
+    *
+    * @param jobIds List of MultiJobIds
+    */
+  def sequentiallyCheckForAllWork(jobIds: List[Int]): Unit = {
+    jobIds match {
+      case Nil => log.debug("No multi-jobs found to update")
+      case item :: Nil => self ! CheckForRunnableMultiJobWork(item)
+      case item :: tail =>
+        log.debug(s"${tail.length} MultiJobs remaining to check for updates")
+        dao
+          .getMultiJobById(item)
+          .map(engineJob => runner.runner(engineJob))
+          .andThen { case _ => self ! CheckForWorkSequentially(tail) }
+
+    }
   }
 
   override def receive: Receive = {
@@ -84,6 +99,9 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
     case CheckForRunnableMultiJobWork(multiJobId) =>
       checkForWorkById(multiJobId)
+
+    case CheckForWorkSequentially(multiJobIds) =>
+      sequentiallyCheckForAllWork(multiJobIds)
 
     case x =>
       log.warning(s"Unsupported message $x to $self")
