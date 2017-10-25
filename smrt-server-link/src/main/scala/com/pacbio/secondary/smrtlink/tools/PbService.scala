@@ -1181,6 +1181,20 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     else toJobSummary(job)
   }
 
+  private def jobFailure(job: EngineJob) = {
+    logger.error(s"Job ${job.id} failed!")
+    Future.failed(
+      new RuntimeException(s"Error running job: ${job.errorMessage}"))
+  }
+
+  def jobSummaryOrFailure(job: EngineJob, asJson: Boolean): Future[String] = {
+    if (!job.isSuccessful) {
+      jobFailure(job)
+    } else {
+      Future.successful(jobSummary(job, asJson))
+    }
+  }
+
   def engineDriver(job: EngineJob,
                    maxTime: Option[FiniteDuration]): Future[EngineJob] = {
     // This is blocking polling call is wrapped in a Future
@@ -1206,7 +1220,8 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     for {
       job <- sal.importDataSet(path, metatype)
       completedJob <- engineDriver(job, maxTimeOut)
-    } yield jobSummary(completedJob, asJson)
+      summary <- jobSummaryOrFailure(completedJob, asJson)
+    } yield summary
   }
 
   /**
@@ -1302,10 +1317,17 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     // Only when the maxTimeOut is provided will the job poll and complete. Then the dataset summary can
     // be displayed
     def generateSummary(job: EngineJob, dsUUID: UUID): Future[String] = {
-      maxTimeOut
-        .map(t =>
-          sal.getDataSet(dsUUID).map(m => importSummary(job, Some(m), asJson)))
-        .getOrElse(Future.successful(importSummary(job, None, asJson)))
+      if (job.isSuccessful) {
+        maxTimeOut
+          .map(
+            t =>
+              sal
+                .getDataSet(dsUUID)
+                .map(m => importSummary(job, Some(m), asJson)))
+          .getOrElse(Future.successful(importSummary(job, None, asJson)))
+      } else {
+        jobFailure(job)
+      }
     }
 
     for {

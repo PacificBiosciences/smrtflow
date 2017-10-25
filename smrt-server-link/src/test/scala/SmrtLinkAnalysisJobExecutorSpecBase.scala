@@ -36,7 +36,7 @@ import spray.httpx.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 abstract class SmrtLinkAnalysisJobExecutorSpecBase
     extends Specification

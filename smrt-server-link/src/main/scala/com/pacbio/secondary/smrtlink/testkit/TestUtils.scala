@@ -3,7 +3,10 @@ package com.pacbio.secondary.smrtlink.testkit
 import java.nio.file.{Files, Path}
 import java.sql.SQLException
 
-import com.pacbio.secondary.smrtlink.database.{DatabaseConfig, DatabaseUtils}
+import com.pacbio.secondary.smrtlink.database.{
+  SmrtLinkDatabaseConfig,
+  DatabaseUtils
+}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import resource._
@@ -27,36 +30,38 @@ trait TestUtils extends DatabaseUtils with LazyLogging {
     *
     * @param config Database configuration
     */
-  def setupDb(config: DatabaseConfig): Unit = {
+  def setupDb(config: SmrtLinkDatabaseConfig): Unit = {
     logger.info(s"Attempting setting up db $config with URI ${config.jdbcURI}")
-    for (db <- managed(config.toDatabase); ds <- managed(config.toDataSource)) {
-      val defaultTimeOut = 10.seconds
+    val db = config.toDatabase
+    val ds = config.toDataSource
+    val defaultTimeOut = 10.seconds
 
-      def ignoreWithMessage(
-          msg: String): PartialFunction[Throwable, Future[String]] = {
-        case ex: SQLException => Future { s"$msg ${ex.getMessage}" }
+    def ignoreWithMessage(
+        msg: String): PartialFunction[Throwable, Future[String]] = {
+      case ex: SQLException => Future.successful(s"$msg ${ex.getMessage}")
+    }
+
+    val runner = for {
+      m0 <- Future { TestConnection(ds) }
+      m1 <- dropTables(db).recoverWith(
+        ignoreWithMessage("Warning unable to drop smrtlink tables "))
+      m2 <- dropFlywayTable(db).recoverWith(
+        ignoreWithMessage("Warning unable to delete flyway table "))
+      m3 <- Future { Migrator(ds) }.map(n =>
+        s"Successfully ran $n migration(s)")
+    } yield
+      Seq(m0, m1, m2, m3).reduce { (acc, v) =>
+        s"$acc.\n$v"
       }
 
-      val runner = for {
-        m0 <- Future { TestConnection(ds) }
-        m1 <- dropTables(db).recoverWith(
-          ignoreWithMessage("Warning unable to drop smrtlink tables "))
-        m2 <- dropFlywayTable(db).recoverWith(
-          ignoreWithMessage("Warning unable to delete flyway table "))
-        m3 <- Future { Migrator(ds) }.map(n =>
-          s"Successfully ran $n migration(s)")
-      } yield
-        Seq(m0, m1, m2, m3).reduce { (acc, v) =>
-          s"$acc.\n$v"
-        }
+    val fx = runner andThen { case _ => db.close() }
 
-      val results = Await.result(runner, defaultTimeOut)
-      println(results)
-    }
+    val results = Await.result(fx, defaultTimeOut)
+    println(results)
     logger.info(s"Setting up db $config")
   }
 
-  def tearDownDb(config: DatabaseConfig): Unit = {
+  def tearDownDb(config: SmrtLinkDatabaseConfig): Unit = {
     logger.info("Tearing ")
   }
 

@@ -119,8 +119,12 @@ class JobExporter(job: EngineJob, zipPath: Path)
         exportFile(path, basePath)
       }
     } else if (f.isDirectory) {
-      logger.info(s"Exporting subdirectory ${path.toString}...")
-      f.listFiles.map(fn => exportPath(fn.toPath, basePath)).sum
+      if (path.toString.endsWith("/entry-points")) {
+        logger.warn(s"Skipping entry points in ${path.toString}"); 0L
+      } else {
+        logger.info(s"Exporting subdirectory ${path.toString}...")
+        f.listFiles.map(fn => exportPath(fn.toPath, basePath)).sum
+      }
     } else {
       logger.warn(s"Skipping ${path.toString}"); 0L
     }

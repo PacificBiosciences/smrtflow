@@ -27,7 +27,7 @@ import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration.FiniteDuration
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 class SecondaryJobSpec
     extends Specification

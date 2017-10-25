@@ -5413,8 +5413,13 @@
         },
         "updatedAt": {
           "type": "string",
-          "title": "UpdatedAt schema.",
+          "title": "Updated At",
           "description": "Datetime of when the job was last updated."
+        },
+        "importedAt": {
+          "type": ["null", "string"],
+          "title": "Imported At",
+          "description": "Imported Date of the Job (if job was imported, otherwise will be null)"
         },
         "path": {
           "type": "string",
@@ -5430,14 +5435,6 @@
           "type": "string",
           "title": "UUID",
           "description": "Globally UUID unique identifier for the job"
-        },
-        "smrtlinkToolsVersion": {
-          "type": [
-            "null",
-            "string"
-          ],
-          "title": "SMRT Link Tools Version",
-          "description": "SMRT Link Tools Version"
         },
         "jobTypeId": {
           "type": "string",
@@ -5455,7 +5452,7 @@
             "string"
           ],
           "title": "SMRT Link System Version",
-          "description": "SMRT Link System Version used to run the SMRT Link job"
+          "description": "SMRT Link System Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
         },
         "comment": {
           "type": "string",
@@ -5480,10 +5477,52 @@
           "title": "CreatedBy",
           "description": "User that created the SMRT Link job"
         },
+        "createdByEmail": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "Created By Email",
+          "description": "Email of the User that created the SMRT Link job"
+        },
         "jsonSettings": {
           "type": "string",
           "title": "Input Settings of Job",
           "description": "Input setting of the Job as JSON String. Each job type (e.g., pbsmrtpipe, merge-dataset) will contain a different schema."
+        },
+        "errorMessage": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "Error Message",
+          "description": "Summary Error message of the job if in a FAILED state"
+        },
+        "projectId": {
+          "type": "integer",
+          "title": "Project Id",
+          "description": "Project Id the job is assigned to. Project Id=1 is the 'General Project' accessible by all users"
+        },
+        "isMultiJob": {
+          "default": false,
+          "type": "boolean",
+          "title": "Is MultiJob",
+          "description": "If the Job is a MultiJob type"
+        },
+        "parentMultiJobId": {
+          "default": null,
+          "type": [
+            "null",
+            "integer"
+          ],
+          "title": "Parent MultiJob Id",
+          "description": "If a 'core' job and is assigned to a MultiJob, this is the parent Multi-Job Id"
+        },
+        "workflow": {
+          "default": "{}",
+          "type": "string",
+          "title": "MultiJob Workflow State",
+          "description": "If a MultiJOb, this is the workflow state of the MultiJob that is persisted"
         }
       },
       "required": [

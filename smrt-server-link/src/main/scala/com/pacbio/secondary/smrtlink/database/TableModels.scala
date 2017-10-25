@@ -17,7 +17,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 }
 import org.joda.time.{DateTime => JodaDateTime}
 
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
 

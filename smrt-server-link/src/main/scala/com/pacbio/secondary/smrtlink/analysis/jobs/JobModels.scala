@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 import java.net.URL
 
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
@@ -107,6 +108,8 @@ object JobModels {
     // Default Output job files
     val JOB_STDERR = "pbscala-job.stderr"
     val JOB_STDOUT = "pbscala-job.stdout"
+
+    val OUTPUT_DATASTORE_JSON = "datastore.json"
 
     // This is the DataStore File "master" log. The fundamental log file for the
     // job should be stored here and added to the datastore for downstream consumers
@@ -574,6 +577,24 @@ object JobModels {
     )
   }
 
+  object DataStoreFile {
+    def fromMaster(path: Path): DataStoreFile = {
+      val now = JodaDateTime.now()
+      DataStoreFile(
+        UUID.randomUUID(),
+        JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
+        FileTypes.LOG.fileTypeId,
+        0L,
+        now,
+        now,
+        path.toString,
+        isChunked = false,
+        "Job Master Log",
+        "Job Stdout/Log"
+      )
+    }
+  }
+
   // Container for file created from a Job.
   // MK. What is the purpose of this container?
   case class DataStoreJobFile(jobId: UUID, dataStoreFile: DataStoreFile)
@@ -601,6 +622,16 @@ object JobModels {
       * Convert all file paths to be relative to a base directory path
       */
     def relativize(base: Path) = copy(files = files.map(_.relativize(base)))
+  }
+
+  object PacBioDataStore {
+
+    val SCHEMA_VERSION = "0.2.0"
+
+    def fromFiles(files: Seq[DataStoreFile]): PacBioDataStore = {
+      val now = JodaDateTime.now()
+      PacBioDataStore(now, now, SCHEMA_VERSION, files)
+    }
   }
 
   // Should think about making this a Path

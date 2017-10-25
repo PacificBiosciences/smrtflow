@@ -17,7 +17,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetJsonUtils,
   DataSetLoader
 }
-import CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
@@ -33,26 +32,30 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, blocking}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
-import slick.driver.PostgresDriver.api._
+import slick.sql.FixedSqlAction
+import slick.jdbc.PostgresProfile.api._
 import java.sql.SQLException
 
 import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.actors.EventManagerActor.UploadTgz
-import com.pacbio.secondary.smrtlink.database.DatabaseConfig
+import com.pacbio.secondary.smrtlink.database.{
+  SmrtLinkDatabaseConfig => SmrtLinkDbConfig
+}
 import com.pacificbiosciences.pacbiodatasets._
 import org.postgresql.util.PSQLException
 import spray.json.JsObject
 
 trait DalProvider {
   val db: Singleton[Database]
-  val dbConfig: DatabaseConfig
+  val dbConfig: SmrtLinkDbConfig
   // this is duplicated for the cake vs provider model
-  val dbConfigSingleton: Singleton[DatabaseConfig] = Singleton(() => dbConfig)
+  val dbConfigSingleton: Singleton[SmrtLinkDbConfig] = Singleton(
+    () => dbConfig)
 }
 
 trait DbConfigLoader extends ConfigLoader {
@@ -66,7 +69,7 @@ trait DbConfigLoader extends ConfigLoader {
     * too much of a problem.
     *
     */
-  lazy final val dbConfig: DatabaseConfig = {
+  lazy final val dbConfig: SmrtLinkDbConfig = {
     val dbName = conf.getString("smrtflow.db.properties.databaseName")
     val user = conf.getString("smrtflow.db.properties.user")
     val password = conf.getString("smrtflow.db.properties.password")
@@ -74,7 +77,7 @@ trait DbConfigLoader extends ConfigLoader {
     val server = conf.getString("smrtflow.db.properties.serverName")
     val maxConnections = conf.getInt("smrtflow.db.numThreads")
 
-    DatabaseConfig(dbName, user, password, server, port, maxConnections)
+    SmrtLinkDbConfig(dbName, user, password, server, port, maxConnections)
   }
 }
 
@@ -92,7 +95,7 @@ trait SmrtLinkTestDalProvider extends DalProvider with ConfigLoader {
     *
     * See comments above about duplication.
     */
-  lazy final val dbConfig: DatabaseConfig = {
+  lazy final val dbConfig: SmrtLinkDbConfig = {
     val dbName = conf.getString("smrtflow.test-db.properties.databaseName")
     val user = conf.getString("smrtflow.test-db.properties.user")
     val password = conf.getString("smrtflow.test-db.properties.password")
@@ -100,7 +103,7 @@ trait SmrtLinkTestDalProvider extends DalProvider with ConfigLoader {
     val server = conf.getString("smrtflow.test-db.properties.serverName")
     val maxConnections = conf.getInt("smrtflow.test-db.numThreads")
 
-    DatabaseConfig(dbName, user, password, server, port, maxConnections)
+    SmrtLinkDbConfig(dbName, user, password, server, port, maxConnections)
   }
 
   override val db: Singleton[Database] = Singleton(() => {
@@ -1251,9 +1254,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
             s"Successfully imported DSF ${ds.uuid} type:${ds.fileTypeId}"))
   }
 
-  type U = slick.profile.FixedSqlAction[Int,
-                                        slick.dbio.NoStream,
-                                        slick.dbio.Effect.Write]
+  type U = FixedSqlAction[Int, slick.dbio.NoStream, slick.dbio.Effect.Write]
 
   private def insertSubreadSetRecord(dsId: Int, ds: SubreadServiceDataSet)
     : DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
@@ -1523,22 +1524,41 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       files: Seq[DataStoreFile],
       jobId: UUID,
       projectId: Option[Int] = None): Future[Seq[MessageResponse]] = {
+
+    val importPrefix = "Attempting to import"
+    val successPrefix = "Successfully imported"
+
+    def toMessage(prefix: String, ix: Int): String = {
+      files match {
+        case item :: Nil =>
+          s"$prefix datastore for job $ix file type:${item.fileTypeId} uuid:${item.uniqueId} ${item.path}"
+        case _ =>
+          s"$prefix datastore files for job $ix ${files.length} files"
+      }
+    }
+
+    // Note, Due to the IO heavy nature, this needs to be wrapped in an explicit blocking
+    // operation to be used within a Future
+    def loadServiceFiles[T >: ImportAbleServiceFile](
+        serviceFiles: Seq[DataStoreServiceFile],
+        createdBy: Option[String],
+        projectId: Int): Future[Seq[T]] = Future {
+      blocking {
+        serviceFiles.map(dsf =>
+          loadImportAbleFile(DsServiceJobFile(dsf, createdBy, projectId)))
+      }
+    }
+
     for {
       job <- getJobById(jobId)
       serviceFiles <- Future.successful(files.map(f =>
         toDataStoreServiceFile(f, job.id, job.uuid, isActive = true)))
-      _ <- andLog(
-        s"Attempting to import datastore ${serviceFiles.length} files for job ${job.id}")
-      importAbleFiles <- Future.successful(
-        serviceFiles.map(
-          dsf =>
-            loadImportAbleFile(
-              DsServiceJobFile(dsf,
-                               job.createdBy,
-                               projectId.getOrElse(job.projectId)))))
+      _ <- andLog(toMessage(importPrefix, job.id))
+      importAbleFiles <- loadServiceFiles(serviceFiles,
+                                          job.createdBy,
+                                          projectId.getOrElse(job.projectId))
       messages <- Future.sequence(importAbleFiles.map(importImportAbleFile))
-      _ <- andLog(
-        s"Successfully import datastore with import-able (${importAbleFiles.length} files) for job ${job.id}")
+      _ <- andLog(toMessage(successPrefix, job.id))
     } yield messages
   }
 

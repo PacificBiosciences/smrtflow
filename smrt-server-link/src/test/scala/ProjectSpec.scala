@@ -44,7 +44,7 @@ import spray.routing.{
   AuthorizationFailedRejection
 }
 import spray.testkit.Specs2RouteTest
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

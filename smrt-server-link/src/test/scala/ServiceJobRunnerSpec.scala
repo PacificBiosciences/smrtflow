@@ -24,7 +24,7 @@ import com.pacbio.secondary.smrtlink.models.ReferenceServiceDataSet
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -57,7 +57,8 @@ class ServiceJobRunnerSpec
     dbConfig = TestProviders.dbConfig,
     wso2Port = 8234,
     mail = None,
-    rootDbBackUp = None
+    rootDbBackUp = None,
+    eveApiSecret = "test-key"
   )
 
   val serviceJobRunner = new ServiceJobRunner(dao, config)

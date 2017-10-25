@@ -550,7 +550,7 @@ trait EventServerCakeProvider
 
   implicit val timeout = Timeout(30.seconds)
 
-  lazy val startupTimeOut = 10.seconds
+  lazy val startupTimeOut = 30.seconds
   lazy val eventServiceClient = new EventServerClient(eveUrl, apiSecret)
 
   // Mocked out. Fail the future if any invalid option is detected

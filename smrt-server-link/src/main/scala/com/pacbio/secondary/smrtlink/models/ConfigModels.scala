@@ -5,7 +5,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
-import com.pacbio.secondary.smrtlink.database.DatabaseConfig
+import com.pacbio.secondary.smrtlink.database.SmrtLinkDatabaseConfig
 import spray.json._
 
 /**
@@ -78,9 +78,10 @@ object ConfigModels {
                              numQuickWorkers: Int = DEFAULT_MAX_QUICK_WORKERS,
                              externalEveUrl: Option[URL],
                              rootDbBackUp: Option[Path],
-                             dbConfig: DatabaseConfig,
+                             dbConfig: SmrtLinkDatabaseConfig,
                              mail: Option[MailConfig],
-                             wso2Port: Int) {
+                             wso2Port: Int,
+                             eveApiSecret: String) {
 
     // Attempting to centralize this
     // This might require clarification of how dnsName is set, the

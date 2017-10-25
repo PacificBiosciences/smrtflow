@@ -17,8 +17,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 }
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-import slick.driver.PostgresDriver
-import slick.driver.PostgresDriver.api._
+import slick.jdbc.PostgresProfile
+import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.meta.MTable
 import spray.testkit.Specs2RouteTest
 import org.joda.time.{DateTime => JodaDateTime}
@@ -423,7 +423,7 @@ class DatabaseSpec
             val modelColInfo = modelTable.create_*
               .map(
                 col =>
-                  PostgresDriver.JdbcType.unapply(col.tpe) match {
+                  PostgresProfile.JdbcType.unapply(col.tpe) match {
                     case Some((jt, isOption)) =>
                       (col.name.toLowerCase(),
                        mapType(jt.sqlType),
