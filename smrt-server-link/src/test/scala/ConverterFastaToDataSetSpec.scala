@@ -1,9 +1,11 @@
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Path, Paths, Files}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.converters.FastaToReferenceConverter
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
+import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateReferenceSet
 import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 
@@ -35,7 +37,6 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
     val tmpFasta = outputDir.resolve("example.fasta")
     Files.copy(path, tmpFasta)
     logger.info(s"Writing Reference Dataset to $outputDir")
-    val referenceName = "Dragon"
     val ploidy = Option("Haploid")
     val organism = Option("Lambda")
     FastaToReferenceConverter(referenceName,
@@ -45,14 +46,27 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
                               outputDir).right.get
   }
 
+  private def validateReference(path: Path) = {
+    val ref = DataSetLoader.loadAndResolveReferenceSet(path)
+    println(path)
+    ValidateReferenceSet.validator(ref).isSuccess must beTrue
+  }
+
   "Convert Fasta to Reference Dataset XML" should {
     "Sanity test" in {
       val x = runFastaToReference("Dragon")
       x.path.toFile.exists must beTrue
+      validateReference(x.path)
     }
     "Hyphen in name" in {
       val x = runFastaToReference("aaa-bbb_ccc_123456")
       x.path.toFile.exists must beTrue
+      validateReference(x.path)
+    }
+    "Period in name" in {
+      val x = runFastaToReference("aaa.bbb.ccc.123456")
+      x.path.toFile.exists must beTrue
+      validateReference(x.path)
     }
   }
 }
