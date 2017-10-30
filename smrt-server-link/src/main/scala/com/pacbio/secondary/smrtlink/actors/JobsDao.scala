@@ -1229,7 +1229,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .getOrElse(ImportAbleDataStoreFile(dsj))
   }
 
-  def actionSimpleDataStoreFile(
+  def actionImportSimpleDataStoreFile(
       f: ImportAbleDataStoreFile): DBIO[MessageResponse] = {
     val ds = f.ds.file
     val action0 = datastoreServiceFiles += ds
@@ -1253,7 +1253,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importSimpleDataStoreFile(
       f: ImportAbleDataStoreFile): Future[MessageResponse] =
-    db.run(actionSimpleDataStoreFile(f).transactionally)
+    db.run(actionImportSimpleDataStoreFile(f).transactionally)
 
   type U = FixedSqlAction[Int, slick.dbio.NoStream, slick.dbio.Effect.Write]
 
@@ -1317,7 +1317,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
-  def actionImportSubreadSet(i: ImportAbleSubreadSet): DBIO[MessageResponse] = {
+  private def actionImportSubreadSet(
+      i: ImportAbleSubreadSet): DBIO[MessageResponse] = {
     val ds = i.file
     val action0 = insertMetaData(i.file)
       .flatMap(i => insertSubreadSetRecord(i, ds))
@@ -1346,7 +1347,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def importSubreadSet(i: ImportAbleSubreadSet): Future[MessageResponse] =
     db.run(actionImportSubreadSet(i).transactionally)
 
-  def actionImportHdfSubreadSet(
+  private def actionImportHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): DBIO[MessageResponse] = {
     val ds = i.file
 
@@ -1365,7 +1366,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleHdfSubreadSet): Future[MessageResponse] =
     db.run(actionImportHdfSubreadSet(i).transactionally)
 
-  def actionImportAlignmentSet(
+  private def actionImportAlignmentSet(
       i: ImportAbleAlignmentSet): DBIO[MessageResponse] = {
     val ds = i.file
 
@@ -1384,7 +1385,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def importAlignmentSet(i: ImportAbleAlignmentSet): Future[MessageResponse] =
     db.run(actionImportAlignmentSet(i).transactionally)
 
-  def actionImportImportAbleBarcodeSet(
+  private def actionImportBarcodeSet(
       i: ImportAbleBarcodeSet): DBIO[MessageResponse] = {
     val ds = i.file
 
@@ -1402,9 +1403,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importImportAbleBarcodeSet(
       i: ImportAbleBarcodeSet): Future[MessageResponse] =
-    db.run(actionImportImportAbleBarcodeSet(i).transactionally)
+    db.run(actionImportBarcodeSet(i).transactionally)
 
-  def actionImportImportAbleConsensusReadSet(
+  private def actionImportConsensusReadSet(
       i: ImportAbleConsensusReadSet): DBIO[MessageResponse] = {
     val ds = i.file
 
@@ -1419,9 +1420,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importImportAbleConsensusReadSet(
       i: ImportAbleConsensusReadSet): Future[MessageResponse] =
-    db.run(actionImportImportAbleConsensusReadSet(i).transactionally)
+    db.run(actionImportConsensusReadSet(i).transactionally)
 
-  def actionImportImportAbleConsensusAlignmentSet(
+  private def actionImportConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): DBIO[MessageResponse] = {
     val ds = i.file
 
@@ -1436,9 +1437,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importImportAbleConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): Future[MessageResponse] =
-    db.run(actionImportImportAbleConsensusAlignmentSet(i).transactionally)
+    db.run(actionImportConsensusAlignmentSet(i).transactionally)
 
-  def actionImportImportAbleContigSet(
+  private def actionImportContigSet(
       i: ImportAbleContigSet): DBIO[MessageResponse] = {
     val ds = i.ds.file
 
@@ -1453,9 +1454,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def importImportAbleContigSet(
       i: ImportAbleContigSet): Future[MessageResponse] =
-    db.run(actionImportImportAbleContigSet(i).transactionally)
+    db.run(actionImportContigSet(i).transactionally)
 
-  def actionImportReferenceSet(
+  private def actionImportReferenceSet(
       i: ImportAbleReferenceSet): DBIO[MessageResponse] = {
     val ds = i.ds.file
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
@@ -1473,7 +1474,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def importReferenceSet(i: ImportAbleReferenceSet): Future[MessageResponse] =
     db.run(actionImportReferenceSet(i).transactionally)
 
-  def actionImportGmapReferenceSet(
+  private def actionImportGmapReferenceSet(
       i: ImportAbleGmapReferenceSet): DBIO[MessageResponse] = {
     val ds = i.ds.file
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
@@ -1513,16 +1514,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   private def actionImportAbleFile[T >: ImportAbleServiceFile](
       f: T): DBIO[MessageResponse] = {
     f match {
-      case x: ImportAbleDataStoreFile => actionSimpleDataStoreFile(x)
+      case x: ImportAbleDataStoreFile => actionImportSimpleDataStoreFile(x)
       case x: ImportAbleSubreadSet => actionImportSubreadSet(x)
       case x: ImportAbleHdfSubreadSet => actionImportHdfSubreadSet(x)
       case x: ImportAbleAlignmentSet => actionImportAlignmentSet(x)
-      case x: ImportAbleBarcodeSet => actionImportImportAbleBarcodeSet(x)
-      case x: ImportAbleConsensusReadSet =>
-        actionImportImportAbleConsensusReadSet(x)
+      case x: ImportAbleBarcodeSet => actionImportBarcodeSet(x)
+      case x: ImportAbleConsensusReadSet => actionImportConsensusReadSet(x)
       case x: ImportAbleConsensusAlignmentSet =>
-        actionImportImportAbleConsensusAlignmentSet(x)
-      case x: ImportAbleContigSet => actionImportImportAbleContigSet(x)
+        actionImportConsensusAlignmentSet(x)
+      case x: ImportAbleContigSet => actionImportContigSet(x)
       case x: ImportAbleReferenceSet => actionImportReferenceSet(x)
       case x: ImportAbleGmapReferenceSet => actionImportGmapReferenceSet(x)
     }
