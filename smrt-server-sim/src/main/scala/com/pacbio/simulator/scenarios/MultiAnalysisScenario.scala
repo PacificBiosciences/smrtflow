@@ -69,7 +69,9 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
 
   def toJobOptions(subreadset: TestDataResource,
                    uuid: UUID,
-                   numJobs: Int): MultiAnalysisJobOptions = {
+                   numJobs: Int,
+                   jobName: Option[String] = Some("Scenario Multi-job"))
+    : MultiAnalysisJobOptions = {
     val entryPoint = DeferredEntryPoint(
       DataSetMetaTypes.Subread.fileType.fileTypeId,
       uuid,
@@ -87,14 +89,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                   "pbsmrtpipe.pipelines.dev_01_ds",
                   taskOptions,
                   workflowOptions,
-                  Some(s"Sim Scenario MJob Create $i"),
+                  jobName.map(n => s"$n-MultiJob-$i"),
                   None,
                   None)
 
     }
 
     MultiAnalysisJobOptions(jobs,
-                            Some("Scenario Multi-job"),
+                            jobName,
                             None,
                             Some(JobConstants.GENERAL_PROJECT_ID))
   }
@@ -109,14 +111,29 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
 
   def validateJobWasSuccessful(job: EngineJob): Future[EngineJob] = {
     if (AnalysisJobStates.isSuccessful(job.state)) Future.successful(job)
-    else Future.failed(new Exception(s"Job ${job.id} was NOT successful"))
+    else
+      Future.failed(
+        new Exception(
+          s"Job ${job.id} was NOT successful (state:${job.state})"))
+  }
+
+  def jobSummary(jobs: Seq[EngineJob]): String = {
+    def toSummary(j: EngineJob): String =
+      s"Job id:${j.id} state:${j.state} parent:${j.parentMultiJobId} path:${j.path}"
+
+    jobs
+      .map(toSummary)
+      .reduceLeftOption(_ + "\n" + _)
+      .getOrElse("No Jobs")
   }
 
   // Giving up on the Step approach. It's easier to write a single future and avoid the
   // Var mechanism. Futures also compose, Steps do not.
   def runSanityTest(subreadsetTestFileId: String,
-                    numJobs: Int): Future[Seq[EngineJob]] = {
+                    numJobs: Int,
+                    jobName: Option[String]): Future[Seq[EngineJob]] = {
     for {
+      _ <- andLog("Starting to Run MultiJob ScenarioStep")
       subreadset <- getFileOrFail(subreadsetTestFileId)
       _ <- andLog(s"Loaded TestDataFile $subreadset")
       msg <- client.getStatus
@@ -129,31 +146,39 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
         client.pollForSuccessfulJob(importJob.id))
       _ <- andLog(s"Successfully imported dataset ${successfulImportJob.id}")
       multiJob <- client.createMultiAnalysisJob(
-        toJobOptions(subreadset, dst.uuid, numJobs))
-      _ <- client.updateMultiAnalysisJobToSubmit(multiJob.id)
+        toJobOptions(subreadset, dst.uuid, numJobs, jobName))
+      _ <- andLog(
+        s"Successfully Created MultiJob ${multiJob.id} in state:${multiJob.state}")
+      updateMsg <- client.updateMultiAnalysisJobToSubmit(multiJob.id)
+      _ <- andLog(updateMsg.message)
       successfulMultiJob <- Future.fromTry(
         client.pollForSuccessfulJob(multiJob.id))
       _ <- andLog(s"Successfully ran MultiJob ${successfulMultiJob.id}")
       jobs <- client.getMultiAnalysisChildrenJobs(multiJob.id)
+      _ <- andLog(s"Found ${jobs.length} children jobs ids:${jobs
+        .map(_.id)} from MultiJob ${successfulMultiJob.id}")
+      _ <- andLog(jobSummary(jobs))
       _ <- Future.sequence(jobs.map(validateJobWasSuccessful))
       _ <- andLog(
         s"Got children jobs ${jobs.map(_.id)} from Multi-Job ${successfulMultiJob.id}")
     } yield jobs
   }
 
-  case class RunMultiJobAnalysisSanity(subreadsetTestFileId: String,
-                                       numJobs: Int)
+  case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
+                                           numJobs: Int,
+                                           jobName: String)
       extends VarStep[Seq[EngineJob]] {
     override val name: String = "RunMultiJobAnalysisSanity"
-    override val runWith = runSanityTest(subreadsetTestFileId, numJobs)
+    override val runWith =
+      runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
   }
 
   // Adding explicit tests for different numbers of children jobs to test the resolving multi-job state
   // from the children job states.
   override val steps = Seq(
-    RunMultiJobAnalysisSanity("subreads-sequel", 4),
-    RunMultiJobAnalysisSanity("subreads-sequel", 2),
-    RunMultiJobAnalysisSanity("subreads-sequel", 1)
+    RunMultiJobAnalysisSanityStep("subreads-sequel", 1, "Sim-MJob-A"),
+    RunMultiJobAnalysisSanityStep("subreads-sequel", 2, "Sim-MJob-B"),
+    RunMultiJobAnalysisSanityStep("subreads-sequel", 4, "Sim-MJob-C")
   )
 
 }
