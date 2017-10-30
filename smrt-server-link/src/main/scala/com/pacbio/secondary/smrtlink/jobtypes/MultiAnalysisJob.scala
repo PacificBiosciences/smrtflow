@@ -256,7 +256,6 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
     val noJobId: Option[Int] = None
 
-
     /**
       * Responsible for creating the Job if the job id isn't already assigned and if
       * the deferred entry points are resolvable.
@@ -281,26 +280,45 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         .getOrElse(createOrNull)
     }
 
+    def summaryIfNotEqual[T](s1: T, s2: T, msg: String): String = {
+      if (s1 == s2) {
+        s"s$msg"
+      } else {
+        ""
+      }
+    }
+
+    def summaryIfStateChanged(s1: AnalysisJobStates.JobStates,
+                              s2: AnalysisJobStates.JobStates): String =
+      summaryIfNotEqual(s1, s2, s"updating state from $s1 to $s2")
+
+    def summaryIfWorkflowChanged(w1: MultiAnalysisWorkflow,
+                                 w2: MultiAnalysisWorkflow): String =
+      summaryIfNotEqual(w1,
+                        w2,
+                        s"updating workflow from ${w1.jobIds} to ${w2.jobIds}")
+
     /**
       * If the workflow or the multi-job state has changed, then update the state in db
       */
     def updateIfNecessary(
-        state: AnalysisJobStates.JobStates,
+        updatedState: AnalysisJobStates.JobStates,
         updatedWorkflow: MultiAnalysisWorkflow): Future[MessageResponse] = {
-      if ((state != engineJob.state) || (updatedWorkflow != workflow)) {
+      if ((updatedState != engineJob.state) || (updatedWorkflow != workflow)) {
         for {
           msg <- Future.successful(
-            s"Updating multi-job state from ${engineJob.state} to $state")
+            s"Updating MultiJob ${summaryIfStateChanged(engineJob.state, updatedState)} ${summaryIfWorkflowChanged(workflow, updatedWorkflow)}")
           _ <- dao.updateMultiJobState(engineJob.id,
-                                       state,
+                                       updatedState,
                                        updatedWorkflow.toJson.asJsObject,
                                        msg,
                                        None)
           _ <- Future.successful(resultsWriter.writeLine(msg))
         } yield MessageResponse(msg)
       } else {
-        Future.successful(MessageResponse(
-          "Skipping update. No change in multi-job state or workflow state."))
+        Future.successful(
+          MessageResponse(
+            "Skipping update. No change in MultiJob state or workflow state."))
       }
     }
 
@@ -322,6 +340,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
     // From Scratch case
     val f1 = for {
+      _ <- andLog(
+        s"Starting to update MultiJob ${engineJob.id} in state:${workflow.jobIds}")
       updatedJobIds <- runFuturesSequentially(items)(runner)
       _ <- andJobLog(s"Job Ids $updatedJobIds")
       updatedWorkflow <- Future.successful(
@@ -338,6 +358,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     // getting all the job states in a single call.
     // The workflow state only captures the jobIds created, hence, it should NEVER need to be updated here.
     val fcached = for {
+      _ <- andLog(
+        s"Starting to update MultiJob ${engineJob.id} in state:${workflow.jobIds}")
       jobsIdStates <- dao
         .getMultiJobChildren(engineJob.id)
         .map(items => items.map(j => (j.id, j.state)))
@@ -348,7 +370,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       msg <- updateIfNecessary(updatedMultiJobState, workflow)
     } yield msg
 
-    if (workflow.jobIds.length == opts.jobs.length) {
+    if (workflow.jobIds.flatten.length == opts.jobs.length) {
       fcached
     } else {
       f1
