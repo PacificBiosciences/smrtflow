@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.net.{URI, URL}
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
@@ -21,6 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
+  InvalidJobOptionError,
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
@@ -40,7 +41,16 @@ case class ImportFastaJobOptions(path: String,
                                    JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
-  override def validate(dao: JobsDao, config: SystemJobConfig) = None
+
+  /**
+    * Minimal lightweight validation.
+    */
+  override def validate(
+      dao: JobsDao,
+      config: SystemJobConfig): Option[InvalidJobOptionError] = {
+    if (Files.exists(Paths.get(path))) None
+    else Some(InvalidJobOptionError(s"Unable to find $path"))
+  }
   override def toJob() = new ImportFastaJob(this)
 }
 
@@ -161,6 +171,8 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     for {
       _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
                        opts.DEFAULT_TIMEOUT)
+      _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
+      _ <- Success(w(s"Successfully validated fasta file ${opts.path}"))
       r <- FastaToReferenceConverter
         .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
                Option(opts.organism),
@@ -207,6 +219,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     if (shouldRunLocal(opts, job, resultsWriter)) {
       runLocal(dao, opts, job, resultsWriter)
     } else {
+      // pre-Validation must be encapsulated completely within in this layer
       runNonLocal(opts, job, resultsWriter, config)
     }
   }
@@ -230,10 +243,9 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
                      host))
     }
 
-    val tx = for {
-      _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
-      result <- runner(dao, opts, resources, resultsWriter, config)
-    } yield Right(result)
+    // Wrapping layer to compose with the current API
+    val tx = runner(dao, opts, resources, resultsWriter, config)
+      .map(result => Right(result))
 
     val tr = tx.recover { case ex => toLeft(ex.getMessage) }
 
