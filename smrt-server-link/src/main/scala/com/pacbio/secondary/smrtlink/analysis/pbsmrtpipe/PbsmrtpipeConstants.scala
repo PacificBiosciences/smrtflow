@@ -71,11 +71,23 @@ object PbsmrtpipeConstants {
     def id = toI("max_nworkers")
   }
 
+  sealed trait WorkflowEntryPoint {
+    val id: String
+  }
+
+  // Trying to Centralize these hardcoded values
+  object WorkflowEntryPoints {
+    case object Subread extends WorkflowEntryPoint { val id = "eid_subread" }
+    case object Reference extends WorkflowEntryPoint {
+      val id = "eid_ref_dataset"
+    }
+  }
+
   // Associations between pbsmrtpipe's entry point IDs (which have no meaning
   // in the rest of SMRT Link) and dataset metatypes
   private lazy val entryPointDatasetTypes = Seq(
-    ("eid_subread", DataSetMetaTypes.Subread),
-    ("eid_ref_dataset", DataSetMetaTypes.Reference),
+    (WorkflowEntryPoints.Subread.id, DataSetMetaTypes.Subread),
+    (WorkflowEntryPoints.Reference.id, DataSetMetaTypes.Reference),
     ("eid_hdfsubread", DataSetMetaTypes.HdfSubread),
     ("eid_barcode", DataSetMetaTypes.Barcode),
     ("eid_gmapref_dataset", DataSetMetaTypes.GmapReference),
