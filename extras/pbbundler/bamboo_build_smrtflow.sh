@@ -14,7 +14,7 @@ SMRT_PIPELINE_BUNDLE_DIR=$(readlink -f repos/pbpipeline-resources)
 export SMRT_PIPELINE_BUNDLE_DIR="${SMRT_PIPELINE_BUNDLE_DIR}"
 
 source /mnt/software/Modules/current/init/bash
-module load jdk/1.8.0_144 sbt postgresql
+module load jdk/1.8.0_144 sbt postgresql blasr samtools
 
 ROOT_REPOS="${SMRTFLOW_ROOT_DIR}/repos"
 
