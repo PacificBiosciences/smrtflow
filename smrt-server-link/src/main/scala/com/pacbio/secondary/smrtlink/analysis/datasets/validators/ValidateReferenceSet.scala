@@ -108,20 +108,12 @@ object ValidateReferenceSet extends ValidateReferenceSetBase[ReferenceSet] {
   def validateIndexFai =
     validateIndexMetaType(FileTypes.I_SAM, _: ReferenceSet)
 
-  def validateIndexIndexer =
-    validateIndexMetaType(FileTypes.I_INDEX, _: ReferenceSet)
-
-  def validateIndexFastaContig =
-    validateIndexMetaType(FileTypes.I_FCI, _: ReferenceSet)
-
   def validateIndexSawriter =
     validateIndexMetaType(FileTypes.I_SAW, _: ReferenceSet)
 
   def hasRequiredIndexFiles(rs: ReferenceSet): ValidateDataSetE = {
     (validateIndexFai(rs) |@|
-      validateIndexIndexer(rs) |@|
-      validateIndexFastaContig(rs) |@|
-      validateIndexSawriter(rs))((_, _, _, _) => rs)
+      validateIndexSawriter(rs))((_, _) => rs)
   }
 }
 
