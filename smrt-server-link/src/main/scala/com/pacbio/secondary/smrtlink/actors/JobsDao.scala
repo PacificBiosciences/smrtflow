@@ -30,7 +30,7 @@ import com.pacbio.secondary.smrtlink.models.{
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.language.postfixOps
@@ -1316,6 +1316,20 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
+
+  def aImportSubreadSet(i: ImportAbleSubreadSet): DBIO[MessageResponse] = {
+    val ds = i.file
+    val action0 = insertMetaData(i.file)
+      .flatMap(i => insertSubreadSetRecord(i, ds))
+
+    val action: DBIO[Unit] = DBIO.seq(
+      action0,
+      datastoreServiceFiles += i.ds.file
+    )
+
+    checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
+  }
+
   /**
     *
     * The motivation for this is very unclear. This means a datastore file will potentially have the
@@ -1330,19 +1344,13 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * 3. Import DataStoreFile
     */
   def importSubreadSet(i: ImportAbleSubreadSet): Future[MessageResponse] = {
-    val ds = i.file
-    val action0 = insertMetaData(i.file)
-      .flatMap(i => insertSubreadSetRecord(i, ds))
-
-    val action: DBIO[Unit] = DBIO.seq(
-      action0,
-      datastoreServiceFiles += i.ds.file
-    )
-
-    val ax = checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
-
-    db.run(ax.transactionally)
+    db.run(aImportSubreadSet(i).transactionally)
   }
+
+  def importSubreadSets(ssets: Seq[ImportAbleSubreadSet]):DBIO[Seq[MessageResponse]] = {
+    DBIO.sequence(ssets.map(aImportSubreadSet))
+  }
+
 
   def importHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): Future[MessageResponse] = {
@@ -1557,7 +1565,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       importAbleFiles <- loadServiceFiles(serviceFiles,
                                           job.createdBy,
                                           projectId.getOrElse(job.projectId))
-      messages <- Future.sequence(importAbleFiles.map(importImportAbleFile))
+      messages <- Future.sequence(importAbleFiles.map(importImportAbleFile)) // Convert this to a Single Future call and single action
       _ <- andLog(toMessage(successPrefix, job.id))
     } yield messages
   }
@@ -1704,7 +1712,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       DataSetLoader.loadSubreadSet(Paths.get(ds.path)))
 
   def getSubreadDataSetDetailsById(id: IdAble): Future[String] =
-    getSubreadDataSetById(id).map(subreadToDetails)
+    getSubreadDataSetById(id).flatMap { x =>
+      Future(blocking(subreadToDetails(x)))
+    }
 
   def getSubreadDataSets(
       limit: Int = DEFAULT_MAX_DATASET_LIMIT,
