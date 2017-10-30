@@ -19,6 +19,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object EngineMultiJobManagerActor {
   case class CheckForRunnableMultiJobWork(multiJobId: IdAble)
   case class CheckForWorkSequentially(multiJobIds: List[Int])
+
+  case object CheckMultiJobStatus
 }
 
 /**
@@ -26,17 +28,14 @@ object EngineMultiJobManagerActor {
   */
 class EngineMultiJobManagerActor(dao: JobsDao,
                                  resolver: JobResourceResolver,
-                                 config: SystemJobConfig)
+                                 config: SystemJobConfig,
+                                 runner: ServiceMultiJobRunner,
+                                 checkForWorkInterval: FiniteDuration)
     extends Actor
     with ActorLogging {
 
   import EngineMultiJobManagerActor._
   import CommonModelImplicits._
-
-  val runner = new ServiceMultiJobRunner(dao, config)
-
-  //MK Probably want to have better model for this
-  val checkForWorkInterval = 30.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(
     5.seconds,
@@ -80,12 +79,11 @@ class EngineMultiJobManagerActor(dao: JobsDao,
     */
   def sequentiallyCheckForAllWork(jobIds: List[Int]): Unit = {
     jobIds match {
-      case Nil => log.debug("No multi-jobs found to update")
-      case item :: Nil => self ! CheckForRunnableMultiJobWork(item)
-      case item :: tail =>
-        log.debug(s"${tail.length} MultiJobs remaining to check for updates")
+      case Nil => log.info("No multi-jobs found to update")
+      case multiJobId :: Nil => self ! CheckForRunnableMultiJobWork(multiJobId)
+      case multiJobId :: tail =>
         dao
-          .getMultiJobById(item)
+          .getMultiJobById(multiJobId)
           .map(engineJob => runner.runWorkflow(engineJob))
           .andThen { case _ => self ! CheckForWorkSequentially(tail) }
 
@@ -94,13 +92,16 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
   override def receive: Receive = {
     case CheckForRunnableJob =>
-      //log.info(s"$self Checking for MultiJob Work")
+      log.info(s"$self Checking for MultiJob Work")
       checkForWork()
 
     case CheckForRunnableMultiJobWork(multiJobId) =>
+      log.info(s"Checking for MultiJob ${multiJobId.toIdString}")
       checkForWorkById(multiJobId)
 
     case CheckForWorkSequentially(multiJobIds) =>
+      log.info(
+        s"${multiJobIds.length} MultiJobs remaining to check for updates")
       sequentiallyCheckForAllWork(multiJobIds)
 
     case x =>
@@ -116,9 +117,13 @@ trait EngineMultiJobManagerActorProvider {
   val engineMultiJobManagerActor: Singleton[ActorRef] =
     Singleton(
       () =>
-        actorRefFactory().actorOf(Props(classOf[EngineMultiJobManagerActor],
-                                        jobsDao(),
-                                        jobResolver(),
-                                        systemJobConfig()),
-                                  "EngineMultiJobManagerActor"))
+        actorRefFactory().actorOf(
+          Props(classOf[EngineMultiJobManagerActor],
+                jobsDao(),
+                jobResolver(),
+                systemJobConfig(),
+                new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
+                30.seconds),
+          "EngineMultiJobManagerActor"
+      ))
 }
