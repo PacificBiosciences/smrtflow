@@ -11,18 +11,19 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.client.{
-  ClientUtils,
-  SmrtLinkServiceAccessLayer
-}
+import com.pacbio.secondary.smrtlink.client.{ClientUtils, SmrtLinkServiceAccessLayer}
 import com.pacbio.secondary.smrtlink.jobtypes.MultiAnalysisJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object MultiAnalysisScenarioLoader extends ScenarioLoader {
+
+  val DEFAULT_NUM_SUBREADSETS = 200
+
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
 
@@ -36,9 +37,12 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
 
     val c: Config = config.get
 
+    val numSubreadSets: Int = Try(c.getInt("smrtflow.test.multiJob.numSubreadSets")).getOrElse(DEFAULT_NUM_SUBREADSETS)
+
     val testData = PacBioTestResourcesLoader.loadFromConfig()
     val smrtLinkClient = new SmrtLinkServiceAccessLayer(getHost(c), getPort(c))
-    new MultiAnalysisScenario(smrtLinkClient, testData)
+
+    new MultiAnalysisScenario(smrtLinkClient, testData, numSubreadSets)
   }
 }
 
@@ -53,7 +57,7 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
   *
   */
 class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
-                            testData: PacBioTestResources)
+                            testData: PacBioTestResources, numSubreadSets: Int)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -75,7 +79,6 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
       uuid,
       "eid_subread")
 
-    val numSubreadSets = 200
     val numSubreadsetOpt = ServiceTaskIntOption(
       "pbsmrtpipe.task_options.num_subreadsets",
       numSubreadSets)
@@ -148,12 +151,10 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
     override val runWith = runSanityTest(subreadsetTestFileId, numJobs)
   }
 
+  val maxNumJobsPer = 5
+  val numJobsPerMultiJob:Seq[Int] = (0 until maxNumJobsPer).map(x => math.pow(2, x).toInt)
   // Adding explicit tests for different numbers of children jobs to test the resolving multi-job state
   // from the children job states.
-  override val steps = Seq(
-    RunMultiJobAnalysisSanity("subreads-sequel", 4),
-    RunMultiJobAnalysisSanity("subreads-sequel", 2),
-    RunMultiJobAnalysisSanity("subreads-sequel", 1)
-  )
+  override val steps = numJobsPerMultiJob.map(x => RunMultiJobAnalysisSanity("subreads-sequel", x))
 
 }
