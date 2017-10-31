@@ -47,6 +47,7 @@ import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
 import com.pacificbiosciences.pacbiodatasets._
+import org.apache.commons.io.FileUtils
 import org.postgresql.util.PSQLException
 import spray.json.JsObject
 
@@ -999,23 +1000,33 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .map(_.map((d: DataStoreServiceFile) =>
         DataStoreReportFile(d, d.sourceId.split("-").head)))
 
-  // Return the contents of the Report. THis should really return Future[JsObject]
+  // THere needs to be special care when loading blocking
+  // operations within Future
+  private def loadFile(path: Path): Future[Option[String]] = {
+    if (Files.exists(path)) Future {
+      blocking {
+        Option(FileUtils.readFileToString(path.toFile))
+      }
+    } else {
+      Future.successful(None)
+    }
+  }
+
+  // Return the contents of the Report. This should really return Future[JsObject]
   def getDataStoreReportByUUID(reportUUID: UUID): Future[String] = {
+
     val action = datastoreServiceFiles
       .filter(_.uuid === reportUUID)
+      .map(_.path)
       .result
       .headOption
-      .map {
-        case Some(x) =>
-          if (Files.exists(Paths.get(x.path))) {
-            Option(scala.io.Source.fromFile(x.path).mkString)
-          } else {
-            logger.error(s"Unable to find report ${x.uuid} path ${x.path}")
-            None
-          }
-        case None => None
-      }
+
     db.run(action)
+      .flatMap(
+        optPath =>
+          optPath
+            .map(f => loadFile(Paths.get(f)))
+            .getOrElse(Future.successful(None)))
       .flatMap(failIfNone(s"Unable to find report with id $reportUUID"))
   }
 
@@ -1065,11 +1076,6 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getDataSetMetaData(id: IdAble): Future[DataSetMetaDataSet] =
     getDataSetMetaDataSet(id).flatMap(
       failIfNone(s"Unable to find dataset with ID ${id.toIdString}"))
-
-  // removes a query that seemed like it was potentially nested based on race condition with executor
-  private def getDataSetMetaDataSetBlocking(
-      uuid: UUID): Option[DataSetMetaDataSet] =
-    Await.result(getDataSetMetaDataSet(uuid), 23456 milliseconds)
 
   private def insertMetaData(ds: ServiceDataSetMetadata)
     : DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
