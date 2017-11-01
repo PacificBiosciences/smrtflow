@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.pattern.{ask, pipe}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
@@ -15,6 +16,7 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object EngineMultiJobManagerActor {
   case class CheckForRunnableMultiJobWork(multiJobId: IdAble)
@@ -37,6 +39,8 @@ class EngineMultiJobManagerActor(dao: JobsDao,
   import EngineMultiJobManagerActor._
   import CommonModelImplicits._
 
+  val selfAskTimeout = 1.minute
+
   val checkForWorkTick = context.system.scheduler.schedule(
     5.seconds,
     checkForWorkInterval,
@@ -53,15 +57,10 @@ class EngineMultiJobManagerActor(dao: JobsDao,
       s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
-  def checkForWorkById(ix: IdAble): Unit = {
+  def checkForWorkById(ix: IdAble): Future[MessageResponse] = {
     dao
       .getMultiJobById(ix)
-      .map(engineJob => runner.runWorkflow(engineJob))
-      .onFailure {
-        case ex =>
-          log.error(
-            s"Failed to check for Multi-Job ${ix.toIdString} ${ex.getMessage}")
-      }
+      .flatMap(engineJob => runner.runWorkflow(engineJob))
   }
 
   def checkForWorkByIntId(id: Int): Unit = checkForWorkById(IntIdAble(id))
@@ -80,12 +79,13 @@ class EngineMultiJobManagerActor(dao: JobsDao,
   def sequentiallyCheckForAllWork(jobIds: List[Int]): Unit = {
     jobIds match {
       case Nil => log.info("No multi-jobs found to update")
-      case multiJobId :: Nil => self ! CheckForRunnableMultiJobWork(multiJobId)
+      case multiJobId :: Nil =>
+        self ! CheckForRunnableMultiJobWork(multiJobId)
       case multiJobId :: tail =>
-        dao
-          .getMultiJobById(multiJobId)
-          .map(engineJob => runner.runWorkflow(engineJob))
-          .andThen { case _ => self ! CheckForWorkSequentially(tail) }
+        (self ? CheckForRunnableMultiJobWork(multiJobId))(selfAskTimeout)
+          .onComplete { _ =>
+            self ! CheckForWorkSequentially(tail)
+          }
 
     }
   }
@@ -97,7 +97,7 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
     case CheckForRunnableMultiJobWork(multiJobId) =>
       log.info(s"Checking for MultiJob ${multiJobId.toIdString}")
-      checkForWorkById(multiJobId)
+      checkForWorkById(multiJobId) pipeTo sender()
 
     case CheckForWorkSequentially(multiJobIds) =>
       log.info(
@@ -123,7 +123,7 @@ trait EngineMultiJobManagerActorProvider {
                 jobResolver(),
                 systemJobConfig(),
                 new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
-                30.seconds),
+                1.minute),
           "EngineMultiJobManagerActor"
       ))
 }
