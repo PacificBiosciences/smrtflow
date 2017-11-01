@@ -87,7 +87,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       entryPoints: Seq[BoundServiceEntryPoint],
       job: DeferredJob,
       parentJobId: Int,
-      user: Option[String],
+      createdBy: Option[String],
       smrtLinkVersion: Option[String],
       writer: JobResultsWriter): Future[EngineJob] = {
     dao
@@ -99,8 +99,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         job.entryPoints.map(e =>
           EngineJobEntryPointRecord(e.uuid, e.fileTypeId)),
         toPbsmrtpipeOptions(job, entryPoints).toJson.asJsObject,
-        createdBy = None,
-        createdByEmail = None,
+        createdBy = createdBy,
+        createdByEmail = None, // This is explicitly not set to avoid sending an email
         smrtLinkVersion = smrtLinkVersion,
         parentMultiJobId = Some(parentJobId),
         projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)

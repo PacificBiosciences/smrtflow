@@ -109,15 +109,24 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
 
   private def resolveEntryPoints(
       dao: JobsDao,
-      jobs: Seq[EngineJob]): Future[Seq[Seq[BoundEntryPoint]]] = {
+      jobs: Seq[EngineJob],
+      jobDir: Path): Future[Seq[Seq[BoundEntryPoint]]] = {
     Future.sequence(jobs.map { job =>
       for {
         serviceEntryPoints <- dao.getJobEntryPoints(job.id)
         eps <- Future.sequence(serviceEntryPoints.map { e =>
-          dao.getDataSetMetaData(e.datasetUUID).map { ds =>
-            val entryId = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
-            BoundEntryPoint(entryId.getOrElse("unknown"), Paths.get(ds.path))
-          }
+          dao
+            .getDataSetMetaData(e.datasetUUID)
+            .map { ds =>
+              Paths.get(ds.path)
+            }
+            .flatMap { p =>
+              updateDataSetEntryPoint(p, jobDir, dao)
+            }
+            .map { p =>
+              val eid = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
+              BoundEntryPoint(eid.getOrElse("unknown"), p)
+            }
         })
       } yield eps
     })
@@ -134,7 +143,7 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     val jobs: Seq[EngineJob] = Await.result(fx, opts.DEFAULT_TIMEOUT)
 
     val fx2 = for {
-      entryPoints <- resolveEntryPoints(dao, jobs)
+      entryPoints <- resolveEntryPoints(dao, jobs, resources.path)
     } yield entryPoints
     val entryPoints: Seq[Seq[BoundEntryPoint]] = if (opts.includeEntryPoints) {
       Await.result(fx2, opts.DEFAULT_TIMEOUT)
