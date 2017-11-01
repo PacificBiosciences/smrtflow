@@ -194,12 +194,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
       runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
   }
 
-
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
-  override val steps = numJobsPerMultiJob.map(x =>
-    RunMultiJobAnalysisSanity("subreads-sequel", x))
-
+  override val steps = numJobsPerMultiJob.zipWithIndex.map {
+    case (n, i) =>
+      RunMultiJobAnalysisSanityStep("subreads-sequel",
+                                    n,
+                                    s"Multi-job-${i + 1}")
+  }
 
 }
