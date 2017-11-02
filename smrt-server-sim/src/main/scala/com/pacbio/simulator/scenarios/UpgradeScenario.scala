@@ -57,6 +57,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
 
   override def getSubreads = testdata.getFile("subreads-xml")
   override def getReference = testdata.getFile("lambdaNEB")
+  override val refUuid = Var(getDataSetMiniMeta(getReference).uuid)
 
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(
