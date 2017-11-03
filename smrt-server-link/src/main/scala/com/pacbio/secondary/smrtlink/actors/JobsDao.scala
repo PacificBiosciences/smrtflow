@@ -451,8 +451,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
 
     val q = multiJobId match {
-      case IntIdAble(i) => engineJobs.filter(_.parentMultiJobId === i)
-      case UUIDIdAble(u) =>
+      case IntIdAble(ix) =>
+        engineJobs.filter(_.parentMultiJobId === ix).sortBy(_.id)
+      case UUIDIdAble(_) =>
         for {
           job <- qEngineMultiJobById(multiJobId)
           jobs <- engineJobs.filter(_.parentMultiJobId === job.id).sortBy(_.id)
