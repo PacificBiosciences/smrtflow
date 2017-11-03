@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
@@ -59,14 +60,30 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
   def andLogIfNonEmpty(sx: String, writer: JobResultsWriter) =
     if (sx.isEmpty) Future.successful(sx) else andLog(sx, writer)
 
+  /**
+    * Core routine for exe'ing a MultiJob. This abstraction is responsible
+    * for setting up the job and calling exe on the Service runner.
+    *
+    * 1. convert EngineJob opts to MultiJobOpts instance
+    * 2. convert to Job (val job = opts.toJob)
+    * 3. then call the Service
+    * 4. If job was complete, then send email
+    *
+    * Need to fix the EngineJob vs CoreEngineJob confusion
+    *
+    * @param engineJob (Multi-Analysis Job Type) Engine Job to run
+    */
   private def runner(engineJob: EngineJob): Future[MessageResponse] = {
 
     val fx = for {
+      _ <- Future.successful(
+        logger.info(
+          s"Processing/Setup MultiJob ${engineJob.id} in state: ${engineJob.state} workflow:${engineJob.workflow}"))
       (opts, writer, resources) <- Future.fromTry(
         Try(setupAndConvert(engineJob, dao)))
       job <- Future.successful(opts.toMultiJob())
       msg <- job.runWorkflow(engineJob, resources, writer, dao, config)
-      updatedJob <- dao.getJobById(engineJob.id)
+      updatedJob <- dao.getMultiJobById(engineJob.id)
       emailMessage <- sendMailIfConfigured(updatedJob, dao)
       _ <- andLogIfNonEmpty(emailMessage, writer)
     } yield msg
@@ -88,17 +105,7 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
   }
 
   /**
-    * Core routine for running a multi-analysis job.
-    *
-    * 0. Check if job state is completed
-    * 1. convert EngineJob opts to MultiJobOpts instance
-    * 2. convert to Job (val job = opts.toJob)
-    * 3. then run workflow
-    * 4. update workflow state
-    *
-    * Need to fix the EngineJob vs CoreEngineJob confusion
-    *
-    * @param engineJob (Multi-Analysis Job Type) Engine Job to run
+    * Core routine for running a MultiJob
     */
   def runWorkflow(engineJob: EngineJob): Future[MessageResponse] = {
     val msg =
@@ -106,5 +113,11 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
     if (engineJob.state.isCompleted) Future.successful(MessageResponse(msg))
     else runner(engineJob)
   }
+
+  /**
+    * Run a MultiJob by MultiJob id
+    */
+  def runWorkflowById(multiJobId: IdAble): Future[MessageResponse] =
+    dao.getMultiJobById(multiJobId).flatMap(runWorkflow)
 
 }
