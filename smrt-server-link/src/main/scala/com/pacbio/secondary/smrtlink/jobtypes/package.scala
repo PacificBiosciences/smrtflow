@@ -157,34 +157,40 @@ package object jobtypes {
       * @param dao JobsDao object
       * @return Future with updated (or original) entry point path
       */
-    def updateDataSetEntryPoint(entryPoint: Path,
-                                jobPath: Path,
-                                dao: JobsDao): Future[Path] = {
-      val dsMeta = getDataSetMiniMeta(entryPoint)
-      dsMeta.metatype match {
-        case DataSetMetaTypes.Subread =>
-          val outDir = jobPath.resolve("entry-points")
-          outDir.toFile.mkdirs
-          val outPath =
-            outDir.resolve(s"${dsMeta.uuid.toString}.subreadset.xml")
-          dao.getSubreadDataSetById(dsMeta.uuid).flatMap { ds =>
-            DataSetUpdateUtils.saveUpdatedCopy(entryPoint,
-                                               outPath,
-                                               Some(ds.bioSampleName),
-                                               Some(ds.wellSampleName)) match {
-              case None =>
-                Future.successful(outPath)
-              case Some(err) =>
-                // FIXME ideally we would just fail in this case but the blast
-                // radius is potentially huge so I'm leaving it fault-tolerant
-                // until we can test it better
-                //Future.failed(new RuntimeException(err))
-                logger.error(s"Dataset ${dsMeta.uuid} could not be updated")
-                logger.error(err)
-                Future.successful(entryPoint)
+    def updateDataSetandWriteToEntryPointsDir(entryPoint: Path,
+                                              jobPath: Path,
+                                              dao: JobsDao): Future[Path] = {
+      blocking {
+        val dsMeta = getDataSetMiniMeta(entryPoint)
+        dsMeta.metatype match {
+          case DataSetMetaTypes.Subread =>
+            val outDir = jobPath.resolve("entry-points")
+            outDir.toFile.mkdirs
+            val outPath =
+              outDir.resolve(s"${dsMeta.uuid.toString}.subreadset.xml")
+            dao.getSubreadDataSetById(dsMeta.uuid).flatMap { ds =>
+              DataSetUpdateUtils.saveUpdatedCopy(
+                entryPoint,
+                outPath,
+                Some(ds.bioSampleName),
+                Some(ds.wellSampleName)) match {
+                case None =>
+                  Future.successful(outPath)
+                case Some(err) =>
+                  // FIXME ideally we would just fail in this case but the blast
+                  // radius is potentially huge so I'm leaving it fault-tolerant
+                  // until we can test it better
+                  //Future.failed(new RuntimeException(err))
+                  logger.error(s"Dataset ${dsMeta.uuid} could not be updated")
+                  logger.error(err)
+                  Future.successful(entryPoint)
+              }
             }
-          }
-        case _ => Future.successful(entryPoint)
+          case dst =>
+            logger.warn(
+              s"Only Subreadsets are supported. Not adding/writing DataSet type $dst to entry-points dir.")
+            Future.successful(entryPoint)
+        }
       }
     }
   }
@@ -213,7 +219,7 @@ package object jobtypes {
       *
       * @return
       */
-    def DEFAULT_TIMEOUT = 10.seconds
+    def DEFAULT_TIMEOUT = 25.seconds
 
     /**
       * Job Option validation
