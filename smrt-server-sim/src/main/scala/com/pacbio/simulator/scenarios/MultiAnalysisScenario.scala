@@ -1,8 +1,10 @@
 package com.pacbio.simulator.scenarios
 
+import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 
 import scala.collection._
 import com.typesafe.config.Config
@@ -80,7 +82,8 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
 class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                             testData: PacBioTestResources,
                             numSubreadSets: Int,
-                            max2nNumJobs: Int)
+                            max2nNumJobs: Int,
+                            testSubreadSetId: String = "subreads-sequel")
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -200,19 +203,35 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
       runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
   }
 
+  case class ImportTestData(subreadSetTestId: String)
+      extends VarStep[String]
+      with DaoFutureUtils {
+    override val name: String = "ImportTestData"
+
+    def getFile(fileId: String): Future[Path] =
+      failIfNone(s"Unable to find testdata $fileId")(
+        testData.getFile(fileId).map(_.path))
+
+    override val runWith = for {
+      path <- getFile(subreadSetTestId)
+      job <- client.importDataSet(path, DataSetMetaTypes.Subread)
+      _ <- Future.fromTry(client.pollForSuccessfulJob(job.id))
+      msg <- Future.successful(
+        s"Successful imported $subreadSetTestId with Job ${job.id}")
+      _ <- andLog(msg)
+    } yield msg
+  }
+
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
-  //FIXME(mpkocher)(11-2-2017) There's something non-obvious going on here. These appears to run in parallel
-//  override val steps = numJobsPerMultiJob.zipWithIndex.map {
-//    case (n, i) =>
-//      RunMultiJobAnalysisSanityStep("subreads-sequel",
-//                                    n,
-//                                    s"Multi-job-${i + 1}")
-//  }
+  val multiJobSteps: Seq[Step] = numJobsPerMultiJob.zipWithIndex.map {
+    case (n, i) =>
+      RunMultiJobAnalysisSanityStep(testSubreadSetId, n, s"Multi-job-${i + 1}")
+  }
 
-  override val steps: Seq[Step] = Seq(
-    RunMultiJobAnalysisSanityStep("subreads-sequel",
-                                  math.pow(2, max2nNumJobs).toInt,
-                                  "MulitJob"))
+  // When only running this Scenario, Add a centalizing importing of the TestData
+  // make the test run quicker.
+  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps
+
 }
