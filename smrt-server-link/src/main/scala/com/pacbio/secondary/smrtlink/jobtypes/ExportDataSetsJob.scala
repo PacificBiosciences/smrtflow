@@ -126,7 +126,7 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
                                                             dao)
       paths <- Future.successful(datasets.map(p => Paths.get(p.path)))
       updatedPaths <- Future.sequence(paths.map { p =>
-        updateDataSetEntryPoint(p, resources.path, dao)
+        updateDataSetandWriteToEntryPointsDir(p, resources.path, dao)
       })
     } yield updatedPaths
 
