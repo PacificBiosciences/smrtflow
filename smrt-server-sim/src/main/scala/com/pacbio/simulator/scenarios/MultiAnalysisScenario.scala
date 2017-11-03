@@ -1,8 +1,10 @@
 package com.pacbio.simulator.scenarios
 
+import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 
 import scala.collection._
 import com.typesafe.config.Config
@@ -25,8 +27,13 @@ import scala.util.Try
 
 object MultiAnalysisScenarioLoader extends ScenarioLoader {
 
-  val DEFAULT_NUM_SUBREADSETS = 200
-  val DEFAULT_MAX_2N_NUM_JOBS = 5
+  // There are two parameter usecases here
+  // 1. N "standard" analysis jobs where each analysis job emits ~ 25 datastore
+  // files. N is restricted to 32? (this should probably be 16)
+  // 2. N barcoding analysis where N is <= 8 and the barcoded datastore outputs
+  // will 8,16,96,384 (+ some delta of ~5 datastore files)
+  val DEFAULT_NUM_SUBREADSETS = 25
+  val DEFAULT_MAX_2N_NUM_JOBS = 4
 
   def getOrDefault(key: String, c: Config, default: Int): Int =
     Try(c.getInt(key)).getOrElse(default)
@@ -75,7 +82,8 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
 class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                             testData: PacBioTestResources,
                             numSubreadSets: Int,
-                            max2nNumJobs: Int)
+                            max2nNumJobs: Int,
+                            testSubreadSetId: String = "subreads-sequel")
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -91,7 +99,9 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
 
   def toJobOptions(subreadset: TestDataResource,
                    uuid: UUID,
-                   numJobs: Int): MultiAnalysisJobOptions = {
+                   numJobs: Int,
+                   jobName: Option[String] = Some("Scenario Multi-job"))
+    : MultiAnalysisJobOptions = {
     val entryPoint = DeferredEntryPoint(
       DataSetMetaTypes.Subread.fileType.fileTypeId,
       uuid,
@@ -108,14 +118,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                   "pbsmrtpipe.pipelines.dev_01_ds",
                   taskOptions,
                   workflowOptions,
-                  Some(s"Sim Scenario MJob Create $i"),
+                  jobName.map(n => s"$n-MultiJob-$i"),
                   None,
                   None)
 
     }
 
     MultiAnalysisJobOptions(jobs,
-                            Some("Scenario Multi-job"),
+                            jobName,
                             None,
                             Some(JobConstants.GENERAL_PROJECT_ID))
   }
@@ -130,14 +140,30 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
 
   def validateJobWasSuccessful(job: EngineJob): Future[EngineJob] = {
     if (AnalysisJobStates.isSuccessful(job.state)) Future.successful(job)
-    else Future.failed(new Exception(s"Job ${job.id} was NOT successful"))
+    else
+      Future.failed(
+        new Exception(
+          s"Job ${job.id} was NOT successful (state:${job.state})"))
+  }
+
+  def jobSummary(jobs: Seq[EngineJob]): String = {
+    def toSummary(j: EngineJob): String =
+      s"Job id:${j.id} state:${j.state} parent:${j.parentMultiJobId} path:${j.path}"
+
+    jobs
+      .map(toSummary)
+      .reduceLeftOption(_ + "\n" + _)
+      .getOrElse("No Jobs")
   }
 
   // Giving up on the Step approach. It's easier to write a single future and avoid the
   // Var mechanism. Futures also compose, Steps do not.
   def runSanityTest(subreadsetTestFileId: String,
-                    numJobs: Int): Future[Seq[EngineJob]] = {
+                    numJobs: Int,
+                    jobName: Option[String]): Future[Seq[EngineJob]] = {
     for {
+      _ <- andLog(
+        s"Starting to Run MultiJob ScenarioStep with numJobs:$numJobs")
       subreadset <- getFileOrFail(subreadsetTestFileId)
       _ <- andLog(s"Loaded TestDataFile $subreadset")
       msg <- client.getStatus
@@ -150,29 +176,62 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
         client.pollForSuccessfulJob(importJob.id))
       _ <- andLog(s"Successfully imported dataset ${successfulImportJob.id}")
       multiJob <- client.createMultiAnalysisJob(
-        toJobOptions(subreadset, dst.uuid, numJobs))
-      _ <- client.updateMultiAnalysisJobToSubmit(multiJob.id)
+        toJobOptions(subreadset, dst.uuid, numJobs, jobName))
+      _ <- andLog(
+        s"Successfully Created MultiJob ${multiJob.id} in state:${multiJob.state}")
+      updateMsg <- client.updateMultiAnalysisJobToSubmit(multiJob.id)
+      _ <- andLog(updateMsg.message)
       successfulMultiJob <- Future.fromTry(
         client.pollForSuccessfulJob(multiJob.id))
       _ <- andLog(s"Successfully ran MultiJob ${successfulMultiJob.id}")
       jobs <- client.getMultiAnalysisChildrenJobs(multiJob.id)
+      _ <- andLog(s"Found ${jobs.length} children jobs ids:${jobs
+        .map(_.id)} from MultiJob ${successfulMultiJob.id}")
+      _ <- andLog(jobSummary(jobs))
       _ <- Future.sequence(jobs.map(validateJobWasSuccessful))
       _ <- andLog(
         s"Got children jobs ${jobs.map(_.id)} from Multi-Job ${successfulMultiJob.id}")
     } yield jobs
   }
 
-  case class RunMultiJobAnalysisSanity(subreadsetTestFileId: String,
-                                       numJobs: Int)
+  case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
+                                           numJobs: Int,
+                                           jobName: String)
       extends VarStep[Seq[EngineJob]] {
     override val name: String = "RunMultiJobAnalysisSanity"
-    override val runWith = runSanityTest(subreadsetTestFileId, numJobs)
+    override val runWith =
+      runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
+  }
+
+  case class ImportTestData(subreadSetTestId: String)
+      extends VarStep[String]
+      with DaoFutureUtils {
+    override val name: String = "ImportTestData"
+
+    def getFile(fileId: String): Future[Path] =
+      failIfNone(s"Unable to find testdata $fileId")(
+        testData.getFile(fileId).map(_.path))
+
+    override val runWith = for {
+      path <- getFile(subreadSetTestId)
+      job <- client.importDataSet(path, DataSetMetaTypes.Subread)
+      _ <- Future.fromTry(client.pollForSuccessfulJob(job.id))
+      msg <- Future.successful(
+        s"Successful imported $subreadSetTestId with Job ${job.id}")
+      _ <- andLog(msg)
+    } yield msg
   }
 
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
-  override val steps = numJobsPerMultiJob.map(x =>
-    RunMultiJobAnalysisSanity("subreads-sequel", x))
+  val multiJobSteps: Seq[Step] = numJobsPerMultiJob.zipWithIndex.map {
+    case (n, i) =>
+      RunMultiJobAnalysisSanityStep(testSubreadSetId, n, s"Multi-job-${i + 1}")
+  }
+
+  // When only running this Scenario, Add a centalizing importing of the TestData
+  // make the test run quicker.
+  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps
 
 }

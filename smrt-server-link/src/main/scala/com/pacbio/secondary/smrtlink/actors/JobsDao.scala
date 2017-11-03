@@ -30,9 +30,9 @@ import com.pacbio.secondary.smrtlink.models.{
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, blocking}
+import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import slick.sql.FixedSqlAction
@@ -140,11 +140,11 @@ trait DaoFutureUtils {
   }
 
   def runFuturesSequentially[T, U](items: TraversableOnce[T])(
-      fx: T => Future[U]): Future[List[U]] = {
+      fx: T => Future[U])(implicit ec: ExecutionContext): Future[List[U]] = {
     items.foldLeft(Future.successful[List[U]](Nil)) { (f, item) =>
       f.flatMap { x =>
         fx(item).map(_ :: x)
-      }
+      }(ec)
     } map (_.reverse)
   }
 }
@@ -451,8 +451,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
 
     val q = multiJobId match {
-      case IntIdAble(i) => engineJobs.filter(_.parentMultiJobId === i)
-      case UUIDIdAble(u) =>
+      case IntIdAble(ix) =>
+        engineJobs.filter(_.parentMultiJobId === ix).sortBy(_.id)
+      case UUIDIdAble(_) =>
         for {
           job <- qEngineMultiJobById(multiJobId)
           jobs <- engineJobs.filter(_.parentMultiJobId === job.id).sortBy(_.id)
@@ -1761,7 +1762,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       DataSetLoader.loadSubreadSet(Paths.get(ds.path)))
 
   def getSubreadDataSetDetailsById(id: IdAble): Future[String] =
-    getSubreadDataSetById(id).map(subreadToDetails)
+    getSubreadDataSetById(id).flatMap { x =>
+      Future(blocking(subreadToDetails(x)))
+    }
 
   def getSubreadDataSets(
       limit: Int = DEFAULT_MAX_DATASET_LIMIT,

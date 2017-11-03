@@ -29,8 +29,6 @@ import scala.util.control.NonFatal
 object EventManagerActor {
   case object CheckExternalServerStatus
   case class CreateEvent(event: SmrtLinkEvent)
-  // Upload a TGZ file
-  case class UploadTgz(path: Path)
   case class EnableExternalMessages(enable: Boolean)
 }
 
@@ -154,16 +152,6 @@ class EventManagerActor(smrtLinkId: UUID,
         // This is to have a consistent interface, but this is making it a bit unclear that
         // the message isn't sent. Should clarify this interface
         sender ! systemEvent
-      }
-
-    case UploadTgz(tgzPath) =>
-      logger.info(s"Triggering upload of $tgzPath")
-      client match {
-        case Some(c) =>
-          upload(c, tgzPath)
-        case _ =>
-          logger.warn(
-            "Unable to upload. System is not configured with a external server URL")
       }
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")

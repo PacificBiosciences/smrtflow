@@ -43,8 +43,14 @@ trait JobRunnerUtils {
     val writer = new FileJobResultsWriter(stdoutFw, stderrFw)
 
     if (!wasSetup) {
+
+      val multiJobMsg = engineJob.parentMultiJobId
+        .map(i => s"Parent MultiJobId:$i")
+        .getOrElse("")
+
       writer.writeLine(
-        s"Initial Setup of resources. Starting to run engine job id:${engineJob.id} type:${engineJob.jobTypeId}")
+        s"Initial Setup of resources. Starting to run engine job id:${engineJob.id} type:${engineJob.jobTypeId} $multiJobMsg")
+
     }
 
     (writer, resource, wasSetup, stdout)

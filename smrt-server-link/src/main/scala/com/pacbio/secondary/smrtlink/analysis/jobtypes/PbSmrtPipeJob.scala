@@ -85,11 +85,6 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
           resultsWriter: JobResultsWriter): Either[ResultFailed, Out] = {
     val startedAt = JodaDateTime.now()
 
-    def writer(s: String): Unit = {
-      resultsWriter.writeLine(s)
-      logger.info(s)
-    }
-
     def writeOptions(opts: Seq[ServiceTaskOptionBase], msg: String): Unit = {
       resultsWriter.writeLine(msg)
       opts
@@ -116,7 +111,7 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
                             opts.workflowOptions,
                             opts.serviceUri)
 
-    writer(s"pbsmrtpipe command '$cmd'")
+    resultsWriter.writeLine(s"pbsmrtpipe command '$cmd'")
 
     val wrappedCmd = opts.commandTemplate.map { tp =>
       val commandJob = CommandTemplateJob(s"j${job.jobId.toString}",
@@ -129,13 +124,14 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
       val customCmd = tp.render(commandJob)
       // This should probably use 'exec'
       val execCustomCmd = "eval \"" + customCmd + "\""
-      writer(s"Custom command Job $commandJob")
-      writer(
+      resultsWriter.writeLine(s"Custom command Job $commandJob")
+      resultsWriter.writeLine(
         s"Resolved Custom command template 'pb-cmd-template' to '$execCustomCmd'")
       val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH),
                                             execCustomCmd,
                                             opts.envPath)
-      writer(s"Writing custom wrapper to ${sh.toAbsolutePath.toString}'")
+      resultsWriter.writeLine(
+        s"Writing custom wrapper to ${sh.toAbsolutePath.toString}'")
       Seq("bash", sh.toAbsolutePath.toString)
     } getOrElse {
       val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH),
@@ -146,7 +142,7 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
 
     val stdoutP = job.path.resolve(DEFAULT_STDOUT)
     val stderrP = job.path.resolve(DEFAULT_STDERR)
-    writer(s"Running $wrappedCmd")
+    resultsWriter.writeLine(s"Running $wrappedCmd")
     val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
@@ -156,7 +152,7 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
       val contents = FileUtils.readFileToString(datastorePath.toFile)
       contents.parseJson.convertTo[PacBioDataStore]
     } getOrElse {
-      writer(
+      resultsWriter.writeLine(
         s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
       PacBioDataStore(startedAt, startedAt, "0.2.1", Seq.empty[DataStoreFile])
     }
