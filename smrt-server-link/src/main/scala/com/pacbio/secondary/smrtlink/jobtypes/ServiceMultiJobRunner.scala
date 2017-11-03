@@ -76,9 +76,8 @@ class ServiceMultiJobRunner(dao: JobsDao, config: SystemJobConfig)
   private def runner(engineJob: EngineJob): Future[MessageResponse] = {
 
     val fx = for {
-      _ <- Future.successful(
-        logger.info(
-          s"Processing/Setup MultiJob ${engineJob.id} in state: ${engineJob.state} workflow:${engineJob.workflow}"))
+      _ <- Future.successful(logger.info(
+        s"Processing/Setup MultiJob ${engineJob.id} in state: ${engineJob.state} workflow:${engineJob.workflow}"))
       (opts, writer, resources) <- Future.fromTry(
         Try(setupAndConvert(engineJob, dao)))
       job <- Future.successful(opts.toMultiJob())
