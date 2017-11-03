@@ -117,25 +117,27 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     *
     *
     */
-  private def createJobIfResolvableEntryPoints(
-      dao: JobsDao,
-      job: DeferredJob,
-      parentJobId: Int,
-      user: Option[String],
-      smrtLinkVersion: Option[String],
-      writer: JobResultsWriter): Future[EngineJob] = {
-
+  private def runJob(dao: JobsDao,
+                     job: DeferredJob,
+                     jobId: Option[Int],
+                     parentJobId: Int,
+                     user: Option[String],
+                     smrtLinkVersion: Option[String],
+                     writer: JobResultsWriter): Future[EngineJob] = {
     for {
       resolvedEntryPoints <- resolveEntryPoints(dao, job.entryPoints)
       engineJobEntryPoints <- Future.successful(resolvedEntryPoints.map(f =>
         BoundServiceEntryPoint(f._1.entryId, f._1.fileTypeId, f._2.uuid)))
-      engineJob <- createPbsmrtpipeJob(dao,
-                                       engineJobEntryPoints,
-                                       job,
-                                       parentJobId,
-                                       user,
-                                       smrtLinkVersion,
-                                       writer)
+      engineJob <- jobId
+        .map(i => dao.getJobById(i))
+        .getOrElse(
+          createPbsmrtpipeJob(dao,
+                              engineJobEntryPoints,
+                              job,
+                              parentJobId,
+                              user,
+                              smrtLinkVersion,
+                              writer))
     } yield engineJob
   }
 
@@ -170,7 +172,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
   /**
     * Collapses a list of core job states into a single state that captures the state
-    * of the multi-job.
+    * of the MultiJob.
     *
     * Any core job in Submitted, or Running state will translate into RUNNING at
     * the mulit-job level
@@ -199,7 +201,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       // If any child job has failed, then fail all jobs
       case (AnalysisJobStates.FAILED, _) => AnalysisJobStates.FAILED
       case (_, AnalysisJobStates.FAILED) => AnalysisJobStates.FAILED
-      // If any child job has been Terminated, then mark the multi-job as failed
+      // If any child job has been Terminated, then mark the MultiJob as failed
       case (AnalysisJobStates.TERMINATED, _) => AnalysisJobStates.FAILED
       case (_, AnalysisJobStates.TERMINATED) => AnalysisJobStates.FAILED
       // If
@@ -209,7 +211,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       case (AnalysisJobStates.CREATED, _) => AnalysisJobStates.RUNNING
       case (_, _) =>
         logger.error(
-          s"Unclear mapping of multi-job state from $s1 and $s2. Defaulting to ${AnalysisJobStates.FAILED}")
+          s"Unclear mapping of MultiJob state from $s1 and $s2. Defaulting to ${AnalysisJobStates.FAILED}")
         AnalysisJobStates.FAILED
     }
   }
@@ -256,69 +258,39 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
 
     val noJobId: Option[Int] = None
 
-    /**
-      * Responsible for creating the Job if the job id isn't already assigned and if
-      * the deferred entry points are resolvable.
-      *
-      */
     def runner(xs: (DeferredJob, Option[Int])): Future[Option[Int]] = {
-      val (deferredJob, jobIdOpt) = xs
-
-      val createOrNull =
-        createJobIfResolvableEntryPoints(dao,
-                                         deferredJob,
-                                         engineJob.id,
-                                         engineJob.createdBy,
-                                         config.smrtLinkVersion,
-                                         resultsWriter)
-          .map(job => Some(job.id))
-          .recoverWith { case _ => Future.successful(noJobId) }
-
-      // Skip any db lookups
-      jobIdOpt
-        .map(jobId => Future.successful(Some(jobId)))
-        .getOrElse(createOrNull)
+      val (deferredJob, jobId) = xs
+      runJob(dao,
+             deferredJob,
+             jobId,
+             engineJob.id,
+             engineJob.createdBy,
+             config.smrtLinkVersion,
+             resultsWriter)
+        .map(createdJob => Some(createdJob.id))
+        .recoverWith { case _ => Future.successful(noJobId) }
     }
-
-    def summaryIfNotEqual[T](s1: T, s2: T, msg: String): String = {
-      if (s1 == s2) {
-        s"s$msg"
-      } else {
-        ""
-      }
-    }
-
-    def summaryIfStateChanged(s1: AnalysisJobStates.JobStates,
-                              s2: AnalysisJobStates.JobStates): String =
-      summaryIfNotEqual(s1, s2, s"updating state from $s1 to $s2")
-
-    def summaryIfWorkflowChanged(w1: MultiAnalysisWorkflow,
-                                 w2: MultiAnalysisWorkflow): String =
-      summaryIfNotEqual(w1,
-                        w2,
-                        s"updating workflow from ${w1.jobIds} to ${w2.jobIds}")
 
     /**
-      * If the workflow or the multi-job state has changed, then update the state in db
+      * If the workflow or the MultiJob state has changed, then update the state in db
       */
     def updateIfNecessary(
-        updatedState: AnalysisJobStates.JobStates,
+        state: AnalysisJobStates.JobStates,
         updatedWorkflow: MultiAnalysisWorkflow): Future[MessageResponse] = {
-      if ((updatedState != engineJob.state) || (updatedWorkflow != workflow)) {
+      if ((state != engineJob.state) || (updatedWorkflow != workflow)) {
         for {
           msg <- Future.successful(
-            s"Updating MultiJob ${summaryIfStateChanged(engineJob.state, updatedState)} ${summaryIfWorkflowChanged(workflow, updatedWorkflow)}")
+            s"Updating MultiJob ${engineJob.id} state from ${engineJob.state} to $state")
           _ <- dao.updateMultiJobState(engineJob.id,
-                                       updatedState,
+                                       state,
                                        updatedWorkflow.toJson.asJsObject,
                                        msg,
                                        None)
           _ <- Future.successful(resultsWriter.writeLine(msg))
         } yield MessageResponse(msg)
       } else {
-        Future.successful(
-          MessageResponse(
-            "Skipping update. No change in MultiJob state or workflow state."))
+        Future.successful(MessageResponse(
+          s"Skipping update. No change in MultiJob ${engineJob.id} state or workflow state."))
       }
     }
 
@@ -326,54 +298,60 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     // The default values will be an Seq(None, None, None, ... n) for n Deferred Jobs.
     val items: Seq[(DeferredJob, Option[Int])] = opts.jobs.zip(workflow.jobIds)
 
+    // Write a log message with the MultiJob Id for context
     def andJobLog(sx: String) =
-      andLog(s"multi-job id:${engineJob.id} $sx")
+      andLog(s"MultiJob id:${engineJob.id} $sx")
 
+    def andLogWithWriter(sx: String): Future[String] = Future {
+      logger.info(sx)
+      resultsWriter.writeLine(sx)
+      sx
+    }
+
+    // Summary of the Jobs states
     def summary(
         sx: Seq[(Option[Int], Option[AnalysisJobStates.JobStates])]): String =
       sx.map {
           case (Some(i), Some(j)) => s"$i:$j"
-          case _ => "" // If the Job has an Id, then it has a State.
+          case _ => ""
         }
         .reduceLeftOption(_ + " " + _)
         .getOrElse("Children Jobs not created yet")
 
-    // From Scratch case
-    val f1 = for {
-      _ <- andLog(
-        s"Starting to update MultiJob ${engineJob.id} in state:${workflow.jobIds}")
-      updatedJobIds <- runFuturesSequentially(items)(runner)
-      _ <- andJobLog(s"Job Ids $updatedJobIds")
-      updatedWorkflow <- Future.successful(
-        MultiAnalysisWorkflow(updatedJobIds))
-      jobStates <- fetchJobStates(dao, updatedJobIds)
-      _ <- andJobLog(
-        s"Got MultiJob Child Job Summary (id:state) ${summary(updatedJobIds.zip(jobStates))}")
-      multiJobState <- Future.successful(
-        determineMultiJobState(jobStates.flatten, engineJob.state))
-      msg <- updateIfNecessary(multiJobState, updatedWorkflow)
-    } yield msg
+    // Main Job Running
+    if (workflow.jobIds.flatten.length != opts.jobs.length) {
 
-    // Use case where all the jobs have already been created. Here we can skip the overhead by
-    // getting all the job states in a single call.
-    // The workflow state only captures the jobIds created, hence, it should NEVER need to be updated here.
-    val fcached = for {
-      _ <- andLog(
-        s"Starting to update MultiJob ${engineJob.id} in state:${workflow.jobIds}")
-      jobsIdStates <- dao
-        .getMultiJobChildren(engineJob.id)
-        .map(items => items.map(j => (j.id, j.state)))
-      updatedMultiJobState <- Future.successful(
-        determineMultiJobState(jobsIdStates.map(_._2), engineJob.state))
-      _ <- andLog(s"Got MultiJob Child Job Summary (id:state) ${summary(
-        jobsIdStates.map(x => (Some(x._1), Some(x._2))))}")
-      msg <- updateIfNecessary(updatedMultiJobState, workflow)
-    } yield msg
-
-    if (workflow.jobIds.flatten.length == opts.jobs.length) {
-      fcached
+      for {
+        _ <- andLogWithWriter(
+          s"Starting to process MultiJob ${engineJob.id} state:${engineJob.state} workflow:${workflow.jobIds}")
+        updatedJobIds <- runFuturesSequentially(items)(runner)
+        _ <- andJobLog(s"Job Ids $updatedJobIds")
+        updatedWorkflow <- Future.successful(
+          MultiAnalysisWorkflow(updatedJobIds))
+        jobStates <- fetchJobStates(dao, updatedJobIds)
+        _ <- andJobLog(s"Got MultiJob Child Job Summary (id:state) ${summary(
+          updatedJobIds.zip(jobStates))}")
+        multiJobState <- Future.successful(
+          determineMultiJobState(jobStates.flatten, engineJob.state))
+        msg <- updateIfNecessary(multiJobState, updatedWorkflow)
+      } yield msg
     } else {
-      f1
+
+      // Use case where all the jobs have already been created. Here we can skip the overhead by
+      // getting all the job states in a single call.
+      // The workflow state only captures the jobIds created, hence, it should NEVER need to be updated here.
+      for {
+        _ <- andLogWithWriter(
+          s"Starting to (cached) process MultiJob ${engineJob.id} state:${engineJob.state} workflow:${workflow.jobIds}")
+        jobsIdStates <- dao
+          .getMultiJobChildren(engineJob.id)
+          .map(items => items.map(j => (j.id, j.state)))
+        updatedMultiJobState <- Future.successful(
+          determineMultiJobState(jobsIdStates.map(_._2), engineJob.state))
+        _ <- andLog(s"Got MultiJob Child Job Summary (id:state) ${summary(
+          jobsIdStates.map(x => (Some(x._1), Some(x._2))))}")
+        msg <- updateIfNecessary(updatedMultiJobState, workflow)
+      } yield msg
     }
   }
 }

@@ -25,8 +25,13 @@ import scala.util.Try
 
 object MultiAnalysisScenarioLoader extends ScenarioLoader {
 
-  val DEFAULT_NUM_SUBREADSETS = 200
-  val DEFAULT_MAX_2N_NUM_JOBS = 5
+  // There are two parameter usecases here
+  // 1. N "standard" analysis jobs where each analysis job emits ~ 25 datastore
+  // files. N is restricted to 32? (this should probably be 16)
+  // 2. N barcoding analysis where N is <= 8 and the barcoded datastore outputs
+  // will 8,16,96,384 (+ some delta of ~5 datastore files)
+  val DEFAULT_NUM_SUBREADSETS = 25
+  val DEFAULT_MAX_2N_NUM_JOBS = 4
 
   def getOrDefault(key: String, c: Config, default: Int): Int =
     Try(c.getInt(key)).getOrElse(default)
@@ -154,7 +159,8 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                     numJobs: Int,
                     jobName: Option[String]): Future[Seq[EngineJob]] = {
     for {
-      _ <- andLog("Starting to Run MultiJob ScenarioStep")
+      _ <- andLog(
+        s"Starting to Run MultiJob ScenarioStep with numJobs:$numJobs")
       subreadset <- getFileOrFail(subreadsetTestFileId)
       _ <- andLog(s"Loaded TestDataFile $subreadset")
       msg <- client.getStatus
@@ -197,11 +203,16 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
-  override val steps = numJobsPerMultiJob.zipWithIndex.map {
-    case (n, i) =>
-      RunMultiJobAnalysisSanityStep("subreads-sequel",
-                                    n,
-                                    s"Multi-job-${i + 1}")
-  }
+  //FIXME(mpkocher)(11-2-2017) There's something non-obvious going on here. These appears to run in parallel
+//  override val steps = numJobsPerMultiJob.zipWithIndex.map {
+//    case (n, i) =>
+//      RunMultiJobAnalysisSanityStep("subreads-sequel",
+//                                    n,
+//                                    s"Multi-job-${i + 1}")
+//  }
 
+  override val steps: Seq[Step] = Seq(
+    RunMultiJobAnalysisSanityStep("subreads-sequel",
+                                  math.pow(2, max2nNumJobs).toInt,
+                                  "MulitJob"))
 }
