@@ -180,6 +180,18 @@
 			<xs:enumeration value="ExtraBuffer"/>
 			<xs:enumeration value="PrewetBuffer"/>
 			<xs:enumeration value="ProtK"/>
-		</xs:restriction>
+            <xs:enumeration value="OilRemBuffer"/>
+            <xs:enumeration value="Solvent2"/>
+            <xs:enumeration value="Solvent3"/>
+            <xs:enumeration value="CellWashBuffer4"/>
+            <xs:enumeration value="CellWashBuffer5"/>
+            <xs:enumeration value="CellWashBuffer6"/>
+            <xs:enumeration value="CellWashBuffer7"/>
+            <xs:enumeration value="CellWashBuffer8"/>
+            <xs:enumeration value="CellWashBuffer9"/>
+            <xs:enumeration value="FinalBuffer"/>
+            <xs:enumeration value="Empty11"/>
+            <xs:enumeration value="Empty12"/>
+        </xs:restriction>
 	</xs:simpleType>
 </xs:schema>
