@@ -182,7 +182,7 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
 
     // Job Resources
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(logPath)
+    val logFile = toSmrtLinkJobLog(logPath)
     val outputDataSetPath = job.path.resolve("merged.dataset.xml")
     val datastoreJson = job.path.resolve("datastore.json")
 

@@ -121,9 +121,11 @@ class MergeDataSetJob(opts: MergeDataSetOptions)
                                                 jobTypeId,
                                                 resultsWriter)
 
-        val logFile = toMasterDataStoreFile(
-          logPath,
-          "Job Master log of the Merge Dataset job")
+        val logFile =
+          toSmrtLinkJobLog(
+            logPath,
+            Some(
+              s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the Merge Dataset job"))
 
         // FIX hardcoded version
         val ds = PacBioDataStore(now,

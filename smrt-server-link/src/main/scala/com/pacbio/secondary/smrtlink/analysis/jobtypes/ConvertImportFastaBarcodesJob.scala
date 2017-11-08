@@ -95,9 +95,10 @@ class ConvertImportFastaBarcodesJob(opts: ConvertImportFastaBarcodesOptions)
     }
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
+    val logFile = toSmrtLinkJobLog(
       logPath,
-      "Job Master log of the ConvertImportFasta Job")
+      Some(
+        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} ConvertImportFasta Job"))
 
     val result = Try { validateAndRun(fastaPath) }
 

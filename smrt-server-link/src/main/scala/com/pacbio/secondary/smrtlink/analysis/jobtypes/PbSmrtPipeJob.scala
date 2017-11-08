@@ -40,6 +40,8 @@ case class PbSmrtPipeJobOptions(
     envPath: Option[Path],
     serviceUri: Option[URI],
     commandTemplate: Option[CommandTemplate] = None,
+    stdOut: Option[Path] = None,
+    stdErr: Option[Path] = None,
     override val projectId: Int = GENERAL_PROJECT_ID)
     extends BaseJobOptions {
 
@@ -140,8 +142,9 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
       Seq("bash", sh.toAbsolutePath.toString)
     }
 
-    val stdoutP = job.path.resolve(DEFAULT_STDOUT)
-    val stderrP = job.path.resolve(DEFAULT_STDERR)
+    val stdoutP = opts.stdOut.getOrElse(job.path.resolve(DEFAULT_STDOUT))
+    val stderrP = opts.stdErr.getOrElse(job.path.resolve(DEFAULT_STDERR))
+
     resultsWriter.writeLine(s"Running $wrappedCmd")
     val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
@@ -154,7 +157,7 @@ class PbSmrtPipeJob(opts: PbSmrtPipeJobOptions)
     } getOrElse {
       resultsWriter.writeLine(
         s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
-      PacBioDataStore(startedAt, startedAt, "0.2.1", Seq.empty[DataStoreFile])
+      PacBioDataStore.fromFiles(Seq.empty[DataStoreFile])
     }
 
     //FIXME(mpkocher)(1-27-2017) These error messages are not great. Try to parse the pbsmrtpipe LOG (or a structure

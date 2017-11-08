@@ -9,6 +9,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
+  MockJobUtils,
   PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions
 }
 import com.pacbio.secondary.smrtlink.models.{
@@ -47,7 +48,8 @@ case class PbsmrtpipeJobOptions(name: Option[String],
 
 class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     extends ServiceCoreJob(opts)
-    with JobServiceConstants {
+    with JobServiceConstants
+    with MockJobUtils {
   type Out = PacBioDataStore
 
   private def toURL(baseURL: URL, uuid: UUID): URI = {
@@ -62,6 +64,13 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
+    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
+    val stdErr = resources.path.resolve(JobConstants.JOB_STDERR)
+
+    resultsWriter.writeLine(s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
+
+    val logFile = toSmrtLinkJobLog(logPath)
+
     val rootUpdateURL = new URL(
       s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
@@ -71,8 +80,10 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     // This needs to be cleaned up
     val serviceURI: Option[URI] = Some(toURL(rootUpdateURL, resources.jobId))
 
+    // Proactively add the datastore file to communicate
     // Resolve Entry Points (with updated paths for SubreadSets)
     val fx: Future[Seq[BoundEntryPoint]] = for {
+      _ <- dao.importDataStoreFile(logFile, resources.jobId)
       entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
       epUpdated <- Future.sequence {
         entryPoints.map { ep =>
@@ -81,6 +92,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
         }
       }
     } yield epUpdated
+
     val entryPoints: Seq[BoundEntryPoint] =
       Await.result(fx, opts.DEFAULT_TIMEOUT)
 
@@ -97,6 +109,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
       resultsWriter.writeLine(msg)
     }
 
+    //MK. This isn't the greatest idea to have two different processes writing to the same file handle
     val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId,
                                           entryPoints,
                                           opts.taskOptions,
@@ -104,6 +117,8 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
                                           envPath,
                                           serviceURI,
                                           None,
+                                          Some(logPath),
+                                          Some(stdErr),
                                           opts.getProjectId())
     val job = oldOpts.toJob
     job.run(resources, resultsWriter)
