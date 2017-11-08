@@ -114,19 +114,20 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     Future.sequence(jobs.map { job =>
       for {
         serviceEntryPoints <- dao.getJobEntryPoints(job.id)
-        eps <- Future.sequence(serviceEntryPoints.map { e =>
-          dao
-            .getDataSetMetaData(e.datasetUUID)
-            .map { ds =>
-              Paths.get(ds.path)
-            }
-            .flatMap { p =>
-              updateDataSetEntryPoint(p, jobDir, dao)
-            }
-            .map { p =>
-              val eid = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
-              BoundEntryPoint(eid.getOrElse("unknown"), p)
-            }
+        eps <- Future.sequence(serviceEntryPoints.map {
+          e =>
+            dao
+              .getDataSetMetaData(e.datasetUUID)
+              .map { ds =>
+                Paths.get(ds.path)
+              }
+              .flatMap { p =>
+                updateDataSetandWriteToEntryPointsDir(p, jobDir, dao)
+              }
+              .map { p =>
+                val eid = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
+                BoundEntryPoint(eid.getOrElse("unknown"), p)
+              }
         })
       } yield eps
     })

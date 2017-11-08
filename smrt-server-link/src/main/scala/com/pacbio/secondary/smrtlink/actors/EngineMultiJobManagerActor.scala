@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
@@ -14,34 +14,58 @@ import com.pacbio.secondary.smrtlink.jobtypes.ServiceMultiJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 import scala.concurrent.duration._
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object EngineMultiJobManagerActor {
+
+  case object CheckForNewMultiJobs
+
+  case object CheckUpdateAllWorkers
   case class CheckForRunnableMultiJobWork(multiJobId: IdAble)
+  case class CheckForWorkSequentially(multiJobIds: List[Int])
+
+  case object CheckWorkerMultiJobStatus
+  case class MultiJobIsCompleted(multiJobId: Int)
+  case class CreateMultiJobWorker(multiJobId: Int)
 }
 
 /**
-  * Created by mkocher on 9/11/17.
+  * The general model is to offload the processing to a worker (Actor) per MultiJob
+  * to avoid collisions or different threads processing the same MultiJob.
+  *
+  * This is also starting to lay the foundation for a more event-driven model. (i.e.,
+  * core job 1234 has completed, each actor could listen and take the necessary
+  * action. This should reduce unnecessary db calls)
+  *
   */
 class EngineMultiJobManagerActor(dao: JobsDao,
                                  resolver: JobResourceResolver,
-                                 config: SystemJobConfig)
+                                 config: SystemJobConfig,
+                                 runner: ServiceMultiJobRunner,
+                                 checkForWorkInterval: FiniteDuration)
     extends Actor
     with ActorLogging {
 
   import EngineMultiJobManagerActor._
   import CommonModelImplicits._
 
-  val runner = new ServiceMultiJobRunner(dao, config)
+  val workers = TrieMap.empty[Int, ActorRef]
 
-  //MK Probably want to have better model for this
-  val checkForWorkInterval = 30.seconds
-
-  val checkForWorkTick = context.system.scheduler.schedule(
+  // Trigger to check for new MultiJobs
+  val checkForNewWorkTick = context.system.scheduler.schedule(
     5.seconds,
     checkForWorkInterval,
     self,
-    CheckForRunnableJob)
+    CheckForNewMultiJobs)
+
+  // Trigger WORKERS to Check for Updates
+  val checkWorkersForUpdatedInterval = 2 * checkForWorkInterval
+  val checkWorkersForUpdatesTick = context.system.scheduler.schedule(
+    10.seconds,
+    checkWorkersForUpdatedInterval,
+    self,
+    CheckUpdateAllWorkers)
 
   override def preStart(): Unit = {
     log.info(s"Starting engine manager actor $self with $config")
@@ -53,37 +77,53 @@ class EngineMultiJobManagerActor(dao: JobsDao,
       s"$self (pre-restart) Unhandled exception ${reason.getMessage} Message $message")
   }
 
-  def checkForWorkById(ix: IdAble): Unit = {
-    dao
-      .getMultiJobById(ix)
-      .map(engineJob => runner.runWorkflow(engineJob))
-      .onFailure {
-        case ex =>
-          log.error(
-            s"Failed to check for Multi-Job ${ix.toIdString} ${ex.getMessage}")
-      }
+  def addAndCreateWorker(multiJobId: Int): Unit = {
+    if (!(workers contains multiJobId)) {
+      val worker = context.actorOf(
+        EngineMultiJobWorkerActor.props(multiJobId, dao, runner, self))
+      log.info(
+        s"Created MultiJob Worker for MultiJob $multiJobId worker:$worker")
+      workers(multiJobId) = worker
+    }
   }
 
-  def checkForWork(): Unit = {
+  def checkForNewMultiJobs(): Unit = {
     dao
       .getNextRunnableEngineMultiJobs()
-      .map(jobs => jobs.map(_.id))
-      .foreach { ids =>
-        {
-          ids.foreach { ix =>
-            self ! CheckForRunnableMultiJobWork(ix)
-          }
+      .map { jobs =>
+        jobs.map(_.id).toList.filter(i => !(workers.keySet contains i))
+      }
+      .foreach { jobIds =>
+        jobIds.foreach { jobId =>
+          self ! CreateMultiJobWorker(jobId)
         }
       }
   }
 
-  override def receive: Receive = {
-    case CheckForRunnableJob =>
-      //log.info(s"$self Checking for MultiJob Work")
-      checkForWork()
+  def removeWorker(multiJobId: Int) = {
+    if (workers contains multiJobId) {
+      log.info(s"Removing MultiJob $multiJobId and shutting down worker")
+      workers - multiJobId
+    }
+  }
 
-    case CheckForRunnableMultiJobWork(multiJobId) =>
-      checkForWorkById(multiJobId)
+  override def receive: Receive = {
+
+    case CreateMultiJobWorker(multiJobId) =>
+      addAndCreateWorker(multiJobId)
+
+    case MultiJobIsCompleted(multiJobId) =>
+      removeWorker(multiJobId)
+      sender ! PoisonPill
+
+    case CheckForNewMultiJobs =>
+      checkForNewMultiJobs()
+
+    case CheckUpdateAllWorkers =>
+      // This should probably have a cascading sequential call to each worker
+      workers.values.toList.foreach { worker =>
+        worker ! CheckWorkerMultiJobStatus
+      }
 
     case x =>
       log.warning(s"Unsupported message $x to $self")
@@ -98,9 +138,13 @@ trait EngineMultiJobManagerActorProvider {
   val engineMultiJobManagerActor: Singleton[ActorRef] =
     Singleton(
       () =>
-        actorRefFactory().actorOf(Props(classOf[EngineMultiJobManagerActor],
-                                        jobsDao(),
-                                        jobResolver(),
-                                        systemJobConfig()),
-                                  "EngineMultiJobManagerActor"))
+        actorRefFactory().actorOf(
+          Props(classOf[EngineMultiJobManagerActor],
+                jobsDao(),
+                jobResolver(),
+                systemJobConfig(),
+                new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
+                1.minute),
+          "EngineMultiJobManagerActor"
+      ))
 }

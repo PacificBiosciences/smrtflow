@@ -16,6 +16,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.blocking
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scalaz.Scalaz._
@@ -121,11 +122,12 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
 
     import CommonModelImplicits._
 
-    for {
-      dsm <- ValidateServiceDataSetUtils.resolveDataSet(dsType, dsId, dao)
-      validatedDataSet <- validatePath(dsm)
-    } yield validatedDataSet
-
+    blocking {
+      for {
+        dsm <- ValidateServiceDataSetUtils.resolveDataSet(dsType, dsId, dao)
+        validatedDataSet <- validatePath(dsm)
+      } yield validatedDataSet
+    }
   }
 
   def validateDataSetsExist(

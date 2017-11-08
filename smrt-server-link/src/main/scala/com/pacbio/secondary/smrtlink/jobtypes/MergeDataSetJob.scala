@@ -1,17 +1,24 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
+import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetMerger
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+
+import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   EngineJobEntryPointRecord,
@@ -19,12 +26,13 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
+import com.pacificbiosciences.pacbiodatasets.DataSetType
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.blocking
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by mkocher on 8/17/17.
@@ -38,13 +46,21 @@ case class MergeDataSetJobOptions(
     extends ServiceJobOptions {
   import CommonModelImplicits._
 
+  /**
+    * This is a guess.
+    *
+    * This should capture both the fetching from the db as well as
+    * writing to disk.
+    */
+  def TIMEOUT_PER_RECORD = 1.seconds
+
   override def jobTypeId = JobTypeIds.MERGE_DATASETS
   override def toJob() = new MergeDataSetJob(this)
 
   override def validate(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
-    Try { resolveEntryPoints(dao) } match {
+    Try(resolveEntryPoints(dao)) match {
       case Success(_) => None
       case Failure(ex) =>
         Some(InvalidJobOptionError(s"Invalid options. ${ex.getMessage}"))
@@ -53,6 +69,9 @@ case class MergeDataSetJobOptions(
 
   override def resolveEntryPoints(
       dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
+
+    val timeout: FiniteDuration = ids.length * TIMEOUT_PER_RECORD
+
     val fx = for {
       datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
                                                             ids,
@@ -61,16 +80,151 @@ case class MergeDataSetJobOptions(
         EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
     } yield entryPoints
 
-    Await.result(fx, 10.seconds)
+    Await.result(blocking(fx), timeout)
   }
 
 }
 
 class MergeDataSetJob(opts: MergeDataSetJobOptions)
-    extends ServiceCoreJob(opts) {
+    extends ServiceCoreJob(opts)
+    with MockJobUtils
+    with timeUtils {
   type Out = PacBioDataStore
 
   import CommonModelImplicits._
+
+  def toDataStoreFile[T <: DataSetType](ds: T,
+                                        output: Path,
+                                        description: String): DataStoreFile = {
+    val uuid = UUID.fromString(ds.getUniqueId)
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    DataStoreFile(
+      uuid,
+      s"pbscala::merge_dataset",
+      ds.getMetaType,
+      output.toFile.length,
+      createdAt,
+      modifiedAt,
+      output.toAbsolutePath.toString,
+      isChunked = false,
+      Option(ds.getName).getOrElse("PacBio DataSet"),
+      description
+    )
+  }
+
+  // There's a bit of duplication here. I can't get the types to work correctly.
+  def mergeDataSets[T <: DataSetType](
+      jobRoot: Path,
+      resultsWriter: JobResultsWriter,
+      dataSetType: DataSetMetaTypes.DataSetMetaType,
+      paths: Seq[Path],
+      outputDataSetPath: Path,
+      name: String,
+      description: String): Try[Seq[DataStoreFile]] = {
+    dataSetType match {
+      case DataSetMetaTypes.Subread =>
+        for {
+          dataset <- Try(
+            DataSetMerger
+              .mergeSubreadSetPathsTo(paths, name, outputDataSetPath))
+          dsFile <- Success(
+            toDataStoreFile(dataset, outputDataSetPath, description))
+          reportFiles <- Try(
+            DataSetReports.runAll(outputDataSetPath,
+                                  DataSetMetaTypes.Subread,
+                                  jobRoot,
+                                  jobTypeId,
+                                  resultsWriter))
+        } yield Seq(dsFile) ++ reportFiles
+      case DataSetMetaTypes.HdfSubread =>
+        for {
+          dataset <- Try(
+            DataSetMerger
+              .mergeHdfSubreadSetPathsTo(paths, name, outputDataSetPath))
+          dsFile <- Success(
+            toDataStoreFile(dataset, outputDataSetPath, description))
+          reportFiles <- Try(
+            DataSetReports.runAll(outputDataSetPath,
+                                  DataSetMetaTypes.HdfSubread,
+                                  jobRoot,
+                                  jobTypeId,
+                                  resultsWriter))
+        } yield Seq(dsFile) ++ reportFiles
+      case x =>
+        Failure(new Exception(
+          s"Unsupported dataset type $x. Only SubreadSet and HdfSubreadSet are supported."))
+    }
+  }
+
+  def resolvePathsAndWriteEntryPoints(dao: JobsDao,
+                                      jobRoot: Path,
+                                      timeout: FiniteDuration): Seq[Path] = {
+    val fx: Future[Seq[Path]] = for {
+      datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
+                                                            opts.ids,
+                                                            dao)
+      paths <- Future.successful(datasets.map(_.path))
+      updatedPaths <- Future.sequence(paths.map { p =>
+        updateDataSetandWriteToEntryPointsDir(Paths.get(p), jobRoot, dao)
+      })
+    } yield updatedPaths
+
+    Await.result(blocking(fx), timeout)
+  }
+
+  def runner(job: JobResourceBase,
+             resultsWriter: JobResultsWriter,
+             dao: JobsDao,
+             config: SystemJobConfig): Try[PacBioDataStore] = {
+
+    val startedAt = JodaDateTime.now()
+
+    // Job Resources
+    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
+    val logFile = toMasterDataStoreFile(logPath)
+    val outputDataSetPath = job.path.resolve("merged.dataset.xml")
+    val datastoreJson = job.path.resolve("datastore.json")
+
+    val name = opts.name.getOrElse("MergedDataSet")
+    val description = s"Merged PacBio DataSet from ${opts.ids.length} files"
+
+    def writer(sx: String): String = {
+      logger.debug(sx)
+      resultsWriter.writeLine(sx)
+      sx
+    }
+
+    def writeInitSummary(): Unit = {
+      writer(
+        s"Starting dataset merging of ${opts.ids.length} ${opts.datasetType} Files at ${startedAt.toString}")
+      resultsWriter.writeLine(s"DataSet Merging options: $opts")
+    }
+
+    val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
+
+    // add datastore file so the errors are propagated on failure
+    for {
+      _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
+                       opts.DEFAULT_TIMEOUT)
+      _ <- Success(writeInitSummary())
+      paths <- Try(resolvePathsAndWriteEntryPoints(dao, job.path, timeout))
+      _ <- Success(writer(s"Successfully resolved ${opts.ids.length} files"))
+      dsFiles <- mergeDataSets(job.path,
+                               resultsWriter,
+                               opts.datasetType,
+                               paths,
+                               outputDataSetPath,
+                               name,
+                               description)
+      dataStore <- Success(PacBioDataStore.fromFiles(dsFiles ++ Seq(logFile)))
+      _ <- Try(writeDataStore(dataStore, datastoreJson))
+      _ <- Try(
+        writer(
+          s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}"))
+    } yield dataStore
+
+  }
 
   override def run(
       resources: JobResourceBase,
@@ -78,28 +232,28 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    // FIXME. this needs to be centralized
-    val timeout = 10.seconds
+    val startedAt = JodaDateTime.now()
 
-    val name = opts.name.getOrElse("Merge-DataSet")
+    def toLeft(msg: String): Either[ResultFailed, PacBioDataStore] = {
+      val runTime = computeTimeDeltaFromNow(startedAt)
+      Left(
+        ResultFailed(resources.jobId,
+                     jobTypeId.toString,
+                     msg,
+                     runTime,
+                     AnalysisJobStates.FAILED,
+                     host))
+    }
 
-    val fx: Future[Seq[Path]] = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
-                                                            opts.ids,
-                                                            dao)
-      paths <- Future.successful(datasets.map(_.path))
-      updatedPaths <- Future.sequence(paths.map { p =>
-        updateDataSetEntryPoint(Paths.get(p), resources.path, dao)
-      })
-    } yield updatedPaths
+    // Wrapping layer to compose with the current API
+    val tx = runner(resources, resultsWriter, dao, config)
+      .map(result => Right(result))
 
-    val paths: Seq[Path] = Await.result(fx, timeout)
+    val tr = tx.recover { case ex => toLeft(ex.getMessage) }
 
-    val oldOpts = MergeDataSetOptions(opts.datasetType.toString,
-                                      paths,
-                                      name,
-                                      opts.getProjectId())
-    val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    tr match {
+      case Success(x) => x
+      case Failure(ex) => toLeft(ex.getMessage)
+    }
   }
 }

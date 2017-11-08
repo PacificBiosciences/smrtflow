@@ -76,7 +76,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
       entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
       epUpdated <- Future.sequence {
         entryPoints.map { ep =>
-          updateDataSetEntryPoint(ep.path, resources.path, dao)
+          updateDataSetandWriteToEntryPointsDir(ep.path, resources.path, dao)
             .map(path => ep.copy(path = path))
         }
       }

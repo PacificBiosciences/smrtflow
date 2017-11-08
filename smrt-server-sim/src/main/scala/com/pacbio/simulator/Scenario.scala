@@ -96,10 +96,10 @@ trait Scenario extends LazyLogging {
     def skipStep(i: Int): Future[Result] = {
       stepPrintln(i, "skipped\n")
       results(i) = StepResult(steps(i).name, 0, SKIPPED)
-      Future { SKIPPED }
+      Future.successful(SKIPPED)
     }
 
-    var prev: Future[Result] = Future { SUCCEEDED }
+    var prev: Future[Result] = Future.successful(SUCCEEDED)
     for (i <- steps.indices) {
       prev = prev recoverWith {
         case NonFatal(ex) =>

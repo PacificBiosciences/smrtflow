@@ -55,9 +55,6 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   override val name = "UpgradeScenario"
   override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
 
-  override def getSubreads = testdata.getFile("subreads-xml")
-  override def getReference = testdata.getFile("lambdaNEB")
-
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(
     diagnosticOptsCore.copy(
@@ -84,7 +81,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints
-      .mapWith(_(0).datasetUUID) !=? refUuid
+      .mapWith(_(0).datasetUUID) !=? subreadsUuid
   )
 
   // XXX unused, unnecessary?
