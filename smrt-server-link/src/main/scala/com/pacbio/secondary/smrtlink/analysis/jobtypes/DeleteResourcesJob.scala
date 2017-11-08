@@ -139,9 +139,10 @@ trait DeleteResourcesBase extends MockJobUtils with timeUtils {
     val startedAt = JodaDateTime.now()
     //resultsWriter.writeLine(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
+    val logFile = toSmrtLinkJobLog(
       logPath,
-      "Log file of the details of the delete resources job")
+      Some(
+        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the details of the delete resources job"))
     val reportPath = job.path.resolve("delete_report.json")
 
     Try {

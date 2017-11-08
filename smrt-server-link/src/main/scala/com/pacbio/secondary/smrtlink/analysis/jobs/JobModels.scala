@@ -115,6 +115,9 @@ object JobModels {
     // job should be stored here and added to the datastore for downstream consumers
     val DATASTORE_FILE_MASTER_LOG_ID = "pbsmrtpipe::master.log"
 
+    val DATASTORE_FILE_MASTER_NAME = "SMRT Link Job Log"
+    val DATASTORE_FILE_MASTER_DESC = "SMRT Link Job Log"
+
     // Event that means the Job state has been changed
     val EVENT_TYPE_JOB_STATUS = "smrtlink_job_status"
     // Event that means the Job Task has changed state

@@ -101,13 +101,14 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
     * FIXME(mpkocher)(2016-12-4) Centralizing this duplication. Should reevaluate the fundamental design
     *
     * @param path  Path to the Log file
-    * @param description Custom description of the DataStore file
     * @return
     */
-  def toMasterDataStoreFile(
-      path: Path,
-      description: String = s"Job Master Log"): DataStoreFile = {
+  def toSmrtLinkJobLog(path: Path,
+                       description: Option[String] = None): DataStoreFile = {
+
     val now = JodaDateTime.now()
+    val desc = description.getOrElse(JobConstants.DATASTORE_FILE_MASTER_DESC)
+
     DataStoreFile(
       UUID.randomUUID(),
       JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
@@ -119,18 +120,14 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
       now,
       path.toString,
       isChunked = false,
-      "Job Master Log",
-      description
+      JobConstants.DATASTORE_FILE_MASTER_NAME,
+      desc
     )
   }
 
   def toDatastore(jobResources: AnalysisJobResources,
-                  files: Seq[DataStoreFile]): PacBioDataStore = {
-
-    val version = "0.2.1"
-    val createdAt = JodaDateTime.now()
-    PacBioDataStore(createdAt, createdAt, version, files)
-  }
+                  files: Seq[DataStoreFile]): PacBioDataStore =
+    PacBioDataStore.fromFiles(files)
 
   def writeStringToFile(s: String, path: Path): Path = {
     // for backward compatibility
@@ -191,9 +188,7 @@ class PbSmrtpipeMockJob(opts: MockPbSmrtPipeJobOptions)
     val dsFiles = toMockDataStoreFiles(job.path)
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile =
-      toMasterDataStoreFile(logPath,
-                            "Job Master log of the Import Dataset job")
+    val logFile = toSmrtLinkJobLog(logPath)
 
     // This must follow the pbreport id format
     val reportId = "smrtflow_mock_job_report"

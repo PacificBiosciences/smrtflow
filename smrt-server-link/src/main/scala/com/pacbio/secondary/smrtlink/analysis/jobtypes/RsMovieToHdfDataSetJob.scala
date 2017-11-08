@@ -47,8 +47,10 @@ class RsMovieToHdfDataSetJob(opts: MovieMetadataToHdfSubreadOptions)
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val logFile =
-      toMasterDataStoreFile(logPath,
-                            "Job Master log of the Import Dataset job")
+      toSmrtLinkJobLog(
+        logPath,
+        Some(
+          s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the Import Dataset job"))
 
     val dsPath = job.path.resolve("rs_movie.hdfsubreadset.xml")
 
