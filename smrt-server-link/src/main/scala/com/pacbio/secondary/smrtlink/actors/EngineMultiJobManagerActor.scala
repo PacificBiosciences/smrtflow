@@ -43,7 +43,8 @@ class EngineMultiJobManagerActor(dao: JobsDao,
                                  resolver: JobResourceResolver,
                                  config: SystemJobConfig,
                                  runner: ServiceMultiJobRunner,
-                                 checkForWorkInterval: FiniteDuration)
+                                 multiJobWorkCheckDuration: FiniteDuration,
+                                 workerCheckDuration: FiniteDuration)
     extends Actor
     with ActorLogging {
 
@@ -52,18 +53,19 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
   val workers = TrieMap.empty[Int, ActorRef]
 
+  val startUpDelay = 5.seconds
+
   // Trigger to check for new MultiJobs
   val checkForNewWorkTick = context.system.scheduler.schedule(
-    5.seconds,
-    checkForWorkInterval,
+    startUpDelay,
+    multiJobWorkCheckDuration,
     self,
     CheckForNewMultiJobs)
 
   // Trigger WORKERS to Check for Updates
-  val checkWorkersForUpdatedInterval = 2 * checkForWorkInterval
   val checkWorkersForUpdatesTick = context.system.scheduler.schedule(
-    10.seconds,
-    checkWorkersForUpdatedInterval,
+    startUpDelay * 2,
+    workerCheckDuration,
     self,
     CheckUpdateAllWorkers)
 
@@ -139,12 +141,15 @@ trait EngineMultiJobManagerActorProvider {
     Singleton(
       () =>
         actorRefFactory().actorOf(
-          Props(classOf[EngineMultiJobManagerActor],
-                jobsDao(),
-                jobResolver(),
-                systemJobConfig(),
-                new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
-                1.minute),
+          Props(
+            classOf[EngineMultiJobManagerActor],
+            jobsDao(),
+            jobResolver(),
+            systemJobConfig(),
+            new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
+            multiJobPoll(),
+            multiJobWorkerPoll()
+          ),
           "EngineMultiJobManagerActor"
       ))
 }

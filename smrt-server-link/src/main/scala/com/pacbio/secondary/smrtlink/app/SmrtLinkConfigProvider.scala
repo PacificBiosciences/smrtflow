@@ -179,6 +179,11 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     )
   }
 
+  val multiJobPoll: Singleton[Duration] =
+    Singleton(() => conf.getInt("smrtflow.engine.multiJobPoll").seconds)
+  val multiJobWorkerPoll: Singleton[Duration] =
+    Singleton(() => conf.getInt("smrtflow.engine.multiJobWorkerPoll").seconds)
+
   val mailConfig: Singleton[Option[MailConfig]] = Singleton { () =>
     mailHost().map(h => MailConfig(h, mailPort(), mailUser(), mailPassword()))
   }
