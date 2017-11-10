@@ -59,13 +59,14 @@ fi
 # backup conf files and keystore
 JKS_DIR="${WSO2_ROOT}/repository/resources/security"
 WSO2_CONF="${WSO2_ROOT}/repository/conf"
+TRUSTSTORE_DEST="${JKS_DIR}/client-truststore.jks"
 if [ ! -d "${WSO2_CONF}.orig" ]; then
   cp -a "${WSO2_CONF}" "${WSO2_CONF}.orig" && chmod -w "${WSO2_CONF}.orig"
   echo "Default SSL configs saved..."
 fi
-if [ ! -f "${JKS_DIR}/client-truststore.jks.orig" ]; then
-  cp "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.orig"
-  chmod -w "${JKS_DIR}/client-truststore.jks.orig"
+if [ ! -f "${TRUSTSTORE_DEST}.orig" ]; then
+  cp "${TRUSTSTORE_DEST}" "${TRUSTSTORE_DEST}.orig"
+  chmod -w "${TRUSTSTORE_DEST}.orig"
   echo "Default client-truststore.jks saved..."
 fi
 if [ -d "${WSO2_CONF}.bak" ]; then
@@ -79,11 +80,11 @@ if [ -d "${WSO2_CONF}.bak" ]; then
 else
   cp -r "${WSO2_ROOT}/repository/conf" "${WSO2_ROOT}/repository/conf.bak"
 fi
-cp "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.bak"
+cp "${TRUSTSTORE_DEST}" "${TRUSTSTORE_DEST}.bak"
 
 # install JKS files
 cp "${KEYSTORE}" "${JKS_DIR}/"
-cp "${TRUSTSTORE}" "${JKS_DIR}/client-truststore.jks"
+cp "${TRUSTSTORE}" "${TRUSTSTORE_DEST}"
 
 JKS_FILE=$(basename "$KEYSTORE")
 
