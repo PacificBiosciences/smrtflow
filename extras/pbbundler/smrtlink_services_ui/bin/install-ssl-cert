@@ -64,7 +64,7 @@ if [ ! -d "${WSO2_CONF}.orig" ]; then
   echo "Default SSL configs saved..."
 fi
 if [ ! -f "${JKS_DIR}/client-truststore.jks.orig" ]; then
-  mv "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.orig"
+  cp "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.orig"
   chmod -w "${JKS_DIR}/client-truststore.jks.orig"
   echo "Default client-truststore.jks saved..."
 fi
@@ -79,7 +79,7 @@ if [ -d "${WSO2_CONF}.bak" ]; then
 else
   cp -r "${WSO2_ROOT}/repository/conf" "${WSO2_ROOT}/repository/conf.bak"
 fi
-mv "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.bak"
+cp "${JKS_DIR}/client-truststore.jks" "${JKS_DIR}/client-truststore.jks.bak"
 
 # install JKS files
 cp "${KEYSTORE}" "${JKS_DIR}/"
