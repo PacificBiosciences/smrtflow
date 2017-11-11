@@ -67,7 +67,8 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
     val stdErr = resources.path.resolve(JobConstants.JOB_STDERR)
 
-    resultsWriter.writeLine(s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
+    resultsWriter.writeLine(
+      s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
 
     val logFile = toSmrtLinkJobLog(logPath)
 
