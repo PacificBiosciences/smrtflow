@@ -968,7 +968,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] = {
     getMessageResponsePipeline {
       logger.info(
-        s"Attempting to change multi-job ${ix.toIdString} state to SUBMITTED")
+        s"Attempting to change MultiJob ${ix.toIdString} state to SUBMITTED")
       Post(toUrl(
         s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit"))
     }

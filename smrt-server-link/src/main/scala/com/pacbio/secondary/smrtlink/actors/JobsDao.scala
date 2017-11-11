@@ -447,7 +447,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
   def getMultiJobById(ix: IdAble): Future[EngineJob] =
     db.run(qEngineMultiJobById(ix).result.headOption)
-      .flatMap(failIfNone(s"Failed to find Multi-Job ${ix.toIdString}"))
+      .flatMap(failIfNone(s"Failed to find MultiJob ${ix.toIdString}"))
 
   def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
 
@@ -595,7 +595,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                      projectId: Int): Future[EngineJob] = {
     val now = JodaDateTime.now()
     logger.info(
-      s"Updating multi-job ${jobId.toIdString} job settings ${jsonSetting.prettyPrint.toString}")
+      s"Updating MultiJob ${jobId.toIdString} job settings ${jsonSetting.prettyPrint.toString}")
 
     val action = for {
       job <- qEngineJobById(jobId).result.head
@@ -620,8 +620,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                           workflow: JsObject,
                           message: String,
                           errorMessage: Option[String]): Future[EngineJob] = {
-    logger.info(
-      s"Updating multi-job state of job-id ${jobId.toIdString} to $state")
+    logger.info(s"Updating MultiJob state of id:${jobId.toIdString} to $state")
     val now = JodaDateTime.now()
     val xs = for {
       job <- qEngineMultiJobById(jobId).result.head
@@ -2410,7 +2409,7 @@ class JobsDao(val db: Database,
   }
 
   override def sendEventToManager[T](message: T): Unit = {
-    listeners.foreach(a => a ! message)
+    eventListeners.foreach(a => a ! message)
   }
 
 }

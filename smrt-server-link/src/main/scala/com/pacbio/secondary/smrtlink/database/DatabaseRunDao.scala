@@ -36,7 +36,7 @@ class DatabaseRunDao(db: Database, parser: DataModelParser)
   import TableModels._
 
   /**
-    * These are event hooks to trigger the updating of Multi-Job state from changes in the Run State
+    * These are event hooks to trigger the updating of MultiJob state from changes in the Run State
     */
   private def updateMultiJobState(
       jobId: Int,
@@ -46,7 +46,7 @@ class DatabaseRunDao(db: Database, parser: DataModelParser)
 
     def toJobEvent(engineJob: EngineJob): JobEvent = {
       val msg =
-        s"RunDesign Updating multi-job id:${engineJob.id} type:${engineJob.jobTypeId} state to from ${engineJob.state} to $updateState"
+        s"RunDesign Updating MultiJob id:${engineJob.id} type:${engineJob.jobTypeId} state to from ${engineJob.state} to $updateState"
 
       JobEvent(
         UUID.randomUUID(),
