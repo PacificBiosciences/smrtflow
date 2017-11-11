@@ -35,6 +35,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
+import scala.collection.mutable
 import slick.sql.FixedSqlAction
 import slick.jdbc.PostgresProfile.api._
 import java.sql.SQLException
@@ -633,9 +634,19 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       updatedJob <- qEngineJobById(jobId).result.headOption
     } yield updatedJob
 
-    db.run(xs.transactionally)
+    val f = db
+      .run(xs.transactionally)
       .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
 
+    // Send message to the EngineMultiJobManager to Check for new multiJobs
+    if (state == AnalysisJobStates.SUBMITTED) {
+      f onSuccess {
+        case updatedJob =>
+          sendEventToManager(MultiJobSubmitted(updatedJob.id))
+      }
+    }
+
+    f
   }
 
   private def insertEngineJob(
@@ -2373,11 +2384,11 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   *
   * @param db Postgres Database Config
   * @param resolver Resolver that will determine where to write jobs to
-  * @param eventManager Event/Message manager to send EventMessages (e.g., accepted Eula, Job changed state)
+  * @param listeners Event/Message listeners (e.g., accepted Eula, Job changed state, MultiJob Submitted)
   */
 class JobsDao(val db: Database,
               val resolver: JobResourceResolver,
-              eventManager: Option[ActorRef] = None)
+              private val listeners: Seq[ActorRef] = Seq.empty[ActorRef])
     extends DalComponent
     with SmrtLinkConstants
     with EventComponent
@@ -2387,8 +2398,19 @@ class JobsDao(val db: Database,
 
   import JobModels._
 
+  private val eventListeners: mutable.MutableList[ActorRef] =
+    new mutable.MutableList()
+
+  eventListeners ++= listeners
+
+  // This is added to get around potential circular dependencies of the listener
+  def addListener(listener: ActorRef): Unit = {
+    logger.info(s"Adding JobsDao Listener $listener")
+    eventListeners += listener
+  }
+
   override def sendEventToManager[T](message: T): Unit = {
-    eventManager.map(a => a ! message)
+    listeners.foreach(a => a ! message)
   }
 
 }
@@ -2399,6 +2421,5 @@ trait JobsDaoProvider {
     with EventManagerActorProvider =>
 
   val jobsDao: Singleton[JobsDao] =
-    Singleton(
-      () => new JobsDao(db(), jobResolver(), Some(eventManagerActor())))
+    Singleton(() => new JobsDao(db(), jobResolver()))
 }

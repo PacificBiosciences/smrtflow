@@ -12,6 +12,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceMultiJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.models.MultiJobSubmitted
 
 import scala.concurrent.duration._
 import scala.collection.concurrent.TrieMap
@@ -110,6 +111,10 @@ class EngineMultiJobManagerActor(dao: JobsDao,
   }
 
   override def receive: Receive = {
+
+    case MultiJobSubmitted(multiJobId) =>
+      log.info(s"Custom trigger for MultiJob $multiJobId")
+      self ! CheckForNewMultiJobs
 
     case CreateMultiJobWorker(multiJobId) =>
       addAndCreateWorker(multiJobId)

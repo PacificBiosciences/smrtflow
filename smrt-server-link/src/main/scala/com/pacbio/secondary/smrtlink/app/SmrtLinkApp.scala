@@ -91,6 +91,13 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
     val engineManagerActor = providers.engineManagerActor()
     val engineMultiJobManagerActor = providers.engineMultiJobManagerActor()
 
+    val eventManagerActor = providers.eventManagerActor()
+
+    // To avoid circular dependencies add listeners here
+    val jobsDao = providers.jobsDao()
+    jobsDao.addListener(eventManagerActor)
+    jobsDao.addListener(engineMultiJobManagerActor)
+
     // Setup Quartz Schedule
     // ALl the cron-esque tasks in SL should be folded back here
     // for consistency. For example, checking for chemistry bundle,

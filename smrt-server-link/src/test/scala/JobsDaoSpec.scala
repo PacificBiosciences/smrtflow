@@ -32,7 +32,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
   val jobResolver = new PacBioIntJobResolver(tmpJobDir)
 
   val dao =
-    new JobsDao(TestProviders.dbConfig.toDatabase, jobResolver, None)
+    new JobsDao(TestProviders.dbConfig.toDatabase, jobResolver)
 
   val db: Database = dao.db
   val timeout = FiniteDuration(10, "seconds")
