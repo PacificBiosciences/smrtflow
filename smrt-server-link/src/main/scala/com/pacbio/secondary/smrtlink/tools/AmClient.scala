@@ -12,7 +12,8 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{
   ApiManagerAccessLayer,
-  ApiManagerJsonProtocols
+  ApiManagerJsonProtocols,
+  Retrying
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
@@ -39,11 +40,9 @@ object AmClientModes {
 }
 
 object loadFile extends (File => String) {
-  def apply(file: File): String = {
-    val acSource = scala.io.Source.fromFile(file)
-    try acSource.mkString
-    finally acSource.close()
-  }
+  def apply(file: File): String =
+    FileUtils.readFileToString(file)
+
 }
 
 object loadResource extends (String => String) {
@@ -56,7 +55,7 @@ object loadResource extends (String => String) {
 
 object AmClientParser extends CommandLineToolVersion {
 
-  val VERSION = "0.1.2"
+  val VERSION = "0.2.0"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: CustomConfig): Unit = {
@@ -94,7 +93,10 @@ object AmClientParser extends CommandLineToolVersion {
       // these Files are required in the commands that use them,
       // so they're not Options
       roleJson: File = null,
-      appConfig: File = null
+      appConfig: File = null,
+      maxRetries: Int = 3,
+      retryDelay: FiniteDuration = 5.seconds,
+      defaultTimeOut: FiniteDuration = 30.seconds
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
 
@@ -197,7 +199,11 @@ object AmClientParser extends CommandLineToolVersion {
       .children(
         opt[Seq[String]]("roles")
           .action((roles, c) => c.copy(roles = roles))
-          .text("list of roles"))
+          .text("list of roles"),
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(maxRetries = m))
+          .text(s"Max Number of Retries Default ${defaults.maxRetries}")
+      )
 
     cmd(AmClientModes.PROXY_ADMIN.name)
       .action((_, c) => c.copy(mode = AmClientModes.PROXY_ADMIN))
@@ -260,7 +266,8 @@ object AmClientParser extends CommandLineToolVersion {
 // two keys from the UI app config
 case class ClientInfo(consumerKey: String, consumerSecret: String)
 
-class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
+class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
+    extends Retrying {
 
   import ApiManagerJsonProtocols._
   import actorSystem.dispatcher
@@ -274,25 +281,19 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   val reqTimeout = 30.seconds
 
-  def createRoles(c: AmClientParser.CustomConfig): Int = {
-    val fut = for {
+  def createRoles(c: AmClientParser.CustomConfig): Future[String] = {
+    for {
       existing <- am.getRoleNames(c.user, c.pass)
       toCreate = c.roles.toSet -- existing.toSet
       resultFuts = toCreate.map(r => am.addRole(c.user, c.pass, r))
-      results <- Future.sequence(resultFuts)
-    } yield (toCreate, results)
-
-    Try { Await.result(fut, reqTimeout) } match {
-      case Success((toCreate, results)) => {
-        println(s"added roles ${toCreate.mkString(", ")}")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to add roles: $err")
-        1
-      }
-    }
+      _ <- Future.sequence(resultFuts)
+      msg <- Future.successful(s"added roles ${toCreate.mkString(", ")}")
+    } yield msg
   }
+
+  def createRolesWithRetry(c: AmClientParser.CustomConfig): Future[String] =
+    retry(createRoles(c), c.retryDelay, c.maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
+
 
   // get DefaultApplication key from the server and save it in appConfigFile
   def getKey(appConfigFile: File): Int = {
@@ -437,11 +438,12 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       withSwagger = setSwagger(withEndpoints, swagger)
       withSecurity = withSwagger.copy(endpointSecurity = endpointSecurity)
       updated <- am.putApiDetails(withSecurity, token)
+      msg <- Future.successful(s"updated API $apiId")
     } yield updated
 
     Try { Await.result(futs, reqTimeout) } match {
-      case Success(updated) => {
-        println(s"updated API ${apiId}")
+      case Success(msg) => {
+        println(msg)
         0
       }
       case Failure(err) => {
@@ -629,6 +631,26 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 }
 
 object AmClient {
+
+  // There's a lot of duplication and unnecessary blocking calls in AmClientParser
+  // These should be removed and use the function within to run a
+  // single call for each subparser command.
+  def runAndBlock[T](fx: => Future[String],
+                     timeOut: FiniteDuration,
+                     prefixErrorMessage: Option[String]): Int = {
+    Try(Await.result(fx, timeOut)) match {
+      case Success(msg) => {
+        println(msg)
+        0
+      }
+      case Failure(err) => {
+        val prefix = prefixErrorMessage.getOrElse("")
+        System.err.println(s"$prefix$err")
+        1
+      }
+    }
+  }
+
   def apply(conf: AmClientParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("amclient")
 
@@ -640,7 +662,8 @@ object AmClient {
       Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
 
       c.mode match {
-        case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
+        case AmClientModes.CREATE_ROLES =>
+          runAndBlock(amClient.createRolesWithRetry(c), c.defaultTimeOut, Some("failed to add roles: "))
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
         case AmClientModes.GET_ROLES_USERS => amClient.getRoles(c)
         case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
