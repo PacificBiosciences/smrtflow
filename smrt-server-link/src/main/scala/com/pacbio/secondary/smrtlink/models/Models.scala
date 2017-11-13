@@ -376,6 +376,7 @@ case class UpdateJobTaskRecord(uuid: UUID,
                                errorMessage: Option[String])
 
 case class JobCompletedMessage(job: EngineJob)
+case class MultiJobSubmitted(jobId: Int)
 
 // "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
 // These are also used by the mock-pbsmrtpipe job options

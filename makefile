@@ -84,6 +84,8 @@ test: validate-pacbio-manifests
 test-int-clean: db-reset-prod
 	rm -rf jobs-root
 
+test-int: export PB_ENGINE_MULTI_JOB_POLL=20
+test-int: export PB_ENGINE_MULTI_JOB_WORKER_POLL=30
 test-int: export PB_MAX_LOG_SIZE=1GB
 test-int: export SMRTFLOW_EVENT_URL := https://smrtlink-eve-staging.pacbcloud.com:8083
 test-int: export PACBIO_SYSTEM_REMOTE_BUNDLE_URL := http://smrtlink-update-staging.pacbcloud.com:8084

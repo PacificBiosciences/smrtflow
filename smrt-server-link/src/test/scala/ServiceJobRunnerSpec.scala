@@ -42,7 +42,7 @@ class ServiceJobRunnerSpec
   val jobResolver = new PacBioIntJobResolver(tmpJobDir)
 
   val dao =
-    new JobsDao(TestProviders.dbConfig.toDatabase, jobResolver, None)
+    new JobsDao(TestProviders.dbConfig.toDatabase, jobResolver)
 
   // This is pretty brutal to mock out.
   val opts = PbsmrtpipeEngineOptions(Nil)

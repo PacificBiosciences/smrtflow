@@ -12,6 +12,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceMultiJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.models.MultiJobSubmitted
 
 import scala.concurrent.duration._
 import scala.collection.concurrent.TrieMap
@@ -43,7 +44,8 @@ class EngineMultiJobManagerActor(dao: JobsDao,
                                  resolver: JobResourceResolver,
                                  config: SystemJobConfig,
                                  runner: ServiceMultiJobRunner,
-                                 checkForWorkInterval: FiniteDuration)
+                                 multiJobWorkCheckDuration: FiniteDuration,
+                                 workerCheckDuration: FiniteDuration)
     extends Actor
     with ActorLogging {
 
@@ -52,18 +54,19 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
   val workers = TrieMap.empty[Int, ActorRef]
 
+  val startUpDelay = 5.seconds
+
   // Trigger to check for new MultiJobs
   val checkForNewWorkTick = context.system.scheduler.schedule(
-    5.seconds,
-    checkForWorkInterval,
+    startUpDelay,
+    multiJobWorkCheckDuration,
     self,
     CheckForNewMultiJobs)
 
   // Trigger WORKERS to Check for Updates
-  val checkWorkersForUpdatedInterval = 2 * checkForWorkInterval
   val checkWorkersForUpdatesTick = context.system.scheduler.schedule(
-    10.seconds,
-    checkWorkersForUpdatedInterval,
+    startUpDelay * 2,
+    workerCheckDuration,
     self,
     CheckUpdateAllWorkers)
 
@@ -109,6 +112,10 @@ class EngineMultiJobManagerActor(dao: JobsDao,
 
   override def receive: Receive = {
 
+    case MultiJobSubmitted(multiJobId) =>
+      log.info(s"Custom trigger for MultiJob $multiJobId")
+      self ! CheckForNewMultiJobs
+
     case CreateMultiJobWorker(multiJobId) =>
       addAndCreateWorker(multiJobId)
 
@@ -139,12 +146,15 @@ trait EngineMultiJobManagerActorProvider {
     Singleton(
       () =>
         actorRefFactory().actorOf(
-          Props(classOf[EngineMultiJobManagerActor],
-                jobsDao(),
-                jobResolver(),
-                systemJobConfig(),
-                new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
-                1.minute),
+          Props(
+            classOf[EngineMultiJobManagerActor],
+            jobsDao(),
+            jobResolver(),
+            systemJobConfig(),
+            new ServiceMultiJobRunner(jobsDao(), systemJobConfig()),
+            multiJobPoll(),
+            multiJobWorkerPoll()
+          ),
           "EngineMultiJobManagerActor"
       ))
 }
