@@ -183,12 +183,24 @@ abstract class DataSetExporter(zipPath: Path)
       val (finalPath, resourceDestPath) =
         (paths._1.toString, paths._2.toString)
       res.setResourceId(finalPath)
+      val resourceDsType = DataSetMetaTypes.fromString(res.getMetaType)
       if (haveFiles contains resourceDestPath) {
         logger.info(s"skipping duplicate file $resourceDestPath"); 0L
       } else {
         logger.info(s"writing $resourceDestPath")
         haveFiles += resourceDestPath
-        writeFile(resourcePath, resourceDestPath)
+        writeFile(resourcePath, resourceDestPath) + resourceDsType
+          .map { dst =>
+            val ds = DataSetLoader.loadType(dst, resourcePath)
+            val resources = getResources(ds)
+            resources.map { er =>
+              writeResourceFile(Paths.get(resourceDestPath).getParent,
+                                er,
+                                resourcePath.getParent,
+                                archiveRootPath)
+            }.sum
+          }
+          .getOrElse(0L)
       }
     }
   }
