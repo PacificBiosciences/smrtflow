@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.tools
 import java.io.File
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 import akka.actor.ActorSystem
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
@@ -12,12 +12,13 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{
   ApiManagerAccessLayer,
-  ApiManagerJsonProtocols
+  ApiManagerJsonProtocols,
+  Retrying
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
-import org.wso2.carbon.apimgt.rest.api.publisher
+import org.wso2.carbon.apimgt.rest.api.{publisher, store}
 import scopt.OptionParser
 import spray.json._
 
@@ -39,11 +40,9 @@ object AmClientModes {
 }
 
 object loadFile extends (File => String) {
-  def apply(file: File): String = {
-    val acSource = scala.io.Source.fromFile(file)
-    try acSource.mkString
-    finally acSource.close()
-  }
+  def apply(file: File): String =
+    FileUtils.readFileToString(file)
+
 }
 
 object loadResource extends (String => String) {
@@ -56,7 +55,7 @@ object loadResource extends (String => String) {
 
 object AmClientParser extends CommandLineToolVersion {
 
-  val VERSION = "0.1.2"
+  val VERSION = "0.2.0"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: CustomConfig): Unit = {
@@ -94,7 +93,10 @@ object AmClientParser extends CommandLineToolVersion {
       // these Files are required in the commands that use them,
       // so they're not Options
       roleJson: File = null,
-      appConfig: File = null
+      appConfig: File = null,
+      maxRetries: Int = 3,
+      retryDelay: FiniteDuration = 5.seconds,
+      defaultTimeOut: FiniteDuration = 30.seconds
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
 
@@ -188,7 +190,10 @@ object AmClientParser extends CommandLineToolVersion {
           .text("Path to swagger json file"),
         opt[String]("swagger-resource")
           .action((p, c) => c.copy(swagger = Some(loadResource(p))))
-          .text("Path to swagger json resource")
+          .text("Path to swagger json resource"),
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(maxRetries = m))
+          .text(s"Max Number of Retries Default ${defaults.maxRetries}")
       )
 
     cmd(AmClientModes.CREATE_ROLES.name)
@@ -197,7 +202,11 @@ object AmClientParser extends CommandLineToolVersion {
       .children(
         opt[Seq[String]]("roles")
           .action((roles, c) => c.copy(roles = roles))
-          .text("list of roles"))
+          .text("list of roles"),
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(maxRetries = m))
+          .text(s"Max Number of Retries Default ${defaults.maxRetries}")
+      )
 
     cmd(AmClientModes.PROXY_ADMIN.name)
       .action((_, c) => c.copy(mode = AmClientModes.PROXY_ADMIN))
@@ -260,7 +269,8 @@ object AmClientParser extends CommandLineToolVersion {
 // two keys from the UI app config
 case class ClientInfo(consumerKey: String, consumerSecret: String)
 
-class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
+class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
+    extends Retrying {
 
   import ApiManagerJsonProtocols._
   import actorSystem.dispatcher
@@ -274,38 +284,24 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
 
   val reqTimeout = 30.seconds
 
-  def createRoles(c: AmClientParser.CustomConfig): Int = {
-    val fut = for {
+  def createRoles(c: AmClientParser.CustomConfig): Future[String] = {
+    for {
       existing <- am.getRoleNames(c.user, c.pass)
       toCreate = c.roles.toSet -- existing.toSet
       resultFuts = toCreate.map(r => am.addRole(c.user, c.pass, r))
-      results <- Future.sequence(resultFuts)
-    } yield (toCreate, results)
-
-    Try { Await.result(fut, reqTimeout) } match {
-      case Success((toCreate, results)) => {
-        println(s"added roles ${toCreate.mkString(", ")}")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to add roles: $err")
-        1
-      }
-    }
+      _ <- Future.sequence(resultFuts)
+      msg <- Future.successful(s"added roles ${toCreate.mkString(", ")}")
+    } yield msg
   }
 
-  // get DefaultApplication key from the server and save it in appConfigFile
-  def getKey(appConfigFile: File): Int = {
-    val futs = for {
-      clientInfo <- am.register()
-      tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
-      appList <- am.searchApplications("DefaultApplication", tok)
-      app = appList.list.head
-      fullApp <- am.getApplication(app.applicationId.get, tok)
-    } yield (clientInfo, tok, app, fullApp)
-    val (clientInfo, tok, app, fullApp) = Await.result(futs, reqTimeout)
+  def createRolesWithRetry(c: AmClientParser.CustomConfig): Future[String] =
+    retry(createRoles(c), c.retryDelay, c.maxRetries)(actorSystem.dispatcher,
+                                                      actorSystem.scheduler)
 
-    fullApp.keys.headOption match {
+  def updateAppConfigJson(appConfigFile: File,
+                          app: store.models.Application): File = {
+
+    app.keys.headOption match {
       case Some(key) => {
         // leaving appConfigJson as json (and not converting to a case
         // class) because we only care about two keys in the app
@@ -324,16 +320,29 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
             val toSave = JsObject(fields ++ newAttribs).prettyPrint
             Files.write(appConfigFile.toPath,
                         toSave.getBytes(StandardCharsets.UTF_8))
-            0
+            appConfigFile
           }
           case _ => {
-            System.err.println("unexpected app config structure")
-            1
+            throw new Exception("unexpected app config structure")
           }
         }
       }
-      case None => 1
+      case None =>
+        throw new Exception("unexpected app config structure")
     }
+
+  }
+
+  // get DefaultApplication key from the server and save it in appConfigFile
+  def getKey(appConfigFile: File): Future[String] = {
+    for {
+      clientInfo <- am.register()
+      tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
+      appList <- am.searchApplications("DefaultApplication", tok)
+      app <- Future.successful(appList.list.head)
+      fullApp <- am.getApplication(app.applicationId.get, tok)
+      _ <- Future.successful(updateAppConfigJson(appConfigFile, fullApp))
+    } yield s"Successfully updated $appConfigFile"
   }
 
   def createApi(
@@ -341,7 +350,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       swagger: String,
       target: URL,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None,
-      token: OauthToken): Int = {
+      token: OauthToken): Future[String] = {
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -402,7 +411,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         ))
     )
 
-    val futs = for {
+    for {
       created <- am.postApiDetails(api, token)
       pub <- am.apiChangeLifecycle(created.id.get,
                                    am.ApiLifecycleAction.PUBLISH,
@@ -410,18 +419,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       appList <- am.searchApplications("DefaultApplication", token)
       app = appList.list.head
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
-    } yield sub
+      msg <- Future.successful(s"created $apiName definition")
+    } yield msg
 
-    Try { Await.result(futs, reqTimeout) } match {
-      case Success(sub) => {
-        println(s"created ${apiName} definition")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to create ${apiName} definition: $err")
-        1
-      }
-    }
   }
 
   // update target endpoints for the API with the given name
@@ -430,57 +430,57 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
              swagger: Option[String],
              endpointSecurity: Option[publisher.models.API_endpointSecurity] =
                None,
-             token: OauthToken): Int = {
-    val futs = for {
+             token: OauthToken): Future[String] = {
+    for {
       details <- am.getApiDetails(apiId, token)
       withEndpoints = setEndpoints(details, target)
       withSwagger = setSwagger(withEndpoints, swagger)
       withSecurity = withSwagger.copy(endpointSecurity = endpointSecurity)
       updated <- am.putApiDetails(withSecurity, token)
-    } yield updated
-
-    Try { Await.result(futs, reqTimeout) } match {
-      case Success(updated) => {
-        println(s"updated API ${apiId}")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to update API ${apiId}: $err")
-        1
-      }
-    }
+      msg <- Future.successful(s"updated API $apiId")
+    } yield msg
   }
 
   def createOrUpdateApi(
       conf: AmClientParser.CustomConfig,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None)
-    : Int = {
-    val clientInfo = JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo]
+    : Future[String] = {
 
-    val fut = for {
-      token <- am.login(clientInfo.consumerKey,
-                        clientInfo.consumerSecret,
-                        scopes)
-      apiList <- am.searchApis(conf.apiName, token)
-    } yield (token, apiList)
-
-    val (token, apiList): (OauthToken, publisher.models.APIList) =
-      Await.result(fut, reqTimeout)
-
-    if (apiList.list.get.isEmpty) {
+    def runCreateApi(token: OauthToken): Future[String] = {
       createApi(conf.apiName,
                 conf.swagger.get,
                 conf.target.get,
                 endpointSecurity,
                 token)
-    } else {
-      // Note, this assumes there's exactly one API with the given
-      // name.  If we want to manage different API versions,
-      // we'll have to do more work here.
-      val api = apiList.list.get.head
-      setApi(api.id.get, conf.target, conf.swagger, endpointSecurity, token)
     }
+
+    def toOrCreate(token: OauthToken,
+                   apiList: publisher.models.APIList): Future[String] = {
+      if (apiList.list.get.isEmpty) {
+        runCreateApi(token)
+      } else {
+        val api = apiList.list.get.head
+        setApi(api.id.get, conf.target, conf.swagger, endpointSecurity, token)
+      }
+    }
+
+    for {
+      clientInfo <- Future.successful(
+        JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo])
+      token <- am.login(clientInfo.consumerKey,
+                        clientInfo.consumerSecret,
+                        scopes)
+      apiList <- am.searchApis(conf.apiName, token)
+      msg <- toOrCreate(token, apiList)
+    } yield msg
   }
+
+  def createOrUpdateApiWithRetry(
+      c: AmClientParser.CustomConfig,
+      endpointSecurity: Option[publisher.models.API_endpointSecurity] = None) =
+    retry(createOrUpdateApi(c, endpointSecurity), c.retryDelay, c.maxRetries)(
+      actorSystem.dispatcher,
+      actorSystem.scheduler)
 
   def setSwagger(details: publisher.models.API,
                  swaggerOpt: Option[String]): publisher.models.API =
@@ -510,7 +510,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
 
-  def proxyAdmin(conf: AmClientParser.CustomConfig): Int = {
+  def proxyAdmin(conf: AmClientParser.CustomConfig): Future[String] = {
     // API manager uses a generic swagger definition for SOAP endpoints
     val soapSwagger = s"""
 {
@@ -582,53 +582,59 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
   }
 
-  def getRoles(c: AmClientParser.CustomConfig): Int = {
-    val roleMapFut = Future.sequence(c.roles.map(r => {
-      am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))
-    }))
-
-    Try { Await.result(roleMapFut, reqTimeout) } match {
-      case Success(m) => {
-        val json = m.toMap.toJson.prettyPrint
-        Files.write(c.roleJson.toPath, json.getBytes(StandardCharsets.UTF_8))
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to get roles: $err")
-        1
-      }
-    }
+  private def writeRoles(jx: JsObject, output: Path): Path = {
+    FileUtils.write(output.toFile, jx.toJson.prettyPrint)
+    output
   }
 
-  def setRoles(c: AmClientParser.CustomConfig): Int = {
+  def getAndWriteRoles(c: AmClientParser.CustomConfig): Future[String] = {
+    for {
+      m <- Future.sequence(c.roles.map(r =>
+        am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))))
+      _ <- Future.successful(
+        writeRoles(m.toMap.toJson.asJsObject, c.roleJson.toPath))
+    } yield s"Successfully wrote roles to ${c.roleJson.toPath}"
+  }
+
+  def setRoles(c: AmClientParser.CustomConfig): Future[String] = {
     // Map of <Role> -> <list of users>
     val roleUsers = JsonParser(loadFile(c.roleJson))
       .convertTo[Map[String, Seq[String]]]
 
     val addNew = (role: String, users: Seq[String]) => {
+
       for {
         existing <- am.getUserListOfRole(c.user, c.pass, role)
         newUsers = (users.toSet -- existing.toSet).toList
-        result <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
-      } yield result
+        _ <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
+      } yield s"Imported role $role"
     }
 
-    val setRoleFut = Future.sequence(roleUsers.map(addNew.tupled))
-
-    Try { Await.result(setRoleFut, reqTimeout) } match {
-      case Success(m) => {
-        println("imported roles")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to import roles: $err")
-        1
-      }
-    }
+    Future.sequence(roleUsers.map(addNew.tupled)).map(_ => "Imported roles")
   }
 }
 
 object AmClient {
+
+  // There's a lot of duplication and unnecessary blocking calls in AmClientParser
+  // These should be removed and use the function within to run a
+  // single call for each subparser command.
+  def runAndBlock(fx: => Future[String],
+                  timeOut: FiniteDuration,
+                  prefixErrorMessage: Option[String]): Int = {
+    Try(Await.result(fx, timeOut)) match {
+      case Success(msg) => {
+        println(msg)
+        0
+      }
+      case Failure(err) => {
+        val prefix = prefixErrorMessage.getOrElse("")
+        System.err.println(s"$prefix$err")
+        1
+      }
+    }
+  }
+
   def apply(conf: AmClientParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("amclient")
 
@@ -636,30 +642,45 @@ object AmClient {
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
 
+    def runAndBlockWithDefault(fx: => Future[String],
+                               prefixErrorMessage: Option[String]) =
+      runAndBlock(fx, c.defaultTimeOut, prefixErrorMessage)
+
     val result = Try {
       Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
 
       c.mode match {
-        case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
-        case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
-        case AmClientModes.GET_ROLES_USERS => amClient.getRoles(c)
-        case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
-        case AmClientModes.SET_API => amClient.createOrUpdateApi(c)
-        case AmClientModes.PROXY_ADMIN => amClient.proxyAdmin(c)
+        case AmClientModes.CREATE_ROLES =>
+          runAndBlockWithDefault(amClient.createRolesWithRetry(c),
+                                 Some("failed to add roles: "))
+        case AmClientModes.GET_KEY =>
+          runAndBlockWithDefault(
+            amClient.getKey(c.appConfig),
+            Some(s"Failed to Get Keys or Update ${c.appConfig}: "))
+        case AmClientModes.GET_ROLES_USERS =>
+          runAndBlockWithDefault(amClient.getAndWriteRoles(c),
+                                 Some(s"Failed to Get User Roles: "))
+        case AmClientModes.SET_ROLES_USERS =>
+          runAndBlockWithDefault(amClient.setRoles(c),
+                                 Some("Failed to Set Roles: "))
+        case AmClientModes.SET_API =>
+          runAndBlockWithDefault(amClient.createOrUpdateApiWithRetry(c),
+                                 Some("Failed to set API: "))
+        case AmClientModes.PROXY_ADMIN =>
+          runAndBlockWithDefault(amClient.proxyAdmin(c),
+                                 Some("Failed to Proxy Admin"))
         case x => {
-          System.err.println(s"Unsupported action '$x'")
-          1
+          val emsg = s"Unsupported action '$x'"
+          System.err.println(emsg)
+          Failure(new Exception(emsg))
         }
       }
     }
     actorSystem.shutdown()
 
     result match {
-      case Success(code) => code
-      case Failure(e) => {
-        System.err.println(e.getMessage())
-        1
-      }
+      case Success(_) => 0
+      case Failure(_) => 1
     }
   }
 }
