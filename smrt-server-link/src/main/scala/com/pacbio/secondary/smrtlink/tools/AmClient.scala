@@ -646,12 +646,10 @@ object AmClient {
                                prefixErrorMessage: Option[String]) =
       runAndBlock(fx, c.defaultTimeOut, prefixErrorMessage)
 
-    val result = Try {
-      Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
-
+    def runMode(): Int = {
       c.mode match {
         case AmClientModes.CREATE_ROLES =>
-          runAndBlockWithDefault(amClient.createRolesWithRetry(c),
+          runAndBlockWithDefault(amClient.createRoles(c),
                                  Some("failed to add roles: "))
         case AmClientModes.GET_KEY =>
           runAndBlockWithDefault(
@@ -664,22 +662,27 @@ object AmClient {
           runAndBlockWithDefault(amClient.setRoles(c),
                                  Some("Failed to Set Roles: "))
         case AmClientModes.SET_API =>
-          runAndBlockWithDefault(amClient.createOrUpdateApiWithRetry(c),
+          runAndBlockWithDefault(amClient.createOrUpdateApi(c),
                                  Some("Failed to set API: "))
         case AmClientModes.PROXY_ADMIN =>
           runAndBlockWithDefault(amClient.proxyAdmin(c),
                                  Some("Failed to Proxy Admin"))
         case x => {
-          val emsg = s"Unsupported action '$x'"
-          System.err.println(emsg)
-          Failure(new Exception(emsg))
+          System.err.println(s"Unsupported action '$x'")
+          1
         }
       }
     }
+
+    val rx: Try[Int] = for {
+      _ <- Try(Await.result(am.waitForStart(60, 10.seconds), 600.seconds))
+      result <- Try(runMode())
+    } yield result
+
     actorSystem.shutdown()
 
-    result match {
-      case Success(_) => 0
+    rx match {
+      case Success(n) => n
       case Failure(_) => 1
     }
   }
