@@ -840,6 +840,8 @@ object JobModels {
       name: String,
       description: String,
       taskOptions: Seq[PipelineOptionViewRule],
+      allowParentDatasets: Option[Boolean] = Some(false),
+      allowChildDatasets: Option[Boolean] = Some(true),
       inputFilters: Option[Seq[PipelineInputFilterRule]] = None)
 
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location

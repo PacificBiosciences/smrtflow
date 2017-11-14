@@ -541,7 +541,7 @@ trait JobTypeSettingProtocol
   implicit val pipelineOptionViewRule = jsonFormat4(PipelineOptionViewRule)
   implicit val pipelineInputFilterRuleFormat = jsonFormat3(
     PipelineInputFilterRule)
-  implicit val pipelineTemplateViewRule = jsonFormat5(PipelineTemplateViewRule)
+  implicit val pipelineTemplateViewRule = jsonFormat7(PipelineTemplateViewRule)
 
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(
