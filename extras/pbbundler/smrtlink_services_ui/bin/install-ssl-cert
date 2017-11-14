@@ -61,12 +61,11 @@ JKS_DIR="${WSO2_ROOT}/repository/resources/security"
 WSO2_CONF="${WSO2_ROOT}/repository/conf"
 TRUSTSTORE_DEST="${JKS_DIR}/client-truststore.jks"
 if [ ! -d "${WSO2_CONF}.orig" ]; then
-  cp -a "${WSO2_CONF}" "${WSO2_CONF}.orig" && chmod -w "${WSO2_CONF}.orig"
+  cp -a "${WSO2_CONF}" "${WSO2_CONF}.orig"
   echo "Default SSL configs saved..."
 fi
 if [ ! -f "${TRUSTSTORE_DEST}.orig" ]; then
   cp "${TRUSTSTORE_DEST}" "${TRUSTSTORE_DEST}.orig"
-  chmod -w "${TRUSTSTORE_DEST}.orig"
   echo "Default client-truststore.jks saved..."
 fi
 if [ -d "${WSO2_CONF}.bak" ]; then
