@@ -194,7 +194,10 @@ abstract class DataSetExporter(zipPath: Path)
             val ds = DataSetLoader.loadType(dst, resourcePath)
             val resources = getResources(ds)
             resources.map { er =>
-              writeResourceFile(destPath, er, basePath, archiveRootPath)
+              writeResourceFile(Paths.get(resourceDestPath).getParent,
+                                er,
+                                resourcePath.getParent,
+                                archiveRootPath)
             }.sum
           }
           .getOrElse(0L)
