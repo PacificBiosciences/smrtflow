@@ -55,7 +55,7 @@ object loadResource extends (String => String) {
 
 object AmClientParser extends CommandLineToolVersion {
 
-  val VERSION = "0.2.0"
+  val VERSION = "0.3.0"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: CustomConfig): Unit = {
@@ -642,6 +642,21 @@ object AmClient {
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
 
+    // This should be configurable from CLI
+    val numWos2StartUpRetries = 60
+    // Delay time between retries
+    val wso2StartupRetryDelay = 10.seconds
+    // Initial time to wait before submitting requests
+    val initialWos2Delay = 10.seconds
+
+    val totalStartupTimeOut
+      : FiniteDuration = (numWos2StartUpRetries + 2) * wso2StartupRetryDelay
+
+    // This error message might not be very useful. This might
+    // need to be collapsed to a terse "WSO2 Did not start successfully" or similar
+    def waitForWso2ToStartup(numRetires: Int): Future[String] =
+      am.waitForStart(numRetires, initialWos2Delay)
+
     def runAndBlockWithDefault(fx: => Future[String],
                                prefixErrorMessage: Option[String]) =
       runAndBlock(fx, c.defaultTimeOut, prefixErrorMessage)
@@ -649,7 +664,7 @@ object AmClient {
     def runMode(): Int = {
       c.mode match {
         case AmClientModes.CREATE_ROLES =>
-          runAndBlockWithDefault(amClient.createRoles(c),
+          runAndBlockWithDefault(amClient.createOrUpdateApiWithRetry(c),
                                  Some("failed to add roles: "))
         case AmClientModes.GET_KEY =>
           runAndBlockWithDefault(
@@ -662,7 +677,7 @@ object AmClient {
           runAndBlockWithDefault(amClient.setRoles(c),
                                  Some("Failed to Set Roles: "))
         case AmClientModes.SET_API =>
-          runAndBlockWithDefault(amClient.createOrUpdateApi(c),
+          runAndBlockWithDefault(amClient.createOrUpdateApiWithRetry(c),
                                  Some("Failed to set API: "))
         case AmClientModes.PROXY_ADMIN =>
           runAndBlockWithDefault(amClient.proxyAdmin(c),
@@ -674,8 +689,13 @@ object AmClient {
       }
     }
 
+    // To get error messages propagated and avoid duplicated error/status messages, everything
+    // must go through runAndBlock
     val rx: Try[Int] = for {
-      _ <- Try(Await.result(am.waitForStart(60, 10.seconds), 600.seconds))
+      _ <- Try(
+        runAndBlock(waitForWso2ToStartup(numWos2StartUpRetries),
+                    totalStartupTimeOut,
+                    Some("Failed to Startup WSO2: ")))
       result <- Try(runMode())
     } yield result
 
