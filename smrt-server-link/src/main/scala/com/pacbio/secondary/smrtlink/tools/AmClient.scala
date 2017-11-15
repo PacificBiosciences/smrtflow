@@ -17,6 +17,7 @@ import com.pacbio.secondary.smrtlink.client.{
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
 import scopt.OptionParser
@@ -614,7 +615,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
   }
 }
 
-object AmClient {
+object AmClient extends LazyLogging {
 
   // There's a lot of duplication and unnecessary blocking calls in AmClientParser
   // These should be removed and use the function within to run a
@@ -629,7 +630,9 @@ object AmClient {
       }
       case Failure(err) => {
         val prefix = prefixErrorMessage.getOrElse("")
-        System.err.println(s"$prefix$err")
+        val msg = s"$prefix$err"
+        System.err.println(msg)
+        logger.error(msg)
         1
       }
     }
