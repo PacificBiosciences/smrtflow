@@ -46,14 +46,6 @@ case class MergeDataSetJobOptions(
     extends ServiceJobOptions {
   import CommonModelImplicits._
 
-  /**
-    * This is a guess.
-    *
-    * This should capture both the fetching from the db as well as
-    * writing to disk.
-    */
-  def TIMEOUT_PER_RECORD = 1.seconds
-
   override def jobTypeId = JobTypeIds.MERGE_DATASETS
   override def toJob() = new MergeDataSetJob(this)
 
@@ -67,21 +59,8 @@ case class MergeDataSetJobOptions(
     }
   }
 
-  override def resolveEntryPoints(
-      dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
-
-    val timeout: FiniteDuration = ids.length * TIMEOUT_PER_RECORD
-
-    val fx = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
-                                                            ids,
-                                                            dao)
-      entryPoints <- Future.successful(datasets.map(ds =>
-        EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
-    } yield entryPoints
-
-    Await.result(blocking(fx), timeout)
-  }
+  override def resolveEntryPoints(dao: JobsDao) =
+    validateAndResolveEntryPoints(dao, datasetType, ids)
 
 }
 
@@ -157,22 +136,6 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
     }
   }
 
-  def resolvePathsAndWriteEntryPoints(dao: JobsDao,
-                                      jobRoot: Path,
-                                      timeout: FiniteDuration): Seq[Path] = {
-    val fx: Future[Seq[Path]] = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
-                                                            opts.ids,
-                                                            dao)
-      paths <- Future.successful(datasets.map(_.path))
-      updatedPaths <- Future.sequence(paths.map { p =>
-        updateDataSetandWriteToEntryPointsDir(Paths.get(p), jobRoot, dao)
-      })
-    } yield updatedPaths
-
-    Await.result(blocking(fx), timeout)
-  }
-
   def runner(job: JobResourceBase,
              resultsWriter: JobResultsWriter,
              dao: JobsDao,
@@ -208,7 +171,12 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
       _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
                        opts.DEFAULT_TIMEOUT)
       _ <- Success(writeInitSummary())
-      paths <- Try(resolvePathsAndWriteEntryPoints(dao, job.path, timeout))
+      paths <- Try(
+        resolvePathsAndWriteEntryPoints(dao,
+                                        job.path,
+                                        timeout,
+                                        opts.datasetType,
+                                        opts.ids))
       _ <- Success(writer(s"Successfully resolved ${opts.ids.length} files"))
       dsFiles <- mergeDataSets(job.path,
                                resultsWriter,

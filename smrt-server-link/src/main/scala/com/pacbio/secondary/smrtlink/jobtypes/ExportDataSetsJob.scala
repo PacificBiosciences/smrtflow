@@ -74,18 +74,8 @@ case class ExportDataSetsJobOptions(
   override def jobTypeId = JobTypeIds.EXPORT_DATASETS
   override def toJob() = new ExportDataSetJob(this)
 
-  override def resolveEntryPoints(
-      dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
-    val fx = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
-                                                            ids,
-                                                            dao)
-      entryPoints <- Future.successful(datasets.map(ds =>
-        EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
-    } yield entryPoints
-
-    Await.result(fx, DEFAULT_TIMEOUT)
-  }
+  override def resolveEntryPoints(dao: JobsDao) =
+    validateAndResolveEntryPoints(dao, datasetType, ids)
 
   override def validate(
       dao: JobsDao,
@@ -120,17 +110,12 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    val fx = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
-                                                            opts.ids,
-                                                            dao)
-      paths <- Future.successful(datasets.map(p => Paths.get(p.path)))
-      updatedPaths <- Future.sequence(paths.map { p =>
-        updateDataSetandWriteToEntryPointsDir(p, resources.path, dao)
-      })
-    } yield updatedPaths
-
-    val paths: Seq[Path] = Await.result(fx, opts.DEFAULT_TIMEOUT)
+    val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
+    val paths: Seq[Path] = resolvePathsAndWriteEntryPoints(dao,
+                                                           resources.path,
+                                                           timeout,
+                                                           opts.datasetType,
+                                                           opts.ids)
 
     val oldOpts = ExportDataSetsOptions(opts.datasetType,
                                         paths,
