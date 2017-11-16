@@ -159,7 +159,7 @@ class ApiManagerAccessLayer(
                           adminPipe,
                           tries,
                           delay)
-    } yield "Successfully Started up WSO2"
+    } yield "Successfully Connected to WSO2"
 
   }
 
@@ -170,7 +170,6 @@ class ApiManagerAccessLayer(
       delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
     implicit val timeout: Timeout = tries * delay
 
-    val fut = pipeline.flatMap(_(request))
     def retry =
       akka.pattern.after(delay, using = actorSystem.scheduler)(
         waitForRequest(request, pipeline, tries - 1, delay))
@@ -180,7 +179,8 @@ class ApiManagerAccessLayer(
           StatusCodes.Unauthorized,
           StatusCodes.MethodNotAllowed)
 
-    fut
+    pipeline
+      .flatMap(_(request))
       .recoverWith({
         case exc: Http.ConnectionAttemptFailedException => {
           if (tries > 1) {
