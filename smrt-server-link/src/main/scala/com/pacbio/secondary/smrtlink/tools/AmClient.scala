@@ -697,7 +697,7 @@ object AmClient extends LazyLogging {
         case AmClientModes.STATUS =>
           waitForWso2ToStartup(numWos2StartUpRetries)
         case AmClientModes.CREATE_ROLES =>
-          amClient.createOrUpdateApiWithRetry(c)
+          amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
         case AmClientModes.GET_ROLES_USERS =>
           amClient.getAndWriteRoles(c)
