@@ -140,17 +140,17 @@ class ApiManagerAccessLayer(
     * @param delay Delay between requests
     * @return
     */
-  def waitForStart(tries: Int = 40,
-                   delay: FiniteDuration = 10.seconds): Future[String] = {
-
-    implicit val timeout = tries * delay
+  def waitForStart(tries: Int, delay: FiniteDuration): Future[String] = {
 
     // Wait for token, store, and publisher APIs to start.
     // Before they're started, there'll be a failed connection attempt,
     // a 500 status response, or a 404 status response
 
+    // For the token API, a (405) Method Not Allowed will be raised
+    // For applications and apis, an (401) Unauthorized request will be raised
+
     for {
-      _ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
+      //_ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
       _ <- waitForRequest(Get("/api/am/store/v0.10/applications"),
                           adminPipe,
                           tries,
@@ -163,12 +163,10 @@ class ApiManagerAccessLayer(
 
   }
 
-  def waitForRequest(
-      request: HttpRequest,
-      pipeline: Future[SendReceive],
-      tries: Int = 40,
-      delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
-    implicit val timeout: Timeout = tries * delay
+  def waitForRequest(request: HttpRequest,
+                     pipeline: Future[SendReceive],
+                     tries: Int,
+                     delay: FiniteDuration): Future[HttpResponse] = {
 
     def retry =
       akka.pattern.after(delay, using = actorSystem.scheduler)(
