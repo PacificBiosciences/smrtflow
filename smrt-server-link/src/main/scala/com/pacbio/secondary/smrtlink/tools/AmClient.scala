@@ -74,7 +74,7 @@ object loadResource extends (String => String) {
   */
 object AmClientParser extends CommandLineToolVersion {
 
-  val VERSION = "0.3.2"
+  val VERSION = "0.3.3"
   var TOOL_ID = "pbscala.tools.amclient"
 
   def showDefaults(c: AmClientOptions): Unit = {
@@ -115,7 +115,9 @@ object AmClientParser extends CommandLineToolVersion {
       appConfig: File = null,
       maxRetries: Int = 3,
       retryDelay: FiniteDuration = 5.seconds,
-      defaultTimeOut: FiniteDuration = 30.seconds
+      defaultTimeOut: FiniteDuration = 30.seconds,
+      w2StartUpRetries: Int = 60,
+      w2StartUpRetryDelay: FiniteDuration = 10.seconds
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
 
@@ -184,6 +186,16 @@ object AmClientParser extends CommandLineToolVersion {
     cmd(AmClientModes.STATUS.name)
       .action((_, c) => c.copy(mode = AmClientModes.STATUS))
       .text("Get Status of WSO2")
+      .children(
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(w2StartUpRetries = m))
+          .text(
+            s"Max Number of WSO2 Retries (Default ${defaults.w2StartUpRetries})"),
+        opt[Int]("retry-delay")
+          .action((m, c) => c.copy(w2StartUpRetryDelay = m.seconds))
+          .text(
+            s"Time in sec between WSO2 Retries (Default ${defaults.w2StartUpRetryDelay})")
+      )
 
     cmd(AmClientModes.GET_KEY.name)
       .action((_, c) => c.copy(mode = AmClientModes.GET_KEY))
@@ -664,15 +676,8 @@ object AmClient extends LazyLogging {
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
 
-    // This should be configurable from CLI
-    val numW2StartUpRetries = 60
-    // Delay time between retries
-    val w2StartupRetryDelay = 10.seconds
-    // Initial time to wait before submitting requests
-    val initialW2Delay = 10.seconds
-
     val totalStartupTimeOut
-      : FiniteDuration = (numW2StartUpRetries + 2) * w2StartupRetryDelay
+      : FiniteDuration = (c.w2StartUpRetries + 2) * c.w2StartUpRetryDelay
 
     def andLog(sx: String): Future[String] = Future {
       logger.info(sx)
@@ -681,10 +686,11 @@ object AmClient extends LazyLogging {
 
     // This error message might not be very useful. This might
     // need to be collapsed to a terse "WSO2 Did not start successfully" or similar
-    def waitForWso2ToStartup(numRetires: Int): Future[String] = {
+    def waitForWso2ToStartup(): Future[String] = {
       for {
-        _ <- andLog("Checking for status of WSO2")
-        result <- am.waitForStart(numRetires, initialW2Delay)
+        _ <- andLog(
+          s"Checking for status of WSO2 with ${c.w2StartUpRetries} retries and ${c.w2StartUpRetryDelay} retry delay and total timeout $totalStartupTimeOut")
+        result <- am.waitForStart(c.w2StartUpRetries, c.w2StartUpRetryDelay)
         _ <- andLog("Successfully connected to WSO2")
       } yield result
     }
@@ -693,7 +699,8 @@ object AmClient extends LazyLogging {
       logger.info(s"Starting to run mode ${c.mode.name}")
       c.mode match {
         case AmClientModes.STATUS =>
-          waitForWso2ToStartup(numW2StartUpRetries)
+          // This is already performed for every call
+          Future.successful("Successfully connected to WSO2")
         case AmClientModes.CREATE_ROLES =>
           amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
@@ -712,9 +719,7 @@ object AmClient extends LazyLogging {
 
     def tx(): Try[String] =
       for {
-        _ <- Try(
-          Await.result(waitForWso2ToStartup(numW2StartUpRetries),
-                       totalStartupTimeOut))
+        _ <- Try(Await.result(waitForWso2ToStartup(), totalStartupTimeOut))
         msg <- Try(Await.result(runMode(), c.defaultTimeOut))
       } yield msg
 
