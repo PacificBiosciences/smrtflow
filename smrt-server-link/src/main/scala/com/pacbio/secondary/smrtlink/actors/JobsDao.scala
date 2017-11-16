@@ -602,7 +602,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       _ <- DBIO.seq(
         qEngineMultiJobById(jobId)
           .map(j =>
-            (j.updatedAt, j.jsonSettings, j.name, j.comment, projectId))
+            (j.updatedAt, j.jsonSettings, j.name, j.comment, j.projectId))
           .update(now, jsonSetting.toString(), name, description, projectId)
       )
       updatedJob <- qEngineMultiJobById(jobId).result.head
