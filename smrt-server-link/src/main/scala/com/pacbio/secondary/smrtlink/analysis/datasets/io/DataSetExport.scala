@@ -161,6 +161,20 @@ abstract class DataSetExporter(zipPath: Path)
     extends ExportBase(zipPath)
     with LazyLogging {
 
+  /*
+   * Write a (possibly modified) dataset to a temporary file, then write this
+   * file to the ZIP archive.
+   */
+  private def writeDataSetXml(
+      ds: DataSetType,
+      dsOutPath: String,
+      dsType: DataSetMetaTypes.DataSetMetaType): Long = {
+    val dsId = UUID.fromString(ds.getUniqueId)
+    val dsTmp = Files.createTempFile(s"relativized-${dsId.toString}", ".xml")
+    DataSetWriter.writeDataSet(dsType, ds, dsTmp)
+    writeFile(dsTmp, dsOutPath)
+  }
+
   protected def writeResourceFile(destPath: Path,
                                   res: InputOutputDataType,
                                   basePath: Path,
@@ -189,18 +203,18 @@ abstract class DataSetExporter(zipPath: Path)
       } else {
         logger.info(s"writing $resourceDestPath")
         haveFiles += resourceDestPath
-        writeFile(resourcePath, resourceDestPath) + resourceDsType
-          .map { dst =>
-            val ds = DataSetLoader.loadType(dst, resourcePath)
+        resourceDsType
+          .map { dsType =>
+            val ds = DataSetLoader.loadType(dsType, resourcePath)
             val resources = getResources(ds)
             resources.map { er =>
               writeResourceFile(Paths.get(resourceDestPath).getParent,
                                 er,
                                 resourcePath.getParent,
                                 archiveRootPath)
-            }.sum
+            }.sum + writeDataSetXml(ds, resourceDestPath, dsType)
           }
-          .getOrElse(0L)
+          .getOrElse(writeFile(resourcePath, resourceDestPath))
       }
     }
   }
@@ -213,14 +227,11 @@ abstract class DataSetExporter(zipPath: Path)
     val basePath = dsPath.getParent
     val destPath =
       Option(Paths.get(dsOutPath).getParent).getOrElse(Paths.get(""))
-    val dsId = UUID.fromString(ds.getUniqueId)
-    val dsTmp = Files.createTempFile(s"relativized-${dsId}", ".xml")
     val resources = getResources(ds)
     val nbytes: Long = resources.map { er =>
       writeResourceFile(destPath, er, basePath, archiveRootPath)
     }.sum
-    DataSetWriter.writeDataSet(dsType, ds, dsTmp)
-    writeFile(dsTmp, dsOutPath) + nbytes
+    writeDataSetXml(ds, dsOutPath, dsType)
   }
 
   protected def writeDataSet(dsPath: Path,
