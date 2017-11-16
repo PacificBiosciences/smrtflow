@@ -199,6 +199,11 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF}"
+
+echo "Attempting to connect to WSO2"
+# Do this as a separate call for clarity
+env "$client_env" ${AMCLIENT} get-status --host localhost --log-file ${logStartFile}
+
 env "$client_env" ${AMCLIENT} create-roles \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile}
