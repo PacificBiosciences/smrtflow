@@ -748,6 +748,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   def getBarcodeConvertJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id)
 
+  def getDatasetDeleteJobs: Future[Seq[EngineJob]] =
+    getJobsByType(JobTypeIds.DELETE_DATASETS.id)
+
   def getAnalysisJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id, projectId = Some(projectId))
 
@@ -905,11 +908,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
-                     outputPath: Path) = runJobPipeline {
+                     outputPath: Path,
+                     deleteAfterExport: Boolean = false) = runJobPipeline {
     logger.debug(s"Exporting ${ids.size} datasets")
-    Post(
-      toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-      DataSetExportServiceOptions(datasetType.toString, ids, toP(outputPath)))
+    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
+         DataSetExportServiceOptions(datasetType.toString,
+                                     ids,
+                                     toP(outputPath),
+                                     Some(deleteAfterExport)))
   }
 
   def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
