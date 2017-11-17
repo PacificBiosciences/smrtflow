@@ -7,10 +7,13 @@ Simple logging with params consistent with the PacBio tools. See [smrtflow#42](h
 Usage
 -----
 
-Example command-line usage::
+Example command-line usage:
+
+
+.. code-block:: bash
 
   $ ./smrt-server-link/target/pack/bin/pbservice -h
-  ...
+  (snip)
   Usage: ./app_with_logging [options]
   
   This is an app that supports PacBio logging flags. 
@@ -31,17 +34,23 @@ Example command-line usage::
     --logback <value>
           Override all logger config with the given logback.xml file.
 
+
 All of the above flags are intended for reuse in all of the SMRT services but may also be helpful for any code that
 wants to use our Scala logging conventions.
 
 Extend the `LoggerConfig` trait and have the `OptionsParser` instance invoke the `LoggerOption.add` method.:
 
   // 1 of 2: extend `LoggerConfig` in the Config-style class
-  case class GetStatusConfig(host: String = "http://localhost",
-                             port: Int = 8070) extends LoggerConfig
+
+.. code-block:: scala
+
+    case class GetStatusConfig(host: String = "http://localhost", port: Int = 8070) extends LoggerConfig
   
   
   // 2 of 2: make an `OptionParser` that invokes `LoggerOptions.add`
+
+.. code-block:: scala
+
     lazy val parser = new OptionParser[GetStatusConfig]("get-status") {
       head("Get SMRTLink status ", VERSION)
       note("Tool to check the status of a currently running smrtlink server")
@@ -57,18 +66,21 @@ Extend the `LoggerConfig` trait and have the `OptionsParser` instance invoke the
       // reuse the common `--debug` param and logging params
       LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
     }
-```
+
 
 Alternatively, use the `LoggerOptions.parse` and related methods to directly parse an arg array.
 
-  object MyCode extends App {
+.. code-block:: scala
+
+    object MyCode extends App {
     // whatever pre-logging config logic ...
-  
+
     // parse the args for logging related options
     LoggerOptions.parseAddDebug(args)
-  
+
     // whatever post-logging conig logic
-  }
+    }
+
 
 Command-Line Example
 --------------------

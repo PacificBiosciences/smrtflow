@@ -17,5 +17,7 @@ SMRT Flow Docs
    PacBio Parameter "Chemistry" Upgrade Bundle and Services <pacbio_bundles>
    SMRT Link Analysis Server APIs <sla_service_apis>
    SMRT Eve Server <eve_server>
+   Logging in smrtflow <logging>
+   PacBio Update Server <pacbio_update_server_config>
    Disclaimer <disclaimer>
 
