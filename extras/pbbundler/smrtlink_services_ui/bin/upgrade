@@ -75,7 +75,7 @@ function cleanUp {
     waitThenKill ${wso2Pid}
 }
 
-clientEnv="JAVA_OPTS=-Xmx256m -Xms256m  -Dconfig.file=${config}"
+clientEnv="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${config}"
 
 amClient=${rootBundleDir}/tools/bin/amclient
 amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${logFile}"
