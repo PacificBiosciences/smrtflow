@@ -6163,6 +6163,12 @@
           "type": "string",
           "title": "Output ZIP file",
           "description": "Path to output ZIP file containing datasets, must not already exist"
+        },
+        "deleteAfterExport": {
+          "type": "boolean",
+          "default": false,
+          "title": "Delete datasets after exporting",
+          "description": "If the export is successful and this option is true, a separate job will be started asynchronously to delete the exported datasets"
         }
       }
     },

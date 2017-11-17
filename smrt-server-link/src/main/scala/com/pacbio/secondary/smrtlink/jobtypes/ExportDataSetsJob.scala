@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.CommonModelImplicits
@@ -16,10 +17,15 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   DataSetExportServiceOptions,
-  EngineJobEntryPointRecord
+  EngineJobEntryPointRecord,
+  EngineJobEntryPoint
 }
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
+
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -62,6 +68,7 @@ case class ExportDataSetsJobOptions(
     datasetType: DataSetMetaTypes.DataSetMetaType,
     ids: Seq[IdAble],
     outputPath: Path,
+    deleteAfterExport: Option[Boolean],
     name: Option[String],
     description: Option[String],
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
@@ -102,7 +109,44 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
     extends ServiceCoreJob(opts) {
   type Out = PacBioDataStore
 
+  import SmrtLinkJsonProtocols._
   import com.pacbio.common.models.CommonModelImplicits._
+
+  private def createDeleteJob(resources: JobResourceBase,
+                              dao: JobsDao): EngineJob = {
+    def creator(parentJob: EngineJob,
+                epoints: Seq[EngineJobEntryPoint]): Future[EngineJob] = {
+      val name = "Delete exported datasets"
+      val desc = s"Created from export-datasets job ${parentJob.id}"
+      val dOpts = DeleteDataSetJobOptions(opts.ids,
+                                          opts.datasetType,
+                                          true,
+                                          Some(name),
+                                          Some(desc),
+                                          opts.projectId)
+      val jsettings = dOpts.toJson.asJsObject
+      dao.createCoreJob(
+        UUID.randomUUID(),
+        name,
+        desc,
+        dOpts.jobTypeId,
+        epoints.map(_.toRecord),
+        jsettings,
+        parentJob.createdBy,
+        parentJob.createdByEmail,
+        parentJob.smrtlinkVersion,
+        parentJob.projectId
+      )
+    }
+
+    val fx = for {
+      parentJob <- dao.getJobById(resources.jobId)
+      epoints <- dao.getJobEntryPoints(parentJob.id)
+      deleteJob <- creator(parentJob, epoints)
+    } yield deleteJob
+
+    Await.result(fx, opts.DEFAULT_TIMEOUT)
+  }
 
   override def run(
       resources: JobResourceBase,
@@ -122,6 +166,12 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
                                         opts.outputPath,
                                         opts.getProjectId())
     val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    val result = job.run(resources, resultsWriter)
+    if (result.isRight && opts.deleteAfterExport.getOrElse(false)) {
+      logger.info("Export succeeded - creating delete job")
+      val deleteJob = createDeleteJob(resources, dao)
+      logger.info(s"Dataset delete job ${deleteJob.id} started")
+    }
+    result
   }
 }
