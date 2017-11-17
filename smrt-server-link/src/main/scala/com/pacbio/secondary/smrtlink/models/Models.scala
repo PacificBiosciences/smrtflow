@@ -348,7 +348,9 @@ case class BoundServiceEntryPoint(entryId: String,
 // Entry points that are have dataset types
 case class EngineJobEntryPoint(jobId: Int,
                                datasetUUID: UUID,
-                               datasetType: String)
+                               datasetType: String) {
+  def toRecord = EngineJobEntryPointRecord(datasetUUID, datasetType)
+}
 
 //FIXME(mpkocher)(8-22-2017) The dataset metatype needs to be a proper type
 case class EngineJobEntryPointRecord(datasetUUID: UUID, datasetType: String)
@@ -1112,7 +1114,9 @@ case class ReportViewRule(id: String, rules: JsObject)
 
 case class DataSetExportServiceOptions(datasetType: String,
                                        ids: Seq[Int],
-                                       outputPath: String)
+                                       outputPath: String,
+                                       deleteAfterExport: Option[Boolean] =
+                                         Some(false))
 case class DataSetDeleteServiceOptions(datasetType: String,
                                        ids: Seq[Int],
                                        removeFiles: Boolean = true)
