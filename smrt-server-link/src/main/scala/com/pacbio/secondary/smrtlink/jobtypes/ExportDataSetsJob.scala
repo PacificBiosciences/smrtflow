@@ -168,9 +168,9 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
     val job = oldOpts.toJob
     val result = job.run(resources, resultsWriter)
     if (result.isRight && opts.deleteAfterExport.getOrElse(false)) {
-      logger.info("Export succeeded - creating delete job")
+      resultsWriter.write("Export succeeded - creating delete job")
       val deleteJob = createDeleteJob(resources, dao)
-      logger.info(s"Dataset delete job ${deleteJob.id} started")
+      resultsWriter.write(s"Dataset delete job ${deleteJob.id} started")
     }
     result
   }
