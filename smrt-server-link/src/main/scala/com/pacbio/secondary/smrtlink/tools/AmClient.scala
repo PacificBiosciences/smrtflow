@@ -740,7 +740,7 @@ object AmClient extends LazyLogging {
 }
 
 //FIXME(mpkocher)(11-15-2017) This needs to be converted to CommandLineToolRunner.
-object AmClientApp extends App with timeUtils {
+object AmClientApp extends App with timeUtils with LazyLogging {
   def run(args: Seq[String]) = {
     val startedAt = JodaDateTime.now()
     val xc =
@@ -750,7 +750,7 @@ object AmClientApp extends App with timeUtils {
       }
     val msg =
       s"Exiting ${AmClientParser.VERSION} with exit code $xc in ${computeTimeDeltaFromNow(startedAt)} sec."
-    println(msg)
+    logger.info(msg)
     sys.exit(xc)
   }
   run(args)
