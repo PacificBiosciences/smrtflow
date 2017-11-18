@@ -10,7 +10,7 @@ if ! [ -e "$config" ]; then
     exit 1
 fi
 
-export JAVA_OPTS="-Dconfig.file=${config}"
+export JAVA_OPTS="${JAVA_OPTS:-} -Dconfig.file=${config}"
 
 # This interface is a bit odd. Perhaps should change the
 # positional arg to be optional and be set from the

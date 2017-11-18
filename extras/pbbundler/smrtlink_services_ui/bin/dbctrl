@@ -23,7 +23,7 @@ _SL_CONFIG = os.path.join(_BUNDLE_ROOT, "smrtlink-system-config.json")
 # Migration State file
 _MIGRATION_JSON = os.path.join(_BUNDLE_ROOT, "legacy-migration.json")
 # Jvm options for all scala tools that are invoked as a subprocess. This was increased for the bundler-migrate-legacy-db
-_JAVA_OPTS = "-Xmx8096m -Xms8096m"
+_JAVA_OPTS = "-Xmx8096m -Xms8096m -Djava.library.path="
 _LOG_FORMAT = '[%(levelname)s] %(asctime)-15s %(message)s'
 _LOG_STDOUT_FORMAT = "%(message)ss"
 # Default Log file name that will be used if an explicit log file is not provided
