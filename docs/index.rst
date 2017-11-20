@@ -19,5 +19,6 @@ SMRT Flow Docs
    SMRT Eve Server <eve_server>
    Logging in smrtflow <logging>
    PacBio Update Server <pacbio_update_server_config>
+   Web Services CookBook <cookbook>
    Disclaimer <disclaimer>
 
