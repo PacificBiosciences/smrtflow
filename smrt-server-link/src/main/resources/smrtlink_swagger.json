@@ -6,7 +6,7 @@
   "info": {
     "version": "1.0.0",
     "description": "SMRTLink Services Swagger 2.0 specification",
-    "title": "SMRT Link Analysis Services for SMRT Link 4.1.0"
+    "title": "SMRT Link Services for SMRT Link 5.1.0"
   },
   "host": "localhost:8081",
   "basePath": "/SMRTLink/1.0.0",
@@ -6163,6 +6163,13 @@
           "type": "string",
           "title": "Output ZIP file",
           "description": "Path to output ZIP file containing datasets, must not already exist"
+        },
+        "deleteAfterExport": {
+          "type": ["boolean", "null"],
+          "default": false,
+          "required": false,
+          "title": "Delete datasets after exporting",
+          "description": "If the export is successful and this option is true, a separate job will be started asynchronously to delete the exported datasets"
         }
       }
     },

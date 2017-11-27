@@ -13,7 +13,7 @@ fi
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" "${config}")
 logStartFile=${logDir}/email-test.log
 
-export JAVA_OPTS="-Dconfig.file=${config}"
+export JAVA_OPTS="${JAVA_OPTS:-} -Dconfig.file=${config}"
 
 "${rootBundleDir}/tools/bin/send-test-email" \
     --log-file "${logStartFile}" \

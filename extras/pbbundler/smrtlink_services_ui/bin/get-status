@@ -13,7 +13,7 @@ fi
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
 logStartFile=${logDir}/get-status.log
 
-export JAVA_OPTS="-Dconfig.file=${config}"
+export JAVA_OPTS="${JAVA_OPTS:-} -Dconfig.file=${config}"
 
 # there's probably a better way to do this. If this is called without an explicit
 # log-file option, it's assumed to be in a different context and should

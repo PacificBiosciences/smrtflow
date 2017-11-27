@@ -214,8 +214,7 @@ class DbBackUpJob(opts: DbBackUpJobOptions)
     val reportPath = job.path.resolve("smrtlink_db_backup_report.json")
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logDsFile =
-      toMasterDataStoreFile(logPath, s"Job Master log of ${jobTypeId.id}")
+    val logDsFile = toSmrtLinkJobLog(logPath)
 
     val pattern = "yyyy_MM_dd-HH_mm_ss"
     val formatter = DateTimeFormat.forPattern(pattern)

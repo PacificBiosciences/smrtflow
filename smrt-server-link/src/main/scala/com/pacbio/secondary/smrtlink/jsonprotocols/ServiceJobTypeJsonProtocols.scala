@@ -26,7 +26,7 @@ trait ServiceJobTypeJsonProtocols
     MergeDataSetJobOptions)
   //implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
 
-  implicit val exportDataSetJobOptionJsonFormat = jsonFormat6(
+  implicit val exportDataSetJobOptionJsonFormat = jsonFormat7(
     ExportDataSetsJobOptions)
   implicit val exportAnalysisJobOptionsFormat = jsonFormat6(
     ExportSmrtLinkJobOptions)

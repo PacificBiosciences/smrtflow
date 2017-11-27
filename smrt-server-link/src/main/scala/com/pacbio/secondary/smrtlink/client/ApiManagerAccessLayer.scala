@@ -129,30 +129,45 @@ class ApiManagerAccessLayer(
     apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
   }
 
-  def waitForStart(
-      tries: Int = 40,
-      delay: FiniteDuration = 10.seconds): Future[Seq[HttpResponse]] = {
-    implicit val timeout = tries * delay
+  /**
+    * Mechanism to see if wso2 has "completely" started up
+    * and is functioning. These makes a few calls to a different
+    * endpoints to make sure it's doing something reasonable.
+    *
+    * This may need to be improved to call other endpoints.
+    *
+    * @param tries Number of retries
+    * @param delay Delay between requests
+    * @return
+    */
+  def waitForStart(tries: Int, delay: FiniteDuration): Future[String] = {
 
     // Wait for token, store, and publisher APIs to start.
     // Before they're started, there'll be a failed connection attempt,
     // a 500 status response, or a 404 status response
-    val requests = List((Get("/token"), apiPipe),
-                        (Get("/api/am/store/v0.10/applications"), adminPipe),
-                        (Get("/api/am/publisher/v0.10/apis"), adminPipe))
 
-    Future.sequence(
-      requests.map(req => waitForRequest(req._1, req._2, tries, delay)))
+    // For the token API, a (405) Method Not Allowed will be raised
+    // For applications and apis, an (401) Unauthorized request will be raised
+
+    for {
+      //_ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
+      _ <- waitForRequest(Get("/api/am/store/v0.10/applications"),
+                          adminPipe,
+                          tries,
+                          delay)
+      _ <- waitForRequest(Get("/api/am/publisher/v0.10/apis"),
+                          adminPipe,
+                          tries,
+                          delay)
+    } yield "Successfully Connected to WSO2"
+
   }
 
-  def waitForRequest(
-      request: HttpRequest,
-      pipeline: Future[SendReceive],
-      tries: Int = 40,
-      delay: FiniteDuration = 10.seconds): Future[HttpResponse] = {
-    implicit val timeout: Timeout = tries * delay
+  def waitForRequest(request: HttpRequest,
+                     pipeline: Future[SendReceive],
+                     tries: Int,
+                     delay: FiniteDuration): Future[HttpResponse] = {
 
-    val fut = pipeline.flatMap(_(request))
     def retry =
       akka.pattern.after(delay, using = actorSystem.scheduler)(
         waitForRequest(request, pipeline, tries - 1, delay))
@@ -162,7 +177,8 @@ class ApiManagerAccessLayer(
           StatusCodes.Unauthorized,
           StatusCodes.MethodNotAllowed)
 
-    fut
+    pipeline
+      .flatMap(_(request))
       .recoverWith({
         case exc: Http.ConnectionAttemptFailedException => {
           if (tries > 1) {

@@ -52,9 +52,10 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
     val datastoreJson = job.path.resolve("datastore.json")
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
+    val logFile = toSmrtLinkJobLog(
       logPath,
-      "Log file of the details of the Export DataSet Job job")
+      Some(
+        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the details of the Export DataSet Job"))
 
     val nbytes = ExportDataSets(opts.paths, opts.datasetType, opts.outputPath)
     resultsWriter.write(
@@ -73,7 +74,7 @@ class ExportDataSetsJob(opts: ExportDataSetsOptions)
       s"ZIP file containing ${opts.paths.length} datasets"
     )
 
-    val ds = PacBioDataStore(now, now, "0.2.1", Seq(dataStoreFile, logFile))
+    val ds = PacBioDataStore.fromFiles(Seq(dataStoreFile, logFile))
     writeDataStore(ds, datastoreJson)
     resultsWriter.write(
       s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")

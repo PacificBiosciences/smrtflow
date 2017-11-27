@@ -101,9 +101,11 @@ class ImportDataSetJob(opts: ImportDataSetOptions)
       }
 
       val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-      val logFile = toMasterDataStoreFile(
-        logPath,
-        "Job Master log of the Import Dataset job")
+      val logFile =
+        toSmrtLinkJobLog(
+          logPath,
+          Some(
+            s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the Import Dataset job"))
 
       val dsFiles = Seq(dsFile, logFile) ++ reportFiles
       val datastore = toDatastore(resources, dsFiles)

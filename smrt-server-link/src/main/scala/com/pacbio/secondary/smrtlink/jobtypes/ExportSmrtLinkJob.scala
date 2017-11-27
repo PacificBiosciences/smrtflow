@@ -159,9 +159,10 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     val datastoreJson = resources.path.resolve("datastore.json")
 
     val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(
+    val logFile = toSmrtLinkJobLog(
       logPath,
-      "Log file of the details of the Export DataSet Job job")
+      Some(
+        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the details of the Export DataSet Job job"))
 
     val results = jobs.zip(entryPoints).map {
       case (job, eps) =>

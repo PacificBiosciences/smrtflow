@@ -95,7 +95,15 @@ class ExportUtilsSpec extends Specification with ExportUtils with LazyLogging {
                                        Some("/data/jobs/1/tasks/gather-1"))
       resource8.toString must beEqualTo("../task-1/subreads.bam")
       dest8.toString must beEqualTo("task-1/subreads.bam")
-     */
+       */
+      val resPath = "/jobs-root/000/000001/tasks/barcoding/barcoded.bam"
+      val basePath = "/jobs-root/000/000003/entry-points"
+      val destPath = "entry-points"
+      val archiveRoot = "/jobs-root/000/000003"
+      val (resource9, dest9) =
+        toPaths(resPath, basePath, destPath, Some(archiveRoot))
+      resource9.toString === "../external-resources/jobs-root/000/000001/tasks/barcoding/barcoded.bam"
+      dest9.toString === "external-resources/jobs-root/000/000001/tasks/barcoding/barcoded.bam"
     }
     "Get external resources from dataset" in {
       val REF =

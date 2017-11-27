@@ -1,5 +1,5 @@
 PacBio Update Server 
-=====================================
+====================
 
 A PacBio update server is a system configured to run Stand Alone Chemistry Update Bundle Server process.
 
@@ -11,7 +11,7 @@ Requirements
 -  Update Bundle Server package (see Packaging Update Bundle Server below)
 
 Packaging Chemistry Update Bundle Server Build
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 See build instructions here:  http://bitbucket.nanofluidics.com:7990/projects/SL/repos/smrtflow/browse/docs/pacbio_bundles.rst
 
@@ -24,7 +24,7 @@ Create Update Bundle Server tarball
     $> tar -czf smrt-server-data-bundle-<VERSION>.tgz bin/smrt-server-data-bundle lib VERSION
 
 Install
-~~~~~~~~~~~~~
+~~~~~~~
 
 Copy the install tarball for the smrt-server-data-bundle server onto the system.  The following examples assume it has
 been stored in /var/tmp.
@@ -76,7 +76,7 @@ SMRTFLOW_BUNDLE_DIR=/opt/pacbio/smrt-server-data-bundle/chemistry-updates
 The above environment variables are set as part of the systemd service that starts the smrt-server-data-bundle service.
 
 Systemd service definition
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 smrt-server-data-bundle.service contents::
 
@@ -111,7 +111,7 @@ smrt-server-data-bundle.service contents::
 
 
 Upgrade 
-~~~~~~~~~~~~~
+~~~~~~~
 
 Copy the install tarball for the smrt-server-data-bundle server onto the system.  The following examples assume it has
 been stored in /var/tmp.
@@ -159,7 +159,7 @@ Restart the smrt-server-data-bundle service
     $> systemctl start smrt-server-data-bundle
 
 Automated build and deploy
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The steps for building, creating the release bundle, and installing the release bundle that are documented above, have 
 been automated as a Bamboo job:  http://bamboo.nanofluidics.com:8085/browse/DEP-SD.  This job is triggered by changes

@@ -165,7 +165,15 @@ class JobExporter(job: EngineJob, zipPath: Path)
                   logger.warn(s"Skipping duplicate entry ${o.path.toString}");
                   0L
                 } else {
-                  writeDataSet(e.path, o.path, m.metatype, None)
+                  val epRootPath = e.path.getParent
+                  if (epRootPath.toString.endsWith("entry-points")) {
+                    writeDataSet(e.path,
+                                 o.path,
+                                 m.metatype,
+                                 Some(epRootPath.getParent))
+                  } else {
+                    writeDataSet(e.path, o.path, m.metatype, Some(jobPath))
+                  }
                 }
               }
               .getOrElse(exportFile(o.path, Paths.get(""), Some(e.path)))

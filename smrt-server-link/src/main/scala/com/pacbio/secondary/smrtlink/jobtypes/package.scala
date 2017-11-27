@@ -6,6 +6,7 @@ import java.net.InetAddress
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
+import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -193,6 +194,25 @@ package object jobtypes {
         }
       }
     }
+
+    def resolvePathsAndWriteEntryPoints(
+        dao: JobsDao,
+        jobRoot: Path,
+        timeout: FiniteDuration,
+        datasetType: DataSetMetaTypes.DataSetMetaType,
+        datasetIds: Seq[IdAble]): Seq[Path] = {
+      val fx: Future[Seq[Path]] = for {
+        datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
+                                                              datasetIds,
+                                                              dao)
+        paths <- Future.successful(datasets.map(_.path))
+        updatedPaths <- Future.sequence(paths.map { p =>
+          updateDataSetandWriteToEntryPointsDir(Paths.get(p), jobRoot, dao)
+        })
+      } yield updatedPaths
+
+      Await.result(blocking(fx), timeout)
+    }
   }
 
   trait ServiceJobOptions {
@@ -200,6 +220,14 @@ package object jobtypes {
     val name: Option[String]
     val description: Option[String]
     val projectId: Option[Int]
+
+    /**
+      * This is a guess.
+      *
+      * This should capture both the fetching from the db as well as
+      * writing to disk.
+      */
+    def TIMEOUT_PER_RECORD = 1.seconds
 
     // This is duplicated with projectId because of JSON optional options. It would be better if
     // "projectId" was private.
@@ -296,6 +324,22 @@ package object jobtypes {
       */
     def resolveEntryPoints(dao: JobsDao): Seq[EngineJobEntryPointRecord] =
       Seq.empty[EngineJobEntryPointRecord]
+
+    def validateAndResolveEntryPoints(
+        dao: JobsDao,
+        datasetType: DataSetMetaTypes.DataSetMetaType,
+        ids: Seq[IdAble]): Seq[EngineJobEntryPointRecord] = {
+      val timeout: FiniteDuration = ids.length * TIMEOUT_PER_RECORD
+      val fx = for {
+        datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
+                                                              ids,
+                                                              dao)
+        entryPoints <- Future.successful(datasets.map(ds =>
+          EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
+      } yield entryPoints
+
+      Await.result(blocking(fx), timeout)
+    }
   }
 
   abstract class ServiceCoreJob(opts: ServiceJobOptions)

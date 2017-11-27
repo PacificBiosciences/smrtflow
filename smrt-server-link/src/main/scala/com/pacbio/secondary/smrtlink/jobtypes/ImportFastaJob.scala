@@ -143,7 +143,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
       resultsWriter: JobResultsWriter): Try[PacBioDataStore] = {
 
     val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toMasterDataStoreFile(logPath)
+    val logFile = toSmrtLinkJobLog(logPath)
     val outputDir = job.path.resolve("pacbio-reference")
 
     def w(sx: String): Unit = {

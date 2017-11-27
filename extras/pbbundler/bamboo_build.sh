@@ -71,6 +71,14 @@ if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
   pip install sphinx
 fi
 
+# A prebuilt copy of the swagger-ui
+SWAGGER_UI_DIR=/mnt/secondary/Share/smrtserver-resources/swagger-ui
+SWAGGER_UI_OUTPUT_DIR="${DOC_ROOT}/services"
+
+mkdir -p "${SWAGGER_UI_OUTPUT_DIR}"
+cp ${SWAGGER_UI_DIR}/* "${SWAGGER_UI_OUTPUT_DIR}"
+cp "${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/smrtlink_swagger.json" "${SWAGGER_UI_OUTPUT_DIR}"
+
 # Copy docs from sl-help into ${DOC_ROOT}/help
 if [[ -d "${DOC_HELP_ROOT}" ]]; then
   cp -R "${DOC_HELP_ROOT}" "${DOC_ROOT}/help"

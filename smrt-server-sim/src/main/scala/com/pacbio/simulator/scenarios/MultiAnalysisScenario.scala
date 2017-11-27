@@ -199,7 +199,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
                                            jobName: String)
       extends VarStep[Seq[EngineJob]] {
     override val name: String = "RunMultiJobAnalysisSanity"
-    override val runWith =
+    override def runWith =
       runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
   }
 

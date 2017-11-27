@@ -832,7 +832,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
     }
   }
 
-  // Note, there's several explicit calls to toJson(jwriter) to avoid ambigous implicit issues.
+  // Note, there's several explicit calls to toJson(jwriter) to avoid ambiguous implicit issues.
 
   // Change the state from CREATED to SUBMITTED. After this change the job is NO longer editable.
   val submitJobRoute: Route = {
@@ -872,16 +872,15 @@ class MultiAnalysisJobService(override val dao: JobsDao,
                   job <- dao.getJobById(jobId)
                   _ <- validateStateIsCreated(
                     job,
-                    "ONLY Jobs in the CREATED state can be updated.")
-                  msg <- Future.successful(
-                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                  _ <- dao.updateMultiJob(
+                    s"ONLY Jobs in the CREATED state can be updated. Job is in state: ${job.state}")
+                  msg <- Future.successful(s"Updating job ${job.id}")
+                  updatedJob <- dao.updateMultiJob(
                     job.id,
                     opts.toJson(jwriter).asJsObject,
                     opts.name.getOrElse(job.name),
                     opts.description.getOrElse(job.comment),
                     opts.getProjectId())
-                } yield MessageResponse(msg)
+                } yield updatedJob
               }
             }
           }
@@ -893,7 +892,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
                   job <- dao.getJobById(jobId)
                   _ <- validateStateIsCreated(
                     job,
-                    "ONLY Jobs in the CREATED state can be DELETED.")
+                    "ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
                   msg <- dao.deleteMultiJob(job.id)
                 } yield msg
               }

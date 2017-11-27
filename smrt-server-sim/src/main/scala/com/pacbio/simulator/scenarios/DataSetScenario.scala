@@ -187,8 +187,7 @@ class DataSetScenario(host: String, port: Int)
   val subreadTests = Seq(
     subreadSets := GetSubreadSets,
     jobId := ImportDataSet(subreads1, ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
@@ -205,8 +204,7 @@ class DataSetScenario(host: String, port: Int)
       dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
     } !=? subreadsUuid1.get,
     jobId := ImportDataSet(subreads2, ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     dsMeta := GetDataSet(subreadsUuid2),
     // there will be 3 reports if pbreports is available
     dsReports := GetSubreadSetReports(subreadsUuid2),
@@ -221,9 +219,7 @@ class DataSetScenario(host: String, port: Int)
       ftSubreads,
       subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
       Var("merge-subreads")),
-    jobStatus := WaitForJob(jobId),
-    fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS,
-    job := GetJob(jobId),
+    job := WaitForSuccessfulJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     subreadSets := GetSubreadSets,
@@ -255,8 +251,7 @@ class DataSetScenario(host: String, port: Int)
     jobId2 := DeleteJob(jobId, Var(true)),
     // fail("Expected original job to be returned") IF jobId2 !=? jobId,
     jobId := DeleteJob(jobId, Var(false)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 0 children after delete job") IF childJobs
       .mapWith(_.size) !=? 0,
@@ -273,8 +268,7 @@ class DataSetScenario(host: String, port: Int)
       ftSubreads,
       subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
       subreadsZip),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // attempt to export to already existing .zip file
     ExportDataSets(
       ftSubreads,
@@ -314,23 +308,20 @@ class DataSetScenario(host: String, port: Int)
   val referenceTests = Seq(
     referenceSets := GetReferenceSets,
     jobId := ImportDataSet(reference1, ftReference),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     referenceSets := GetReferenceSets,
     // export ReferenceSet
     jobId := ExportDataSets(
       ftReference,
       referenceSets.mapWith(_.takeRight(1).map(d => d.id)),
       Var(getZipFileName("references"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
+    job := WaitForSuccessfulJob(jobId)
   ) ++ (if (!HAVE_SAWRITER) Seq()
         else
           Seq(
             // FASTA import tests (require sawriter)
             jobId := ImportFasta(refFasta, Var("import_fasta")),
-            jobStatus := WaitForJob(jobId),
-            fail("Import FASTA job failed") IF jobStatus !=? EXIT_SUCCESS,
+            job := WaitForSuccessfulJob(jobId),
             job := GetJob(jobId),
             fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
               _.smrtlinkVersion) ==? None,
@@ -352,8 +343,7 @@ class DataSetScenario(host: String, port: Int)
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     jobId := ImportDataSet(barcodes, ftBarcodes),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
@@ -363,8 +353,7 @@ class DataSetScenario(host: String, port: Int)
       .mapWith(_.getUniqueId) !=? barcodeSets.mapWith(_.last.uuid.toString),
     // import FASTA
     jobId := ImportFastaBarcodes(bcFasta, Var("import-barcodes")),
-    jobStatus := WaitForJob(jobId),
-    fail("Import barcodes job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     barcodeSets := GetBarcodeSets,
     barcodeSetDetails := GetBarcodeSetDetails(
       barcodeSets.mapWith(_.last.uuid)),
@@ -372,35 +361,28 @@ class DataSetScenario(host: String, port: Int)
     jobId := ExportDataSets(ftBarcodes,
                             barcodeSets.mapWith(_.takeRight(2).map(d => d.id)),
                             Var(getZipFileName("barcodes"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // delete all jobs
     jobId := DeleteJob(jobId, Var(false)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     job := GetJobById(barcodeSets.mapWith(_.takeRight(2).head.jobId)),
     jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     job := GetJobById(barcodeSets.mapWith(_.last.jobId)),
     jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete BarcodeSet failed") IF jobStatus !=? EXIT_SUCCESS
+    job := WaitForSuccessfulJob(jobId)
   )
   val hdfSubreadTests = Seq(
     hdfSubreadSets := GetHdfSubreadSets,
     jobId := ImportDataSet(hdfsubreads, ftHdfSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import HdfSubreads job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     hdfSubreadSetDetails := GetHdfSubreadSetDetails(getUuid(hdfsubreads)),
     hdfSubreadSets := GetHdfSubreadSets,
     fail("Wrong UUID") IF hdfSubreadSetDetails
       .mapWith(_.getUniqueId) !=? hdfSubreadSets.mapWith(_.last.uuid.toString),
     // import RSII movie
     jobId := ConvertRsMovie(rsMovie),
-    jobStatus := WaitForJob(jobId),
-    fail("Import RSII movie job failed") IF jobStatus !=? EXIT_SUCCESS,
-    job := GetJob(jobId),
+    job := WaitForSuccessfulJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     hdfSubreadSets := GetHdfSubreadSets,
@@ -409,8 +391,7 @@ class DataSetScenario(host: String, port: Int)
       ftHdfSubreads,
       hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.id)),
       Var(getZipFileName("hdfsubreads"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // merge HdfSubreadSets
     // XXX it's actually a little gross that this works, since these contain
     // the same bax.h5 files...
@@ -418,45 +399,37 @@ class DataSetScenario(host: String, port: Int)
       ftHdfSubreads,
       hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.id)),
       Var("merge-hdfsubreads")),
-    jobStatus := WaitForJob(jobId),
-    fail("Merge job failed") IF jobStatus !=? EXIT_SUCCESS //,
+    job := WaitForSuccessfulJob(jobId)
   )
   val otherTests = Seq(
     // ContigSet
     jobId := ImportDataSet(contigs, ftContigs),
-    jobStatus := WaitForJob(jobId),
-    fail("Import ContigSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     contigSets := GetContigSets,
     jobId := ExportDataSets(ftContigs,
                             contigSets.mapWith(_.takeRight(1).map(d => d.id)),
                             Var(getZipFileName("contigs"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     contigSetDetails := GetContigSetDetails(getUuid(contigs)),
     fail("UUID mismatch between tables") IF contigSetDetails.mapWith(
       _.getUniqueId) !=? contigSets.mapWith(_.last.uuid.toString),
     // AlignmentSet
     jobId := ImportDataSet(alignments, ftAlign),
-    jobStatus := WaitForJob(jobId),
-    fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     alignmentSets := GetAlignmentSets,
     alignmentSetDetails := GetAlignmentSetDetails(getUuid(alignments)),
     fail("UUID mismatch") IF alignmentSetDetails
       .mapWith(_.getUniqueId) !=? alignmentSets.mapWith(_.last.uuid.toString),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(alignments2, ftAlign),
-    jobStatus := WaitForJob(jobId),
-    fail("Import AlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // export
     jobId := ExportDataSets(ftAlign,
                             alignmentSets.mapWith(_.map(d => d.id)),
                             Var(getZipFileName("alignments"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // ConsensusReadSet
     jobId := ImportDataSet(ccs, ftCcs),
-    jobStatus := WaitForJob(jobId),
-    fail("Import ConsensusReadSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     ccsSets := GetConsensusReadSets,
     ccsSetDetails := GetConsensusReadSetDetails(getUuid(ccs)),
     fail("Wrong UUID") IF ccsSetDetails.mapWith(_.getUniqueId) !=? ccsSets
@@ -464,13 +437,11 @@ class DataSetScenario(host: String, port: Int)
     jobId := ExportDataSets(ftCcs,
                             ccsSets.mapWith(_.map(d => d.id)),
                             Var(getZipFileName("ccs"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     // ConsensusAlignmentSet
     ccsAlignmentSets := GetConsensusAlignmentSets,
     jobId := ImportDataSet(ccsAligned, ftCcsAlign),
-    jobStatus := WaitForJob(jobId),
-    fail("Import ConsensusAlignmentSet job failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     ccsAlignmentSets := GetConsensusAlignmentSets,
     ccsAlignmentSetDetails := GetConsensusAlignmentSetDetails(
       getUuid(ccsAligned)),
@@ -481,8 +452,7 @@ class DataSetScenario(host: String, port: Int)
       ftCcsAlign,
       ccsAlignmentSets.mapWith(_.takeRight(1).map(d => d.id)),
       Var(getZipFileName("ccsalignments"))),
-    jobStatus := WaitForJob(jobId),
-    fail("Export job failed") IF jobStatus !=? EXIT_SUCCESS
+    job := WaitForSuccessfulJob(jobId)
   )
   // FAILURE MODES
   val failureTests = Seq(
@@ -507,14 +477,12 @@ class DataSetScenario(host: String, port: Int)
   )
   val deleteTests = Seq(
     jobId := ImportDataSet(tmpSubreads(0), ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
     jobId := DeleteDataSets(ftSubreads,
                             subreadSets.mapWith(ss => Seq(ss.last.id)),
                             Var(true)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     fail("Expected SubreadSet file to be deleted") IF tmpSubreads(0).mapWith(
       _.toFile.exists) !=? false,
     fail("Expected directory contents to be deleted") IF subreadSets.mapWith(
@@ -538,30 +506,43 @@ class DataSetScenario(host: String, port: Int)
     subreadSets := GetSubreadSets,
     // delete merged datasets
     jobId := ImportDataSet(tmpSubreads(1), ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     jobId := ImportDataSet(tmpSubreads(2), ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
     jobId := MergeDataSets(
       ftSubreads,
       subreadSets.mapWith(_.takeRight(2).map(ds => ds.id)),
       Var("merge-subreads")),
-    jobStatus := WaitForJob(jobId),
-    fail("Merge SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
     DeleteDataSets(ftSubreads,
                    subreadSets.mapWith(ss => Seq(ss.last.id)),
                    Var(true)),
-    jobStatus := WaitForJob(jobId),
-    fail("Delete SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
-    subreadSets := GetSubreadSets
+    job := WaitForSuccessfulJob(jobId),
+    // combined export+delete
+    jobId := ImportDataSet(tmpSubreads(3), ftSubreads),
+    job := WaitForSuccessfulJob(jobId),
+    subreadSets := GetSubreadSets,
+    dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
+    fail("Wrong SubreadSet UUID") IF dsMeta
+      .mapWith(_.uuid) !=? getDataSetMiniMeta(tmpSubreads(3).get).uuid,
+    fail("Expected last SubreadSet to be active") IF dsMeta
+      .mapWith(_.isActive) !=? true,
+    jobId := ExportDataSets(ftSubreads,
+                            subreadSets.mapWith(ss => Seq(ss.last.id)),
+                            Var(getZipFileName("subreads")),
+                            Var(true)),
+    job := WaitForSuccessfulJob(jobId),
+    childJobs := GetDatasetDeleteJobs,
+    job := WaitForSuccessfulJob(childJobs.mapWith(_.last.uuid)),
+    dsMeta := GetDataSet(subreadSets.mapWith(_.last.uuid)),
+    fail("Expected last SubreadSet to be inactive") IF dsMeta.mapWith(
+      _.isActive) !=? false
   )
   val reimportTests = Seq(
     jobId := ImportDataSet(tmpSubreads2, ftSubreads),
-    jobStatus := WaitForJob(jobId),
-    fail("Import SubreadSet failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
     fail("Multiple dataset have the same UUID") IF subreadSets.mapWith { ss =>
       ss.filter(_.uuid == subreadsUuid1.get).size

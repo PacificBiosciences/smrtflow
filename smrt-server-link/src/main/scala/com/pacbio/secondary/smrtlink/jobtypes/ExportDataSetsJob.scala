@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.CommonModelImplicits
@@ -16,10 +17,15 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   DataSetExportServiceOptions,
-  EngineJobEntryPointRecord
+  EngineJobEntryPointRecord,
+  EngineJobEntryPoint
 }
+import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
+
+import spray.httpx.SprayJsonSupport._
+import spray.json._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -62,6 +68,7 @@ case class ExportDataSetsJobOptions(
     datasetType: DataSetMetaTypes.DataSetMetaType,
     ids: Seq[IdAble],
     outputPath: Path,
+    deleteAfterExport: Option[Boolean],
     name: Option[String],
     description: Option[String],
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
@@ -74,18 +81,8 @@ case class ExportDataSetsJobOptions(
   override def jobTypeId = JobTypeIds.EXPORT_DATASETS
   override def toJob() = new ExportDataSetJob(this)
 
-  override def resolveEntryPoints(
-      dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
-    val fx = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
-                                                            ids,
-                                                            dao)
-      entryPoints <- Future.successful(datasets.map(ds =>
-        EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
-    } yield entryPoints
-
-    Await.result(fx, DEFAULT_TIMEOUT)
-  }
+  override def resolveEntryPoints(dao: JobsDao) =
+    validateAndResolveEntryPoints(dao, datasetType, ids)
 
   override def validate(
       dao: JobsDao,
@@ -112,7 +109,44 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
     extends ServiceCoreJob(opts) {
   type Out = PacBioDataStore
 
+  import SmrtLinkJsonProtocols._
   import com.pacbio.common.models.CommonModelImplicits._
+
+  private def createDeleteJob(resources: JobResourceBase,
+                              dao: JobsDao): EngineJob = {
+    def creator(parentJob: EngineJob,
+                epoints: Seq[EngineJobEntryPoint]): Future[EngineJob] = {
+      val name = "Delete exported datasets"
+      val desc = s"Created from export-datasets job ${parentJob.id}"
+      val dOpts = DeleteDataSetJobOptions(opts.ids,
+                                          opts.datasetType,
+                                          true,
+                                          Some(name),
+                                          Some(desc),
+                                          opts.projectId)
+      val jsettings = dOpts.toJson.asJsObject
+      dao.createCoreJob(
+        UUID.randomUUID(),
+        name,
+        desc,
+        dOpts.jobTypeId,
+        epoints.map(_.toRecord),
+        jsettings,
+        parentJob.createdBy,
+        parentJob.createdByEmail,
+        parentJob.smrtlinkVersion,
+        parentJob.projectId
+      )
+    }
+
+    val fx = for {
+      parentJob <- dao.getJobById(resources.jobId)
+      epoints <- dao.getJobEntryPoints(parentJob.id)
+      deleteJob <- creator(parentJob, epoints)
+    } yield deleteJob
+
+    Await.result(fx, opts.DEFAULT_TIMEOUT)
+  }
 
   override def run(
       resources: JobResourceBase,
@@ -120,23 +154,24 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
-    val fx = for {
-      datasets <- ValidateServiceDataSetUtils.resolveInputs(opts.datasetType,
-                                                            opts.ids,
-                                                            dao)
-      paths <- Future.successful(datasets.map(p => Paths.get(p.path)))
-      updatedPaths <- Future.sequence(paths.map { p =>
-        updateDataSetandWriteToEntryPointsDir(p, resources.path, dao)
-      })
-    } yield updatedPaths
-
-    val paths: Seq[Path] = Await.result(fx, opts.DEFAULT_TIMEOUT)
+    val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
+    val paths: Seq[Path] = resolvePathsAndWriteEntryPoints(dao,
+                                                           resources.path,
+                                                           timeout,
+                                                           opts.datasetType,
+                                                           opts.ids)
 
     val oldOpts = ExportDataSetsOptions(opts.datasetType,
                                         paths,
                                         opts.outputPath,
                                         opts.getProjectId())
     val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    val result = job.run(resources, resultsWriter)
+    if (result.isRight && opts.deleteAfterExport.getOrElse(false)) {
+      resultsWriter.writeLine("Export succeeded - creating delete job")
+      val deleteJob = createDeleteJob(resources, dao)
+      resultsWriter.writeLine(s"Dataset delete job ${deleteJob.id} started")
+    }
+    result
   }
 }

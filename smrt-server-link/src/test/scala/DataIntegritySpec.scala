@@ -42,7 +42,7 @@ class DataIntegritySpec
   val engineConfig = EngineConfig(1, None, tmpJobDir, debugMode = true)
   val resolver = new PacBioIntJobResolver(engineConfig.pbRootJobDir)
 
-  val dao = new JobsDao(db(), resolver, None)
+  val dao = new JobsDao(db(), resolver)
 
   val createdAt = JodaDataTime.now()
   val updatedAt = JodaDataTime.now()

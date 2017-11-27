@@ -3,25 +3,31 @@ package com.pacbio.secondary.smrtlink.tools
 import java.io.File
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 import akka.actor.ActorSystem
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
-import com.pacbio.secondary.smrtlink.analysis.tools.CommandLineToolVersion
+import com.pacbio.secondary.smrtlink.analysis.tools.{
+  CommandLineToolVersion,
+  timeUtils
+}
 import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{
   ApiManagerAccessLayer,
-  ApiManagerJsonProtocols
+  ApiManagerJsonProtocols,
+  Retrying
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-import org.wso2.carbon.apimgt.rest.api.publisher
+import org.wso2.carbon.apimgt.rest.api.{publisher, store}
 import scopt.OptionParser
 import spray.json._
+import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -29,6 +35,7 @@ object AmClientModes {
   sealed trait Mode {
     val name: String
   }
+  case object STATUS extends Mode { val name = "get-status" }
   case object PROXY_ADMIN extends Mode { val name = "proxy-admin" }
   case object CREATE_ROLES extends Mode { val name = "create-roles" }
   case object GET_KEY extends Mode { val name = "get-key" }
@@ -39,11 +46,9 @@ object AmClientModes {
 }
 
 object loadFile extends (File => String) {
-  def apply(file: File): String = {
-    val acSource = scala.io.Source.fromFile(file)
-    try acSource.mkString
-    finally acSource.close()
-  }
+  def apply(file: File): String =
+    FileUtils.readFileToString(file)
+
 }
 
 object loadResource extends (String => String) {
@@ -54,12 +59,25 @@ object loadResource extends (String => String) {
   }
 }
 
+/**
+  * Many methods in here should be pushed back into the AmClient to make this abstraction
+  * more well formed and clearly delinated from the ApiManagerAccessLayer.
+  *
+  * This should extend or augment methods in ApiManagerAccessLayer that have to do with
+  * writing bundle specific files (e.g., app-config.json).
+  *
+  * FIXME(mpkocher)(11-15-2017) The "getStatus" call in here should be used in GetSystemStatusTool
+  *
+  * These are currently doing two different things. Mostly because these abstractions are
+  * not extending any base trait or interface.
+  *
+  */
 object AmClientParser extends CommandLineToolVersion {
 
-  val VERSION = "0.1.2"
+  val VERSION = "0.3.3"
   var TOOL_ID = "pbscala.tools.amclient"
 
-  def showDefaults(c: CustomConfig): Unit = {
+  def showDefaults(c: AmClientOptions): Unit = {
     println(s"Defaults $c")
   }
 
@@ -76,7 +94,7 @@ object AmClientParser extends CommandLineToolVersion {
   } yield new URL(s"http://$host:$port/")
   val target = targetx.toOption
 
-  case class CustomConfig(
+  case class AmClientOptions(
       mode: AmClientModes.Mode = AmClientModes.UNKNOWN,
       host: String = "localhost",
       portOffset: Int = 0,
@@ -94,11 +112,16 @@ object AmClientParser extends CommandLineToolVersion {
       // these Files are required in the commands that use them,
       // so they're not Options
       roleJson: File = null,
-      appConfig: File = null
+      appConfig: File = null,
+      maxRetries: Int = 3,
+      retryDelay: FiniteDuration = 5.seconds,
+      defaultTimeOut: FiniteDuration = 30.seconds,
+      w2StartUpRetries: Int = 60,
+      w2StartUpRetryDelay: FiniteDuration = 10.seconds
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
 
-    def validate(): CustomConfig = (user, pass, credsJson) match {
+    def validate(): AmClientOptions = (user, pass, credsJson) match {
       case (null, null, None) =>
         copy(user = "admin", pass = "admin")
       case (_: String, _: String, None) =>
@@ -114,9 +137,9 @@ object AmClientParser extends CommandLineToolVersion {
     }
   }
 
-  lazy val defaults = CustomConfig()
+  lazy val defaults = AmClientOptions()
 
-  lazy val parser = new OptionParser[CustomConfig]("amclient") {
+  lazy val parser = new OptionParser[AmClientOptions]("amclient") {
 
     head("WSO2 API Manager Client", VERSION)
 
@@ -145,7 +168,7 @@ object AmClientParser extends CommandLineToolVersion {
         (_, c) =>
           c.asInstanceOf[LoggerConfig]
             .configure(c.logbackFile, c.logFile, true, c.logLevel)
-            .asInstanceOf[CustomConfig])
+            .asInstanceOf[AmClientOptions])
       .text("Display debugging log output")
 
     checkConfig(c =>
@@ -159,6 +182,20 @@ object AmClientParser extends CommandLineToolVersion {
     })
 
     LoggerOptions.add(this.asInstanceOf[OptionParser[LoggerConfig]])
+
+    cmd(AmClientModes.STATUS.name)
+      .action((_, c) => c.copy(mode = AmClientModes.STATUS))
+      .text("Get Status of WSO2")
+      .children(
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(w2StartUpRetries = m))
+          .text(
+            s"Max Number of WSO2 Retries (Default ${defaults.w2StartUpRetries})"),
+        opt[Int]("retry-delay")
+          .action((m, c) => c.copy(w2StartUpRetryDelay = m.seconds))
+          .text(
+            s"Time in sec between WSO2 Retries (Default ${defaults.w2StartUpRetryDelay})")
+      )
 
     cmd(AmClientModes.GET_KEY.name)
       .action((_, c) => c.copy(mode = AmClientModes.GET_KEY))
@@ -188,7 +225,10 @@ object AmClientParser extends CommandLineToolVersion {
           .text("Path to swagger json file"),
         opt[String]("swagger-resource")
           .action((p, c) => c.copy(swagger = Some(loadResource(p))))
-          .text("Path to swagger json resource")
+          .text("Path to swagger json resource"),
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(maxRetries = m))
+          .text(s"Max Number of Retries Default ${defaults.maxRetries}")
       )
 
     cmd(AmClientModes.CREATE_ROLES.name)
@@ -197,7 +237,11 @@ object AmClientParser extends CommandLineToolVersion {
       .children(
         opt[Seq[String]]("roles")
           .action((roles, c) => c.copy(roles = roles))
-          .text("list of roles"))
+          .text("list of roles"),
+        opt[Int]("max-retries")
+          .action((m, c) => c.copy(maxRetries = m))
+          .text(s"Max Number of Retries Default ${defaults.maxRetries}")
+      )
 
     cmd(AmClientModes.PROXY_ADMIN.name)
       .action((_, c) => c.copy(mode = AmClientModes.PROXY_ADMIN))
@@ -254,15 +298,22 @@ object AmClientParser extends CommandLineToolVersion {
       println("")
       sys.exit(0)
     } text "Show tool version and exit"
+
+    // Don't show the help if validation error
+    override def showUsageOnError = false
   }
+
 }
 
 // two keys from the UI app config
 case class ClientInfo(consumerKey: String, consumerSecret: String)
 
-class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
+class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
+    extends Retrying
+    with LazyLogging {
 
   import ApiManagerJsonProtocols._
+  // This will be used as the execution context
   import actorSystem.dispatcher
 
   implicit val clientInfoFormat = jsonFormat2(ClientInfo)
@@ -272,40 +323,24 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
                    "apim:api_view",
                    "apim:api_publish")
 
-  val reqTimeout = 30.seconds
-
-  def createRoles(c: AmClientParser.CustomConfig): Int = {
-    val fut = for {
+  def createRoles(c: AmClientParser.AmClientOptions): Future[String] = {
+    for {
       existing <- am.getRoleNames(c.user, c.pass)
-      toCreate = c.roles.toSet -- existing.toSet
-      resultFuts = toCreate.map(r => am.addRole(c.user, c.pass, r))
-      results <- Future.sequence(resultFuts)
-    } yield (toCreate, results)
-
-    Try { Await.result(fut, reqTimeout) } match {
-      case Success((toCreate, results)) => {
-        println(s"added roles ${toCreate.mkString(", ")}")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to add roles: $err")
-        1
-      }
-    }
+      toCreate <- Future.successful(c.roles.toSet -- existing.toSet)
+      _ <- Future.sequence(toCreate.map(r => am.addRole(c.user, c.pass, r)))
+      msg <- Future.successful(
+        s"added roles ${toCreate.mkString(", ")} to user ${c.user}")
+    } yield msg
   }
 
-  // get DefaultApplication key from the server and save it in appConfigFile
-  def getKey(appConfigFile: File): Int = {
-    val futs = for {
-      clientInfo <- am.register()
-      tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
-      appList <- am.searchApplications("DefaultApplication", tok)
-      app = appList.list.head
-      fullApp <- am.getApplication(app.applicationId.get, tok)
-    } yield (clientInfo, tok, app, fullApp)
-    val (clientInfo, tok, app, fullApp) = Await.result(futs, reqTimeout)
+  def createRolesWithRetry(c: AmClientParser.AmClientOptions): Future[String] =
+    retry(createRoles(c), c.retryDelay, c.maxRetries)(actorSystem.dispatcher,
+                                                      actorSystem.scheduler)
 
-    fullApp.keys.headOption match {
+  def updateAppConfigJson(appConfigFile: File,
+                          app: store.models.Application): File = {
+
+    app.keys.headOption match {
       case Some(key) => {
         // leaving appConfigJson as json (and not converting to a case
         // class) because we only care about two keys in the app
@@ -324,16 +359,29 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
             val toSave = JsObject(fields ++ newAttribs).prettyPrint
             Files.write(appConfigFile.toPath,
                         toSave.getBytes(StandardCharsets.UTF_8))
-            0
+            appConfigFile
           }
           case _ => {
-            System.err.println("unexpected app config structure")
-            1
+            throw new Exception("unexpected app config structure")
           }
         }
       }
-      case None => 1
+      case None =>
+        throw new Exception("unexpected app config structure")
     }
+
+  }
+
+  // get DefaultApplication key from the server and save it in appConfigFile
+  def getKey(appConfigFile: File): Future[String] = {
+    for {
+      clientInfo <- am.register()
+      tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
+      appList <- am.searchApplications("DefaultApplication", tok)
+      app <- Future.successful(appList.list.head)
+      fullApp <- am.getApplication(app.applicationId.get, tok)
+      _ <- Future.successful(updateAppConfigJson(appConfigFile, fullApp))
+    } yield s"Successfully updated $appConfigFile"
   }
 
   def createApi(
@@ -341,7 +389,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       swagger: String,
       target: URL,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None,
-      token: OauthToken): Int = {
+      token: OauthToken): Future[String] = {
     val swaggerJson = JsonParser(swagger).asJsObject
     val apiInfo = swaggerJson.getFields("info").head.asJsObject
     val description = apiInfo.getFields("description").headOption match {
@@ -402,7 +450,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
         ))
     )
 
-    val futs = for {
+    for {
       created <- am.postApiDetails(api, token)
       pub <- am.apiChangeLifecycle(created.id.get,
                                    am.ApiLifecycleAction.PUBLISH,
@@ -410,18 +458,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       appList <- am.searchApplications("DefaultApplication", token)
       app = appList.list.head
       sub <- am.subscribe(created.id.get, app.applicationId.get, tier, token)
-    } yield sub
+      msg <- Future.successful(s"created $apiName definition")
+    } yield msg
 
-    Try { Await.result(futs, reqTimeout) } match {
-      case Success(sub) => {
-        println(s"created ${apiName} definition")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to create ${apiName} definition: $err")
-        1
-      }
-    }
   }
 
   // update target endpoints for the API with the given name
@@ -430,57 +469,64 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
              swagger: Option[String],
              endpointSecurity: Option[publisher.models.API_endpointSecurity] =
                None,
-             token: OauthToken): Int = {
-    val futs = for {
+             token: OauthToken): Future[String] = {
+    for {
       details <- am.getApiDetails(apiId, token)
       withEndpoints = setEndpoints(details, target)
       withSwagger = setSwagger(withEndpoints, swagger)
       withSecurity = withSwagger.copy(endpointSecurity = endpointSecurity)
       updated <- am.putApiDetails(withSecurity, token)
-    } yield updated
+      msg <- Future.successful(s"updated WSO2 API $apiId")
+    } yield msg
+  }
 
-    Try { Await.result(futs, reqTimeout) } match {
-      case Success(updated) => {
-        println(s"updated API ${apiId}")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to update API ${apiId}: $err")
-        1
-      }
-    }
+  def andLog(sx: String): Future[String] = Future {
+    logger.info(sx)
+    sx
   }
 
   def createOrUpdateApi(
-      conf: AmClientParser.CustomConfig,
+      conf: AmClientParser.AmClientOptions,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None)
-    : Int = {
-    val clientInfo = JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo]
+    : Future[String] = {
 
-    val fut = for {
-      token <- am.login(clientInfo.consumerKey,
-                        clientInfo.consumerSecret,
-                        scopes)
-      apiList <- am.searchApis(conf.apiName, token)
-    } yield (token, apiList)
-
-    val (token, apiList): (OauthToken, publisher.models.APIList) =
-      Await.result(fut, reqTimeout)
-
-    if (apiList.list.get.isEmpty) {
+    def runCreateApi(token: OauthToken): Future[String] = {
       createApi(conf.apiName,
                 conf.swagger.get,
                 conf.target.get,
                 endpointSecurity,
                 token)
-    } else {
-      // Note, this assumes there's exactly one API with the given
-      // name.  If we want to manage different API versions,
-      // we'll have to do more work here.
-      val api = apiList.list.get.head
-      setApi(api.id.get, conf.target, conf.swagger, endpointSecurity, token)
     }
+
+    def toOrCreate(token: OauthToken,
+                   apiList: publisher.models.APIList): Future[String] = {
+      if (apiList.list.get.isEmpty) {
+        runCreateApi(token)
+      } else {
+        val api = apiList.list.get.head
+        setApi(api.id.get, conf.target, conf.swagger, endpointSecurity, token)
+      }
+    }
+
+    for {
+      _ <- andLog("Starting to Create or Update API")
+      clientInfo <- Future.successful(
+        JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo])
+      token <- am.login(clientInfo.consumerKey,
+                        clientInfo.consumerSecret,
+                        scopes)
+      apiList <- am.searchApis(conf.apiName, token)
+      msg <- toOrCreate(token, apiList)
+      _ <- andLog(msg)
+    } yield msg
   }
+
+  def createOrUpdateApiWithRetry(
+      c: AmClientParser.AmClientOptions,
+      endpointSecurity: Option[publisher.models.API_endpointSecurity] = None) =
+    retry(createOrUpdateApi(c, endpointSecurity), c.retryDelay, c.maxRetries)(
+      actorSystem.dispatcher,
+      actorSystem.scheduler)
 
   def setSwagger(details: publisher.models.API,
                  swaggerOpt: Option[String]): publisher.models.API =
@@ -510,7 +556,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
 
-  def proxyAdmin(conf: AmClientParser.CustomConfig): Int = {
+  def proxyAdmin(conf: AmClientParser.AmClientOptions): Future[String] = {
     // API manager uses a generic swagger definition for SOAP endpoints
     val soapSwagger = s"""
 {
@@ -582,95 +628,129 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem) {
     createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
   }
 
-  def getRoles(c: AmClientParser.CustomConfig): Int = {
-    val roleMapFut = Future.sequence(c.roles.map(r => {
-      am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))
-    }))
-
-    Try { Await.result(roleMapFut, reqTimeout) } match {
-      case Success(m) => {
-        val json = m.toMap.toJson.prettyPrint
-        Files.write(c.roleJson.toPath, json.getBytes(StandardCharsets.UTF_8))
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to get roles: $err")
-        1
-      }
-    }
+  private def writeRoles(jx: JsObject, output: Path): Path = {
+    FileUtils.write(output.toFile, jx.toJson.prettyPrint)
+    output
   }
 
-  def setRoles(c: AmClientParser.CustomConfig): Int = {
+  def getAndWriteRoles(c: AmClientParser.AmClientOptions): Future[String] = {
+    for {
+      m <- Future.sequence(c.roles.map(r =>
+        am.getUserListOfRole(c.user, c.pass, r).map(users => (r, users))))
+      _ <- Future.successful(
+        writeRoles(m.toMap.toJson.asJsObject, c.roleJson.toPath))
+    } yield s"Successfully wrote roles to ${c.roleJson.toPath}"
+  }
+
+  def setRoles(c: AmClientParser.AmClientOptions): Future[String] = {
     // Map of <Role> -> <list of users>
     val roleUsers = JsonParser(loadFile(c.roleJson))
       .convertTo[Map[String, Seq[String]]]
 
     val addNew = (role: String, users: Seq[String]) => {
+
       for {
         existing <- am.getUserListOfRole(c.user, c.pass, role)
         newUsers = (users.toSet -- existing.toSet).toList
-        result <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
-      } yield result
+        _ <- am.updateUserListOfRole(c.user, c.pass, role, newUsers)
+      } yield s"Imported role $role"
     }
 
-    val setRoleFut = Future.sequence(roleUsers.map(addNew.tupled))
-
-    Try { Await.result(setRoleFut, reqTimeout) } match {
-      case Success(m) => {
-        println("imported roles")
-        0
-      }
-      case Failure(err) => {
-        System.err.println(s"failed to import roles: $err")
-        1
-      }
-    }
+    for {
+      msg <- Future
+        .sequence(roleUsers.map(addNew.tupled))
+        .map(_ => "Imported roles")
+      _ <- andLog(msg)
+    } yield msg
   }
 }
 
-object AmClient {
-  def apply(conf: AmClientParser.CustomConfig): Int = {
+object AmClient extends LazyLogging {
+
+  def apply(conf: AmClientParser.AmClientOptions): Int = {
     implicit val actorSystem = ActorSystem("amclient")
+
+    implicit val ec: ExecutionContext = actorSystem.dispatcher
 
     val c = conf.validate()
     val am = new ApiManagerAccessLayer(c.host, c.portOffset, c.user, c.pass)
     val amClient = new AmClient(am)
 
-    val result = Try {
-      Await.result(am.waitForStart(60, 10.seconds), 600.seconds)
+    val totalStartupTimeOut
+      : FiniteDuration = (c.w2StartUpRetries + 2) * c.w2StartUpRetryDelay
 
+    def andLog(sx: String): Future[String] = Future {
+      logger.info(sx)
+      sx
+    }
+
+    // This error message might not be very useful. This might
+    // need to be collapsed to a terse "WSO2 Did not start successfully" or similar
+    def waitForWso2ToStartup(): Future[String] = {
+      for {
+        _ <- andLog(
+          s"Checking for status of WSO2 with ${c.w2StartUpRetries} retries and ${c.w2StartUpRetryDelay} retry delay and total timeout $totalStartupTimeOut")
+        result <- am.waitForStart(c.w2StartUpRetries, c.w2StartUpRetryDelay)
+        _ <- andLog("Successfully connected to WSO2")
+      } yield result
+    }
+
+    def runMode(): Future[String] = {
+      logger.info(s"Starting to run mode ${c.mode.name}")
       c.mode match {
-        case AmClientModes.CREATE_ROLES => amClient.createRoles(c)
+        case AmClientModes.STATUS =>
+          // This is already performed for every call
+          Future.successful("Successfully connected to WSO2")
+        case AmClientModes.CREATE_ROLES =>
+          amClient.createRoles(c)
         case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
-        case AmClientModes.GET_ROLES_USERS => amClient.getRoles(c)
-        case AmClientModes.SET_ROLES_USERS => amClient.setRoles(c)
-        case AmClientModes.SET_API => amClient.createOrUpdateApi(c)
-        case AmClientModes.PROXY_ADMIN => amClient.proxyAdmin(c)
-        case x => {
-          System.err.println(s"Unsupported action '$x'")
-          1
-        }
+        case AmClientModes.GET_ROLES_USERS =>
+          amClient.getAndWriteRoles(c)
+        case AmClientModes.SET_ROLES_USERS =>
+          amClient.setRoles(c)
+        case AmClientModes.SET_API =>
+          amClient.createOrUpdateApiWithRetry(c)
+        case AmClientModes.PROXY_ADMIN =>
+          amClient.proxyAdmin(c)
+        case x =>
+          Future.failed(new Exception(s"Unsupported action '$x'"))
       }
     }
-    actorSystem.shutdown()
 
-    result match {
-      case Success(code) => code
-      case Failure(e) => {
-        System.err.println(e.getMessage())
+    def tx(): Try[String] =
+      for {
+        _ <- Try(Await.result(waitForWso2ToStartup(), totalStartupTimeOut))
+        msg <- Try(Await.result(runMode(), c.defaultTimeOut))
+      } yield msg
+
+    tx() match {
+      case Success(msg) =>
+        actorSystem.shutdown()
+        println(msg)
+        logger.info(msg)
+        0
+      case Failure(ex) =>
+        actorSystem.shutdown()
+        val msg = s"Failed running ${c.mode} ${ex.getMessage}"
+        System.err.println(msg)
+        logger.error(msg)
         1
-      }
     }
   }
 }
 
-object AmClientApp extends App {
+//FIXME(mpkocher)(11-15-2017) This needs to be converted to CommandLineToolRunner.
+object AmClientApp extends App with timeUtils with LazyLogging {
   def run(args: Seq[String]) = {
+    val startedAt = JodaDateTime.now()
     val xc =
       AmClientParser.parser.parse(args.toSeq, AmClientParser.defaults) match {
         case Some(config) => AmClient(config)
         case _ => 1
       }
+    val msg =
+      s"Exiting ${AmClientParser.VERSION} with exit code $xc in ${computeTimeDeltaFromNow(startedAt)} sec."
+    logger.info(msg)
     sys.exit(xc)
   }
   run(args)

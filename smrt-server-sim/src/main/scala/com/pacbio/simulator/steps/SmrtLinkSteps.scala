@@ -438,12 +438,16 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
 
   case class ExportDataSets(dsType: Var[DataSetMetaType],
                             ids: Var[Seq[Int]],
-                            outputPath: Var[Path])
+                            outputPath: Var[Path],
+                            deleteAfterExport: Var[Boolean] = Var(false))
       extends VarStep[UUID] {
     override val name = "ExportDataSets"
     override def runWith =
       smrtLinkClient
-        .exportDataSets(dsType.get, ids.get, outputPath.get)
+        .exportDataSets(dsType.get,
+                        ids.get,
+                        outputPath.get,
+                        deleteAfterExport.get)
         .map(_.uuid)
   }
 
@@ -574,6 +578,12 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient
         .deleteDataSets(dsType.get, ids.get, removeFiles.get)
         .map(_.uuid)
+  }
+
+  case object GetDatasetDeleteJobs extends VarStep[Seq[EngineJob]] {
+    override val name = "GetDatasetDeleteJobs"
+    override def runWith =
+      smrtLinkClient.getDatasetDeleteJobs.map(j => j.sortBy(_.id))
   }
 
   case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
