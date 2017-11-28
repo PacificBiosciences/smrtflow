@@ -79,7 +79,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "User information",
+            "schema": {
+              "$ref": "#/definitions/UserRecord"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -97,7 +100,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "List of component manifests",
             "schema": {
               "$ref": "#/definitions/Manifests"
             }
@@ -127,7 +130,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "Individual component manifest",
             "schema": {
               "$ref": "#/definitions/Manifest"
             }
@@ -246,12 +249,26 @@
         "description": "Record user acceptance of tech support agreement",
         "responses": {
           "201": {
-            "description": "Return value"
+            "description": "User agreement record",
+            "schema": {
+              "$ref": "#/definitions/UserAgreement"
+            }
           },
           "default": {
             "description": "Return value"
           }
         },
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "description": "User response to agreement",
+            "schema": {
+              "$ref": "#/definitions/UserAgreementAcceptance"
+            }
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -274,7 +291,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of user agreement records",
+            "schema": {
+              "$ref": "#/definitions/UserAgreements"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -293,7 +313,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "User agreement record",
+            "schema": {
+              "$ref": "#/definitions/UserAgreement"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -529,7 +552,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Server message",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
           }
         },
         "parameters": [
@@ -773,7 +799,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Server message",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
           }
         },
         "parameters": [
@@ -864,7 +893,10 @@
             "description": "Unable to download bundle or bundle is malformed"
           },
           "200": {
-            "description": "Returns a PacBio Data Bundle that was successfully added to the registry"
+            "description": "Returns a PacBio Data Bundle that was successfully added to the registry",
+            "schema": {
+              "$ref": "#/definitions/PacBioBundleRecord"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1041,7 +1073,7 @@
         "description": "Download a PacBio Data Bundle TGZ by Id (bundleType, bundleVersion)",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/x-gzip"
         ],
         "parameters": [
           {
@@ -1100,7 +1132,10 @@
             "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
           },
           "200": {
-            "description": "Returns an Activated PacBio Data Bundle"
+            "description": "Returns an Activated PacBio Data Bundle",
+            "schema": {
+              "$ref": "#/definitions/PacBioBundleRecord"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1135,7 +1170,10 @@
             "description": "Unable to find PacBio Data Bundle for bundle type and bundle version provided"
           },
           "200": {
-            "description": "Returns an Activated PacBio Data Bundle"
+            "description": "Returns an Activated PacBio Data Bundle",
+            "schema": {
+              "$ref": "#/definitions/PacBioBundleRecord"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1236,7 +1274,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of dataset records of this type.  See the type-specific endpoints for retrieving individual datasets for response schemas"
           }
         },
         "parameters": [
@@ -1262,7 +1300,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Server message",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
           }
         },
         "parameters": [
@@ -1302,7 +1343,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Dataset type definition",
+            "schema": {
+              "$ref": "#/definitions/DatasetType"
+            }
           }
         },
         "parameters": [
@@ -1482,7 +1526,13 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of record names",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "parameters": [
@@ -1659,7 +1709,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of datastore report files",
+            "schema": {
+              "$ref": "#/definitions/DataStoreReportFile"
+            }
           }
         },
         "parameters": [
@@ -1846,7 +1899,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of pipeline templates",
+            "schema": {
+              "$ref": "#/definitions/ResolvedPipelineTemplates"
+            }
           }
         },
         "x-auth-type": "Application & Application User"
@@ -1860,7 +1916,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Pipeline template",
+            "schema": {
+              "$ref": "#/definitions/ResolvedPipelineTemplate"
+            }
           }
         },
         "parameters": [
@@ -2792,7 +2851,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Job event record",
+            "schema": {
+              "$ref": "#/definitions/JobEvent"
+            }
           }
         },
         "parameters": [
@@ -2818,6 +2880,51 @@
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
+      "post": {
+        "description": "Add a task for the specified job",
+        "parameters": [
+          {
+            "description": "Job Type Id (e.g., pbsmrtpipe, merge-datasets, import-datasets",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job Id as Int or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "New task request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateJobTaskRecord"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "New job task",
+            "schema": {
+              "$ref": "#/definitions/JobTask"
+            }
+          }
+        },
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
       "get": {
         "description": "Get a list of sub-computation units (i.e., a task)",
         "responses": {
@@ -2825,7 +2932,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return a list of JobTask instances"
+            "description": "Return a list of JobTask instances",
+            "schema": {
+              "$ref": "#/definitions/JobTasks"
+            }
           }
         },
         "parameters": [
@@ -2860,7 +2970,10 @@
             "description": "Return value"
           },
           "201": {
-            "description": "Return updated JobTask"
+            "description": "Return updated JobTask",
+            "schema": {
+              "$ref": "#/definitions/JobTask"
+            }
           }
         },
         "parameters": [
@@ -2884,6 +2997,15 @@
             "type": "string",
             "name": "task-uuid",
             "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Update task request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateJobTaskRecord"
+            }
           }
         ],
         "produces": [
@@ -2900,7 +3022,10 @@
             "description": "Failed to find Job Id, task UUID or job type "
           },
           "201": {
-            "description": "Return a JobTask instance"
+            "description": "Return a JobTask instance",
+            "schema": {
+              "$ref": "#/definitions/JobTask"
+            }
           }
         },
         "parameters": [
@@ -3012,7 +3137,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of child jobs",
+            "schema": {
+              "$ref": "#/definitions/ServiceJobs"
+            }
           }
         },
         "parameters": [
@@ -3167,7 +3295,10 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Return value",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
           }
         },
         "parameters": [
@@ -3520,9 +3651,15 @@
       }
     },
     "DatasetTypes": {
-      "type": "object",
+      "type": "array",
       "title": "Dataset Types",
       "description": "A list of the dataset types in SMRT Link",
+      "items": {
+        "$ref": "#/definitions/DatasetType"
+      }
+    },
+    "DatasetType": {
+      "description": "Metadata about a dataset type",
       "properties": {
         "name": {
           "type": "string",
@@ -5454,6 +5591,14 @@
           "title": "SMRT Link System Version",
           "description": "SMRT Link System Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
         },
+        "smrtlinkToolsVersion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "SMRT Tools Version",
+          "description": "SMRT Tools Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
+        },
         "comment": {
           "type": "string",
           "title": "Comment",
@@ -5900,7 +6045,115 @@
       "required": ["name", "comment"],
       "type": "object"
     },
+    "PipelineOption": {
+      "type": "object",
+      "description": "Defines a pbsmrtpipe pipeline option",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Option Global ID",
+          "description": "Globally Unique identifier of task or workflow option. Examples: pbsmrtpipe.task_options.alpha, pbsmrtpipe.options.beta"
+        },
+        "optionTypeId": {
+          "type": "string",
+          "title": "Option type",
+          "description": "Option type ID, from restricted list",
+          "enum": ["integer", "string", "float", "boolean", "choice_string", "choice_integer", "choice_float"]
+        },
+        "name": {
+          "type": "string",
+          "title": "Display name",
+          "description": "Display name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Help text",
+          "description": "Help text"
+        }
+      }
+    },
+    "PipelineEntryPoint": {
+      "type": "object",
+      "description": "Defines a required entry point for a pbsmrtpipe pipeline",
+      "properties": {
+        "entryId": {
+          "type": "string",
+          "title": "Entry point ID",
+          "description": "Identifier of entry point, specific to pipeline",
+          "example": "eid_subread"
+        },
+        "fileTypeId": {
+          "type": "string",
+          "title": "File type ID",
+          "description": "File type identifier, usually prefixed by PacBio.DataSet",
+          "example": "PacBio.DataSet.SubreadSet"
+        },
+        "name": {
+          "type": "string",
+          "title": "Entry point name",
+          "description": "Entry point name"
+        }
+      }
+    },
+    "ResolvedPipelineTemplate": {
+      "type": "object",
+      "description": "Defines a pbsmrtpipe pipeline",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Pipeline ID",
+          "description": "ID of pbsmrtpipe pipeline",
+          "example": "pbsmrtpipe.pipelines.sa3_sat"
+        },
+        "name": {
+          "type": "string",
+          "title": "Pipeline name",
+          "description": "Pipeline display name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Pipeline description",
+          "description": "Help text"
+        },
+        "entryPoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PipelineEntryPoint"
+          },
+          "title": "Dataset entry point"
+        },
+        "taskOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PipelineOption"
+          },
+          "title": "Task options",
+          "description": "Pipeline-specific task options"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "description": "Tags associated with a pipeline (e.g. 'dev', 'internal', 'assembly')"
+        },
+        "version": {
+          "type": "string",
+          "title": "Pipeline version",
+          "description": "Pipeline version"
+        }
+      }
+    },
+    "ResolvedPipelineTemplates": {
+      "description": "List of pipeline templates",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResolvedPipelineTemplate"
+      }
+    },
     "ServiceOption": {
+      "type": "object",
       "properties": {
         "id": {
           "type": "string",
@@ -5921,6 +6174,7 @@
       }
     },
     "BoundServiceEntryPoint": {
+      "type": "object",
       "properties": {
         "entryId": {
           "type": "string",
@@ -5942,6 +6196,7 @@
       }
     },
     "PbSmrtPipeServiceOptions": {
+      "type": "object",
       "properties": {
         "name": {
           "type": "string",
@@ -5986,6 +6241,7 @@
       }
     },
     "DataSetMergeServiceOptions": {
+      "type": "object",
       "properties": {
         "datasetType": {
           "type": "string",
@@ -6009,6 +6265,7 @@
       }
     },
     "DeleteJobServiceOptions": {
+      "type": "object",
       "properties": {
         "jobId": {
           "type": "integer",
@@ -6036,6 +6293,7 @@
       }
     },
     "ImportDataSetOptions": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string",
@@ -6057,6 +6315,7 @@
       }
     },
     "ConvertImportFastaBarcodesOptions": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string",
@@ -6077,6 +6336,7 @@
       }
     },
     "ConvertImportFastaOptions": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string",
@@ -6109,6 +6369,7 @@
       }
     },
     "MovieMetadataToHdfSubreadOptions": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string",
@@ -6129,6 +6390,7 @@
       }
     },
     "ImportDataStoreOptions": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string",
@@ -6144,6 +6406,7 @@
       }
     },
     "DataSetExportServiceOptions": {
+      "type": "object",
       "properties": {
         "datasetType": {
           "type": "string",
@@ -6167,13 +6430,13 @@
         "deleteAfterExport": {
           "type": ["boolean", "null"],
           "default": false,
-          "required": false,
           "title": "Delete datasets after exporting",
           "description": "If the export is successful and this option is true, a separate job will be started asynchronously to delete the exported datasets"
         }
       }
     },
     "ExportSmrtLinkJobOptions": {
+      "type": "object",
       "properties": {
         "ids": {
           "type": "array",
@@ -6197,6 +6460,7 @@
       }
     },
     "ImportSmrtLinkJobOptions": {
+      "type": "object",
       "properties": {
         "zipPath": {
           "type": "string",
@@ -6211,6 +6475,7 @@
       }
     },
     "DataSetDeleteServiceOptions": {
+      "type": "object",
       "properties": {
         "datasetType": {
           "type": "string",
@@ -6235,6 +6500,7 @@
       }
     },
     "TsJobBundleJobServiceOptions": {
+      "type": "object",
       "properties": {
         "jobId": {
           "type": "integer",
@@ -6254,6 +6520,7 @@
       }
     },
     "TsSystemStatusServiceOptions": {
+      "type": "object",
       "properties": {
         "user": {
           "type": "string",
@@ -6268,6 +6535,7 @@
       }
     },
     "DbBackUpServiceJobOptions": {
+      "type": "object",
       "properties": {
         "user": {
           "type": "string",
@@ -6282,6 +6550,7 @@
       }
     },
     "Sample": {
+      "type": "object",
       "description": "Representation of an existing sample record",
       "properties": {
         "details": {
@@ -6318,6 +6587,7 @@
       }
     },
     "SampleCreate": {
+      "type": "object",
       "description": "Request to create a new sample record",
       "properties": {
         "details": {
@@ -6338,6 +6608,7 @@
       }
     },
     "SampleUpdate": {
+      "type": "object",
       "description": "Request to update an existing sample record",
       "properties": {
         "details": {
@@ -6353,6 +6624,7 @@
       }
     },
     "PipelineDatastoreFileRule": {
+      "type": "object",
       "properties": {
         "name": {
           "type": "string",
@@ -6376,6 +6648,7 @@
       }
     },
     "PipelineDatastoreViewRule": {
+      "type": "object",
       "properties": {
         "pipelineId": {
           "type": "string",
@@ -6401,6 +6674,7 @@
       }
     },
     "JobType": {
+      "type": "object",
       "properties": {
         "jobTypeId": {
           "type": "string",
@@ -6421,6 +6695,7 @@
       }
     },
     "DataStoreFile": {
+      "type": "object",
       "properties": {
         "uuid": {
           "type": "string",
@@ -6493,6 +6768,7 @@
       }
     },
     "DataStoreReportFile": {
+      "type": "object",
       "properties": {
         "reportTypeId": {
           "type": "string",
@@ -6511,6 +6787,7 @@
       }
     },
     "EngineJobEntryPoint": {
+      "type": "object",
       "properties": {
         "jobId": {
           "type": "integer",
@@ -6534,6 +6811,7 @@
       }
     },
     "ClientLogMessage": {
+      "type": "object",
       "properties": {
         "level": {
           "type": "string",
@@ -6551,6 +6829,7 @@
       }
     },
     "MessageResponse": {
+      "type": "object",
       "properties": {
         "message": {
           "type": "string",
@@ -6606,6 +6885,7 @@
       }
     },
     "DeferredEntryPoint": {
+      "type": "object",
       "properties": {
         "entryId": {
           "description": "Pipeline Entry Point binding id (Example eid_subread)",
@@ -6622,8 +6902,7 @@
           "title": "File UUID",
           "type": "string"
         }
-      },
-      "type": "object"
+      }
     },
     "DeferredJob": {
       "description": "A model for creating Deferred jobs that when the entry points all resolvable, the analysis job(s) will be created.",
@@ -6721,6 +7000,7 @@
       }
     },
     "MultiAnalysisJobOptions": {
+      "type": "object",
       "description": "Multi-Analysis Job creation interface. SMRT Link will poll for the entry points to be resolved, then create the analysis jobs and poll for a terminal state.",
       "properties": {
         "jobs": {
@@ -6755,6 +7035,7 @@
       }
     },
     "DataSetUpdateRequest": {
+      "type": "object",
       "description": "Encapsulates multiple independent update parameters, all optional",
       "properties": {
         "isActive": {
@@ -6766,6 +7047,248 @@
           "description": "Applies to SubreadSets only",
           "type": ["string", "null"],
           "title": "Biological sample name"
+        }
+      }
+    },
+    "UserAgreement": {
+      "type": "object",
+      "description": "Record of user agreement to (or rejection of) SMRT Link feedback terms",
+      "properties": {
+        "user": {
+          "type": "string",
+          "title": "User ID",
+          "description": "Login ID of user"
+        },
+        "acceptedAt": {
+          "type": "string",
+          "title": "Accepted at",
+          "description": "Datestamp of user response"
+        },
+        "smrtlinkVersion": {
+          "type": "string",
+          "title": "SMRT Link Version",
+          "description": "Version string of SMRT Link to which the agreement applies"
+        },
+        "osVersion": {
+          "type": "string",
+          "title": "OS Version",
+          "description": "Operating system version of SMRT Link server (determined automatically)"
+        },
+        "enableInstallMetrics": {
+          "type": "boolean",
+          "title": "Enable Install Metrics",
+          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation"
+        },
+        "enableJobMetrics": {
+          "type": "boolean",
+          "title": "Enable Job Metrics",
+          "description": "If true, permits collection of non-proprietary information about analysis jobs"
+        }
+      }
+    },
+    "UserAgreements": {
+      "title": "List of user agreement records",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/UserAgreement"
+      }
+    },
+    "UserAgreementAcceptance": {
+      "type": "object",
+      "description": "Submit user response to agreement for collection of non-proprietary metrics by PacBio Tech Support",
+      "properties": {
+        "user": {
+          "type": "string",
+          "title": "User ID",
+          "description": "Login ID of user"
+        },
+        "enableInstallMetrics": {
+          "type": "boolean",
+          "title": "Enable Install Metrics",
+          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation"
+        }
+      }
+    },
+    "UserRecord": {
+      "type": "object",
+      "description": "Information about an authenticated user",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "User ID",
+          "description": "Login ID of user"
+        },
+        "userEmail": {
+          "type": ["string", "null"],
+          "title": "User email",
+          "description": "User email address"
+        },
+        "firstName": {
+          "type": ["string", "null"],
+          "title": "First name",
+          "description": "First name"
+        },
+        "lastName": {
+          "type": ["string", "null"],
+          "title": "Last name",
+          "description": "Last name"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "User roles",
+          "description": "SMRT Link user roles"
+        }
+      }
+    },
+    "JobTask": {
+      "type": "object",
+      "description": "Holds state of a pbsmrtpipe job task",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Globally unique ID for task"
+        },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": "ID of service job"
+        },
+        "taskId": {
+          "type": "string",
+          "title": "Task ID",
+          "description": "Task ID (unique in the context of a single job)"
+        },
+        "taskTypeId": {
+          "type": "string",
+          "title": "Task type ID",
+          "description": "pbsmrtpipe tool contract ID or similar"
+        },
+        "name": {
+          "type": "string",
+          "title": "Task name",
+          "description": "Task name"
+        },
+        "state": {
+          "type": "string",
+          "title": "Task state",
+          "description": "Task state",
+          "example": "CREATED"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created at",
+          "description": "Created at timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Updated at",
+          "description": "Updated at timestamp"
+        },
+        "errorMessage": {
+          "type": ["string", "null"],
+          "title": "Error message",
+          "description": "Optional error message"
+        }
+      }
+    },
+    "JobTasks": {
+      "description": "List of job task records",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/JobTask"
+      }
+    },
+    "CreateJobTaskRecord": {
+      "type": "object",
+      "description": "Request to create a new job task",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Globally unique ID for task"
+        },
+        "taskId": {
+          "type": "string",
+          "title": "Task ID",
+          "description": "Task ID (unique in the context of a single job)"
+        },
+        "taskTypeId": {
+          "type": "string",
+          "title": "Task type ID",
+          "description": "pbsmrtpipe tool contract ID or similar"
+        },
+        "name": {
+          "type": "string",
+          "title": "Task name",
+          "description": "Task name"
+        },
+        "createdAt": {
+          "type": "string",
+          "title": "Created at",
+          "description": "Created at timestamp"
+        }
+      }
+    },
+    "UpdateJobTaskRecord": {
+      "type": "object",
+      "description": "Request to update an existing job task",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Globally unique ID of task"
+        },
+        "state": {
+          "type": "string",
+          "title": "Task state",
+          "description": "Task state",
+          "example": "CREATED"
+        },
+        "message": {
+          "type": "string",
+          "title": "Message",
+          "description": "Task message"
+        },
+        "errorMessage": {
+          "type": ["string", "null"],
+          "title": "Error message",
+          "description": "Optional error message"
+        }
+      }
+    },
+    "JobEvent": {
+      "type": "object",
+      "description": "Event associated with a job",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "title": "Event ID",
+          "description": "Globally unique event ID"
+        },
+        "jobId": {
+          "type": "integer",
+          "title": "Job ID",
+          "description": "Job ID"
+        },
+        "state": {
+          "type": "string",
+          "title": "Job state",
+          "description": "Job state associated with event",
+          "example": "CREATED"
+        },
+        "message": {
+          "type": "string",
+          "title": "Message",
+          "description": "Message associated with the event"
+        },
+        "eventTypeId": {
+          "type": "string",
+          "title": "Event type",
+          "description": "Event type"
         }
       }
     }
