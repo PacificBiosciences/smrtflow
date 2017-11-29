@@ -2044,7 +2044,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "View rules for specified report ID"
+            "description": "View rules for specified report ID; see https://github.com/PacificBiosciences/pbcommand/blob/master/pbcommand/schemas/report_spec.avsc for complete specification"
           }
         },
         "parameters": [
@@ -3210,7 +3210,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Report JSON"
+            "description": "Report JSON; see https://github.com/PacificBiosciences/pbcommand/blob/master/pbcommand/schemas/pbreport.avsc for complete specification"
           }
         },
         "parameters": [
