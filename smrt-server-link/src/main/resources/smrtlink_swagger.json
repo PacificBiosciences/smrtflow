@@ -667,7 +667,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return vaue",
+            "description": "Details for an individual collection",
             "schema": {
               "$ref": "#/definitions/CollectionDetails"
             }
@@ -1257,7 +1257,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "List of dataset type definitions",
             "schema": {
               "$ref": "#/definitions/DatasetTypes"
             }
@@ -1406,7 +1406,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "AlignmentSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/AlignmentSetDetails"
             }
@@ -1436,7 +1436,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "HdfSubreadSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/HdfSubreadSetDetails"
             }
@@ -1466,7 +1466,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "SubreadSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/SubreadSetDetails"
             }
@@ -1496,7 +1496,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "BarcodeSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/BarcodeSetDetails"
             }
@@ -1553,13 +1553,13 @@
     },
     "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
       "get": {
-        "description": "Get the Service CCSAlignmentSet Metadata",
+        "description": "Get the Service ConsensusAlignmentSet Metadata",
         "responses": {
           "default": {
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "ConsensusAlignmentSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/ConsensusAlignmentSet"
             }
@@ -1589,7 +1589,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "ContigSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/ContigSetDetails"
             }
@@ -1619,7 +1619,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "ConsensusReadSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/ConsensusReadDetails"
             }
@@ -1649,7 +1649,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "ReferenceSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/ReferenceSetDetails"
             }
@@ -1679,7 +1679,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "GmapReferenceSet-specific metadata from SMRT Link database",
             "schema": {
               "$ref": "#/definitions/GmapReferenceSetDetails"
             }
@@ -1946,7 +1946,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "List of pbsmrtpipe presets associated with a pipeline; see https://github.com/PacificBiosciences/pbcommand/blob/master/pbcommand/schemas/pipeline_presets.avsc for complete specification"
           }
         },
         "parameters": [
@@ -2738,7 +2738,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Raw file contents"
           }
         },
         "parameters": [
@@ -3067,7 +3067,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Pipeline options JSON, corresponding to the jsonSettings field of the ServiceJob model"
           }
         },
         "parameters": [
@@ -3295,7 +3295,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "Server message",
             "schema": {
               "$ref": "#/definitions/MessageResponse"
             }
@@ -3431,7 +3431,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "Job object",
             "schema": {
               "$ref": "#/definitions/ServiceJob"
             }
@@ -3459,7 +3459,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "Modified job object",
             "schema": {
               "$ref": "#/definitions/ServiceJob"
             }
@@ -3517,7 +3517,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value",
+            "description": "List of child jobs",
             "schema": {
               "$ref": "#/definitions/ServiceJobs"
             }
@@ -3538,7 +3538,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Raw file contents"
           }
         },
         "parameters": [
