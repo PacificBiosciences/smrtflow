@@ -1711,7 +1711,7 @@
           "200": {
             "description": "List of datastore report files",
             "schema": {
-              "$ref": "#/definitions/DataStoreReportFile"
+              "$ref": "#/definitions/DataStoreReportFiles"
             }
           }
         },
@@ -3176,7 +3176,7 @@
           "200": {
             "description": "List of datastore report files",
             "schema": {
-              "$ref": "#/definitions/DataStoreReportFile"
+              "$ref": "#/definitions/DataStoreReportFiles"
             }
           }
         },
@@ -3210,7 +3210,7 @@
             "description": "Return value"
           },
           "200": {
-            "description": "Return value"
+            "description": "Report JSON"
           }
         },
         "parameters": [
