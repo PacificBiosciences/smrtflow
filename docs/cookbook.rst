@@ -41,16 +41,11 @@ Suppose you view a SMRT Analysis job results page in the SMRT Link UI.
 To find the job ID, look for the “Analysis Id” field under Analysis
 Overview, Status.
 
-**Note:** The job ID will also appear in the {jobID} path parameter of the SMRT Link UI URL `http://smrtlink- <http://smrtlink-/>`__\ release:9090/#/analysis/job/{jobID}
-
-Suppose you view the following SMRT Analysis job results page:
-
+**Note:** The job ID will also appear in the {jobID} path parameter of the SMRT Link UI URL.  Suppose you view the following SMRT Analysis job results page:
 
 .. code-block:: bash
 
-
     http://SMRTLinkServername.domain:9090/#/analysis/job/3957
-
 
 Then the job ID is 3957.
 
@@ -72,7 +67,7 @@ Use the GET request with this endpoint to get reports produced by the job with I
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/3957/report
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/3957/reports
 
 
 How to get the SMRT Link reports for dataset by UUID
@@ -135,7 +130,7 @@ To get QC reports for a particular run, given the run Name, perform the followin
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domainsmrtlink-release:9091/smrt-link/runs
+    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
 
 **Note:** See `List All Run Designs <#List_All_Run_Designs>`__ for more details.
 
@@ -145,7 +140,7 @@ In the response, perform a text search for the run Name: Find the object whose �
 
 .. code-block::
 
-    GET http://SMRTLinkServername.domainsmrtlink-release:9091/smrt-link/runs/{runUUID}/collections
+    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
 
 **Note:** See `Get Run Design Collections <#Get_Run_Design_Collections>`__ for more details.
 
@@ -170,7 +165,7 @@ Retrieve the QC reports that correspond to this collection: Use the collection U
 
 .. code-block::
 
-    GET http://smrtlink-release:9091/secondary-analysis/datastore-files/{reportUUID}/download
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/{reportUUID}/download
 
 **Note:** See `Download Datastore Report Files <#Download_Datastore_Files>`__ for more details.
 
@@ -341,7 +336,7 @@ example” of `Create Run Design <#Create_Run_Design>`__.
 
 .. code-block:: bash
 
-    POST `http://SMRTLinkServername.domainsmrtlink-release:9091/smrt-link/runs <http://SMRTLinkServername.domain:9091/smrt-link/runs>`__
+    POST http://SMRTLinkServername.domain:9091/smrt-link/runs
 
 The payload (request body) for this POST request is a JSON with the following fields:
 
@@ -616,7 +611,7 @@ Once you have the run UUID, get all collections that belong to this Run. Use the
 
 .. code-block:: bash
 
-    GET `http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections <http://smrtlink-release:9091/smrt-link/runs/%7brunUUID%7d/collections>`__
+    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
 
 **Note:** See `Get Run Design Collections <#Get_Run_Design_Collections>`__ for more details.
 
@@ -1023,7 +1018,7 @@ To create an analysis job for a specific pipeline, you need to create a job of t
 
 .. code-block:: bash
 
-    GET http://smrtlink-release:9091/secondary-analysis/resolved-pipeline-templates
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/resolved-pipeline-templates
 
 **Note:** See `Get Pipeline Templates <#Get_Pipeline_Templates>`__ for more details.
 
@@ -1039,7 +1034,7 @@ To create an analysis job for a specific pipeline, you need to create a job of t
 
 .. code-block:: bash
 
-    GET http://smrtlink-release:9091/secondary-analysis/datasets/subreads
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads
 
 **Note:** See `List All Datasets by Type <#List_All_Datasets_by_Type>`__ for more details.
 
@@ -1062,7 +1057,7 @@ Use the request body built in the previous step in the POST request with the fol
 
 .. code-block:: bash
 
-    POST http://smrtlink-release:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
 
 **Note**: See `Create Job by Type <#Create_Job_by_Type>`__ for more detail.
 
@@ -1071,7 +1066,7 @@ Use the request body built in the previous step in the POST request with the fol
 
 .. code-block:: bash
 
-    GET http://smrtlink-release:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/{jobID}/events,
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/{jobID}/events,
 
 Where jobID is equal to the value received in “id” element of the response on step 7.
 
@@ -1087,7 +1082,7 @@ First, get the list of all pipeline templates used for creating analysis jobs:
 
 .. code-block::
 
-    GET http://smrtlink-release:9091/secondary-analysis/resolved-pipeline-templates
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/resolved-pipeline-templates
 
 
 The response will be an array of pipeline template objects. In this response, do the search for the entry with “name” : “Resequencing”. The entry may look as in the following example:
@@ -1123,14 +1118,14 @@ In particular, for the type “fileTypeId” : “PacBio.DataSet.SubreadSet”, 
 
 .. code-block:: bash
 
-    GET http://smrtlink-release:9091/secondary-analysis/datasets/subreads
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads
 
 And for the type “fileTypeId” : “PacBio.DataSet.ReferenceSet”, get the list of “references” datasets:
 
 
 .. code-block:: bash
 
-    GET http://smrtlink-release:9091/secondary-analysis/datasets/references
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/references
 
 From the above lists of datasets, select IDs of the datasets that you
 want to use as entry points for the Resequencing pipeline you are about
@@ -1173,7 +1168,7 @@ Use the request body built above in the following API call:
 
 .. code-block:: bash
 
-    POST http://smrtlink-release:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
 
 
 Verify that the job was created successfully. The return HTTP status
