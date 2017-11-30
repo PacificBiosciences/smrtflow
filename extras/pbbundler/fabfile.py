@@ -206,7 +206,7 @@ def _copy_chemistry_bundle(version, dest_dir, bundle_type_id):
     nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-releases/pacbio/seq/{}/{}/".format(bundle_type_id, version)
     urllib.urlretrieve (nexus_url, os.path.join(res_bundle_dir, tarball))
     target_dir = os.path.join(res_bundle_dir, bundle_name)
-    current_link = os.path.join(res_bundle_dir, "{}-active".format(bundle_name))
+    current_link = os.path.join(res_bundle_dir, "{}-active".format(bundle_type_id))
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
     os.makedirs(target_dir)
