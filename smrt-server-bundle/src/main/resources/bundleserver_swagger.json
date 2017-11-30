@@ -73,7 +73,7 @@
         "description": "Get a list of all registered bundles (active or inactive) in the system. This should ONLY be used for 5.0.0",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "x-throttling-tier": "Unlimited",
         "responses": {
@@ -96,7 +96,7 @@
         "description": "Get a list of all registered bundles by bundle type (active or inactive) in the system. This should ONLY be used for 5.0.0",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "parameters": [
           {
@@ -128,7 +128,7 @@
         "description": "Get a PacBio Data Bundle by Id (bundleType, bundleVersion). This should ONLY be used for 5.0.0",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "parameters": [
           {
@@ -202,7 +202,7 @@
         "description": "Get a list of all registered bundles (active or inactive) in the system",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "x-throttling-tier": "Unlimited",
         "parameters": [
@@ -233,7 +233,7 @@
         "description": "Get a list of all registered bundles by bundle type (active or inactive) in the system",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "parameters": [
           {
@@ -271,7 +271,7 @@
         "description": "Get a PacBio Data Bundle by Id (bundleType, bundleVersion)",
         "x-scope": "data-management",
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "parameters": [
           {
@@ -348,6 +348,21 @@
           },
           "200": {
             "description": "PacBio Data TGZ Bundle"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/api/v2/swagger": {
+      "get": {
+        "description": "Returns the swagger file as JSON",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "200": {
+            "description": "Return swagger file as JSON"
           }
         },
         "x-auth-type": "Application & Application User"
