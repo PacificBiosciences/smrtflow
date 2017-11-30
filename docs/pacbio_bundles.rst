@@ -201,7 +201,7 @@ A valid bundle is a bundle that has a unzipped companion with the name as `BUNDL
 
 This will yield `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>` and  `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>.tar.gz` format.
 
-**ALL BUNDLES within a specific `PACBIO-SYSTEM-VERSION` must be compatible with the companion version SMRT Link.**
+.. note:: ALL BUNDLES within a specific `PACBIO-SYSTEM-VERSION` must be compatible with the companion version SMRT Link.
 
 Example directory structure
 
