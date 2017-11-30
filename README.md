@@ -131,10 +131,11 @@ The [SMRT Link Analysis Services](https://github.com/PacificBiosciences/smrtflow
 #### Validation of the swagger.json file
 
 ```
-npm install -g swagger-cli
-node_modules/swagger-cli/bin/swagger.js validate /path/to/smrtlink_swagger.json
+npm install -g swagger-tools
+node_modules/swagger-tools/bin/swagger-tools validate /path/to/smrtlink_swagger.json
 ```
-Or add `swagger` cli tool to `$PATH`
+
+Or add `swagger-tools` cli tool to `$PATH` and:
 
 ```
 make validate-swagger
