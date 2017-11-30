@@ -194,7 +194,6 @@ validate-swagger-eve:
 validate-swagger-bundle:
 	swagger-tools validate ./smrt-server-bundle/src/main/resources/bundleserver_swagger.json
 
-
 validate-swagger: validate-swagger-smrtlink validate-swagger-eve validate-swagger-bundle
 
 check-shell:
