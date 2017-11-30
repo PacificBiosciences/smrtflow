@@ -54,16 +54,18 @@ This model contains metadata about the bundle.
 
 
 
-SMRT Link Bundle Services
-~~~~~~~~~~~~~~~~~~~~~~~~~
+SMRT Bundle Server
+~~~~~~~~~~~~~~~~~~
 
-These services are in SMRT Link as well as the stand-alone Chemistry Parameter Update Bundle server. **They share the same bundle related endpoints**. Alternatively said, a SMRT Link instance can be used to "updater" for other SMRT Link instances.
+.. warning:: As of 5.1.0, the chemistry bundle type id has been changed to **chemistry-pb**
 
-See the SMRT Link 'smrt-link/bundles/*' service endpoints in the **smrtlink_swagger.json** file or the **/swagger** endpoint of the services.
+.. warning:: As of 5.1.0, the SMRT Link Bundle services and the Bundle Upgrade have diverged. Please see the SMRT Link Server docs for details on the bundle related services in SMRT Link Server.
+
+These services are for the **stand-alone Chemistry Parameter Update Bundle server**.
+
+The endpoints are documented in the swagger file (**bundleserver_swagger.json**) within the project, or the **/api/v2/swagger** endpoint of the services.
 
 The swagger-UI can be used to visualize the endpoint APIs. http://swagger.io/swagger-ui/
-
-**Note, any PUT or POST endpoints related smrt-link/bundles/ have been removed from the Chemistry Data Bundle Update Server App for security reasons. Only GET methods are supported. To activate or add a new bundle to the system, the system must be stopped and manually add the TGZ and the necessary symlinks to mark the "active" chemistry bundle.**
 
 Servers
 ~~~~~~~
@@ -100,6 +102,13 @@ Status
     }
 
 
+
+
+Legacy API
+~~~~~~~~~~
+
+This should only be used for PacBio System Release version "5.0.0".
+
 List bundles
 
 ::
@@ -123,8 +132,6 @@ List bundles
     ]
 
 
-CheatSheet
-~~~~~~~~~~
 
 Get a Specific bundle resource
 
@@ -138,32 +145,6 @@ Example:
 
     GET /smrt-link/bundles/chemistry/1.2.3+3.ebbde5
 
-Adding a new Bundle
-
-::
-
-    POST /smrt-link/bundles {"url": <bundle-url>} # returns Bundle Resource
-
-Only URL schemes, "file" and "http" are supported with tar.gz or tgz. For "file", the file
-will be copied locally into SL System. For "http", the file will be
-downloaded into SL System location. Note, there is not auth model for pulling from the URL (i.e., not token config or basic auth).
-Aside from .tgz and .tag.gz, git repos are also supported.
-
-Example:
-
-::
-
-    POST /smrt-link/bundles {"url": "http://my-domain.com/bundles/chemistry-1.2.3+3.ebbdde4.tgz""}
-
-
-Fetching a Git repo with a pbpipeline bundle (pipeline templates and view rules, etc...):
-
-::
-
-    POST /smrt-link/bundles {"url": "https://github.com/PacificBiosciences/pbpipeline-helloworld-resources.git""}
-
-
-
 Download a PacBio Data Bundle
 
 ::
@@ -171,41 +152,7 @@ Download a PacBio Data Bundle
     GET /smrt-link/bundles/{bundle-type-id}/download
 
 
-
-Checking for an upgraded bundle version.
-
-::
-
-    GET /smrt-link/bundles/{bundle-type-id}/upgrade
-
-
-Returns
-
-::
-
-    { "bundle": Option[PacBioBundle]}
-
-If an upgrade is available it will return a newer version (based on the semantic version spec). If no bundle is returned, there isn't a newer bundle.
-
-
-"Activating" a Bundle (Only one bundle can be activate at a time)
-
-::
-
-    POST /smrt-link/bundles/{bundle-type-id}/{bundle-version/upgrade
-
-
-This will mark all other bundle types with `bundle-type-id` to in active and mark bundle with version `bundle-version` as active.
-
-Returns
-
-
-::
-
-    {"bundle": PacBioBundle}
-
-
-The bundle will have *isActive* with `true` if the bundle was successfully upgraded.
+New
 
 
 Building a Stand Alone Chemistry Update Bundle Server
@@ -216,10 +163,10 @@ Get repo: http://bitbucket.nanofluidics.com:7990/projects/SL/repos/smrtflow/brow
 
 ::
 
-    $> sbt smrt-server-link/{compile,pack}
+    $> sbt smrt-server-bundle/{compile,pack}
 
 
-Generates the Server Exe **smrt-server-link/target/pack/bin/smrt-server-data-bundle**
+Generates the Server Exe **smrt-server-bundle/target/pack/bin/smrt-server-data-bundle**
 
 
 Configuration
@@ -247,11 +194,22 @@ Or by setting the *smrtflow.server.bundleDir* key in the smrtlink-system-config.
 Details of the Root Bundle Dir
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When the system is started up, the system will look for a bundle that "chemistry-active" symlinked to is pointing to the unzipped chemistry bundle (the zipped version must be in the same directory).
+When the bundle server is started up, the system will load bundles within subdirectories named with the **PacBio System Release Version** of root directory. The subdirectories must be valid semver format and contain a list of valid bundles.
+
+A valid bundle is a bundle that has a unzipped companion with the name as `BUNDLE-ID`-`BUNDLE-VERSION` directory with an unzipped companion of the same name ``BUNDLE-ID`-`BUNDLE-VERSION.tar.gz`.
+
+
+Thi will yield `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>` and  `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>.tar.gz` format.
+
+**ALL BUNDLES within a specific `PACBIO-SYSTEM-VERSION` must be compatible with the companion version SMRT Link.**
+
+Example directory structure
+
+For a **PacBio System Release Version** `5.0.0` in root bundle dir `/path/to/bundles-root`, the directory structure could be:
 
 ::
 
-    $> mkocher@login14-biofx01:pacbio-bundles$ ls -la
+    $> mkocher@login14-biofx01:pacbio-bundles$ ls -la /path/to/bundles-root/5.0.0
     total 112
     drwxar-xr-x 4 secondarytest Domain Users  4096 May 31 18:04 .
     drwxr-xr-x 6 secondarytest Domain Users  4096 May 31 15:40 ..
@@ -259,11 +217,7 @@ When the system is started up, the system will look for a bundle that "chemistry
     -rw-r--r-- 1 secondarytest Domain Users 42269 May 31 18:04 chemistry-4.1.0.tar.gz
     drwxr-xr-x 6 secondarytest Domain Users  4096 May 31 15:40 chemistry-5.0.0
     -rwxr-xr-x 1 secondarytest Domain Users 38566 May 31 15:40 chemistry-5.0.0.tar.gz
-    lrwxrwxrwx 1 secondarytest Domain Users    15 May 31 15:40 chemistry-active -> chemistry-5.0.0
     -rwxr-xr-x 1 secondarytest Domain Users  1168 May 31 15:40 README.md
-
-
-**Note, this symlinking model is what is used to communicate to the services on startup which bundle is active.**
 
 
 Starting up the Chemistry Bundle Upgrade Server in Standalone mode
@@ -288,7 +242,7 @@ The log file will log the loaded and "active" data bundles on startup.
 Getting a List of PacBio Data Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use **pbservice** to get a list of bundles on either a standalone Chemistry bundle server and a SMRT Link server.
+Use **pbservice** to get a list of bundles on the SMRT Link server.
 
 ::
 
