@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.10.0-SNAPSHOT"
+version in ThisBuild := "0.11.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -271,5 +271,10 @@ lazy val smrtServerLink =
 
 lazy val smrtServerSim =
   toPacBioProject("smrt-server-sim")
+    .dependsOn(common, smrtServerLink)
+    .settings()
+
+lazy val smrtServerBundle =
+  toPacBioProject("smrt-server-bundle")
     .dependsOn(common, smrtServerLink)
     .settings()
