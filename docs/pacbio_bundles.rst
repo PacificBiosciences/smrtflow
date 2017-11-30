@@ -107,7 +107,7 @@ Status
 Legacy API
 ~~~~~~~~~~
 
-This should only be used for PacBio System Release version "5.0.0".
+.. note:: This should only be used for PacBio System Release version "5.0.0".
 
 List bundles
 
@@ -199,17 +199,17 @@ When the bundle server is started up, the system will load bundles within subdir
 A valid bundle is a bundle that has a unzipped companion with the name as `BUNDLE-ID`-`BUNDLE-VERSION` directory with an unzipped companion of the same name ``BUNDLE-ID`-`BUNDLE-VERSION.tar.gz`.
 
 
-Thi will yield `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>` and  `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>.tar.gz` format.
+This will yield `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>` and  `<ROOT-BUNDLE-DIR>/<PACBIO-SYSTEM-VERSION>/<BUNDLE-ID>-<BUNDLE-VERSION>.tar.gz` format.
 
 **ALL BUNDLES within a specific `PACBIO-SYSTEM-VERSION` must be compatible with the companion version SMRT Link.**
 
 Example directory structure
 
-For a **PacBio System Release Version** `5.0.0` in root bundle dir `/path/to/bundles-root`, the directory structure could be:
+For a **PacBio System Release Version** `7.0.0` in root bundle dir `/path/to/bundles-root`, the directory structure could be:
 
 ::
 
-    $> mkocher@login14-biofx01:pacbio-bundles$ ls -la /path/to/bundles-root/5.0.0
+    $> mkocher@login14-biofx01:pacbio-bundles$ ls -la /path/to/bundles-root/7.0.0
     total 112
     drwxar-xr-x 4 secondarytest Domain Users  4096 May 31 18:04 .
     drwxr-xr-x 6 secondarytest Domain Users  4096 May 31 15:40 ..
@@ -220,8 +220,11 @@ For a **PacBio System Release Version** `5.0.0` in root bundle dir `/path/to/bun
     -rwxr-xr-x 1 secondarytest Domain Users  1168 May 31 15:40 README.md
 
 
-Starting up the Chemistry Bundle Upgrade Server in Standalone mode
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. warning:: For loading 5.0.0 bundles to be used in the **Legacy** V1 API, use the "5.0.0". These bundles will now be available at the legacy routes as well as the V2 API.
+
+
+Building and Starting up the Chemistry Bundle Upgrade Server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 ::
@@ -239,8 +242,10 @@ Note, there is no support for *--help*
 
 The log file will log the loaded and "active" data bundles on startup.
 
-Getting a List of PacBio Data Bundles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Getting a List of PacBio Data Bundles from SMRT Link Server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning:: This approach will NOT work for the Bundle Server
 
 Use **pbservice** to get a list of bundles on the SMRT Link server.
 
