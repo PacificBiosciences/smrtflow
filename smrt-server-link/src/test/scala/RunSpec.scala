@@ -142,8 +142,8 @@ class RunParserSpec extends Specification with RunSpecUtils {
       run.uniqueId === newId
       run.createdBy === Some(CREATED_BY)
       run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
-      run.numStandardCells === 2
-      run.numLRCells === 0
+      run.numStandardCells === 1
+      run.numLRCells === 1
     }
   }
 }
