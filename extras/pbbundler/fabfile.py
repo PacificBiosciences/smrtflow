@@ -403,6 +403,7 @@ def build_smrtlink_services_ui(version,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
                                chemistry_version=None,
+                               chemistry_pb_version=None,
                                doc_dir=None
                                ):
     """
@@ -431,6 +432,9 @@ def build_smrtlink_services_ui(version,
 
     :param chemistry_version: Version of chemistry bundle to use
     :type chemistry_version: str | None
+
+    :param chemistry_pb_version: Version of chemistry-pb bundle to use
+    :type chemistry_pb_version: str | None
 
     :param doc_dir: Directory of docs that will be copied into tomcat (if doc_dir not None)
     :type doc_dir: str | None
@@ -486,7 +490,8 @@ def build_smrtlink_services_ui(version,
     if chemistry_version is not None:
         # For now load Both (5.0.x) legacy version and the new "chemistry-pb" (>= 5.1.0) version
         chemistry_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir, "chemistry")
-        chemistry_pb_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir, "chemistry-pb")
+    if chemistry_pb_version is not None:
+        chemistry_pb_bundle_dir = _copy_chemistry_bundle(chemistry_pb_version, output_bundle_dir, "chemistry-pb")
 
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
