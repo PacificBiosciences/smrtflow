@@ -196,7 +196,9 @@ class DatabaseSpec
         Some("chemistry-version"),
         Some("context"),
         Some("termination-info"),
-        reserved = false
+        reserved = false,
+        numStandardCells = 2,
+        numLRCells = 2
       )
       val runDataModel =
         DataModelAndUniqueId("<run>data</run>", runSummary.uniqueId)
@@ -215,7 +217,8 @@ class DatabaseSpec
         Some(username),
         startedAt = Some(now),
         completedAt = Some(now),
-        Some("termination-info")
+        Some("termination-info"),
+        Some("Standard")
       )
       val sample =
         Sample("details", UUID.randomUUID(), "name", username, createdAt = now)
