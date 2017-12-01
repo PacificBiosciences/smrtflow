@@ -48,6 +48,8 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     p
   }
 
+  val chemistryBundleId = "chemistry-pb"
+
   val serverId: Singleton[UUID] = Singleton(() => getSystemUUID(conf))
 
   val port: Singleton[Int] = Singleton(
