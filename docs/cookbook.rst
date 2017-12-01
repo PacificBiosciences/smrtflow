@@ -21,9 +21,7 @@ following steps:
 
     GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/job-types
 
-2. Get the corresponding job type string. **Note:** See for more details.
-
-The job type can be found in the "jobTypeId" field. Job types are explained in `Overview of Jobs Service <#Overview_of_Jobs_Service>`__.
+2. Get the corresponding job type string. The job type can be found in the "jobTypeId" field. Job types are explained in `Overview of Jobs Service <#Overview_of_Jobs_Service>`__.
 
 3. Get reports produced by the job. Given the job ID and the job type, use them in the GET request with the following endpoint:
 
@@ -107,13 +105,13 @@ Use the GET request with the following endpoint:
 
     GET http://SMRTLinkServername.domain:9091/secondary-analysis/dataset-types
 
-You see that the shortName of subreadsets is “subreads”. The desired endpoint is:
+You see that the shortName of SubreadSets is “subreads”. The desired endpoint is:
 
 .. code-block:: bash
 
     http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
 
-Use the GET request with this endpoint to get reports that correspond to the subreadset with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1:
+Use the GET request with this endpoint to get reports that correspond to the SubreadSet with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1:
 
 
 .. code-block:: bash
@@ -146,9 +144,9 @@ In the response, perform a text search for the run Name: Find the object whose �
 
 1. Take a collection UUID of one of collection objects received in the previous response. The collection UUIDs can be found in the "uniqueId" fields.
 
-For **complete** collections, the collection UUID will be the same as the UUID of the subreadset for that collection.
+For **complete** collections, the collection UUID will be the same as the UUID of the SubreadSet for that collection.
 
-Make sure that the collection whose “uniqueId” field you take has the field “status” set to “Complete”. This is because obtaining dataset reports based on the collection UUID as described below will **only** work if the collection is **complete**. If the collection is **not** complete, the subreadset does not exist yet.
+Make sure that the collection whose “uniqueId” field you take has the field “status” set to “Complete”. This is because obtaining dataset reports based on the collection UUID as described below will **only** work if the collection is **complete**. If the collection is **not** complete, the SubreadSet does not exist yet.
 
 Retrieve the QC reports that correspond to this collection: Use the collection UUID obtained in the previous step in the GET request with the following endpoint:
 
@@ -198,7 +196,7 @@ With this run UUID = d7b83cfc-91a6-4cea-8025-8bcc1f39e045, get all collections t
 
     GET http://SMRTLinkServername.domain:9091/smrt-link/runs/d7b83cfc-91a6-4cea-8025-8bcc1f39e045/collections
 
-Take a UUID of a completed collection, such as “uniqueId”: "59230aeb-a8e3-4b46-b1b1-24c782c158c1". With this collection UUID, retrieve QC reports of the corresponding subreadset:
+Take a UUID of a completed collection, such as “uniqueId”: "59230aeb-a8e3-4b46-b1b1-24c782c158c1". With this collection UUID, retrieve QC reports of the corresponding SubreadSet:
 
 .. code-block:: bash
 
@@ -217,7 +215,7 @@ How to get QC reports for a particular Collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For completed collections, the collection UUID will be the same as
-the UUID of the subreadset for that collection. To retrieve the QC
+the UUID of the SubreadSet for that collection. To retrieve the QC
 reports of a completed collection, given the collection UUID,
 perform the following steps:
 
@@ -229,7 +227,7 @@ perform the following steps:
 
 **Note:** See `Get Dataset Reports by Type and UUID <#Get_Dataset_Reports_by_Type_and_UUID>`__ for more details.
 
-**Note:** Obtaining dataset reports based on the collection UUID as described above will only work if the collection is **complete**. If the collection is **not** complete, then the subreadset does not exist yet.
+**Note:** Obtaining dataset reports based on the collection UUID as described above will only work if the collection is **complete**. If the collection is **not** complete, then the SubreadSet does not exist yet.
 
 2. Take a report UUID of one of the reports of the collection from the
 previous response.
@@ -249,7 +247,7 @@ The report UUIDs can be found in the "uuid" fields.
 
 Example
 
-Suppose you have a complete collection with UUID = 59230aeb-a8e3-4b46-b1b1-24c782c158c1. Get all reports of the subreadset which corresponds to this collection:
+Suppose you have a complete collection with UUID = 59230aeb-a8e3-4b46-b1b1-24c782c158c1. Get all reports of the SubreadSet which corresponds to this collection:
 
 
 .. code-block:: bash
@@ -293,7 +291,7 @@ Example, suppose you want to find all runs created on or after 01.01.2017. First
 
     GET http://SMRTLinkServername.domain:9091/smrt-link/runs
 
-The response will be an array of run objects, as in the following example:
+The response will be an array of run objects, as in the following example (some fields are removed for display purposes):
 
 
 .. code-block:: javascript
@@ -431,35 +429,20 @@ The response will be an array of run objects, as in the following example (some 
 .. code-block:: javascript
 
     [{
-
     “name” : “2016-11-08_3150473_2kLambda_A12”,
-
     “uniqueId” : “97286726-b243-45b3-82f7-8b5f58c56d53”,
-
     “createdAt” : “2016-11-08T17:50:57.955Z”,
-
     “summary” : “lambdaNEB”
-
     }, {
-
     “name” : “54149_DryRun_2Cells_20161219”,
-
     “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
-
     “createdAt” : “2016-12-19T16:08:41.610Z”,
-
     “summary” : “DryRun_2Cells”
-
     }, {
-
     “name” : “2017_01_21_A7_RC0_2.5-6kb_DS”,
-
     “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
-
     “createdAt” : “2017-01-21T00:21:52.534Z”,
-
     “summary” : “gencode_23_transcripts”
-
     }]
 
 2. Search the above response for the object with the "name" field equal to"54149_DryRun_2Cells_20161219".
@@ -479,59 +462,32 @@ the following example:
 .. code-block:: javascript
 
     [{
-
     "name" : "DryRun_1stCell",
-
     "instrumentName" : "Sequel",
-
     "context" : "m54149_161219_161247",
-
     "well" : "A01",
-
     "status" : "Complete",
-
     "instrumentId" : "54149",
-
     "startedAt" : "2016-12-19T16:12:47.014Z",
-
     "uniqueId" : "7cf74b62-c6b8-431d-b8ae-7e28cfd8343b",
-
     "collectionPathUri" :
     "/pbi/collections/314/3140149/r54149_20161219_160902/1_A01",
-
     "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-
     "movieMinutes" : 120
-
     }, {
-
     "name" : "DryRun_2ndCell",
-
     "instrumentName" : "Sequel",
-
     "context" : "m54149_161219_184813",
-
     "well" : "B01",
-
     "status" : "Ready",
-
     "instrumentId" : "54149",
-
     "startedAt" : "2016-12-19T16:12:47.014Z",
-
     "uniqueId" : "08af5ab4-7cf4-4d13-9bcb-ae977d493f04",
-
-    "collectionPathUri" :
-    "/pbi/collections/314/3140149/r54149_20161219_160902/2_B01",
-
+    "collectionPathUri" : "/pbi/collections/314/3140149/r54149_20161219_160902/2_B01",
     "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-
     "movieMinutes" : 120
-
     }
-
     ]
-
 
 
 In the above example, the first collection has “status”, “Complete”.
@@ -583,7 +539,7 @@ To specifically create a SMRT Analysis job, you need to create a job of type “
 
 You need to provide dataset IDs in the “entryPoints” array of the above payload.
 
-To setup a job for a given collection, you need to specify the dataset ID for the subreadset of the collection in the request body of the `Create Job by Type <#Create_Job_by_Type>`__ POST request.
+To setup a job for a given collection, you need to specify the dataset ID for the SubreadSet of the collection in the request body of the `Create Job by Type <#Create_Job_by_Type>`__ POST request.
 
 Perform the following steps:
 
@@ -622,15 +578,15 @@ a. From here you can get the UUID of the collection. It can be found in the “u
 take has the field “status” set to “Complete”. This is because
 obtaining dataset ID based on the collection UUID as described below
 will **only** work if the collection is **complete**. If the
-collection is **not** complete, then the subreadset does not exist
+collection is **not** complete, then the SubreadSet does not exist
 yet.
 
 1. Find the dataset ID that corresponds to the collection UUID.
 
 For complete collections, the collection UUID will be the same as
-the UUID of the subreadset for that collection. Use the collection
+the UUID of the SubreadSet for that collection. Use the collection
 UUID in the GET request on the following endpoint to get the
-corresponding subreadset object:
+corresponding SubreadSet object:
 
 .. code-block:: bash
 
@@ -674,49 +630,28 @@ The response will be an array of run objects, as in the following example:
 .. code-block:: javascript
 
     [{
-
     "name" : "2016-11-08_3150473_2kLambda_A12",
-
     "uniqueId" : "97286726-b243-45b3-82f7-8b5f58c56d53",
-
     "createdAt" : "2016-11-08T17:50:57.955Z",
-
     ...
 
     "summary" : "lambdaNEB"
-
     }, {
-
     ...
-
     }, {
-
     "name" : "54149_DryRun_2Cells_20161219",
-
     "uniqueId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-
     "createdAt" : "2016-12-19T16:08:41.610Z",
-
     ...
-
     "summary" : "DryRun_2Cells"
-
     }, {
-
     ...
-
     }, {
-
     "name" : "2017_01_21_A7_RC0_2.5-6kb_DS",
-
     "uniqueId" : "5026afad-fbfa-407a-924b-f89dd019ca9f",
-
     "createdAt" : "2017-01-21T00:21:52.534Z",
-
     ...
-
     "summary" : "gencode_23_transcripts"
-
     }
 
 Now, search the above response for the object with the “name” field
@@ -765,17 +700,17 @@ The response will be an array of collection objects of this run, as in the follo
     }]
 
 In the above example, both collections of the run have “status” :
-“Complete”. Hence, the corresponding subreadsets should already
+“Complete”. Hence, the corresponding SubreadSets should already
 exist, and can be retrieved as described below.
 
 Take the UUID of the first collection, i.e. “uniqueId”: “7cf74b62-c6b8-431d-b8ae-7e28cfd8343b”, and get the corresponding
-subreadset object:
+SubreadSet object:
 
 .. code-block:: bash
 
     GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b
 
-The response will be a subreadset object, as in the following example:
+The response will be a SubreadSet object, as in the following example:
 
 .. code-block:: javascript
 
@@ -798,14 +733,14 @@ for the first entry point for ‘pbsmrtpipe’ job.
 
 Now take the UUID of the second collection, i.e. “uniqueId”:
 “08af5ab4-7cf4-4d13-9bcb-ae977d493f04”, and get the corresponding
-subreadset object:
+SubreadSet object:
 
 .. code-block:: bash
 
     GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
 
 
-The response will be a subreadset object, as in the following example:
+The response will be a SubreadSet object, as in the following example:
 
 .. code-block:: javascript
 
@@ -951,23 +886,15 @@ Also notice that the response body contains JSON corresponding to the job to be 
 .. code-block:: javascript
 
     {
-
     “name” : “Job merge-datasets”,
-
     “uuid” : “13957a79-1bbb-44ea-83f3-6c0595bf0d42”,
-
     “jobTypeId” : “merge-datasets”,
-
     “id” : 53,
-
     “createdAt” : “2016-01-29T00:09:58.462Z”,
-
     ...
-
     “comment” : “Merging Datasets
     MergeDataSetOptions(PacBio.DataSet.SubreadSet, Auto-merged subreads
     @1454026198403)”
-
     }
 
 Define the payload as in the following example, and this time set the “dryRun” field to ‘false’, to actually delete the job:
@@ -993,18 +920,12 @@ Verify that the response status is **201: Created**. Notice that this time the r
 .. code-block:: javascript
 
     {
-
         “name” : “Job delete-job”,
-
         “uuid” : “1f60c976-e426-43b5-8ced-f8139de6ceff”, “jobTypeId” :
         “delete-job”,
-
         “id” : 7666,
-
         “createdAt” : “2017-03-09T11:51:38.828-08:00”,
-
         ...
-
         “comment” : “Deleting job 13957a79-1bbb-44ea-83f3-6c0595bf0d42”
 
     }
