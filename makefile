@@ -187,12 +187,14 @@ db-reset-test:
 	psql -f ./extras/test-db-init.sql
 
 validate-swagger-smrtlink:
-	swagger validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
+	swagger-tools validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
 validate-swagger-eve:
-	swagger validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+	swagger-tools validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+validate-swagger-bundle:
+	swagger-tools validate ./smrt-server-bundle/src/main/resources/bundleserver_swagger.json
 
-validate-swagger: validate-swagger-smrtlink validate-swagger-eve
+validate-swagger: validate-swagger-smrtlink validate-swagger-eve validate-swagger-bundle
 
 check-shell:
 	shellcheck -e SC1091 extras/pbbundler/bamboo_build_smrtflow.sh
