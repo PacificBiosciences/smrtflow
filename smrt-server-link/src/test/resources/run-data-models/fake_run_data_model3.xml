@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?><pbdm:PacBioDataModel xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:pbdm="http://pacificbiosciences.com/PacBioDataModel.xsd" xmlns:pbrk="http://pacificbiosciences.com/PacBioReagentKit.xsd" xmlns:pbsample="http://pacificbiosciences.com/PacBioSampleInfo.xsd" xmlns:pbpn="http://pacificbiosciences.com/PacBioPartNumbers.xsd" xmlns:pbmeta="http://pacificbiosciences.com/PacBioCollectionMetadata.xsd" xsi:schemaLocation="http://pacificbiosciences.com/PacBioDataModel.xsd PacBioDataModel.xsd">
+    <pbdm:ExperimentContainer Name="" ExperimentId="" Description="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00">
+        <pbdm:InvestigatorName>Default</pbdm:InvestigatorName>
+        <pbdm:CreatedDate>0001-01-01</pbdm:CreatedDate>
+        <pbdm:Runs>
+            <pbdm:Run Name="Mix of Cell Types Run 11.30.2017 20:31" Description="" Tags="" MetaType="Run" TimeStampedName="DefaultTimeStampedRunName" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" UniqueId="0733ed15-ff65-4ad6-970e-a33b70eb2230" Status="Ready" CreatedBy="admin">
+                <pbdm:Outputs>
+                    <pbdm:SubreadSets>
+                    <pbds:SubreadSet Name="SubreadSet_Mix of Cell Types -- Standard 1" UniqueId="8b04fc16-eb3a-4888-8c1b-8dd5d36b9cd8" MetaType="SubreadSetCollection" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z">
+                            <ExternalResources>
+                                <ExternalResource MetaType="ExternalResource" TimeStampedName=""/>
+                            </ExternalResources>
+                            <pbds:DataSetMetadata>
+                                <pbds:TotalLength>0</pbds:TotalLength>
+                                <pbds:NumRecords>0</pbds:NumRecords>
+                                <pbmeta:Collections>
+                                    <pbmeta:CollectionMetadata UniqueId="efe0e742-32b4-42b9-8555-3dbbcebd5b16" MetaType="CollectionMetadata" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" Status="Ready" InstrumentId="" InstrumentName="">
+                                        <pbmeta:InstCtrlVer>String</pbmeta:InstCtrlVer>
+                                        <pbmeta:SigProcVer>String</pbmeta:SigProcVer>
+                                        <pbmeta:RunDetails>
+                                            <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
+                                            <pbmeta:Name>Mix of Cell Types Run 11.30.2017 20:31</pbmeta:Name>
+                                            <pbmeta:CreatedBy></pbmeta:CreatedBy>
+                                            <pbmeta:WhenCreated>2017-12-01T01:35:10.637Z</pbmeta:WhenCreated>
+                                            <pbmeta:WhenStarted>0001-01-01T00:00:00</pbmeta:WhenStarted>
+                                        </pbmeta:RunDetails>
+                                        <pbmeta:WellSample Name="Mix of Cell Types -- Standard 1" Description="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00">
+                                            <pbmeta:WellName>A01</pbmeta:WellName>
+                                            <pbmeta:Concentration>0</pbmeta:Concentration>
+                                            <pbmeta:InsertSize>10000</pbmeta:InsertSize>
+                                            <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+                                            <pbmeta:StageHotstartEnabled>false</pbmeta:StageHotstartEnabled>
+                                            <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+                                            <pbmeta:UseCount>0</pbmeta:UseCount>
+                                            <pbmeta:DNAControlComplex></pbmeta:DNAControlComplex>
+                                            <pbsample:BioSamples>
+                                                <pbsample:BioSample Name="Mix of Cell Types -- Standard 1">
+                                                </pbsample:BioSample>
+                                            </pbsample:BioSamples>
+                                        </pbmeta:WellSample>
+                                        <pbmeta:Automation Name="Magbead">
+                                            <AutomationParameters><AutomationParameter Name="MovieLength" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="360"/><AutomationParameter Name="ReuseSample" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="False"/><AutomationParameter Name="ReuseCell" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/><AutomationParameter Name="ExtensionTime" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="0"/><AutomationParameter Name="ExtendFirst" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/></AutomationParameters>
+                                        </pbmeta:Automation>
+                                        <pbmeta:CollectionNumber>0</pbmeta:CollectionNumber>
+                                        <pbmeta:CellIndex>0</pbmeta:CellIndex>
+                                        <pbmeta:SetNumber>0</pbmeta:SetNumber>
+                                        <pbmeta:TemplatePrepKit Name="SMRTbell® Template Prep Kit 1.0" PartNumber="100-259-100" LotNumber="Lxxxxx" Barcode="Lxxxxx100259100123199" ExpirationDate="2099-12-31" MinInsertSize="500" MaxInsertSize="20000">
+                                            <LeftAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</LeftAdaptorSequence>
+                                            <RightAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</RightAdaptorSequence>
+                                        </pbmeta:TemplatePrepKit>
+                                        <pbmeta:BindingKit Name="Sequel® Binding Kit 2.0" PartNumber="100-862-200" LotNumber="Lxxxxx" Barcode="Lxxxxx100862200123199" ExpirationDate="2099-12-31"/>
+                                        <pbmeta:SequencingKitPlate Name="Sequel® Sequencing Plate 2.0" PartNumber="100-861-800" LotNumber="Lxxxxx" Barcode="Lxxxxx100861800123199" ExpirationDate="2099-12-31"/>
+                                        
+                                        <pbmeta:Primary>
+                                            <pbmeta:AutomationName></pbmeta:AutomationName>
+                                            <pbmeta:ConfigFileName></pbmeta:ConfigFileName>
+                                            <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+                                        </pbmeta:Primary>
+                                        <pbmeta:Secondary>
+                                            <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>
+                                            <pbmeta:AutomationParameters>
+                                                <pbmeta:AutomationParameter Name="Reference" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="DefaultSecondaryAnalysisReferenceName"/>
+                                            </pbmeta:AutomationParameters>
+                                            <pbmeta:CellCountInJob>0</pbmeta:CellCountInJob>
+                                        </pbmeta:Secondary>
+                                        <pbmeta:UserDefinedFields>
+                                            <DataEntities Name=" LIMS_IMPORT " SimpleValue="DefaultUserDefinedFieldLIMS" ValueDataType="String"/>
+                                        </pbmeta:UserDefinedFields>
+                                    </pbmeta:CollectionMetadata>
+                                </pbmeta:Collections>
+                            </pbds:DataSetMetadata>
+                        </pbds:SubreadSet><pbds:SubreadSet Name="SubreadSet_Mix of Cell Types -- LR 1" UniqueId="24134939-1178-4cd4-8c37-d202ca813277" MetaType="SubreadSetCollection" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z">
+                            <ExternalResources>
+                                <ExternalResource MetaType="ExternalResource" TimeStampedName=""/>
+                            </ExternalResources>
+                            <pbds:DataSetMetadata>
+                                <pbds:TotalLength>0</pbds:TotalLength>
+                                <pbds:NumRecords>0</pbds:NumRecords>
+                                <pbmeta:Collections>
+                                    <pbmeta:CollectionMetadata UniqueId="1fb4bba5-7135-486c-a594-d68b3ac8a313" MetaType="CollectionMetadata" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" Status="Ready" InstrumentId="" InstrumentName="">
+                                        <pbmeta:InstCtrlVer>String</pbmeta:InstCtrlVer>
+                                        <pbmeta:SigProcVer>String</pbmeta:SigProcVer>
+                                        <pbmeta:RunDetails>
+                                            <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
+                                            <pbmeta:Name>Mix of Cell Types Run 11.30.2017 20:31</pbmeta:Name>
+                                            <pbmeta:CreatedBy></pbmeta:CreatedBy>
+                                            <pbmeta:WhenCreated>2017-12-01T01:35:10.637Z</pbmeta:WhenCreated>
+                                            <pbmeta:WhenStarted>0001-01-01T00:00:00</pbmeta:WhenStarted>
+                                        </pbmeta:RunDetails>
+                                        <pbmeta:WellSample Name="Mix of Cell Types -- LR 1" Description="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00">
+                                            <pbmeta:WellName>B01</pbmeta:WellName>
+                                            <pbmeta:Concentration>0</pbmeta:Concentration>
+                                            <pbmeta:InsertSize>10000</pbmeta:InsertSize>
+                                            <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+                                            <pbmeta:StageHotstartEnabled>false</pbmeta:StageHotstartEnabled>
+                                            <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+                                            <pbmeta:UseCount>0</pbmeta:UseCount>
+                                            <pbmeta:DNAControlComplex></pbmeta:DNAControlComplex>
+                                            <pbsample:BioSamples>
+                                                <pbsample:BioSample Name="Mix of Cell Types -- LR 1">
+                                                </pbsample:BioSample>
+                                            </pbsample:BioSamples>
+                                        </pbmeta:WellSample>
+                                        <pbmeta:Automation Name="Magbead">
+                                            <AutomationParameters><AutomationParameter Name="ReuseCell" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/><AutomationParameter Name="MovieLength" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="900"/><AutomationParameter Name="ReuseSample" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="False"/><AutomationParameter Name="ExtensionTime" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="0"/><AutomationParameter Name="ExtendFirst" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/></AutomationParameters>
+                                        </pbmeta:Automation>
+                                        <pbmeta:CollectionNumber>1</pbmeta:CollectionNumber>
+                                        <pbmeta:CellIndex>0</pbmeta:CellIndex>
+                                        <pbmeta:SetNumber>0</pbmeta:SetNumber>
+                                        <pbmeta:TemplatePrepKit Name="SMRTbell® Template Prep Kit 1.0" PartNumber="100-259-100" LotNumber="Lxxxxx" Barcode="Lxxxxx100259100123199" ExpirationDate="2099-12-31" MinInsertSize="500" MaxInsertSize="20000">
+                                            <LeftAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</LeftAdaptorSequence>
+                                            <RightAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</RightAdaptorSequence>
+                                        </pbmeta:TemplatePrepKit>
+                                        <pbmeta:BindingKit Name="Sequel® Binding Kit 2.0" PartNumber="100-862-200" LotNumber="Lxxxxx" Barcode="Lxxxxx100862200123199" ExpirationDate="2099-12-31"/>
+                                        <pbmeta:SequencingKitPlate Name="Sequel® Sequencing Plate 2.0" PartNumber="100-861-800" LotNumber="Lxxxxx" Barcode="Lxxxxx100861800123199" ExpirationDate="2099-12-31"/>
+                                        
+                                        <pbmeta:Primary>
+                                            <pbmeta:AutomationName></pbmeta:AutomationName>
+                                            <pbmeta:ConfigFileName></pbmeta:ConfigFileName>
+                                            <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+                                        </pbmeta:Primary>
+                                        <pbmeta:Secondary>
+                                            <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>
+                                            <pbmeta:AutomationParameters>
+                                                <pbmeta:AutomationParameter Name="Reference" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="DefaultSecondaryAnalysisReferenceName"/>
+                                            </pbmeta:AutomationParameters>
+                                            <pbmeta:CellCountInJob>0</pbmeta:CellCountInJob>
+                                        </pbmeta:Secondary>
+                                        <pbmeta:UserDefinedFields>
+                                            <DataEntities Name=" LIMS_IMPORT " SimpleValue="DefaultUserDefinedFieldLIMS" ValueDataType="String"/>
+                                        </pbmeta:UserDefinedFields>
+                                    </pbmeta:CollectionMetadata>
+                                </pbmeta:Collections>
+                            </pbds:DataSetMetadata>
+                        </pbds:SubreadSet><pbds:SubreadSet Name="SubreadSet_Mix of Cell Types -- LR 2" UniqueId="4077c2c4-c363-4511-8cec-b73e5a35c2a9" MetaType="SubreadSetCollection" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z">
+                            <ExternalResources>
+                                <ExternalResource MetaType="ExternalResource" TimeStampedName=""/>
+                            </ExternalResources>
+                            <pbds:DataSetMetadata>
+                                <pbds:TotalLength>0</pbds:TotalLength>
+                                <pbds:NumRecords>0</pbds:NumRecords>
+                                <pbmeta:Collections>
+                                    <pbmeta:CollectionMetadata UniqueId="7d2d8502-c5c9-46f4-abef-aa2e887e7f69" MetaType="CollectionMetadata" TimeStampedName="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" Status="Ready" InstrumentId="" InstrumentName="">
+                                        <pbmeta:InstCtrlVer>String</pbmeta:InstCtrlVer>
+                                        <pbmeta:SigProcVer>String</pbmeta:SigProcVer>
+                                        <pbmeta:RunDetails>
+                                            <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
+                                            <pbmeta:Name>Mix of Cell Types Run 11.30.2017 20:31</pbmeta:Name>
+                                            <pbmeta:CreatedBy></pbmeta:CreatedBy>
+                                            <pbmeta:WhenCreated>2017-12-01T01:35:10.637Z</pbmeta:WhenCreated>
+                                            <pbmeta:WhenStarted>0001-01-01T00:00:00</pbmeta:WhenStarted>
+                                        </pbmeta:RunDetails>
+                                        <pbmeta:WellSample Name="Mix of Cell Types -- LR 2" Description="" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00">
+                                            <pbmeta:WellName>C01</pbmeta:WellName>
+                                            <pbmeta:Concentration>0</pbmeta:Concentration>
+                                            <pbmeta:InsertSize>10000</pbmeta:InsertSize>
+                                            <pbmeta:SampleReuseEnabled>false</pbmeta:SampleReuseEnabled>
+                                            <pbmeta:StageHotstartEnabled>false</pbmeta:StageHotstartEnabled>
+                                            <pbmeta:SizeSelectionEnabled>false</pbmeta:SizeSelectionEnabled>
+                                            <pbmeta:UseCount>0</pbmeta:UseCount>
+                                            <pbmeta:DNAControlComplex></pbmeta:DNAControlComplex>
+                                            <pbsample:BioSamples>
+                                                <pbsample:BioSample Name="Mix of Cell Types -- LR 2">
+                                                </pbsample:BioSample>
+                                            </pbsample:BioSamples>
+                                        </pbmeta:WellSample>
+                                        <pbmeta:Automation Name="Magbead">
+                                            <AutomationParameters><AutomationParameter Name="ReuseCell" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/><AutomationParameter Name="MovieLength" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="1200"/><AutomationParameter Name="ReuseSample" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="False"/><AutomationParameter Name="ExtensionTime" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Double" SimpleValue="0"/><AutomationParameter Name="ExtendFirst" CreatedAt="2017-12-01T01:35:10.637Z" ModifiedAt="0001-01-01T00:00:00" ValueDataType="Boolean" SimpleValue="False"/></AutomationParameters>
+                                        </pbmeta:Automation>
+                                        <pbmeta:CollectionNumber>2</pbmeta:CollectionNumber>
+                                        <pbmeta:CellIndex>0</pbmeta:CellIndex>
+                                        <pbmeta:SetNumber>0</pbmeta:SetNumber>
+                                        <pbmeta:TemplatePrepKit Name="SMRTbell® Template Prep Kit 1.0" PartNumber="100-259-100" LotNumber="Lxxxxx" Barcode="Lxxxxx100259100123199" ExpirationDate="2099-12-31" MinInsertSize="500" MaxInsertSize="20000">
+                                            <LeftAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</LeftAdaptorSequence>
+                                            <RightAdaptorSequence xmlns="http://pacificbiosciences.com/PacBioBaseDataModel.xsd">ATCTCTCTCAACAACAACAACGGAGGAGGAGGAAAAGAGAGAGAT</RightAdaptorSequence>
+                                        </pbmeta:TemplatePrepKit>
+                                        <pbmeta:BindingKit Name="Sequel® Binding Kit 2.0" PartNumber="100-862-200" LotNumber="Lxxxxx" Barcode="Lxxxxx100862200123199" ExpirationDate="2099-12-31"/>
+                                        <pbmeta:SequencingKitPlate Name="Sequel® Sequencing Plate 2.0" PartNumber="100-861-800" LotNumber="Lxxxxx" Barcode="Lxxxxx100861800123199" ExpirationDate="2099-12-31"/>
+                                        
+                                        <pbmeta:Primary>
+                                            <pbmeta:AutomationName></pbmeta:AutomationName>
+                                            <pbmeta:ConfigFileName></pbmeta:ConfigFileName>
+                                            <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+                                        </pbmeta:Primary>
+                                        <pbmeta:Secondary>
+                                            <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>
+                                            <pbmeta:AutomationParameters>
+                                                <pbmeta:AutomationParameter Name="Reference" CreatedAt="0001-01-01T00:00:00" ModifiedAt="0001-01-01T00:00:00" ValueDataType="String" SimpleValue="DefaultSecondaryAnalysisReferenceName"/>
+                                            </pbmeta:AutomationParameters>
+                                            <pbmeta:CellCountInJob>0</pbmeta:CellCountInJob>
+                                        </pbmeta:Secondary>
+                                        <pbmeta:UserDefinedFields>
+                                            <DataEntities Name=" LIMS_IMPORT " SimpleValue="DefaultUserDefinedFieldLIMS" ValueDataType="String"/>
+                                        </pbmeta:UserDefinedFields>
+                                    </pbmeta:CollectionMetadata>
+                                </pbmeta:Collections>
+                            </pbds:DataSetMetadata>
+                        </pbds:SubreadSet></pbdm:SubreadSets>
+                </pbdm:Outputs>
+            </pbdm:Run>
+        </pbdm:Runs>
+    </pbdm:ExperimentContainer>
+</pbdm:PacBioDataModel>

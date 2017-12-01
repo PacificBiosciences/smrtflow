@@ -18,6 +18,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 import org.joda.time.{DateTime => JodaDateTime}
 
 import slick.jdbc.PostgresProfile.api._
+import shapeless._
+import slickless._
 
 object TableModels extends PacBioDateTimeDatabaseFormat {
 
@@ -673,31 +675,38 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def reserved: Rep[Boolean] = column[Boolean]("reserved")
 
+    def numStandardCells: Rep[Int] = column[Int]("num_standard_cells")
+
+    def numLRCells: Rep[Int] = column[Int]("num_lr_cells")
+
     def multiJobId: Rep[Option[Int]] =
       column[Option[Int]]("multi_job_id", O.Default(None))
 
     def * =
-      (uniqueId,
-       name,
-       summary,
-       createdBy,
-       createdAt,
-       startedAt,
-       transfersCompletedAt,
-       completedAt,
-       status,
-       totalCells,
-       numCellsCompleted,
-       numCellsFailed,
-       instrumentName,
-       instrumentSerialNumber,
-       instrumentSwVersion,
-       primaryAnalysisSwVersion,
-       chemistrySwVersion,
-       context,
-       terminationInfo,
-       reserved,
-       multiJobId) <> (RunSummary.tupled, RunSummary.unapply)
+      (uniqueId ::
+        name ::
+        summary ::
+        createdBy ::
+        createdAt ::
+        startedAt ::
+        transfersCompletedAt ::
+        completedAt ::
+        status ::
+        totalCells ::
+        numCellsCompleted ::
+        numCellsFailed ::
+        instrumentName ::
+        instrumentSerialNumber ::
+        instrumentSwVersion ::
+        primaryAnalysisSwVersion ::
+        chemistrySwVersion ::
+        context ::
+        terminationInfo ::
+        reserved ::
+        numStandardCells ::
+        numLRCells ::
+        multiJobId ::
+        HNil).mappedWith(Generic[RunSummary])
   }
 
   case class DataModelAndUniqueId(dataModel: String, uniqueId: UUID)

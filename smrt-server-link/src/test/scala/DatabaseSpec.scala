@@ -196,7 +196,9 @@ class DatabaseSpec
         Some("chemistry-version"),
         Some("context"),
         Some("termination-info"),
-        reserved = false
+        reserved = false,
+        2,
+        2
       )
       val runDataModel =
         DataModelAndUniqueId("<run>data</run>", runSummary.uniqueId)

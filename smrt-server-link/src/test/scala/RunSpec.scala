@@ -32,19 +32,7 @@ import spray.testkit.Specs2RouteTest
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class RunSpec
-    extends Specification
-    with Directives
-    with Specs2RouteTest
-    with NoTimeConversions
-    with PacBioServiceErrors {
-
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
-  sequential
-
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
-
+trait RunSpecUtils {
   val RUN_ID = UUID.randomUUID()
   val RUN_NAME = s"Run-$RUN_ID"
   val RUN_SUMMARY = "Fake Data Model"
@@ -91,8 +79,8 @@ class RunSpec
   val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
   val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
-  private def getRunDataModelFromTemplate(resourcePath: String,
-                                          runId: UUID = RUN_ID) = {
+  protected def getRunDataModelFromTemplate(resourcePath: String,
+                                            runId: UUID = RUN_ID) = {
     XmlTemplateReader
       .fromStream(getClass.getResourceAsStream(resourcePath))
       .globally()
@@ -130,6 +118,57 @@ class RunSpec
 
   val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
     "/run-data-models/fake_run_data_model.xml")
+}
+
+class RunParserSpec extends Specification with RunSpecUtils {
+  "Data model parser" should {
+    "Parse XML string" in {
+      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
+      val run = results.run
+      run.uniqueId === RUN_ID
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === None
+      run.summary === Some(RUN_SUMMARY)
+    }
+    "Parse XML including chemistry" in {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml",
+        newId)
+      val results = DataModelParserImpl(dataModel)
+      val run = results.run
+      run.uniqueId === newId
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+      run.numStandardCells === 2
+      run.numLRCells === 0
+    }
+    "Parse XML with some long-running cells" in {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model3.xml",
+        newId)
+      val results = DataModelParserImpl(dataModel)
+      val run = results.run
+      run.numStandardCells === 1
+      run.numLRCells === 2
+    }
+  }
+}
+
+class RunSpec
+    extends Specification
+    with RunSpecUtils
+    with Directives
+    with Specs2RouteTest
+    with NoTimeConversions
+    with PacBioServiceErrors {
+
+  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
+  sequential
+
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+  import Authenticator._
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
@@ -164,28 +203,6 @@ class RunSpec
     Await.ready(
       TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
       10.seconds)
-  }
-
-  "Data model parser" should {
-    "Parse XML string" in {
-      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
-      val run = results.run
-      run.uniqueId === RUN_ID
-      run.createdBy === Some(CREATED_BY)
-      run.chemistrySwVersion === None
-      run.summary === Some(RUN_SUMMARY)
-    }
-    "Parse XML including chemistry" in {
-      val newId = UUID.randomUUID()
-      val dataModel = getRunDataModelFromTemplate(
-        "/run-data-models/fake_run_data_model2.xml",
-        newId)
-      val results = DataModelParserImpl(dataModel)
-      val run = results.run
-      run.uniqueId === newId
-      run.createdBy === Some(CREATED_BY)
-      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
-    }
   }
 
   "Run Service" should {

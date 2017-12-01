@@ -201,6 +201,8 @@ case class RunSummary(uniqueId: UUID,
                       context: Option[String],
                       terminationInfo: Option[String],
                       reserved: Boolean,
+                      numStandardCells: Int,
+                      numLRCells: Int,
                       multiJobId: Option[Int] = None) {
 
   def withDataModel(dataModel: String) =
@@ -226,6 +228,8 @@ case class RunSummary(uniqueId: UUID,
       context,
       terminationInfo,
       reserved,
+      numStandardCells,
+      numLRCells,
       multiJobId
     )
 }
@@ -251,6 +255,8 @@ case class Run(dataModel: String,
                context: Option[String],
                terminationInfo: Option[String],
                reserved: Boolean,
+               numStandardCells: Int,
+               numLRCells: Int,
                multiJobId: Option[Int]) {
 
   def summarize =
@@ -275,6 +281,8 @@ case class Run(dataModel: String,
       context,
       terminationInfo,
       reserved,
+      numStandardCells,
+      numLRCells,
       multiJobId
     )
 }

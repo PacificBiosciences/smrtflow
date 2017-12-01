@@ -41,6 +41,7 @@ trait DataModelParserProvider {
 object DataModelParserImpl extends DataModelParser {
   import SupportedAcquisitionStates._
 
+  val STANDARD_MOVIE_LENGTH_MAX = 600 // TODO maybe don't hard-code this?
   val FAILED_STATES = Set(FAILED, ABORTED, ERROR) // TODO(smcclellan): Include TRANSFER_FAILED?
 
   override def apply(dataModel: String): ParseResults =
@@ -156,6 +157,11 @@ object DataModelParserImpl extends DataModelParser {
         ) // TODO(smcclellan): Populate terminationInfo field when upstream data is available
       }
 
+      val numStandardCells =
+        collections.filter(_.movieMinutes <= STANDARD_MOVIE_LENGTH_MAX).size
+      val numLRCells =
+        collections.filter(_.movieMinutes > STANDARD_MOVIE_LENGTH_MAX).size
+
       // There are some values we need from the model that are the same across collections, but for some reason
       // not stored at the run level.
       val arbitraryCollectionMetadata =
@@ -196,6 +202,8 @@ object DataModelParserImpl extends DataModelParser {
         Option(runModel.getTimeStampedName),
         terminationInfo = None, // TODO(smcclellan): Populate terminationInfo field when upstream data is available
         reserved = false,
+        numStandardCells = numStandardCells,
+        numLRCells = numLRCells,
         multiJobId = multiJobId
       )
 
