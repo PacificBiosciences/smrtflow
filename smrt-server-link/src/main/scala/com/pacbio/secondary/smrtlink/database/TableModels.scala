@@ -769,6 +769,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def terminationInfo: Rep[Option[String]] =
       column[Option[String]]("termination_info")
 
+    def cellType: Rep[Option[String]] = column[Option[String]]("cell_type")
+
     def * =
       (runId,
        uniqueId,
@@ -784,7 +786,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        createdBy,
        startedAt,
        completedAt,
-       terminationInfo) <> (CollectionMetadata.tupled, CollectionMetadata.unapply)
+       terminationInfo,
+       cellType) <> (CollectionMetadata.tupled, CollectionMetadata.unapply)
 
     def idx = index("collection_metadata_run_id", runId)
   }

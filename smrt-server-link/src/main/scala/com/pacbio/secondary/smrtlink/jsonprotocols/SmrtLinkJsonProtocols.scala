@@ -260,7 +260,7 @@ trait SmrtLinkJsonProtocols
   implicit val pbRunUpdateFormat = jsonFormat2(RunUpdate)
   implicit val pbRunFormat: RootJsonFormat[Run] = cachedImplicit
   implicit val pbRunSummaryFormat: RootJsonFormat[RunSummary] = cachedImplicit
-  implicit val pbCollectionMetadataFormat = jsonFormat15(CollectionMetadata)
+  implicit val pbCollectionMetadataFormat = jsonFormat16(CollectionMetadata)
 
   implicit val pbRegistryResourceFormat = jsonFormat6(RegistryResource)
   implicit val pbRegistryResourceCreateFormat = jsonFormat3(

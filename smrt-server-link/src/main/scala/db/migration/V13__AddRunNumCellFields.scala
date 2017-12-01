@@ -17,7 +17,8 @@ class V13__AddRunNumCellFields
       DBIO.seq(
         sqlu"""ALTER TABLE run_summaries ADD COLUMN num_standard_cells INTEGER NOT NULL DEFAULT 0""",
         sqlu"""ALTER TABLE run_summaries ADD COLUMN num_lr_cells INTEGER NOT NULL DEFAULT 0""",
-        sqlu"""UPDATE run_summaries SET num_standard_cells = total_cells"""
+        sqlu"""UPDATE run_summaries SET num_standard_cells = total_cells""",
+        sqlu"""ALTER TABLE collection_metadata ADD COLUMN cell_type VARCHAR(256) DEFAULT 'Standard'"""
       ))
   }
 }

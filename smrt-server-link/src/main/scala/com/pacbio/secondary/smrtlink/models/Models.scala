@@ -301,7 +301,8 @@ case class CollectionMetadata(runId: UUID,
                               createdBy: Option[String],
                               startedAt: Option[JodaDateTime],
                               completedAt: Option[JodaDateTime],
-                              terminationInfo: Option[String])
+                              terminationInfo: Option[String],
+                              cellType: Option[String])
 
 // Samples
 

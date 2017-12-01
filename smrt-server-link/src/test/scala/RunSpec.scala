@@ -304,6 +304,7 @@ class RunSpec
         collect1.startedAt === Some(ACQ_1_STARTED_AT)
         collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
+        collect1.cellType === Some("Standard")
 
         val collect2 = collections.filter(_.uniqueId == SUBREAD_ID_2).head
         collect2.runId === RUN_ID
@@ -319,6 +320,7 @@ class RunSpec
         collect2.startedAt === None
         collect2.completedAt === None
         collect2.terminationInfo === None
+        collect2.cellType === Some("LR")
       }
     }
 
