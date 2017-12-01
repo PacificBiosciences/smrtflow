@@ -32,19 +32,7 @@ import spray.testkit.Specs2RouteTest
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class RunSpec
-    extends Specification
-    with Directives
-    with Specs2RouteTest
-    with NoTimeConversions
-    with PacBioServiceErrors {
-
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
-  sequential
-
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
-
+trait RunSpecUtils {
   val RUN_ID = UUID.randomUUID()
   val RUN_NAME = s"Run-$RUN_ID"
   val RUN_SUMMARY = "Fake Data Model"
@@ -68,7 +56,7 @@ class RunSpec
     s"mSim_${new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)}"
   val STATUS_1 = SupportedAcquisitionStates.READY
   val INSTRUMENT_ID_1 = 54001.toString
-  val MOVIE_MINUTES_1 = 60.0
+  val MOVIE_MINUTES_1 = 600.0
   val STARTED_AT_1 = new JodaDateTime(
     2016,
     4,
@@ -84,15 +72,15 @@ class RunSpec
   val WELL_NAME_2 = "B01"
   val EXTERNAL_RESOURCE_ID_2 = UUID.randomUUID()
   val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
-  val MOVIE_MINUTES_2 = 120.0
+  val MOVIE_MINUTES_2 = 1200.0
 
   val ACQ_1_STARTED_AT = CREATED_AT.plusHours(1)
   val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(2)
   val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
   val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
-  private def getRunDataModelFromTemplate(resourcePath: String,
-                                          runId: UUID = RUN_ID) = {
+  protected def getRunDataModelFromTemplate(resourcePath: String,
+                                            runId: UUID = RUN_ID) = {
     XmlTemplateReader
       .fromStream(getClass.getResourceAsStream(resourcePath))
       .globally()
@@ -130,6 +118,49 @@ class RunSpec
 
   val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
     "/run-data-models/fake_run_data_model.xml")
+}
+
+class RunParserSpec extends Specification with RunSpecUtils {
+  "Data model parser" should {
+    "Parse XML string" in {
+      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
+      val run = results.run
+      run.uniqueId === RUN_ID
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === None
+      run.summary === Some(RUN_SUMMARY)
+      run.numStandardCells === 1
+      run.numLRCells === 1
+    }
+    "Parse XML including chemistry" in {
+      val newId = UUID.randomUUID()
+      val dataModel = getRunDataModelFromTemplate(
+        "/run-data-models/fake_run_data_model2.xml",
+        newId)
+      val results = DataModelParserImpl(dataModel)
+      val run = results.run
+      run.uniqueId === newId
+      run.createdBy === Some(CREATED_BY)
+      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
+      run.numStandardCells === 1
+      run.numLRCells === 1
+    }
+  }
+}
+
+class RunSpec
+    extends Specification
+    with RunSpecUtils
+    with Directives
+    with Specs2RouteTest
+    with NoTimeConversions
+    with PacBioServiceErrors {
+
+  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
+  sequential
+
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+  import Authenticator._
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
@@ -164,28 +195,6 @@ class RunSpec
     Await.ready(
       TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
       10.seconds)
-  }
-
-  "Data model parser" should {
-    "Parse XML string" in {
-      val results = DataModelParserImpl(FAKE_RUN_DATA_MODEL)
-      val run = results.run
-      run.uniqueId === RUN_ID
-      run.createdBy === Some(CREATED_BY)
-      run.chemistrySwVersion === None
-      run.summary === Some(RUN_SUMMARY)
-    }
-    "Parse XML including chemistry" in {
-      val newId = UUID.randomUUID()
-      val dataModel = getRunDataModelFromTemplate(
-        "/run-data-models/fake_run_data_model2.xml",
-        newId)
-      val results = DataModelParserImpl(dataModel)
-      val run = results.run
-      run.uniqueId === newId
-      run.createdBy === Some(CREATED_BY)
-      run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
-    }
   }
 
   "Run Service" should {
@@ -264,6 +273,8 @@ class RunSpec
         run.completedAt === Some(RUN_COMPLETED_AT)
         run.transfersCompletedAt === Some(RUN_TRANS_COMPLETED_AT)
         run.chemistrySwVersion === None
+        run.numStandardCells === 1
+        run.numLRCells === 1
       }
     }
     "return a specific run xml" in new daoSetup {
@@ -293,6 +304,7 @@ class RunSpec
         collect1.startedAt === Some(ACQ_1_STARTED_AT)
         collect1.completedAt === Some(ACQ_1_COMPLETED_AT)
         collect1.terminationInfo === None
+        collect1.cellType === Some("Standard")
 
         val collect2 = collections.filter(_.uniqueId == SUBREAD_ID_2).head
         collect2.runId === RUN_ID
@@ -308,6 +320,7 @@ class RunSpec
         collect2.startedAt === None
         collect2.completedAt === None
         collect2.terminationInfo === None
+        collect2.cellType === Some("LR")
       }
     }
 

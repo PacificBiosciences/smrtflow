@@ -41,6 +41,11 @@ trait DataModelParserProvider {
 object DataModelParserImpl extends DataModelParser {
   import SupportedAcquisitionStates._
 
+  // this is copied from the chemistry bundle, specifically in the file
+  // definitions/PacBioAutomationConstraints.xml
+  val STANDARD_MOVIE_LENGTH_MAX = 600 // TODO maybe don't hard-code this?
+  val CELL_TYPE_STANDARD = Some("Standard")
+  val CELL_TYPE_LR = Some("LR")
   val FAILED_STATES = Set(FAILED, ABORTED, ERROR) // TODO(smcclellan): Include TRANSFER_FAILED?
 
   override def apply(dataModel: String): ParseResults =
@@ -137,6 +142,12 @@ object DataModelParserImpl extends DataModelParser {
         val acqCompletedAt =
           eventTimeByName(acqEvents, "AcquisitionCompletion")
 
+        val cellType = if (movieMinutes <= STANDARD_MOVIE_LENGTH_MAX) {
+          CELL_TYPE_STANDARD
+        } else {
+          CELL_TYPE_LR
+        }
+
         CollectionMetadata(
           UUID.fromString(runModel.getUniqueId),
           UUID.fromString(s.getUniqueId),
@@ -152,9 +163,15 @@ object DataModelParserImpl extends DataModelParser {
           Option(collectionMetadataModel.getRunDetails.getCreatedBy),
           acqStartedAt,
           acqCompletedAt,
-          terminationInfo = None
+          terminationInfo = None,
+          cellType = cellType
         ) // TODO(smcclellan): Populate terminationInfo field when upstream data is available
       }
+
+      val numStandardCells =
+        collections.count(_.cellType == CELL_TYPE_STANDARD)
+      val numLRCells =
+        collections.count(_.cellType == CELL_TYPE_LR)
 
       // There are some values we need from the model that are the same across collections, but for some reason
       // not stored at the run level.
@@ -196,6 +213,8 @@ object DataModelParserImpl extends DataModelParser {
         Option(runModel.getTimeStampedName),
         terminationInfo = None, // TODO(smcclellan): Populate terminationInfo field when upstream data is available
         reserved = false,
+        numStandardCells = numStandardCells,
+        numLRCells = numLRCells,
         multiJobId = multiJobId
       )
 
