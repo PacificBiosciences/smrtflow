@@ -194,17 +194,19 @@ def _archive_tomcat_webapp_root(tomcat_output_dir):
     os.mkdir(os.path.join(webapp_path, 'ROOT'))
 
 
-def _copy_chemistry_bundle(version, dest_dir):
-    log.info("downloading  chemistry bundle {v} from Nexus".format(v=version))
+def _copy_chemistry_bundle(version, dest_dir, bundle_type_id):
+    log.info("downloading bundle type {t} version {v} from Nexus".format(v=version, t=bundle_type_id))
     res_bundle_dir = os.path.join(dest_dir, "resources", "pacbio-bundles")
     if not os.path.exists(res_bundle_dir):
         os.makedirs(res_bundle_dir)
 
-    tarball="chemistry-"+version+".tar.gz"
-    nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-releases/pacbio/seq/chemistry/" + version + "/" + tarball
+    bundle_name = "-".join([bundle_type_id, version])
+    tarball = bundle_name + ".tar.gz"
+
+    nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-releases/pacbio/seq/{}/{}/".format(bundle_type_id, version)
     urllib.urlretrieve (nexus_url, os.path.join(res_bundle_dir, tarball))
-    target_dir = os.path.join(res_bundle_dir, "chemistry-{v}".format(v=version))
-    current_link = os.path.join(res_bundle_dir, "chemistry-active")
+    target_dir = os.path.join(res_bundle_dir, bundle_name)
+    current_link = os.path.join(res_bundle_dir, "{}-active".format(bundle_type_id))
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
     os.makedirs(target_dir)
@@ -218,7 +220,7 @@ def _copy_chemistry_bundle(version, dest_dir):
     os.chdir(res_bundle_dir)
     os.symlink(os.path.basename(target_dir), os.path.basename(current_link))
     os.chdir(cwd)
-    log.info("Chemistry bundle is {t}".format(t=tarball))
+    log.info("bundle {n} is {t}".format(t=tarball, n=bundle_name))
     return target_dir
 
 
@@ -401,6 +403,7 @@ def build_smrtlink_services_ui(version,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
                                chemistry_version=None,
+                               chemistry_pb_version=None,
                                doc_dir=None
                                ):
     """
@@ -429,6 +432,9 @@ def build_smrtlink_services_ui(version,
 
     :param chemistry_version: Version of chemistry bundle to use
     :type chemistry_version: str | None
+
+    :param chemistry_pb_version: Version of chemistry-pb bundle to use
+    :type chemistry_pb_version: str | None
 
     :param doc_dir: Directory of docs that will be copied into tomcat (if doc_dir not None)
     :type doc_dir: str | None
@@ -478,9 +484,15 @@ def build_smrtlink_services_ui(version,
     _d = dict(n=name, d=output_bundle_dir, s=smrtflow_root_dir, u=smrtlink_ui_dir)
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
+
     chemistry_bundle_dir = None
+    chemistry_pb_bundle_dir = None
     if chemistry_version is not None:
-        chemistry_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir)
+        # For now load Both (5.0.x) legacy version and the new "chemistry-pb" (>= 5.1.0) version
+        chemistry_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir, "chemistry")
+    if chemistry_pb_version is not None:
+        chemistry_pb_bundle_dir = _copy_chemistry_bundle(chemistry_pb_version, output_bundle_dir, "chemistry-pb")
+
     log.info("Copying {f} to bundle {o}".format(f=_SL_SYSTEM_AVSC, o=output_bundle_dir))
     shutil.copy(_SL_SYSTEM_AVSC, output_bundle_dir)
 
@@ -542,9 +554,14 @@ def build_smrtlink_services_ui(version,
     smrtlink_ui_versions = {i for i in _get_smrtlink_ui_version(smrtlink_ui_dir)}
     log.info("Versions: smrtlink-ui -> {}".format(smrtlink_ui_versions))
     resource_versions = set()
-    if chemistry_bundle_dir is not None:
-        resource_versions.update(
-            {i for i in _get_chemistry_bundle_version(chemistry_bundle_dir)})
+
+    def _update_resource(bundle_dir_):
+        resource_versions.update({i for i in _get_chemistry_bundle_version(bundle_dir_)})
+        return resource_versions
+
+    for xs in (chemistry_bundle_dir, chemistry_pb_bundle_dir):
+        if xs is not None:
+            _update_resource(xs)
 
     versions = list(smrtflow_versions | smrtlink_ui_versions | resource_versions)
 
