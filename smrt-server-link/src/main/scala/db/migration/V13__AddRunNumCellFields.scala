@@ -15,9 +15,9 @@ class V13__AddRunNumCellFields
   override def slickMigrate(db: DatabaseDef): Future[Any] = {
     db.run(
       DBIO.seq(
-        sqlu"""ALTER TABLE run_summaries ADD COLUMN num_standard_cells INTEGER DEFAULT 0""",
-        sqlu"""ALTER TABLE run_summaries ADD COLUMN num_lr_cells INTEGER DEFAULT 0""",
-        sqlu"""UPDATE run_summaries SET num_standard_cells = total_cells WHERE num_standard_cells = 0"""
+        sqlu"""ALTER TABLE run_summaries ADD COLUMN num_standard_cells INTEGER NOT NULL DEFAULT 0""",
+        sqlu"""ALTER TABLE run_summaries ADD COLUMN num_lr_cells INTEGER NOT NULL DEFAULT 0""",
+        sqlu"""UPDATE run_summaries SET num_standard_cells = total_cells"""
       ))
   }
 }

@@ -56,7 +56,7 @@ trait RunSpecUtils {
     s"mSim_${new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)}"
   val STATUS_1 = SupportedAcquisitionStates.READY
   val INSTRUMENT_ID_1 = 54001.toString
-  val MOVIE_MINUTES_1 = 60.0
+  val MOVIE_MINUTES_1 = 600.0
   val STARTED_AT_1 = new JodaDateTime(
     2016,
     4,
@@ -72,7 +72,7 @@ trait RunSpecUtils {
   val WELL_NAME_2 = "B01"
   val EXTERNAL_RESOURCE_ID_2 = UUID.randomUUID()
   val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
-  val MOVIE_MINUTES_2 = 120.0
+  val MOVIE_MINUTES_2 = 1200.0
 
   val ACQ_1_STARTED_AT = CREATED_AT.plusHours(1)
   val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(2)
@@ -129,6 +129,8 @@ class RunParserSpec extends Specification with RunSpecUtils {
       run.createdBy === Some(CREATED_BY)
       run.chemistrySwVersion === None
       run.summary === Some(RUN_SUMMARY)
+      run.numStandardCells === 1
+      run.numLRCells === 1
     }
     "Parse XML including chemistry" in {
       val newId = UUID.randomUUID()
@@ -142,16 +144,6 @@ class RunParserSpec extends Specification with RunSpecUtils {
       run.chemistrySwVersion === Some("5.0.0.SNAPSHOT9346")
       run.numStandardCells === 2
       run.numLRCells === 0
-    }
-    "Parse XML with some long-running cells" in {
-      val newId = UUID.randomUUID()
-      val dataModel = getRunDataModelFromTemplate(
-        "/run-data-models/fake_run_data_model3.xml",
-        newId)
-      val results = DataModelParserImpl(dataModel)
-      val run = results.run
-      run.numStandardCells === 1
-      run.numLRCells === 2
     }
   }
 }
@@ -281,6 +273,8 @@ class RunSpec
         run.completedAt === Some(RUN_COMPLETED_AT)
         run.transfersCompletedAt === Some(RUN_TRANS_COMPLETED_AT)
         run.chemistrySwVersion === None
+        run.numStandardCells === 1
+        run.numLRCells === 1
       }
     }
     "return a specific run xml" in new daoSetup {

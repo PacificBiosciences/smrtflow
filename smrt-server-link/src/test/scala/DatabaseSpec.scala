@@ -197,8 +197,8 @@ class DatabaseSpec
         Some("context"),
         Some("termination-info"),
         reserved = false,
-        2,
-        2
+        numStandardCells = 2,
+        numLRCells = 2
       )
       val runDataModel =
         DataModelAndUniqueId("<run>data</run>", runSummary.uniqueId)
