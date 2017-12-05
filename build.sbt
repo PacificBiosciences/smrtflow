@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.11.0-SNAPSHOT"
+version in ThisBuild := "0.11.1-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
