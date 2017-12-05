@@ -31,7 +31,6 @@ if [ -z "$BUNDLE_DEST" ]; then
   echo "Using default BUNDLE_DEST=${BUNDLE_DEST}"
 fi
 
-CHEM_VERSION=$(cat $g_progdir/chemistry_version)
 CHEM_PB_VERSION=$(cat $g_progdir/chemistry-pb_version)
 
 cd $SMRTFLOW_ROOT
@@ -88,4 +87,4 @@ fi
 
 cd $BUNDLER_ROOT
 # Build Secondary Analysis Services + SMRT Link UI
-fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_version="${CHEM_VERSION}",chemistry_pb_version="${CHEM_PB_VERSION}",doc_dir="${DOC_ROOT}"
+fab build_smrtlink_services_ui:"${BUNDLE_VERSION}-${SMRTFLOW_SHA}.${UI_SHA}","${UI_ROOT}/apps/smrt-link","${SMRTFLOW_ROOT}",publish_to="${BUNDLE_DEST}",ivy_cache="${SL_IVY_CACHE}",wso2_api_manager_zip="${WSO2_ZIP}",tomcat_tgz="${TOMCAT_TGZ}",chemistry_pb_version="${CHEM_PB_VERSION}",doc_dir="${DOC_ROOT}"

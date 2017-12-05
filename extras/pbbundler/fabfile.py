@@ -402,7 +402,6 @@ def build_smrtlink_services_ui(version,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
                                tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
-                               chemistry_version=None,
                                chemistry_pb_version=None,
                                doc_dir=None
                                ):
@@ -429,9 +428,6 @@ def build_smrtlink_services_ui(version,
 
     :param wso2_api_manager_zip: Path to the zip of the WSO2 API Manager (
     v2.0.0)
-
-    :param chemistry_version: Version of chemistry bundle to use
-    :type chemistry_version: str | None
 
     :param chemistry_pb_version: Version of chemistry-pb bundle to use
     :type chemistry_pb_version: str | None
@@ -485,11 +481,7 @@ def build_smrtlink_services_ui(version,
 
     _copy_bundle_from_template(Constants.SLS_UI, output_bundle_dir)
 
-    chemistry_bundle_dir = None
     chemistry_pb_bundle_dir = None
-    if chemistry_version is not None:
-        # For now load Both (5.0.x) legacy version and the new "chemistry-pb" (>= 5.1.0) version
-        chemistry_bundle_dir = _copy_chemistry_bundle(chemistry_version, output_bundle_dir, "chemistry")
     if chemistry_pb_version is not None:
         chemistry_pb_bundle_dir = _copy_chemistry_bundle(chemistry_pb_version, output_bundle_dir, "chemistry-pb")
 
@@ -559,9 +551,8 @@ def build_smrtlink_services_ui(version,
         resource_versions.update({i for i in _get_chemistry_bundle_version(bundle_dir_)})
         return resource_versions
 
-    for xs in (chemistry_bundle_dir, chemistry_pb_bundle_dir):
-        if xs is not None:
-            _update_resource(xs)
+    if chemistry_pb_bundle_dir is not None:
+        _update_resource(chemistry_pb_bundle_dir)
 
     versions = list(smrtflow_versions | smrtlink_ui_versions | resource_versions)
 
