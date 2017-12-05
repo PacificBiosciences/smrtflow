@@ -94,7 +94,8 @@ class BundleUpdateService(dao: BundleUpdateDao)(
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
 
-  val ROUTE_PREFIX = "bundles"
+  val ROUTE_PREFIX = "updates"
+  val BUNDLE_PREFIX = "bundles"
 
   val manifest = PacBioComponentManifest(
     toServiceId("pacbio_bundles"),
@@ -114,7 +115,7 @@ class BundleUpdateService(dao: BundleUpdateDao)(
   }
 
   def routeGetBySystemVersion =
-    pathPrefix(ROUTE_PREFIX / Segment) { systemVersion =>
+    pathPrefix(ROUTE_PREFIX / Segment / BUNDLE_PREFIX) { systemVersion =>
       pathEndOrSingleSlash {
         get {
           complete {
@@ -127,7 +128,7 @@ class BundleUpdateService(dao: BundleUpdateDao)(
     }
 
   def routeGetBySystemVersionAndBundleType: Route =
-    pathPrefix(ROUTE_PREFIX / Segment / Segment) {
+    pathPrefix(ROUTE_PREFIX / Segment / BUNDLE_PREFIX / Segment) {
       (systemVersion, bundleType) =>
         pathEndOrSingleSlash {
           get {
@@ -141,7 +142,7 @@ class BundleUpdateService(dao: BundleUpdateDao)(
     }
 
   def routeGetBySystemVersionAndBundleTypeAndVersion: Route =
-    pathPrefix(ROUTE_PREFIX / Segment / Segment / Segment) {
+    pathPrefix(ROUTE_PREFIX / Segment / BUNDLE_PREFIX / Segment / Segment) {
       (systemVersion, bundleType, bundleVersion) =>
         pathEndOrSingleSlash {
           get {
@@ -155,7 +156,8 @@ class BundleUpdateService(dao: BundleUpdateDao)(
     }
 
   def routeDownloadBundle: Route =
-    pathPrefix(ROUTE_PREFIX / Segment / Segment / Segment / "download") {
+    pathPrefix(
+      ROUTE_PREFIX / Segment / BUNDLE_PREFIX / Segment / Segment / "download") {
       (systemVersion, bundleTypeId, bundleVersion) =>
         pathEndOrSingleSlash {
           get {
@@ -280,7 +282,9 @@ trait PacBioDataBundleServicesCakeProvider {
       new PacBioDataBundlePollExternalActor(pacBioBundleRoot,
                                             externalUpdateUrl,
                                             12.hours,
-                                            daoActor)))
+                                            daoActor,
+                                            "bundle-unknown-type",
+                                            None)))
   // V2 Bundle API service.
 
   // Events (this was to have the interface comply with the SMRT Link Server interface

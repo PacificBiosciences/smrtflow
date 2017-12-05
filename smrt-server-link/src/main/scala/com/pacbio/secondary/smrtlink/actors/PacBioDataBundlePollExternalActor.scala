@@ -13,7 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.pacbio.secondary.smrtlink.client.PacBioDataBundleClient
+import com.pacbio.secondary.smrtlink.client.PacBioDataBundleUpdateServerClient
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.models.{
   ExternalServerStatus,
@@ -34,17 +34,22 @@ object PacBioDataBundlePollExternalActor {
   *
   * On startup, the system will trigger an external call to check for newer bundles.
   *
-  * @param rootBundleDir System root bundle dir
-  * @param url           Root URL of the external bundle server (Example http://my-host:8080)
-  * @param pollTime      interval time between polling the external server
-  * @param daoActor      Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
-  * @param bundleType    Bundle type to check for upgrades
+  * If either the server URL, or the pacBioSystemVersion is not provided, the updating will be
+  * disabled.
+  *
+  * @param rootBundleDir       System root bundle dir
+  * @param url                 Root URL of the external bundle server (Example http://my-host:8080)
+  * @param pollTime            interval time between polling the external server
+  * @param daoActor            Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
+  * @param bundleType          Bundle type to check for upgrades
+  * @param pacBioSystemVersion PacBio System Release Version (e.g., 5.0.0)
   */
 class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
                                         url: Option[URL],
                                         pollTime: FiniteDuration,
                                         daoActor: ActorRef,
-                                        bundleType: String = "chemistry")
+                                        bundleType: String,
+                                        pacBioSystemVersion: Option[String])
     extends Actor
     with LazyLogging {
   import PacBioDataBundlePollExternalActor._
@@ -59,11 +64,23 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
                                     self,
                                     CheckForUpdates)
 
-  val client: Option[PacBioDataBundleClient] =
-    url.map(ux =>
-      new PacBioDataBundleClient(
-        new URL(ux.getProtocol, ux.getHost, ux.getPort, "/smrt-link/bundles"))(
-        context.system))
+  /**
+    * There's some lackluster use of pacBioSystemVersion.get on pacBioSystem that assumes the client is None and will
+    * never be called. This should be fixed.
+    */
+  def getClient(): Option[PacBioDataBundleUpdateServerClient] = {
+    (url, pacBioSystemVersion) match {
+      case (Some(ux), Some(_)) =>
+        Some(new PacBioDataBundleUpdateServerClient(
+          new URL(ux.getProtocol, ux.getHost, ux.getPort, ""))(context.system))
+      case _ =>
+        logger.warn(
+          s"System is NOT configured for accessing PacBio Updates systemVersion:$pacBioSystemVersion URL:$url")
+        None
+    }
+  }
+
+  val client: Option[PacBioDataBundleUpdateServerClient] = getClient()
 
   override def preStart(): Unit = {
     super.preStart()
@@ -83,7 +100,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param c Bundle Client
     * @return
     */
-  def getStatus(c: PacBioDataBundleClient): Future[ExternalServerStatus] = {
+  def getStatus(
+      c: PacBioDataBundleUpdateServerClient): Future[ExternalServerStatus] = {
     c.getPacBioDataBundles().map { bs =>
       val summary =
         bs.map(b => s"${b.typeId}-${b.version}").reduce(_ + "," + _)
@@ -104,10 +122,13 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param rootOutputDir System Root Bundle Directory
     * @return
     */
-  def downloadBundle(c: PacBioDataBundleClient,
+  def downloadBundle(c: PacBioDataBundleUpdateServerClient,
                      b: PacBioDataBundle,
                      rootOutputDir: Path): PacBioDataBundleIO = {
-    val downloadUrl = new URL(c.toPacBioBundleDownloadUrl(b.typeId, b.version))
+    val downloadUrl = new URL(
+      c.toV2PacBioBundleDownloadUrl(pacBioSystemVersion.get,
+                                    b.typeId,
+                                    b.version))
     logger.info(
       s"Attempting to download Bundle ${b.typeId} ${b.version} from $downloadUrl")
     val bio = PacBioDataBundleIOUtils.downloadAndProcessDataBundle(
@@ -128,11 +149,14 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param c Bundle Client
     * @return
     */
-  def getNewBundles(c: PacBioDataBundleClient): Future[Seq[PacBioDataBundle]] = {
+  def getNewBundles(
+      c: PacBioDataBundleUpdateServerClient): Future[Seq[PacBioDataBundle]] = {
     for {
       myBundles <- (daoActor ? GetAllBundlesByType(bundleType))
         .mapTo[Seq[PacBioDataBundle]]
-      externalBundles <- c.getPacBioDataBundleByTypeId(bundleType)
+      externalBundles <- c.getV2PacBioDataBundleByTypeId(
+        pacBioSystemVersion.get,
+        bundleType)
       sortedExternalBundles <- Future.successful(
         andLog[PacBioDataBundle](
           "All external Server Bundles",
@@ -155,8 +179,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param c Bundle Client
     * @return
     */
-  def checkAndDownload(
-      c: PacBioDataBundleClient): Future[Seq[PacBioDataBundleIO]] = {
+  def checkAndDownload(c: PacBioDataBundleUpdateServerClient)
+    : Future[Seq[PacBioDataBundleIO]] = {
     logger.info(s"Checking for new bundles to ${c.baseUrl}")
     getNewBundles(c).map { bundles =>
       if (bundles.isEmpty) {
@@ -178,8 +202,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpdate(
-      c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+  def checkDownloadUpdate(c: PacBioDataBundleUpdateServerClient)
+    : Future[Seq[Future[PacBioDataBundleIO]]] = {
     checkAndDownload(c).map { downloads =>
       if (downloads.isEmpty) {
         logger.debug(
@@ -196,8 +220,8 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     * @param c Bundle Client
     * @return
     */
-  def checkDownloadUpgradeAndHandle(
-      c: PacBioDataBundleClient): Future[Seq[Future[PacBioDataBundleIO]]] = {
+  def checkDownloadUpgradeAndHandle(c: PacBioDataBundleUpdateServerClient)
+    : Future[Seq[Future[PacBioDataBundleIO]]] = {
     checkDownloadUpdate(c).map { allFuts =>
       if (allFuts.isEmpty) {
         logger.info("No bundles found to upgrade")
@@ -260,12 +284,14 @@ trait PacBioDataBundlePollExternalActorProvider {
   val externalBundleUpgraderActor: Singleton[ActorRef] =
     Singleton(
       () =>
-        actorRefFactory().actorOf(
-          Props(classOf[PacBioDataBundlePollExternalActor],
-                pacBioBundleRoot(),
-                externalBundleUrl(),
-                externalBundlePollDuration(),
-                pacBioBundleDaoActor(),
-                "chemistry")))
+        actorRefFactory().actorOf(Props(
+          classOf[PacBioDataBundlePollExternalActor],
+          pacBioBundleRoot(),
+          externalBundleUrl(),
+          externalBundlePollDuration(),
+          pacBioBundleDaoActor(),
+          chemistryBundleId,
+          smrtLinkVersion()
+        )))
 
 }

@@ -197,7 +197,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/api/v2/bundles/{pacbioSystemVersion}/bundles": {
+    "/api/v2/updates/{pacbioSystemVersion}/bundles": {
       "get": {
         "description": "Get a list of all registered bundles (active or inactive) in the system",
         "x-scope": "data-management",
@@ -228,7 +228,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/api/v2/bundles/{pacbioSystemVersion}/bundles/{bundleType}": {
+    "/api/v2/updates/{pacbioSystemVersion}/bundles/{bundleType}": {
       "get": {
         "description": "Get a list of all registered bundles by bundle type (active or inactive) in the system",
         "x-scope": "data-management",
@@ -266,7 +266,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/api/v2/bundles/{pacbioSystemVersion}/bundles/{bundleType}/{bundleVersion}": {
+    "/api/v2/updates/{pacbioSystemVersion}/bundles/{bundleType}/{bundleVersion}": {
       "get": {
         "description": "Get a PacBio Data Bundle by Id (bundleType, bundleVersion)",
         "x-scope": "data-management",
@@ -311,7 +311,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/api/v2/bundles/{pacbioSystemVersion}/{bundleType}/{bundleVersion}/download": {
+    "/api/v2/updates/{pacbioSystemVersion}/bundles/{bundleType}/{bundleVersion}/download": {
       "get": {
         "description": "Download a PacBio Data Bundle TGZ by Id (bundleType, bundleVersion)",
         "x-scope": "data-management",
