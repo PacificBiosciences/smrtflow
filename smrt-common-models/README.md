@@ -13,38 +13,16 @@ These only need to be remade when the definitions change. Currently this is done
 
 ## Step #1
 
-Delete old XSDs and copy XSDs into smrt-common-models
-
-```bash
-# delete the old bindings
-rm -fr smrt-common-models/src/main/java/*
-
-# delete all XSDs
-rm -rf smrt-common-models/src/main/resources/pb-common-xsds
-
-# Perhaps need to delete PacBioDeclData.xsd or other non-namespaced files used by ICS
-# Update the XSDs stored within smrtflow
-cp xsd-datamodels/*.xsd smrt-common-models/src/main/resources/pb-common-xsds
-```
-
-## Step #2
-
 Generate Java classes
 
 ```bash
 # generate the new
-xjc smrt-common-models/src/main/resources/pb-common-xsds/ -d smrt-common-models/src/main/java
-
+cp /path/to/xsd-datamodels/*.xsd smrt-common-models/src/main/resources/pb-common-xsds
+bash update-java-classes.sh
 ````
-## Step #3
 
-## Manually FIX Namespaces
 
-See extras/package-info.java and manually update the package-info.java classes.
-
-Hacky way is use git to revert the package-info.java files in each subpackage. 
-
-## Step #4
+## Step #2
 
 Update Constants.scala in smrt-common-models with the git SHA of the xsd-datamodels repo.
 
