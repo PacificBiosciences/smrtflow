@@ -850,10 +850,10 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			</xs:complexContent>
 		</xs:complexType>
 	</xs:element>
-	<xs:element name="KeyValueMap" type="KeyValueMapType"/>
-	<xs:element name="CellMaxMovieTimes" type="KeyValueMapType"/>
+	<xs:element name="KeyValueMap" type="KeyValueMap"/>
+	<xs:element name="CellMaxMovieTimes" type="KeyValueMap"/>
 
-	<xs:complexType name="KeyValueMapType">
+	<xs:complexType name="KeyValueMap">
 		<xs:sequence>
 			<xs:element name="Items">
 				<xs:complexType>
@@ -870,7 +870,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 	</xs:complexType>
 	<xs:complexType name="MapType">
 		<xs:sequence>
-			<xs:element name="KeyValueMap" type="KeyValueMapType"/>
+			<xs:element name="KeyValueMap" type="KeyValueMap"/>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="MapItemType">
