@@ -17,7 +17,7 @@ import ch.qos.logback.core.rolling.{
 import ch.qos.logback.core.util.FileSize
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Properties
 
 /**
@@ -105,7 +105,7 @@ trait LoggerConfig {
     this.logLevel = level
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     val l = Level.toLevel(level)
-    for (logger <- lc.getLoggerList) logger.setLevel(l)
+    for (logger <- lc.getLoggerList.asScala) logger.setLevel(l)
   }
 
   /**
@@ -155,7 +155,7 @@ trait LoggerConfig {
     appender.start()
 
     // set all loggers to direct output to the specified file
-    for (logger <- lc.getLoggerList) {
+    for (logger <- lc.getLoggerList.asScala) {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
     }
@@ -187,7 +187,7 @@ trait LoggerConfig {
     appender.setLayout(patternLayout)
     appender.start()
     // set all loggers to direct output to console
-    for (logger <- lc.getLoggerList) {
+    for (logger <- lc.getLoggerList.asScala) {
       // remove any old appenders
       logger.detachAndStopAllAppenders()
     }
