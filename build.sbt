@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.10.0-SNAPSHOT"
+version in ThisBuild := "0.11.1-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -102,6 +102,8 @@ lazy val baseSettings = Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
   "com.typesafe.slick" %% "slick" % slickV,
   "com.typesafe.slick" % "slick-hikaricp_2.11" % slickV,
+  "com.chuusai" %% "shapeless" % "2.3.1",
+  "io.underscore" %% "slickless" % "0.3.2",
   "commons-cli" % "commons-cli" % "1.2",
   "commons-io" % "commons-io" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
@@ -271,5 +273,10 @@ lazy val smrtServerLink =
 
 lazy val smrtServerSim =
   toPacBioProject("smrt-server-sim")
+    .dependsOn(common, smrtServerLink)
+    .settings()
+
+lazy val smrtServerBundle =
+  toPacBioProject("smrt-server-bundle")
     .dependsOn(common, smrtServerLink)
     .settings()

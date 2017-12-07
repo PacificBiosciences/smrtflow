@@ -36,14 +36,22 @@ trait PacBioDataBundleClientTrait extends ClientBase {
   def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] =
     sendReceiveAuthenticated ~> unmarshal[PacBioDataBundle]
 
-  // PacBio Data Bundle
+  /**
+    * Get Bundles of All Types
+    */
   def getPacBioDataBundles() = getPacBioDataBundlesPipeline {
     Get(toPacBioDataBundleUrl())
   }
 
+  /**
+    * Get Bundles of a specific Type
+    */
   def getPacBioDataBundleByTypeId(typeId: String) =
     getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
 
+  /**
+    * Get a Specific Bundle by Type and Version
+    */
   def getPacBioDataBundleByTypeAndVersionId(typeId: String,
                                             versionId: String) =
     getPacBioDataBundlePipeline {
@@ -52,9 +60,10 @@ trait PacBioDataBundleClientTrait extends ClientBase {
 }
 
 /**
-  * The Bundle Client to access PacBio Data Bundles.
+  * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
   *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles or /bundles)
+  *
+  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
   * @param actorSystem Actor System
   */
 class PacBioDataBundleClient(override val baseUrl: URL)(
@@ -71,5 +80,46 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
     val segment = s"/$bundleType/$bundleVersion/download"
     toUrl(segment)
   }
+}
+
+/**
+  * For <= 5.1.0, the Update Server and SMRT Link service interface has diverged.
+  *
+  * This client can access the legacy "V1" routes, or the new "V2" routes.
+  *
+  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
+  * @param actorSystem Actor System
+  */
+class PacBioDataBundleUpdateServerClient(override val baseUrl: URL)(
+    implicit override val actorSystem: ActorSystem)
+    extends PacBioDataBundleClient(baseUrl)(actorSystem) {
+
+  val V2_PREFIX = "/api/v2/updates"
+
+  override def sendReceiveAuthenticated = sendReceive
+
+  def toV2PacBioDataBundleUrl(pacBioSystemVersion: String,
+                              bundleType: Option[String] = None): String = {
+    val segment = bundleType
+      .map(b => s"$V2_PREFIX/$pacBioSystemVersion/bundles/$b")
+      .getOrElse(s"$V2_PREFIX/$pacBioSystemVersion/bundles")
+    toUrl(segment)
+  }
+  def toV2PacBioBundleDownloadUrl(pacBioSystemVersion: String,
+                                  bundleType: String,
+                                  bundleVersion: String) = {
+    val segment =
+      s"$V2_PREFIX/$pacBioSystemVersion/bundles/$bundleType/$bundleVersion/download"
+    toUrl(segment)
+  }
+
+  /**
+    * Get Bundles of a specific Type
+    */
+  def getV2PacBioDataBundleByTypeId(pacBioSystemVersion: String,
+                                    bundleType: String) =
+    getPacBioDataBundlesPipeline {
+      Get(toV2PacBioDataBundleUrl(pacBioSystemVersion, Some(bundleType)))
+    }
 
 }

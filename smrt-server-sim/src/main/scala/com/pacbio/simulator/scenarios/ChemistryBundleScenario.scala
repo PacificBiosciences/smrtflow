@@ -93,7 +93,7 @@ class ChemistryBundleScenario(host: String, port: Int)
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS
   )
   val pbsmrtpipeSteps = Seq(
-    bundle := GetBundle(Var("chemistry")),
+    bundle := GetBundle(Var("chemistry-pb")),
     jobId := RunAnalysisPipeline(
       bundle.mapWith(b => getPipelineOpts(b.version))),
     jobStatus := WaitForJob(jobId),
