@@ -35,7 +35,7 @@ trait ValidateDataSet {
   def hasAtLeastOneExternalResource(ds: DsType): ValidateDataSetE = {
     val msg =
       s"DataSet ${ds.getUniqueId} must have at least 1 external resource."
-    if (ds.getExternalResources.getExternalResource.isEmpty) msg.failNel
+    if (ds.getExternalResources.getExternalResource.isEmpty) msg.failureNel
     else ds.successNel
   }
 
@@ -49,7 +49,7 @@ trait ValidateDataSet {
     !ds.getExternalResources.getExternalResource.exists(er =>
       supportedFileTypes contains er.getMetaType) match {
       case true =>
-        s"Failed to find required metatype $supportedFileTypes".failNel
+        s"Failed to find required metatype $supportedFileTypes".failureNel
       case false => ds.successNel
     }
   }
@@ -70,7 +70,7 @@ trait ValidateDataSet {
       .map(r => r.getResourceId)
       .filter(x => !Files.exists(getExternalResourcePath(x)))
       .reduceLeftOption((a, b) => s"$a, $b") match {
-      case Some(msg) => s"Unable to find Resource(s) $msg".failNel
+      case Some(msg) => s"Unable to find Resource(s) $msg".failureNel
       case _ => ds.successNel
     }
   }

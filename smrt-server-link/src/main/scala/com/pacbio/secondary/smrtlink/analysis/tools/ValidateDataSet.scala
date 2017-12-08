@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateReferenceSet
 
-import collection.JavaConversions._
+import collection.JavaConverters._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.HdfSubread
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,
