@@ -22,10 +22,11 @@ import akka.util.Timeout
 import akka.pattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.{HttpHeader, MediaTypes}
 import akka.http.scaladsl.Http
 import spray.json._
 import DefaultJsonProtocol._
+import akka.http.scaladsl.settings.RoutingSettings
 import com.pacbio.secondary.smrtlink.auth.hmac.{
   Authentication,
   DefaultSigner,

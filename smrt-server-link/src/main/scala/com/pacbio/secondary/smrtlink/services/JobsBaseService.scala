@@ -40,15 +40,17 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
-import spray.http.{HttpData, HttpEntity, _}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.httpx.unmarshalling.Unmarshaller
-import spray.httpx.marshalling.Marshaller
-import spray.json._
 import akka.http.scaladsl.server._
-import spray.routing.directives.FileAndResourceDirectives
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`Content-Disposition`
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import spray.json._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,6 +68,7 @@ object JobResourceUtils extends LazyLogging {
       s"Trying to resolve resource '$imageFileName' with ext '$ext' from '$jobDir'")
     val it = FileUtils
       .iterateFiles(jobP.toFile, filterExt.toArray, true)
+      .asScala
       .filter(x => x.getName == imageFileName)
     it.toList.headOption match {
       case Some(x) => Some(x.toPath.toAbsolutePath.toString)
@@ -384,11 +387,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         } ~
         path(JOB_REPORT_PREFIX / JavaUUID) { reportUUID =>
           get {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              complete {
-                ok {
-                  dao.getDataStoreReportByUUID(reportUUID)
-                }
+            complete {
+              ok {
+                dao
+                  .getDataStoreReportByUUID(reportUUID)
+                  .map(_.parseJson) // To get the mime type correct
               }
             }
           }
@@ -496,9 +499,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                       s"job-${jobId.toIdString}-${dsf.uuid.toString}-${Paths.get(dsf.path).toAbsolutePath.getFileName}"
                     // Using headers= instead of respondWithHeader because need to set the name file file
                     HttpResponse(entity = httpEntity,
-                                 headers =
-                                   List(HttpHeaders.`Content-Disposition`(
-                                     "attachment; filename=" + fn)))
+                                 headers = List(`Content-Disposition`(
+                                   "attachment; filename=" + fn)))
                   }
               }
             }
@@ -1032,8 +1034,8 @@ class JobsServiceUtils(
             onSuccess(dao.getDataStoreFileByUUID(dsFileUUID)) { file =>
               val fn =
                 s"job-${file.jobId}-${file.uuid.toString}-${Paths.get(file.path).toAbsolutePath.getFileName}"
-              respondWithHeader(HttpHeaders.`Content-Disposition`(
-                "attachment; filename=" + fn)) {
+              respondWithHeader(
+                `Content-Disposition`("attachment; filename=" + fn)) {
                 getFromFile(file.path)
               }
             }
