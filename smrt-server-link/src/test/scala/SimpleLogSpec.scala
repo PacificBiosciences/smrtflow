@@ -1,6 +1,6 @@
 import scala.concurrent.duration._
 import spray.http.StatusCodes
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 import spray.testkit.Specs2RouteTest
 import org.specs2.mutable.Specification

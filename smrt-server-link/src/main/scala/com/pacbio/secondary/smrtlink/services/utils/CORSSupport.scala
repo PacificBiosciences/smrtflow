@@ -1,15 +1,20 @@
 package com.pacbio.secondary.smrtlink.services.utils
 
-import spray.http.HttpMethods._
-import spray.http.{HttpResponse, HttpMethod, HttpMethods, AllOrigins}
-import spray.http.HttpHeaders.{
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.headers.{
+  `Access-Control-Allow-Origin`,
   `Access-Control-Allow-Methods`,
-  `Access-Control-Max-Age`,
   `Access-Control-Allow-Headers`,
-  `Access-Control-Allow-Origin`
+  `Access-Control-Max-Age`
 }
-import spray.routing._
-import spray.routing.directives.BasicDirectives
+import akka.http.scaladsl.model.{
+  HttpMethods,
+  HttpRequest,
+  HttpResponse,
+  HttpMethod
+}
+import akka.http.scaladsl.server.RouteResult.Rejected
+import akka.http.scaladsl.server.directives.BasicDirectives
 
 /**
   * Forked from
@@ -19,6 +24,9 @@ import spray.routing.directives.BasicDirectives
   * See Also
   * https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
   * http://www.html5rocks.com/en/tutorials/cors/#toc-adding-cors-support-to-the-server
+  *
+  * MK(12-7-2017) We should just use this https://github.com/lomigmegard/akka-http-cors
+  * Someone else has solved this problem.
   */
 object CORSSupport extends BasicDirectives {
 

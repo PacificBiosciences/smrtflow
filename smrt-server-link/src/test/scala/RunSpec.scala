@@ -21,7 +21,7 @@ import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import org.specs2.time.NoTimeConversions
 import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.routing.{
   AuthenticationFailedRejection,
   AuthorizationFailedRejection,

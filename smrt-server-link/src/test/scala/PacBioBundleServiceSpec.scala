@@ -2,7 +2,7 @@ import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 

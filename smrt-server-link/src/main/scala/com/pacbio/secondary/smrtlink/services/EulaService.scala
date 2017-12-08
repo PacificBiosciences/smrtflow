@@ -5,9 +5,9 @@ import scala.concurrent.duration._
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing._
+import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.auth.{
   Authenticator,

@@ -20,14 +20,13 @@ import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
-import spray.can.Http
-import spray.routing.{Route, RouteConcatenation}
-import spray.http._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.Http
 import spray.json._
-import spray.routing._
 import DefaultJsonProtocol._
-import mbilski.spray.hmac.{
+import com.pacbio.secondary.smrtlink.auth.hmac.{
   Authentication,
   DefaultSigner,
   Directives,
@@ -382,7 +381,7 @@ class EventService(
   }
 
   def processBodyPart(
-      m: BodyPart,
+      m: Multipart.BodyPart,
       saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
     for {
       fileName <- failIfNone("Unable to find filename in headers")(
@@ -499,8 +498,6 @@ trait RootEventServerCakeProvider extends RouteConcatenation {
 
   lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
 
-  lazy val rootService =
-    actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
 trait EventServerCakeProvider
@@ -539,15 +536,9 @@ trait EventServerCakeProvider
     } yield s"$validMsg\n$message\nSuccessfully executed preStartUpHook"
 
   private def startServices(): Future[String] = {
-    (IO(Http)(actorSystem) ? Http.Bind(rootService,
-                                       systemHost,
-                                       port = systemPort)) flatMap {
-      case r: Http.CommandFailed =>
-        Future.failed(
-          new BindException(s"Failed to bind to $systemHost:$systemPort"))
-      case _ =>
-        Future { s"Successfully started up on $systemHost:$systemPort" }
-    }
+    Http()
+      .bindAndHandle(allRoutes, systemHost, port = systemPort)
+      .map(_ => s"Successfully started up on $systemHost:$systemPort")
   }
 
   /**
@@ -637,8 +628,10 @@ trait EventServerCakeProvider
         logger.info(msg)
         println("Successfully started up System")
       case Failure(ex) =>
-        IO(Http)(actorSystem) ! Http.CloseAll
-        actorSystem.shutdown()
+        // This should call unbind?
+        // flatMap(_.unbind()) // trigger unbinding from the port
+        //IO(Http)(actorSystem) ! Http.CloseAll
+        actorSystem.terminate()
         throw new StartupFailedException(ex)
     }
 

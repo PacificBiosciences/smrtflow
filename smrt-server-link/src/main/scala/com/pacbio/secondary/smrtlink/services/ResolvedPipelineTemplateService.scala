@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateResourceLoader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 /**
   *

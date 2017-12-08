@@ -15,7 +15,7 @@ import spray.httpx.marshalling.Marshaller
 import spray.routing.{PathMatcher1, Route}
 import spray.http.MediaTypes
 import spray.json._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.auth.{
   Authenticator,

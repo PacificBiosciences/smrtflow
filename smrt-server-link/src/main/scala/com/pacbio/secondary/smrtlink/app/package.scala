@@ -4,6 +4,7 @@ import java.net.URL
 import java.nio.file.{Path, Paths}
 
 import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 
@@ -44,6 +45,7 @@ package object app {
 
   trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
     implicit lazy val actorSystem = ActorSystem(systemName)
+    implicit lazy val materializer = ActorMaterializer()
   }
 
 }

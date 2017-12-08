@@ -1,6 +1,6 @@
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.ActorRefFactory
 import spray.json._
 import com.pacbio.secondary.smrtlink.auth._

@@ -7,21 +7,25 @@ import com.pacbio.secondary.smrtlink.services.utils.CORSSupport
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
-import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.marshalling._
-import spray.routing.directives.LogEntry
-import spray.util.LoggingContext
+
+import akka.http.scaladsl.marshalling._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`Access-Control-Allow-Origin`
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.directives.{LogEntry, DebuggingDirectives}
+import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 
 import scala.util.control.NonFatal
 
 package object services {
 
   import akka.actor.{Actor, ActorLogging}
-  import spray.http.StatusCode
-  import spray.http.StatusCodes._
-  import spray.routing._
+  import StatusCodes._
+
+  //import spray.http.StatusCode
+  //import spray.http.StatusCodes._
+  // import akka.http.scaladsl.server._
 
   trait AppConfig {
 
@@ -40,6 +44,7 @@ package object services {
   object StatusCodeJoiners
       extends BasicMarshallers
       with BasicToResponseMarshallers {
+
     import ToResponseMarshallable._
 
     /**
@@ -149,6 +154,7 @@ package object services {
   trait PacBioServiceErrors
       extends BasicToResponseMarshallers
       with LazyLogging {
+
     import CORSSupport._
     import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
     import PacBioServiceErrors._
@@ -169,6 +175,25 @@ package object services {
         allowOriginHeader :: headers
       else
         headers
+
+    def mapErrorToRootObject(message: String): String = ""
+
+    def pacBioRejectionHandler(): RejectionHandler =
+      RejectionHandler
+        .newBuilder()
+        .handle {
+          case AuthenticationFailedRejection(cause, challengeHeaders) =>
+            logger.error(s"Request is rejected with cause: $cause")
+            complete(
+              (Unauthorized, mapErrorToRootObject(unauthenticatedError)))
+        }
+        .handleNotFound { ctx =>
+          val emsg = s"Route: ${ctx.request.uri} does not exist."
+          logger.error(emsg)
+          ctx.complete((NotFound, mapErrorToRootObject(emsg)))
+        }
+        .result()
+        .withFallBack(RejectionHandler.default)
 
     implicit val pacbioExceptionHandler: ExceptionHandler = ExceptionHandler {
       case NonFatal(e) =>
@@ -224,15 +249,16 @@ package object services {
 
   class RoutedHttpService(route: Route)
       extends Actor
-      with HttpService
       with ActorLogging
       with PacBioServiceErrors {
+
     import CORSSupport._
     import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
 
     implicit def actorRefFactory = context
 
     def showRequest(req: HttpRequest): LogEntry = {
+
       var asString: String = req.entity.toOption
         .map(
           data => s"request: ${req.method} ${req.uri} ${data}"
@@ -243,7 +269,7 @@ package object services {
 
     def receive: Receive =
       runRoute(compressResponseIfRequested() {
-        logRequest(showRequest _) {
+        DebuggingDirectives.logRequest(showRequest _) {
           route
         }
       })(pacbioExceptionHandler,
@@ -257,12 +283,14 @@ package object services {
         InternalServerError.intValue,
         "The server was not able to produce a timely response to your request.",
         InternalServerError.reason)
-      val bResp = pbThrowableResponseFormat.write(tResp).prettyPrint.getBytes
+
+      val bResp: Array[Byte] =
+        pbThrowableResponseFormat.write(tResp).prettyPrint.getBytes
 
       HttpResponse(
         InternalServerError,
-        HttpEntity(ContentTypes.`application/json`, bResp),
-        List(allowOriginHeader)
+        entity = HttpEntity(ContentTypes.`application/json`, bResp),
+        headers = List(allowOriginHeader)
       )
     }
   }

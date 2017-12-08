@@ -38,8 +38,8 @@ import org.specs2.mock._
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
-import spray.routing._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.duration._

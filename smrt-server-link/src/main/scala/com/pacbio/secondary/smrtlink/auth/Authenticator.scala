@@ -1,9 +1,13 @@
 package com.pacbio.secondary.smrtlink.auth
 
+import akka.http.scaladsl.model.headers.HttpChallenge
+import akka.http.scaladsl.server.{
+  AuthenticationFailedRejection,
+  Rejection,
+  RequestContext
+}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.UserRecord
-import spray.routing.directives.AuthMagnet
-import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,7 +58,7 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
 
   override def wso2Auth(
       implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
-    import AuthenticationFailedRejection._
+    import akka.http.scaladsl.server.AuthenticationFailedRejection._
 
     def authHeader(ctx: RequestContext) =
       ctx.request.headers.find(_.is(JWT_HEADER))
@@ -77,7 +81,7 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
             else CredentialsRejected
           Left(
             AuthenticationFailedRejection(cause,
-                                          challengeHeaders = List.empty))
+                                          HttpChallenge("http", realm = None)))
       }
 
     ctx: RequestContext =>

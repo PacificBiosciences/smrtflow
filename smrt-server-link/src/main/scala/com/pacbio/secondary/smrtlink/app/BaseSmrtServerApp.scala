@@ -4,9 +4,12 @@ import java.lang.management.ManagementFactory
 import java.net.BindException
 
 import akka.actor.{ActorRefFactory, Props}
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import akka.http.scaladsl.server._
+import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.auth.{
   AuthenticatorImplProvider,
@@ -28,10 +31,8 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.models.MimeTypeDetectors
 import com.pacbio.secondary.smrtlink.services._
 import com.typesafe.scalalogging.LazyLogging
-import spray.can.Http
-import spray.routing.Route
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -128,12 +129,13 @@ trait BaseApi {
   // This is needed with Mixin routes from traits that only extend HttpService
   def actorRefFactory: ActorRefFactory = system
 
-  sys.addShutdownHook(system.shutdown())
+  sys.addShutdownHook(system.terminate())
 }
 
 trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
+  implicit val materializer = ActorMaterializer()
 
   val host: String
   val port: Int
@@ -147,16 +149,14 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
     logger.info("Java Home: " + System.getProperty("java.home"))
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean
     val arguments = runtimeMxBean.getInputArguments
-    logger.info("Java Args: " + arguments.mkString(" "))
+    logger.info("Java Args: " + arguments.asScala.mkString(" "))
 
-    val f: Future[Option[BindException]] = (IO(Http)(system) ? Http.Bind(
-      rootService,
-      host,
-      port = port)) map {
-      case r: Http.CommandFailed =>
-        Some(new BindException(s"Failed to bind to $host:$port"))
-      case r => None
-    }
+    val f: Future[Option[BindException]] =
+      Http().bindAndHandle(routes, host, port).map {
+        case r: Http.CommandFailed =>
+          Some(new BindException(s"Failed to bind to $host:$port"))
+        case r => None
+      }
 
     Await.result(f, 10.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll

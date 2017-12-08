@@ -5,16 +5,18 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
-import spray.can.Http
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.marshalling.BasicMarshallers._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.unmarshalling._
+import akka.http.scaladsl.model.headers.BasicHttpCredentials
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.client.RequestBuilding._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

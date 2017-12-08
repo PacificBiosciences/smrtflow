@@ -6,9 +6,9 @@ package com.pacbio.simulator.clients
 import java.net.URL
 
 import akka.actor.ActorSystem
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport._
+
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.http.HttpHeaders._
 import MediaTypes._
 import com.pacbio.simulator.ICSJsonProtocol

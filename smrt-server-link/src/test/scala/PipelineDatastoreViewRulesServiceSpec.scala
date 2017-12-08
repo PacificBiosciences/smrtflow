@@ -1,7 +1,7 @@
 import scala.concurrent.duration.FiniteDuration
 import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{

@@ -9,10 +9,12 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import scalaj.http.Base64
 import akka.actor.ActorSystem
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.unmarshalling.FromResponseUnmarshaller
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
@@ -46,7 +48,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
     .map(c =>
       Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
-    .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
+    .map(j => RawHeader(JWT_HEADER, j))
     .toSeq
 
   def this(host: String, port: Int, authUser: Option[String] = None)(

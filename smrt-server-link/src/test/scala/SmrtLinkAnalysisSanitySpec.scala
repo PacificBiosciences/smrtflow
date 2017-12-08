@@ -5,7 +5,7 @@ import com.pacbio.secondary.smrtlink.app.{
   SmrtLinkProviders
 }
 import org.specs2.mutable.Specification
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.testkit.Specs2RouteTest
 
 /**

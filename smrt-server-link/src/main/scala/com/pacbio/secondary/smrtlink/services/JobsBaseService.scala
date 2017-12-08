@@ -41,11 +41,11 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import spray.http.{HttpData, HttpEntity, _}
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.httpx.unmarshalling.Unmarshaller
 import spray.httpx.marshalling.Marshaller
 import spray.json._
-import spray.routing._
+import akka.http.scaladsl.server._
 import spray.routing.directives.FileAndResourceDirectives
 
 import scala.collection.JavaConversions._

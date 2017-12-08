@@ -34,10 +34,10 @@ import com.pacbio.secondary.smrtlink.models.{
 import com.pacbio.secondary.smrtserverbundle.dao.BundleUpdateDao
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.can.Http
 import spray.http.HttpHeaders
-import spray.routing._
+import akka.http.scaladsl.server._
 import spray.routing.directives.FileAndResourceDirectives
 
 import concurrent.duration._

@@ -7,17 +7,18 @@ import javax.crypto.spec.SecretKeySpec
 import javax.xml.bind.DatatypeConverter
 
 import spray.json._
-import spray.client.pipelining._
-import spray.http.HttpRequest
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model._
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.Multipart._
 import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import mbilski.spray.hmac.{
+import com.pacbio.secondary.smrtlink.auth.hmac.{
   Authentication,
   DefaultSigner,
   Directives,
@@ -145,7 +146,7 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
   }
 
   def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
-    val multiForm = MultipartFormData(
+    val multiForm = Multipart.FormData(
       Seq(
         BodyPart(pathTgz.toFile,
                  "techsupport_tgz",

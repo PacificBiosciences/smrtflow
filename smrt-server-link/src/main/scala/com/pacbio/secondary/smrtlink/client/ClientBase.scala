@@ -3,14 +3,15 @@ package com.pacbio.secondary.smrtlink.client
 import java.net.URL
 
 import akka.actor.ActorSystem
-import com.pacbio.secondary.smrtlink.models.ServiceStatus
-import spray.client.pipelining._
-import spray.http.HttpRequest
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import com.pacbio.secondary.smrtlink.models.ServiceStatus
 
 /**
   * Base Client trait for

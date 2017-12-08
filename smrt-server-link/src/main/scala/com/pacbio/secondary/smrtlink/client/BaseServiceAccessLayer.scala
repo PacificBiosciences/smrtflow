@@ -5,10 +5,10 @@ import java.net.URL
 import akka.actor.{ActorSystem, Scheduler}
 import akka.pattern.after
 import com.pacbio.secondary.smrtlink.models.ServiceStatus
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}

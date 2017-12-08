@@ -25,10 +25,10 @@ import com.pacbio.secondary.smrtlink.client.{
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
 import spray.can.Http
-import spray.client.pipelining._
-import spray.http._
+
+import akka.http.scaladsl.server._
 import spray.json._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.{Await, ExecutionContext, Future}

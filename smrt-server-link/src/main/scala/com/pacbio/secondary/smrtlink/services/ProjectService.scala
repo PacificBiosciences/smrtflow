@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.services.utils.FutureSecurityDirectives
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global

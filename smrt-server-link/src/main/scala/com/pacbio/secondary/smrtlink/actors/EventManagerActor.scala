@@ -8,8 +8,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
 import spray.json._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._

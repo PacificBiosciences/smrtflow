@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.services.utils
 
 import scala.language.implicitConversions
-import spray.routing._
+import akka.http.scaladsl.server._
 import spray.routing.directives.BasicDirectives._
 import spray.routing.directives._
 import scala.concurrent.{ExecutionContext, Future}

@@ -7,9 +7,9 @@ import akka.util.Timeout
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing._
+import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton

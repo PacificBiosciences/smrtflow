@@ -3,7 +3,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   JobTypeIds
 }
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 class SmrtLinkAnalysisJobExecutorSpec
     extends SmrtLinkAnalysisJobExecutorSpecBase {

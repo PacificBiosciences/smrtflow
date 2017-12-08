@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.client
 import java.io.File
 
 import scala.math._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 
 import scala.concurrent.Future

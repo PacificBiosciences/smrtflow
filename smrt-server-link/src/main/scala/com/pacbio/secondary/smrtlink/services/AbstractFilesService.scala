@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFou
 import com.pacbio.secondary.smrtlink.file.FileSystemUtil
 import com.pacbio.secondary.smrtlink.models.MimeTypes
 import spray.http.Uri
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.routing.RoutingSettings
 
 import scala.concurrent.duration._

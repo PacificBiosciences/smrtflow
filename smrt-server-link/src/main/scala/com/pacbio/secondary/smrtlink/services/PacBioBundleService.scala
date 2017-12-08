@@ -3,20 +3,21 @@ package com.pacbio.secondary.smrtlink.services
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent._
 import scala.util.{Failure, Success, Try}
-import spray.http.{HttpHeaders, Uri}
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing._
-import spray.routing.directives.FileAndResourceDirectives
 import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.headers.`Content-Disposition`
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.settings.RoutingSettings
 import akka.pattern._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
@@ -281,7 +282,7 @@ class PacBioBundleService(
                 case b: PacBioDataBundleIO =>
                   val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
                   logger.info(s"Downloading bundle $b to $fileName")
-                  respondWithHeader(HttpHeaders.`Content-Disposition`(
+                  respondWithHeader(`Content-Disposition`(
                     "attachment; filename=" + fileName)) {
                     getFromFile(b.tarGzPath.toFile)
                   }

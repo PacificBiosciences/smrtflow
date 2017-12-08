@@ -6,10 +6,10 @@ import com.typesafe.scalalogging.LazyLogging
 import mbilski.spray.hmac.{DefaultSigner, SignerConfig}
 import org.apache.commons.io.FileUtils
 import spray.json._
-import spray.http._
-import spray.client.pipelining._
+import akka.http.scaladsl.server._
+
 import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._

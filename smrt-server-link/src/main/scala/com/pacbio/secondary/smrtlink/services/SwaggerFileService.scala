@@ -6,11 +6,11 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import spray.json._
-import spray.routing._
+import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
-import spray.httpx.SprayJsonSupport._
-import spray.routing.RoutingSettings
-import spray.routing.directives.FileAndResourceDirectives
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.settings.RoutingSettings
 
 class SwaggerFileService(swaggerResourceName: String)(
     implicit actorSystem: ActorSystem)

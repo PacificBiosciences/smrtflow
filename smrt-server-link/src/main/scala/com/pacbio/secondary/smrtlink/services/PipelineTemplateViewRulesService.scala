@@ -6,7 +6,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateVie
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import spray.json._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 /**
   *

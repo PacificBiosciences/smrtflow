@@ -3,7 +3,7 @@ import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.util.Timeout
 import akka.pattern._

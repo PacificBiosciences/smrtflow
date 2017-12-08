@@ -4,7 +4,7 @@ import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, Singleton}
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.loaders.ManifestLoader
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
