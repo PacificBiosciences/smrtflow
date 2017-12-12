@@ -81,7 +81,7 @@ package object semver {
     def parseWithSlop(rawVersion: String): SemVersion = {
       val rx = """(\d+).(\d+).(\d+).(\d+)""".r
 
-      rawVersion match {
+      rawVersion.replace("SNAPSHOT", "") match {
         case rx(major, minor, patch, extra) =>
           SemVersion.fromString(s"$major.$minor.$patch+$extra")
         case _ => SemVersion.fromString(rawVersion)
