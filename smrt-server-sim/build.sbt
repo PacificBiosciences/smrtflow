@@ -1,7 +1,5 @@
 import java.io.File
 
-packSettings
-
 fork in IntegrationTest := true
 
 fork in Test := true
@@ -51,12 +49,12 @@ testOptions in IntegrationTest := {
 // Using the above section to start
 // Original Version. runner.start() has compile error of ` error: value flatMap is not a member of Unit`
 // but runner.stop() doesn't raise a compiler error
-executeTests in IntegrationTest <<=
-  (executeTests in IntegrationTest, smrtLinkServerRunner) apply {
-    (testTask, runnerTask) =>
-      for {
-        runner <- runnerTask
-        //_ <- runner.start()
-        result <- testTask.andFinally(runner.stop())
-      } yield result
-  }
+//executeTests in IntegrationTest <<=
+//  (executeTests in IntegrationTest, smrtLinkServerRunner) apply {
+//    (testTask, runnerTask) =>
+//      for {
+//        runner <- runnerTask
+//        //_ <- runner.start()
+//        result <- testTask.andFinally(runner.stop())
+//      } yield result
+//  }

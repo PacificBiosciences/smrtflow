@@ -1,5 +1,7 @@
 import sbt._
 import java.time.LocalDateTime
+import java.lang.{Process, ProcessBuilder}
+import scala.sys.process
 
 
 trait SmrtLinkServerRunner {
@@ -15,7 +17,7 @@ trait SmrtLinkServerRunner {
   */
 class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logger) extends SmrtLinkServerRunner {
 
-  var serverProcess: Option[Process] = None
+  var serverProcess: Option[scala.sys.process.Process] = None
 
   val serverArgs = Seq("-jar", assemblyJarName.getAbsolutePath, "--log-level", "INFO", "--log-file", "integration-test-server.log")
   val mainClass = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"

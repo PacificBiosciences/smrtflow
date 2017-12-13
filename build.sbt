@@ -137,7 +137,10 @@ lazy val baseSettings = Seq(
   "javax.mail" % "mail" % "1.4.7"
 ).map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
 
-gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
+gitHeadCommitSha in ThisBuild := scala.sys.process
+  .Process("git rev-parse HEAD")
+  .lineStream
+  .head
 
 def getBuildNumber(): Option[Int] =
   sys.env.get(bambooBuildNumberEnv).map(_.toInt)
