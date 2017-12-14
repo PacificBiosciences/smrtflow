@@ -13,7 +13,6 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing.PathMatchers.Segment
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._

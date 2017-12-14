@@ -9,9 +9,10 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.file.FileSystemUtil
 import com.pacbio.secondary.smrtlink.models.MimeTypes
-import spray.http.Uri
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.routing.RoutingSettings
+import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.server.PathMatchers.RemainingPath // Was this RestPath from spray?
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -65,7 +66,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
   // TODO(smcclellan): Add auth
   override lazy val routes =
     pathPrefix(serviceBaseId) {
-      path(RestPath) { path =>
+      path(RemainingPath) { path =>
         get {
           complete {
             ok {
@@ -76,7 +77,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
       }
     } ~
       pathPrefix(s"$serviceBaseId-diskspace") {
-        path(RestPath) { path =>
+        path(RemainingPath) { path =>
           get {
             complete {
               ok {
@@ -87,7 +88,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
         }
       } ~
       pathPrefix(s"$serviceBaseId-download") {
-        path(RestPath) { path =>
+        path(RemainingPath) { path =>
           onSuccess(resolve(path).map(fileSystemUtil.getFile)) { file =>
             getFromFile(file)
           }

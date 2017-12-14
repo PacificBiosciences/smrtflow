@@ -116,15 +116,8 @@ trait BaseApi {
   def startup(): Unit = ()
   def shutdown(): Unit = ()
 
-  class ServiceActor(route: Route) extends RoutedHttpService(route: Route) {
-    override def preStart(): Unit = startup()
-    override def postStop(): Unit = shutdown()
-  }
-
   lazy val system = providers.actorSystem()
-  lazy val routes = providers.routes()
-  lazy val rootService =
-    system.actorOf(Props(new ServiceActor(routes)), name = "ServiceActor")
+  lazy val routes: Route = providers.routes()
 
   // This is needed with Mixin routes from traits that only extend HttpService
   def actorRefFactory: ActorRefFactory = system
@@ -135,7 +128,7 @@ trait BaseApi {
 trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer = ActorMaterializer()(system)
 
   val host: String
   val port: Int
@@ -152,7 +145,7 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
     logger.info("Java Args: " + arguments.asScala.mkString(" "))
 
     val f: Future[Option[BindException]] =
-      Http().bindAndHandle(routes, host, port).map {
+      Http(system).bindAndHandle(routes, host, port)(materializer).map {
         case r: Http.CommandFailed =>
           Some(new BindException(s"Failed to bind to $host:$port"))
         case r => None
@@ -160,7 +153,7 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
 
     Await.result(f, 10.seconds) map { e =>
       IO(Http)(system) ! Http.CloseAll
-      system.shutdown()
+      system.terminate()
       throw new StartupFailedException(e)
     }
   }

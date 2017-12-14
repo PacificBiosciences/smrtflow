@@ -92,7 +92,9 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
 
     for {
-      validFiles <- Future.sequence(datastoreFiles.map(validateDsFile))
+      validFiles <- Future.sequence(datastoreFiles.map(validateDsFile))(
+        implicitly,
+        ec)
       results <- dao.importDataStoreFiles(validFiles, jobUUID)
     } yield results
   }
@@ -108,13 +110,13 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
   private def importAbleFile(x: ImportAble, jobUUID: UUID)(
       implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
     x match {
-      case x: DataStoreFile => importDataStore(Seq(x), jobUUID)
+      case x: DataStoreFile => importDataStore(Seq(x), jobUUID)(ec)
       case x: PacBioDataStore =>
         val dataStoreFiles = loadFiles(x.files, None)
         val nonChunkedFiles = dataStoreFiles.filter(f => !f.isChunked)
         logger.info(
           s"Job $jobUUID Loaded ${dataStoreFiles.length} raw files, ${nonChunkedFiles.length} Non-Chunked files")
-        importDataStore(nonChunkedFiles, jobUUID)
+        importDataStore(nonChunkedFiles, jobUUID)(ec)
     }
   }
 

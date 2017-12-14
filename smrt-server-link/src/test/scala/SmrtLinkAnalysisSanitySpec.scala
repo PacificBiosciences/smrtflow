@@ -1,12 +1,8 @@
 import com.pacbio.secondary.smrtlink.models.ServiceStatus
-import com.pacbio.secondary.smrtlink.app.{
-  BaseServer,
-  SmrtLinkApi,
-  SmrtLinkProviders
-}
+import com.pacbio.secondary.smrtlink.app.{BaseServer, SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 /**
   * This should be used as a sanity test to make sure routes are found and the

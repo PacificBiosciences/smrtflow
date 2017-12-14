@@ -10,13 +10,13 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import shapeless.HNil
-import spray.httpx.marshalling.Marshaller
-import spray.routing.{PathMatcher1, Route}
-import spray.http.MediaTypes
+//import shapeless.HNil
+
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import SprayJsonSupport._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.server.Route
 import com.pacbio.secondary.smrtlink.auth.{
   Authenticator,
   AuthenticatorProvider
@@ -43,7 +43,8 @@ import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 
-import collection.JavaConversions._
+//import collection.JavaConversions._
+import collection.JavaConverters._
 
 /**
   * Accessing DataSets by type. Currently several datasets types are
@@ -81,7 +82,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
     val bs = DataSetLoader.loadAndResolveBarcodeSet(barcodeSet)
 
-    bs.getExternalResources.getExternalResource
+    bs.getExternalResources.getExternalResource.asScala
       .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
       .map(_.getResourceId)
       .map(p => new FastaIterator(Paths.get(p).toFile))
@@ -306,11 +307,9 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
             } ~
               path(DETAILS_PREFIX) {
                 get {
-                  respondWithMediaType(MediaTypes.`application/json`) {
-                    complete {
-                      ok {
-                        GetDetailsById(id)
-                      }
+                  complete {
+                    ok {
+                      GetDetailsById(id).map(_.parseJson) // To get the correct mime-type
                     }
                   }
                 }

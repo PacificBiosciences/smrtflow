@@ -66,8 +66,6 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
     this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
   }
 
-  val sender = sendReceive
-
   // Useful for debugging
   val logRequest: HttpRequest => HttpRequest = { r =>
     println(r.toString); r
