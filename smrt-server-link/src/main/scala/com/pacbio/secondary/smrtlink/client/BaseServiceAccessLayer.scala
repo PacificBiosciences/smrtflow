@@ -3,12 +3,20 @@ package com.pacbio.secondary.smrtlink.client
 import java.net.URL
 
 import akka.actor.{ActorSystem, Scheduler}
+import akka.http.scaladsl.Http
 import akka.pattern.after
 import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{
+  HttpRequest,
+  HttpResponse,
+  StatusCode,
+  StatusCodes
+}
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -43,7 +51,10 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem)
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
+  implicit val materializer = ActorMaterializer()
   implicit val executionContext = actorSystem.dispatcher
+
+  val http = Http()
 
   def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
     this(UrlUtils.convertToUrl(host, port))(actorSystem)
@@ -64,15 +75,15 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem)
   def serviceStatusEndpoints: Vector[String] = Vector()
 
   // Pipelines and serialization
-  protected def requestPipe: HttpRequest => Future[HttpResponse] = sendReceive
-  protected def respPipeline: HttpRequest => Future[HttpResponse] = requestPipe
-  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] =
-    requestPipe ~> unmarshal[Array[Byte]]
-  // XXX This is misnamed - it could just as easily be XML or plaintext
-  protected def rawJsonPipeline: HttpRequest => Future[String] =
-    requestPipe ~> unmarshal[String]
-  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] =
-    requestPipe ~> unmarshal[ServiceStatus]
+//  protected def requestPipe: HttpRequest => Future[HttpResponse] = sendReceive
+//  protected def respPipeline: HttpRequest => Future[HttpResponse] = requestPipe
+//  protected def rawDataPipeline: HttpRequest => Future[Array[Byte]] =
+//    requestPipe ~> unmarshal[Array[Byte]]
+//  // XXX This is misnamed - it could just as easily be XML or plaintext
+//  protected def rawJsonPipeline: HttpRequest => Future[String] =
+//    requestPipe ~> unmarshal[String]
+//  protected def serviceStatusPipeline: HttpRequest => Future[ServiceStatus] =
+//    requestPipe ~> unmarshal[ServiceStatus]
 
   // We should try to standardize on nomenclature here, 'Segment' for relative and
   // and 'Endpoint' for absolute URL?
@@ -84,18 +95,14 @@ class ServiceAccessLayer(val baseUrl: URL)(implicit actorSystem: ActorSystem)
     *
     * @return
     */
-  def getStatus: Future[ServiceStatus] = serviceStatusPipeline {
-    Get(statusUrl)
-  }
+  def getStatus(): Future[ServiceStatus] =
+    http.singleRequest(Get(statusUrl)).flatMap(Unmarshal(_).to[ServiceStatus])
 
-  def getEndpoint(endpointUrl: String): Future[HttpResponse] = respPipeline {
-    Get(endpointUrl)
-  }
+  def getEndpoint(endpointUrl: String): Future[HttpResponse] =
+    http.singleRequest(Get(endpointUrl))
 
   def getServiceEndpoint(endpointPath: String): Future[HttpResponse] =
-    respPipeline {
-      Get(toUrl(endpointPath))
-    }
+    http.singleRequest(Get(toUrl(endpointPath)))
 
   /**
     * Checks an relative Endpoint for Success (HTTP 200) and returns non-zero
