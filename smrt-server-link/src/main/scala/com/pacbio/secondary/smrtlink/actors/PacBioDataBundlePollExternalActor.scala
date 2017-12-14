@@ -8,6 +8,7 @@ import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import CommonMessages.MessageResponse
+import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
 
@@ -22,6 +23,7 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 
 import scala.concurrent.Future
+import scala.util.Try
 import scala.util.control.NonFatal
 
 object PacBioDataBundlePollExternalActor {
@@ -37,25 +39,28 @@ object PacBioDataBundlePollExternalActor {
   * If either the server URL, or the pacBioSystemVersion is not provided, the updating will be
   * disabled.
   *
-  * @param rootBundleDir       System root bundle dir
-  * @param url                 Root URL of the external bundle server (Example http://my-host:8080)
-  * @param pollTime            interval time between polling the external server
-  * @param daoActor            Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
-  * @param bundleType          Bundle type to check for upgrades
-  * @param pacBioSystemVersion PacBio System Release Version (e.g., 5.0.0)
+  * @param rootBundleDir         System root bundle dir
+  * @param url                   Root URL of the external bundle server (Example http://my-host:8080)
+  * @param pollTime              interval time between polling the external server
+  * @param daoActor              Bundle DAO. All access to the Data Bundle DAO should be done via the Actor interface to ensure thread safe behavior.
+  * @param bundleType            Bundle type to check for upgrades
+  * @param smrtLinkSystemVersion SMRT Link System Version (e.g., 5.0.0.12345)
   */
 class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
                                         url: Option[URL],
                                         pollTime: FiniteDuration,
                                         daoActor: ActorRef,
                                         bundleType: String,
-                                        pacBioSystemVersion: Option[String])
+                                        smrtLinkSystemVersion: Option[String])
     extends Actor
     with LazyLogging {
   import PacBioDataBundlePollExternalActor._
   import PacBioBundleDaoActor.{GetAllBundlesByType, AddBundleIO}
 
   val initialDelay = 5.seconds
+
+  lazy val pacBioSystemVersion: Option[String] =
+    smrtLinkSystemVersion.flatMap(smrtLinkSystemVersionToPacBioReleaseVersion)
 
   implicit val timeOut: Timeout = Timeout(FiniteDuration(120, SECONDS))
 
@@ -64,13 +69,20 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
                                     self,
                                     CheckForUpdates)
 
+  def smrtLinkSystemVersionToPacBioReleaseVersion(sx: String): Option[String] = {
+    Try(SemVersion.parseWithSlop(sx)).toOption
+      .map(vx => s"${vx.major}.${vx.minor}.${vx.patch}")
+  }
+
   /**
     * There's some lackluster use of pacBioSystemVersion.get on pacBioSystem that assumes the client is None and will
     * never be called. This should be fixed.
     */
   def getClient(): Option[PacBioDataBundleUpdateServerClient] = {
     (url, pacBioSystemVersion) match {
-      case (Some(ux), Some(_)) =>
+      case (Some(ux), Some(vx)) =>
+        logger.info(
+          s"Updating will look for PacBio System Release version $vx updates from $ux")
         Some(new PacBioDataBundleUpdateServerClient(
           new URL(ux.getProtocol, ux.getHost, ux.getPort, ""))(context.system))
       case _ =>
@@ -79,13 +91,12 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
         None
     }
   }
-
   val client: Option[PacBioDataBundleUpdateServerClient] = getClient()
 
   override def preStart(): Unit = {
     super.preStart()
     logger.info(
-      s"Creating $self with system root bundle dir:$rootBundleDir External URL $url")
+      s"Creating $self with system root bundle dir:$rootBundleDir External URL $url and SL $smrtLinkSystemVersion and PB System Release Version $pacBioSystemVersion")
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]) {

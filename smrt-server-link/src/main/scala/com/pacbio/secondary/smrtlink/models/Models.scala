@@ -1028,25 +1028,7 @@ case class PacBioDataBundle(typeId: String,
   // Given that case classes are immutable .copy(version="1.2.3") will work
   // as expected. This seems like a reasonable
   // trade off.
-  val semVersion = allowSlop(version)
-
-  /**
-    * Add Some slop until we all components strictly use SemVer
-    *
-    * Only supported is the 1.2.3.1234 format used by ICS.
-    *
-    * @param rawVersion
-    * @return
-    */
-  private def allowSlop(rawVersion: String): SemVersion = {
-    val rx = """(\d+).(\d+).(\d+).(\d+)""".r
-
-    rawVersion match {
-      case rx(major, minor, patch, extra) =>
-        SemVersion.fromString(s"$major.$minor.$patch+$extra")
-      case _ => SemVersion.fromString(rawVersion)
-    }
-  }
+  val semVersion = SemVersion.parseWithSlop(version)
 }
 
 object PacBioDataBundle {
