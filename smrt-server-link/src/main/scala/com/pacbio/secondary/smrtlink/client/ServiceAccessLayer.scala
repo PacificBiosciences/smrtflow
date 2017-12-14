@@ -11,10 +11,10 @@ import scalaj.http.Base64
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.unmarshalling.FromResponseUnmarshaller
+import akka.http.scaladsl.unmarshalling.{FromResponseUnmarshaller, Unmarshal}
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
@@ -42,6 +42,18 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   import CommonModels._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
+
+  /**
+    * Migration to internally use Spray/akka data models.
+    *
+    * @param segment relative segment (this must include the leading slash!)
+    * @return
+    */
+  def toUri(segment: String): Uri =
+    Uri(
+      s"${baseUrl.getProtocol}://${baseUrl.getHost}:${baseUrl.getPort}$segment")
+
+  def getUrlResponse(uri: Uri) = http.singleRequest(Get(uri))
 
   val headers = authUser
     .map(u =>
@@ -110,423 +122,228 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName
     )
 
-  // Pipelines and serialization
-  protected def getDataSetMetaDataPipeline
-    : HttpRequest => Future[DataSetMetaDataSet] =
-    requestPipe ~> unmarshal[DataSetMetaDataSet]
-
-  private def getDataSetPipeline[T <: ServiceDataSetMetadata](
-      implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
-    requestPipe ~> unmarshal[T]
-
-  protected def getSubreadSetPipeline =
-    getDataSetPipeline[SubreadServiceDataSet]
-
-  protected def getHdfSubreadSetPipeline =
-    getDataSetPipeline[HdfSubreadServiceDataSet]
-
-  protected def getReferenceSetPipeline =
-    getDataSetPipeline[ReferenceServiceDataSet]
-
-  protected def getGmapReferenceSetPipeline =
-    getDataSetPipeline[GmapReferenceServiceDataSet]
-
-  protected def getBarcodeSetPipeline =
-    getDataSetPipeline[BarcodeServiceDataSet]
-
-  protected def getAlignmentSetPipeline =
-    getDataSetPipeline[AlignmentServiceDataSet]
-
-  protected def getConsensusReadSetPipeline =
-    getDataSetPipeline[ConsensusReadServiceDataSet]
-
-  protected def getConsensusAlignmentSetPipeline =
-    getDataSetPipeline[ConsensusAlignmentServiceDataSet]
-
-  protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
-
-  // DATASET DETAILS (full object parsed from XML)
-  private def getDataSetDetailsPipeline[T <: DataSetType](
-      implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
-    requestPipe ~> unmarshal[T]
-
-  protected def getSubreadSetDetailsPipeline =
-    getDataSetDetailsPipeline[SubreadSet]
-
-  protected def getHdfSubreadSetDetailsPipeline =
-    getDataSetDetailsPipeline[HdfSubreadSet]
-
-  protected def getReferenceSetDetailsPipeline =
-    getDataSetDetailsPipeline[ReferenceSet]
-
-  protected def getGmapReferenceSetDetailsPipeline =
-    getDataSetDetailsPipeline[GmapReferenceSet]
-
-  protected def getBarcodeSetDetailsPipeline =
-    getDataSetDetailsPipeline[BarcodeSet]
-
-  protected def getAlignmentSetDetailsPipeline =
-    getDataSetDetailsPipeline[AlignmentSet]
-
-  protected def getConsensusReadSetDetailsPipeline =
-    getDataSetDetailsPipeline[ConsensusReadSet]
-
-  protected def getConsensusAlignmentSetDetailsPipeline =
-    getDataSetDetailsPipeline[ConsensusAlignmentSet]
-
-  protected def getContigSetDetailsPipeline =
-    getDataSetDetailsPipeline[ContigSet]
-
-  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](
-      implicit fmt: FromResponseUnmarshaller[Seq[T]])
-    : HttpRequest => Future[Seq[T]] = requestPipe ~> unmarshal[Seq[T]]
-
-  protected def getSubreadSetsPipeline =
-    getDataSetsPipeline[SubreadServiceDataSet]
-
-  protected def getHdfSubreadSetsPipeline =
-    getDataSetsPipeline[HdfSubreadServiceDataSet]
-
-  protected def getReferenceSetsPipeline =
-    getDataSetsPipeline[ReferenceServiceDataSet]
-
-  protected def getGmapReferenceSetsPipeline =
-    getDataSetsPipeline[GmapReferenceServiceDataSet]
-
-  protected def getBarcodeSetsPipeline =
-    getDataSetsPipeline[BarcodeServiceDataSet]
-
-  protected def getAlignmentSetsPipeline =
-    getDataSetsPipeline[AlignmentServiceDataSet]
-
-  protected def getConsensusReadSetsPipeline =
-    getDataSetsPipeline[ConsensusReadServiceDataSet]
-
-  protected def getConsensusAlignmentSetsPipeline =
-    getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
-
-  protected def getContigSetsPipeline =
-    getDataSetsPipeline[ContigServiceDataSet]
-
-  protected def getDataStorePipeline
-    : HttpRequest => Future[Seq[DataStoreServiceFile]] =
-    requestPipe ~> unmarshal[Seq[DataStoreServiceFile]]
-
-  protected def getEntryPointsPipeline
-    : HttpRequest => Future[Seq[EngineJobEntryPoint]] =
-    requestPipe ~> unmarshal[Seq[EngineJobEntryPoint]]
-
-  protected def getReportsPipeline
-    : HttpRequest => Future[Seq[DataStoreReportFile]] =
-    requestPipe ~> unmarshal[Seq[DataStoreReportFile]]
-
-  protected def getReportPipeline: HttpRequest => Future[Report] =
-    requestPipe ~> unmarshal[Report]
-
-  protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] =
-    requestPipe ~> unmarshal[Seq[JobTask]]
-
-  protected def getJobTaskPipeline: HttpRequest => Future[JobTask] =
-    requestPipe ~> unmarshal[JobTask]
-
-  protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] =
-    requestPipe ~> unmarshal[Seq[JobEvent]]
-
-  protected def getJobOptionsPipeline
-    : HttpRequest => Future[PipelineTemplatePreset] =
-    requestPipe ~> unmarshal[PipelineTemplatePreset]
-
-  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] =
-    requestPipe ~> unmarshal[Seq[RunSummary]]
-
-  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] =
-    requestPipe ~> unmarshal[RunSummary]
-
-  protected def getRunPipeline: HttpRequest => Future[Run] =
-    requestPipe ~> unmarshal[Run]
-
-  protected def getCollectionsPipeline
-    : HttpRequest => Future[Seq[CollectionMetadata]] =
-    requestPipe ~> unmarshal[Seq[CollectionMetadata]]
-
-  protected def getCollectionPipeline
-    : HttpRequest => Future[CollectionMetadata] =
-    requestPipe ~> unmarshal[CollectionMetadata]
-
-  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] =
-    requestPipe ~> unmarshal[Seq[Project]]
-
-  protected def getProjectPipeline: HttpRequest => Future[FullProject] =
-    requestPipe ~> unmarshal[FullProject]
-
-  protected def getEulaPipeline: HttpRequest => Future[EulaRecord] =
-    requestPipe ~> unmarshal[EulaRecord]
-
-  protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] =
-    requestPipe ~> unmarshal[Seq[EulaRecord]]
-
-  protected def getMessageResponsePipeline
-    : HttpRequest => Future[MessageResponse] =
-    requestPipe ~> unmarshal[MessageResponse]
-
-  def getJobPipeline: HttpRequest => Future[EngineJob] =
-    requestPipe ~> unmarshal[EngineJob]
-
-  // XXX this fails when createdBy is an object instead of a string
-  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] =
-    requestPipe ~> unmarshal[Seq[EngineJob]]
-
-  def runJobPipeline: HttpRequest => Future[EngineJob] =
-    requestPipe ~> unmarshal[EngineJob]
-
-  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] =
-    requestPipe ~> unmarshal[Seq[ReportViewRule]]
-
-  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] =
-    requestPipe ~> unmarshal[ReportViewRule]
-
-  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] =
-    requestPipe ~> unmarshal[PipelineTemplate]
-
-  def getPipelineTemplatesPipeline
-    : HttpRequest => Future[Seq[PipelineTemplate]] =
-    requestPipe ~> unmarshal[Seq[PipelineTemplate]]
-
-  def getPipelineTemplateViewRulesPipeline
-    : HttpRequest => Future[Seq[PipelineTemplateViewRule]] =
-    requestPipe ~> unmarshal[Seq[PipelineTemplateViewRule]]
-
-  def getPipelineTemplateViewRulePipeline
-    : HttpRequest => Future[PipelineTemplateViewRule] =
-    requestPipe ~> unmarshal[PipelineTemplateViewRule]
-
-  def getPipelineDataStoreViewRulesPipeline
-    : HttpRequest => Future[PipelineDataStoreViewRules] =
-    requestPipe ~> unmarshal[PipelineDataStoreViewRules]
-
-  def getPacBioDataBundlesPipeline
-    : HttpRequest => Future[Seq[PacBioDataBundle]] =
-    requestPipe ~> unmarshal[Seq[PacBioDataBundle]]
-
-  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] =
-    requestPipe ~> unmarshal[PacBioDataBundle]
-
-  def getServiceManifestsPipeline
-    : HttpRequest => Future[Seq[PacBioComponentManifest]] =
-    requestPipe ~> unmarshal[Seq[PacBioComponentManifest]]
-
-  def getServiceManifestPipeline
-    : HttpRequest => Future[PacBioComponentManifest] =
-    requestPipe ~> unmarshal[PacBioComponentManifest]
-
-  def getAlarmsPipeline: HttpRequest => Future[Seq[AlarmStatus]] =
-    requestPipe ~> unmarshal[Seq[AlarmStatus]]
-
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] =
-    getDataSetMetaDataPipeline {
-      logger.debug(s"Retrieving metadata for dataset ${datasetId.toIdString}")
-      Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
-    }
+    getUrlResponse(toUri(ROOT_DS + "/" + datasetId.toIdString))
+      .flatMap(Unmarshal(_).to[DataSetMetaDataSet])
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      logger.debug(s"Soft-deleting dataset ${datasetId.toIdString}")
-      Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
-          DataSetUpdateRequest(Some(false)))
-    }
+    http
+      .singleRequest(
+        Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
+            DataSetUpdateRequest(Some(false))))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] =
-    getSubreadSetsPipeline {
-      logger.debug(s"Retrieving all active SubreadSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[SubreadServiceDataSet]])
 
   def getSubreadSet(dsId: IdAble): Future[SubreadServiceDataSet] =
-    getSubreadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[SubreadServiceDataSet])
 
   def getSubreadSetDetails(dsId: IdAble): Future[SubreadSet] =
-    getSubreadSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[SubreadSet])
 
   def getSubreadSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] =
-    getReportsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
-                              dsId,
-                              JOB_REPORT_PREFIX))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
+                                dsId,
+                                JOB_REPORT_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[DataStoreReportFile]])
 
-  def updateSubreadSetDetails(dsId: IdAble,
-                              isActive: Option[Boolean] = None,
-                              bioSampleName: Option[String] = None,
-                              wellSampleName: Option[String] = None) =
-    getMessageResponsePipeline {
-      Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
-          DataSetUpdateRequest(isActive, bioSampleName, wellSampleName))
-    }
+  def updateSubreadSetDetails(
+      dsId: IdAble,
+      isActive: Option[Boolean] = None,
+      bioSampleName: Option[String] = None,
+      wellSampleName: Option[String] = None): Future[MessageResponse] =
+    http
+      .singleRequest(
+        Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
+            DataSetUpdateRequest(isActive, bioSampleName, wellSampleName)))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] =
-    getHdfSubreadSetsPipeline {
-      logger.debug(s"Retrieving all active HdfSubreadSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[HdfSubreadServiceDataSet]])
 
   def getHdfSubreadSet(dsId: IdAble): Future[HdfSubreadServiceDataSet] =
-    getHdfSubreadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.HdfSubread.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.HdfSubread.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[HdfSubreadServiceDataSet])
 
   def getHdfSubreadSetDetails(dsId: IdAble): Future[HdfSubreadSet] =
-    getHdfSubreadSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.HdfSubread.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.HdfSubread.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[HdfSubreadSet])
 
   def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] =
-    getBarcodeSetsPipeline {
-      logger.debug(s"Retrieving all active BarcodeSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[BarcodeServiceDataSet]])
 
   def getBarcodeSet(dsId: IdAble): Future[BarcodeServiceDataSet] =
-    getBarcodeSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Barcode.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.Barcode.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[BarcodeServiceDataSet])
 
   def getBarcodeSetDetails(dsId: IdAble): Future[BarcodeSet] =
-    getBarcodeSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Barcode.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Barcode.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[BarcodeSet])
 
   def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] =
-    getReferenceSetsPipeline {
-      logger.debug(s"Retrieving all active ReferenceSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[ReferenceServiceDataSet]])
 
   def getReferenceSet(dsId: IdAble): Future[ReferenceServiceDataSet] =
-    getReferenceSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Reference.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.Reference.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[ReferenceServiceDataSet])
 
   def getReferenceSetDetails(dsId: IdAble): Future[ReferenceSet] =
-    getReferenceSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Reference.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Reference.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[ReferenceSet])
 
   def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] =
-    getGmapReferenceSetsPipeline {
-      logger.debug(s"Retrieving all active GmapReferenceSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[GmapReferenceServiceDataSet]])
 
   def getGmapReferenceSet(dsId: IdAble): Future[GmapReferenceServiceDataSet] =
-    getGmapReferenceSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.GmapReference.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.GmapReference.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[GmapReferenceServiceDataSet])
 
   def getGmapReferenceSetDetails(dsId: IdAble): Future[GmapReferenceSet] =
-    getGmapReferenceSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.GmapReference.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.GmapReference.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[GmapReferenceSet])
 
   def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] =
-    getAlignmentSetsPipeline {
-      logger.debug(s"Retrieving all active AlignmentSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[AlignmentServiceDataSet]])
 
   def getAlignmentSet(dsId: IdAble): Future[AlignmentServiceDataSet] =
-    getAlignmentSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Alignment.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.Alignment.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[AlignmentServiceDataSet])
 
   def getAlignmentSetDetails(dsId: IdAble): Future[AlignmentSet] =
-    getAlignmentSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Alignment.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Alignment.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[AlignmentSet])
 
   def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] =
-    getConsensusReadSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.CCS.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.CCS.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[ConsensusReadServiceDataSet]])
 
   def getConsensusReadSet(dsId: IdAble): Future[ConsensusReadServiceDataSet] =
-    getConsensusReadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.CCS.shortName, dsId))
-    }
+    http
+      .singleRequest(Get(toDataSetUrl(DataSetMetaTypes.CCS.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[ConsensusReadServiceDataSet])
 
   def getConsensusReadSetDetails(dsId: IdAble): Future[ConsensusReadSet] =
-    getConsensusReadSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName, dsId, "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[ConsensusReadSet])
 
   def getConsensusAlignmentSets
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    getConsensusAlignmentSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.AlignmentCCS.shortName))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetsUrl(DataSetMetaTypes.AlignmentCCS.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[ConsensusAlignmentServiceDataSet]])
 
   def getConsensusAlignmentSet(
       dsId: IdAble): Future[ConsensusAlignmentServiceDataSet] =
-    getConsensusAlignmentSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[ConsensusAlignmentServiceDataSet])
 
   def getConsensusAlignmentSetDetails(
       dsId: IdAble): Future[ConsensusAlignmentSet] =
-    getConsensusAlignmentSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.AlignmentCCS.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.AlignmentCCS.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[ConsensusAlignmentSet])
 
   def getContigSets: Future[Seq[ContigServiceDataSet]] =
-    getContigSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName))
-    }
+    http
+      .singleRequest(Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName)))
+      .flatMap(Unmarshal(_).to[Seq[ContigServiceDataSet]])
 
   def getContigSet(dsId: IdAble): Future[ContigServiceDataSet] =
-    getContigSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Contig.shortName, dsId))
-    }
+    http
+      .singleRequest(
+        Get(toDataSetUrl(DataSetMetaTypes.Contig.shortName, dsId)))
+      .flatMap(Unmarshal(_).to[ContigServiceDataSet])
 
   def getContigSetDetails(dsId: IdAble): Future[ContigSet] =
-    getContigSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.Contig.shortName,
-                              dsId,
-                              "details"))
-    }
+    http
+      .singleRequest(
+        Get(
+          toDataSetResourcesUrl(DataSetMetaTypes.Contig.shortName,
+                                dsId,
+                                "details")))
+      .flatMap(Unmarshal(_).to[ContigSet])
 
   protected def getJobDataStore(
       jobType: String,
       jobId: IdAble): Future[Seq[DataStoreServiceFile]] =
-    getDataStorePipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_DATASTORE_PREFIX))
-    }
+    http
+      .singleRequest(
+        Get(toJobResourceUrl(jobType, jobId, JOB_DATASTORE_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[DataStoreServiceFile]])
 
   def getImportDatasetJobDataStore(jobId: IdAble) =
     getJobDataStore(JobTypeIds.IMPORT_DATASET.id, jobId)
@@ -535,87 +352,93 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getJobDataStore(JobTypeIds.MERGE_DATASETS.id, jobId)
 
   // FIXME how to convert to String?
-  def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
-    Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
-  }
+  def getDataStoreFile(fileId: UUID): Future[HttpResponse] =
+    http.singleRequest(Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download")))
 
-  def updateDataStoreFile(fileId: UUID,
-                          isActive: Boolean = true,
-                          path: Option[Path] = None,
-                          fileSize: Option[Long] = None) =
-    getMessageResponsePipeline {
-      Put(toUrl(ROOT_DATASTORE + s"/$fileId"),
-          DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize))
-    }
+  def updateDataStoreFile(
+      fileId: UUID,
+      isActive: Boolean = true,
+      path: Option[Path] = None,
+      fileSize: Option[Long] = None): Future[MessageResponse] =
+    http
+      .singleRequest(
+        Put(toUrl(ROOT_DATASTORE + s"/$fileId"),
+            DataStoreFileUpdateRequest(isActive,
+                                       path.map(_.toString),
+                                       fileSize)))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
     Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }*/
 
-  def getReport(reportId: UUID): Future[Report] = getReportPipeline {
-    Get(toUrl(ROOT_DATASTORE + s"/${reportId}/download"))
-  }
+  def getReport(reportId: UUID): Future[Report] =
+    http
+      .singleRequest(Get(toUrl(ROOT_DATASTORE + s"/$reportId/download")))
+      .flatMap(Unmarshal(_).to[Report])
 
   protected def getJobReports(
       jobId: IdAble,
-      jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
-    logger.debug(s"Getting reports for job ${jobId.toIdString}")
-    Get(toJobResourceUrl(jobType, jobId, JOB_REPORT_PREFIX))
-  }
+      jobType: String): Future[Seq[DataStoreReportFile]] =
+    http
+      .singleRequest(Get(toJobResourceUrl(jobType, jobId, JOB_REPORT_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[DataStoreReportFile]])
 
   def getImportJobReports(jobId: IdAble) =
     getJobReports(jobId, JobTypeIds.IMPORT_DATASET.id)
 
   def getDataStoreFileResource(fileId: UUID,
                                relpath: String): Future[HttpResponse] =
-    respPipeline {
-      Get(toUrl(ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
-    }
+    http.singleRequest(
+      Get(toUrl(ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}")))
 
   protected def getJobTasks(jobType: String,
                             jobId: IdAble): Future[Seq[JobTask]] =
-    getJobTasksPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX))
-    }
+    http
+      .singleRequest(Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[JobTask]])
 
   protected def getJobTask(jobType: String,
                            jobId: IdAble,
                            taskId: UUID): Future[JobTask] =
-    getJobTaskPipeline {
-      Get(
-        toJobResourceUrl(jobType,
-                         jobId,
-                         JOB_TASK_PREFIX + "/" + taskId.toString))
-    }
+    http
+      .singleRequest(
+        Get(
+          toJobResourceUrl(jobType,
+                           jobId,
+                           JOB_TASK_PREFIX + "/" + taskId.toString)))
+      .flatMap(Unmarshal(_).to[JobTask])
 
   protected def getJobEvents(jobType: String,
                              jobId: Int): Future[Seq[JobEvent]] =
-    getJobEventsPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_EVENT_PREFIX))
-    }
+    http
+      .singleRequest(Get(toJobResourceUrl(jobType, jobId, JOB_EVENT_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[JobEvent]])
 
   protected def getJobOptions(jobType: String,
                               jobId: Int): Future[PipelineTemplatePreset] =
-    getJobOptionsPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_OPTIONS))
-    }
+    http
+      .singleRequest(Get(toJobResourceUrl(jobType, jobId, JOB_OPTIONS)))
+      .flatMap(Unmarshal(_).to[PipelineTemplatePreset])
 
   protected def createJobTask(jobType: String,
                               jobId: IdAble,
                               task: CreateJobTaskRecord): Future[JobTask] =
-    getJobTaskPipeline {
-      Post(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX), task)
-    }
+    http
+      .singleRequest(
+        Post(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX), task))
+      .flatMap(Unmarshal(_).to[JobTask])
 
   protected def updateJobTask(jobType: String,
                               jobId: IdAble,
                               update: UpdateJobTaskRecord): Future[JobTask] =
-    getJobTaskPipeline {
-      Put(toJobResourceUrl(jobType,
-                           jobId,
-                           JOB_TASK_PREFIX + "/" + update.uuid.toString),
-          update)
-    }
+    http
+      .singleRequest(
+        Put(toJobResourceUrl(jobType,
+                             jobId,
+                             JOB_TASK_PREFIX + "/" + update.uuid.toString),
+            update))
+      .flatMap(Unmarshal(_).to[JobTask])
 
   // Runs
 
@@ -627,113 +450,127 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   protected def getCollectionUrl(runId: UUID, collectionId: UUID): String =
     toUrl(s"${ROOT_RUNS}/$runId/collections/$collectionId")
 
-  def getRuns: Future[Seq[RunSummary]] = getRunsPipeline {
-    Get(toUrl(ROOT_RUNS))
-  }
+  def getRuns: Future[Seq[RunSummary]] =
+    http
+      .singleRequest(Get(toUrl(ROOT_RUNS)))
+      .flatMap(Unmarshal(_).to[Seq[RunSummary]])
 
-  def getRun(runId: UUID): Future[Run] = getRunPipeline {
-    Get(getRunUrl(runId))
-  }
+  def getRun(runId: UUID): Future[Run] =
+    http
+      .singleRequest(Get(getRunUrl(runId)))
+      .flatMap(Unmarshal(_).to[Run])
 
   def getCollections(runId: UUID): Future[Seq[CollectionMetadata]] =
-    getCollectionsPipeline {
-      Get(getCollectionsUrl(runId))
-    }
+    http
+      .singleRequest(Get(getCollectionsUrl(runId)))
+      .flatMap(Unmarshal(_).to[Seq[CollectionMetadata]])
 
   def getCollection(runId: UUID,
                     collectionId: UUID): Future[CollectionMetadata] =
-    getCollectionPipeline {
-      Get(getCollectionUrl(runId, collectionId))
-    }
+    http
+      .singleRequest(Get(getCollectionUrl(runId, collectionId)))
+      .flatMap(Unmarshal(_).to[CollectionMetadata])
 
   def createRun(dataModel: String): Future[RunSummary] =
-    getRunSummaryPipeline {
-      Post(toUrl(ROOT_RUNS), RunCreate(dataModel))
-    }
+    http
+      .singleRequest(Post(toUrl(ROOT_RUNS), RunCreate(dataModel)))
+      .flatMap(Unmarshal(_).to[RunSummary])
 
   def updateRun(runId: UUID,
                 dataModel: Option[String] = None,
                 reserved: Option[Boolean] = None): Future[RunSummary] =
-    getRunSummaryPipeline {
-      Post(getRunUrl(runId), RunUpdate(dataModel, reserved))
-    }
+    http
+      .singleRequest(Post(getRunUrl(runId), RunUpdate(dataModel, reserved)))
+      .flatMap(Unmarshal(_).to[RunSummary])
 
   def deleteRun(runId: UUID): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      Delete(getRunUrl(runId))
-    }
+    http
+      .singleRequest(Delete(getRunUrl(runId)))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
-  def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ROOT_PROJECTS)).withHeaders(headers: _*)
-  }
+  def getProjects: Future[Seq[Project]] =
+    http
+      .singleRequest(Get(toUrl(ROOT_PROJECTS)).withHeaders(headers: _*))
+      .flatMap(Unmarshal(_).to[Seq[Project]])
 
-  def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers: _*)
-  }
+  def getProject(projectId: Int): Future[FullProject] =
+    http
+      .singleRequest(
+        Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers: _*))
+      .flatMap(Unmarshal(_).to[FullProject])
 
   def createProject(name: String, description: String): Future[FullProject] =
-    getProjectPipeline {
-      Post(toUrl(ROOT_PROJECTS),
-           ProjectRequest(name, description, None, None, None, None))
-        .withHeaders(headers: _*)
-    }
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_PROJECTS),
+             ProjectRequest(name, description, None, None, None, None))
+          .withHeaders(headers: _*))
+      .flatMap(Unmarshal(_).to[FullProject])
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
-    getProjectPipeline {
-      Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
-        .withHeaders(headers: _*)
-    }
+    http
+      .singleRequest(
+        Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
+          .withHeaders(headers: _*))
+      .flatMap(Unmarshal(_).to[FullProject])
 
   // User agreements (not really a EULA)
-  def getEula(version: String): Future[EulaRecord] = getEulaPipeline {
-    Get(toUrl(ROOT_EULA + s"/$version"))
-  }
+  def getEula(version: String): Future[EulaRecord] =
+    http
+      .singleRequest(Get(toUrl(ROOT_EULA + s"/$version")))
+      .flatMap(Unmarshal(_).to[EulaRecord])
 
-  def getEulas: Future[Seq[EulaRecord]] = getEulasPipeline {
-    Get(toUrl(ROOT_EULA))
-  }
+  def getEulas: Future[Seq[EulaRecord]] =
+    http
+      .singleRequest(Get(ROOT_EULA))
+      .flatMap(Unmarshal(_).to[Seq[EulaRecord]])
 
-  def acceptEula(user: String, enableInstallMetrics: Boolean = true) =
-    getEulaPipeline {
-      Post(toUrl(ROOT_EULA), EulaAcceptance(user, enableInstallMetrics))
-    }
+  def acceptEula(user: String,
+                 enableInstallMetrics: Boolean = true): Future[EulaRecord] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_EULA), EulaAcceptance(user, enableInstallMetrics)))
+      .flatMap(Unmarshal(_).to[EulaRecord])
 
-  def deleteEula(version: String) = getMessageResponsePipeline {
-    Delete(toUrl(ROOT_EULA + s"/$version"))
-  }
+  def deleteEula(version: String): Future[MessageResponse] =
+    http
+      .singleRequest(Delete(toUrl(ROOT_EULA + s"/$version")))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   def getJobsByType(jobType: String,
                     showAll: Boolean = false,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
-    getJobsPipeline {
-      val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
-      val query2 =
-        if (projectId.isDefined) Seq(s"projectId=${projectId.get}")
-        else Seq.empty[String]
-      val queries = query1 ++ query2
-      val queryString =
-        if (queries.isEmpty) ""
-        else "?" + (query1 ++ query2).reduce(_ + "&" + _)
-      Get(toUrl(ROOT_JOBS + "/" + jobType + queryString))
-    }
+    http
+      .singleRequest {
+        val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
+        val query2 =
+          if (projectId.isDefined) Seq(s"projectId=${projectId.get}")
+          else Seq.empty[String]
+        val queries = query1 ++ query2
+        val queryString =
+          if (queries.isEmpty) ""
+          else "?" + (query1 ++ query2).reduce(_ + "&" + _)
+        Get(toUrl(ROOT_JOBS + "/" + jobType + queryString))
+      }
+      .flatMap(Unmarshal(_).to[Seq[EngineJob]])
 
   def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] =
-    getJobsPipeline {
-      Get(toUrl(ROOT_JOBS + s"?projectId=$projectId"))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_JOBS + s"?projectId=$projectId")))
+      .flatMap(Unmarshal(_).to[Seq[EngineJob]])
 
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] =
-    getServiceManifestsPipeline {
-      Get(toUrl(ROOT_SERVICE_MANIFESTS))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_SERVICE_MANIFESTS)))
+      .flatMap(Unmarshal(_).to[Seq[PacBioComponentManifest]])
 
   // Added in smrtflow 0.1.11 and SA > 3.2.0
   def getPacBioComponentManifestById(
       manifestId: String): Future[PacBioComponentManifest] =
-    getServiceManifestPipeline {
-      Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId)))
+      .flatMap(Unmarshal(_).to[PacBioComponentManifest])
 
   def getAnalysisJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id)
@@ -770,32 +607,36 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id,
                   projectId = Some(projectId))
 
-  def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString))
-  }
+  def getJob(jobId: IdAble): Future[EngineJob] =
+    http
+      .singleRequest(Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def deleteJob(jobId: UUID,
                 removeFiles: Boolean = true,
                 dryRun: Boolean = false,
-                force: Boolean = false): Future[EngineJob] = getJobPipeline {
-    logger.debug(s"Deleting job $jobId")
-    Post(toUrl(ROOT_JOBS + "/delete-job"),
-         DeleteSmrtLinkJobOptions(jobId,
-                                  Some(s"Delete job $jobId name"),
-                                  None,
-                                  removeFiles,
-                                  dryRun = Some(dryRun),
-                                  force = Some(force)))
-  }
+                force: Boolean = false): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/delete-job"),
+             DeleteSmrtLinkJobOptions(jobId,
+                                      Some(s"Delete job $jobId name"),
+                                      None,
+                                      removeFiles,
+                                      dryRun = Some(dryRun),
+                                      force = Some(force))))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
-  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
-    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString + "/children"))
-  }
+  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] =
+    http
+      .singleRequest(
+        Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString + "/children")))
+      .flatMap(Unmarshal(_).to[Seq[EngineJob]])
 
   def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] =
-    getJobPipeline {
-      Get(toJobUrl(jobType, jobId))
-    }
+    http
+      .singleRequest(Get(toJobUrl(jobType, jobId)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
     getJobByTypeAndId(JobTypeIds.PBSMRTPIPE.id, jobId)
@@ -824,18 +665,21 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
 
   // FIXME I think this still only works with Int
   def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
-    getEntryPointsPipeline {
-      Get(
-        toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, ENTRY_POINTS_PREFIX))
-    }
+    http
+      .singleRequest(
+        Get(
+          toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id,
+                           jobId,
+                           ENTRY_POINTS_PREFIX)))
+      .flatMap(Unmarshal(_).to[Seq[EngineJobEntryPoint]])
 
   protected def getJobReport(jobType: String,
                              jobId: IdAble,
                              reportId: UUID): Future[Report] =
-    getReportPipeline {
-      logger.debug(s"Getting report $reportId for job ${jobId.toIdString}")
-      Get(toJobResourceIdUrl(jobType, jobId, JOB_REPORT_PREFIX, reportId))
-    }
+    http
+      .singleRequest(
+        Get(toJobResourceIdUrl(jobType, jobId, JOB_REPORT_PREFIX, reportId)))
+      .flatMap(Unmarshal(_).to[Report])
 
   // FIXME there is some degeneracy in the URLs - this actually works just fine
   // for import-dataset and merge-dataset jobs too
@@ -855,160 +699,165 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getJobOptions(JobTypeIds.PBSMRTPIPE.id, jobId)
 
   def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      Post(toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, TERMINATE_JOB))
-    }
+    http
+      .singleRequest(
+        Post(toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, TERMINATE_JOB)))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   def getReportViewRules: Future[Seq[ReportViewRule]] =
-    getReportViewRulesPipeline {
-      Get(toUrl(ROOT_REPORT_RULES))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_REPORT_RULES)))
+      .flatMap(Unmarshal(_).to[Seq[ReportViewRule]])
 
   def getReportViewRule(reportId: String): Future[ReportViewRule] =
-    getReportViewRulePipeline {
-      Get(toUrl(ROOT_REPORT_RULES + s"/$reportId"))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_REPORT_RULES + s"/$reportId")))
+      .flatMap(Unmarshal(_).to[ReportViewRule])
 
   def importDataSet(
       path: Path,
       dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Submitting import-dataset job for $path")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-           ImportDataSetOptions(path.toAbsolutePath, dsMetaType))
-    }
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
+             ImportDataSetOptions(path.toAbsolutePath, dsMetaType)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def importFasta(path: Path,
                   name: String,
                   organism: String,
-                  ploidy: String): Future[EngineJob] = runJobPipeline {
-    logger.debug(s"Importing reference $name from FASTA file $path")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
-         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None))
-  }
+                  ploidy: String): Future[EngineJob] =
+    http
+      .singleRequest(Post(
+        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
+        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Importing barcodes $name from FASTA file $path")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
-           ConvertImportFastaBarcodesOptions(toP(path), name))
-    }
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
+             ConvertImportFastaBarcodesOptions(toP(path), name)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
-                    name: String) = runJobPipeline {
-    logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         MergeDataSetJobOptions(datasetType, ids, Some(name), None))
-  }
+                    name: String) =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
+             MergeDataSetJobOptions(datasetType, ids, Some(name), None)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
-  def convertRsMovie(path: Path, name: String) = runJobPipeline {
-    logger.debug(s"Importing RS II metadata from $path")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
-         MovieMetadataToHdfSubreadOptions(toP(path), name))
-  }
+  def convertRsMovie(path: Path, name: String) =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
+             MovieMetadataToHdfSubreadOptions(toP(path), name)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
                      outputPath: Path,
-                     deleteAfterExport: Boolean = false) = runJobPipeline {
-    logger.debug(s"Exporting ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-         DataSetExportServiceOptions(datasetType.toString,
-                                     ids,
-                                     toP(outputPath),
-                                     Some(deleteAfterExport)))
-  }
+                     deleteAfterExport: Boolean = false): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
+             DataSetExportServiceOptions(datasetType.toString,
+                                         ids,
+                                         toP(outputPath),
+                                         Some(deleteAfterExport))))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
-                     removeFiles: Boolean = true) = runJobPipeline {
-    logger.debug(s"Deleting ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
-         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles))
-  }
+                     removeFiles: Boolean = true): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(
+          toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
+          DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] =
-    getPipelineTemplatePipeline {
-      Get(toUrl(ROOT_PT + "/" + pipelineId))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_PT + "/" + pipelineId)))
+      .flatMap(Unmarshal(_).to[PipelineTemplate])
 
   def getPipelineTemplates: Future[Seq[PipelineTemplate]] =
-    getPipelineTemplatesPipeline {
-      Get(toUrl(ROOT_PT))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_PT)))
+      .flatMap(Unmarshal(_).to[Seq[PipelineTemplate]])
 
   def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] =
-    getPipelineTemplateViewRulesPipeline {
-      Get(toUrl(ROOT_PTRULES))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_PTRULES)))
+      .flatMap(Unmarshal(_).to[Seq[PipelineTemplateViewRule]])
 
   def getPipelineTemplateViewRule(
       pipelineId: String): Future[PipelineTemplateViewRule] =
-    getPipelineTemplateViewRulePipeline {
-      Get(toUrl(ROOT_PTRULES + s"/$pipelineId"))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_PTRULES + s"/$pipelineId")))
+      .flatMap(Unmarshal(_).to[PipelineTemplateViewRule])
 
   def getPipelineDataStoreViewRules(
       pipelineId: String): Future[PipelineDataStoreViewRules] =
-    getPipelineDataStoreViewRulesPipeline {
-      Get(toUrl(ROOT_DS_RULES + s"/$pipelineId"))
-    }
+    http
+      .singleRequest(Get(toUrl(ROOT_DS_RULES + s"/$pipelineId")))
+      .flatMap(Unmarshal(_).to[PipelineDataStoreViewRules])
 
   def runAnalysisPipeline(
       pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Submitting analysis job '${pipelineOptions.name}'")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions)
-    }
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id),
+             pipelineOptions))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   def createMultiAnalysisJob(
-      multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] = {
-    runJobPipeline {
-      logger.info(
-        s"Submitting $JOB_MULTI_ROOT_PREFIX name:${multiAnalysisJobOptions.name
-          .getOrElse("")}")
-      Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
-           multiAnalysisJobOptions)
-    }
-  }
+      multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
+             multiAnalysisJobOptions))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
-  def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] = {
-    getMessageResponsePipeline {
-      logger.info(
-        s"Attempting to change MultiJob ${ix.toIdString} state to SUBMITTED")
-      Post(toUrl(
-        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit"))
-    }
-  }
+  def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] =
+    http
+      .singleRequest(Post(toUrl(
+        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit")))
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
-  def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] = {
-    getJobsPipeline {
-      Get(toUrl(
-        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/jobs"))
-    }
-  }
+  def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] =
+    http
+      .singleRequest(Get(toUrl(
+        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/jobs")))
+      .flatMap(Unmarshal(_).to[Seq[EngineJob]])
 
   // PacBio Data Bundle
-  def getPacBioDataBundles() = getPacBioDataBundlesPipeline {
-    Get(toPacBioDataBundleUrl())
-  }
+  def getPacBioDataBundles(): Future[Seq[PacBioDataBundle]] =
+    http
+      .singleRequest(Get(toPacBioDataBundleUrl()))
+      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
 
-  def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlesPipeline {
-      Get(toPacBioDataBundleUrl(Some(typeId)))
-    }
+  def getPacBioDataBundleByTypeId(
+      typeId: String): Future[Seq[PacBioDataBundle]] =
+    http
+      .singleRequest(Get(toPacBioDataBundleUrl(Some(typeId))))
+      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
 
   def getPacBioDataBundleByTypeAndVersionId(typeId: String,
                                             versionId: String) =
-    getPacBioDataBundlePipeline {
-      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))
-    }
+    http
+      .singleRequest(Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId"))))
+      .flatMap(Unmarshal(_).to[PacBioDataBundle])
 
-  def runTsSystemStatus(user: String, comment: String) = runJobPipeline {
-    logger.debug("Submitting tech support status job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
-         TsSystemStatusServiceOptions(user, comment))
+  def runTsSystemStatus(user: String, comment: String): Future[EngineJob] = {
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
+             TsSystemStatusServiceOptions(user, comment)))
+      .flatMap(Unmarshal(_).to[EngineJob])
   }
 
   /**
@@ -1019,12 +868,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param comment Comment
     * @return
     */
-  def runTsJobBundle(jobId: Int, user: String, comment: String) =
-    runJobPipeline {
-      logger.debug("Submitting tech support job bundle")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
-           TsJobBundleJobServiceOptions(jobId, user, comment))
-    }
+  def runTsJobBundle(jobId: Int,
+                     user: String,
+                     comment: String): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
+             TsJobBundleJobServiceOptions(jobId, user, comment)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   /**
     * Submit a request to create a DB BackUp Job
@@ -1035,11 +886,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param comment A comment from the user
     * @return
     */
-  def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
-    logger.debug("Submitting database backup job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id),
-         DbBackUpServiceJobOptions(user, comment))
-  }
+  def runDbBackUpJob(user: String, comment: String): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id),
+             DbBackUpServiceJobOptions(user, comment)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   /**
     * Start export of SMRT Link job(s)
@@ -1048,15 +900,16 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
                  outputPath: Path,
                  includeEntryPoints: Boolean = false,
                  name: Option[String] = None,
-                 description: Option[String] = None) = runJobPipeline {
-    logger.debug("Submitting export-jobs job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
-         ExportSmrtLinkJobOptions(jobIds,
-                                  outputPath,
-                                  includeEntryPoints,
-                                  name,
-                                  description))
-  }
+                 description: Option[String] = None): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
+             ExportSmrtLinkJobOptions(jobIds,
+                                      outputPath,
+                                      includeEntryPoints,
+                                      name,
+                                      description)))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
   /**
     * Start import of SMRT Link job from zip file
@@ -1065,15 +918,17 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param mockJobId if true, job UUID will be re-generated
     * @return new EngineJob object
     */
-  def importJob(zipPath: Path, mockJobId: Boolean = false) = runJobPipeline {
-    logger.debug("Submitting import-job job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_JOB.id),
-         ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId)))
-  }
+  def importJob(zipPath: Path, mockJobId: Boolean = false): Future[EngineJob] =
+    http
+      .singleRequest(
+        Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_JOB.id),
+             ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId))))
+      .flatMap(Unmarshal(_).to[EngineJob])
 
-  def getAlarms() = getAlarmsPipeline {
-    Get(toUrl(ROOT_ALARMS))
-  }
+  def getAlarms(): Future[Seq[AlarmStatus]] =
+    http
+      .singleRequest(Get(toUrl(ROOT_ALARMS)))
+      .flatMap(Unmarshal(_).to[Seq[AlarmStatus]])
 
   /**
     * FIXME(mpkocher)(2016-8-22)
