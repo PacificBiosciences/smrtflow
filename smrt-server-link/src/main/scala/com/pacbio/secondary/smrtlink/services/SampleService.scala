@@ -15,6 +15,7 @@ import com.pacbio.secondary.smrtlink.actors.{
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.ExecutionContext.Implicits._
 
@@ -28,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits._
   * by date ultimately to help scale the number of saved samples and display the
   * most recent by default.
   */
-class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
+class SampleService(sampleActor: ActorRef)
     extends SmrtLinkBaseMicroService
     with SmrtLinkJsonProtocols {
 
@@ -71,7 +72,7 @@ class SampleService(sampleActor: ActorRef, authenticator: Authenticator)
             }
           } ~
             post {
-              authenticate(authenticator.wso2Auth) { user =>
+              SmrtDirectives.extractRequiredUserRecord { user =>
                 entity(as[SampleCreate]) { create =>
                   complete {
                     created {
@@ -125,8 +126,7 @@ trait SampleServiceProvider {
     with ServiceComposer =>
 
   final val sampleService: Singleton[SampleService] =
-    Singleton(
-      () => new SampleService(sampleServiceActorRef(), authenticator()))
+    Singleton(() => new SampleService(sampleServiceActorRef()))
 
   addService(sampleService)
 }

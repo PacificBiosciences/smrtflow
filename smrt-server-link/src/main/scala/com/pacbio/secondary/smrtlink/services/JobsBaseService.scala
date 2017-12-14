@@ -48,6 +48,7 @@ import akka.http.scaladsl.model.headers.`Content-Disposition`
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import spray.json._
 
 import scala.collection.JavaConverters._
@@ -94,7 +95,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     with JobServiceConstants
     with JobServiceRoutes {
   val dao: JobsDao
-  val authenticator: Authenticator
   val config: SystemJobConfig
 
   implicit val um: Unmarshaller[T]
@@ -225,11 +225,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           blocking {
             JobResourceUtils.getJobResource(engineJob.path, id)
           }
-        }
-      }
+        }(ec)
+      }(ec)
       .recover {
         case NonFatal(_) => None
-      }
+      }(ec)
       .flatMap {
         case Some(x) =>
           val mtype =
@@ -245,7 +245,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           Future.failed(
             throw new ResourceNotFoundError(
               s"Unable to find image resource '$id'"))
-      }
+      }(ec)
   }
 
   private def toHttpEntity(path: Path): HttpEntity = {
@@ -262,7 +262,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
   val allRootJobRoutes: Route =
     pathEndOrSingleSlash {
       post {
-        optionalAuthenticate(authenticator.wso2Auth) { user =>
+        SmrtDirectives.extractOptionalUserRecord { user =>
           entity(as[T]) { opts =>
             complete {
               created {
@@ -305,7 +305,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                   created {
                     val f = jobId match {
                       case IntIdAble(n) => Future.successful(n)
-                      case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)
+                      case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)(ec)
                     }
                     f.map { intId =>
                       val message =
@@ -313,7 +313,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                       // FIXME. Need to map this to the proper log level
                       logger.info(message)
                       MessageResponse(s"Successfully logged. $message")
-                    }
+                    }(ec)
                   }
                 }
               }
@@ -343,18 +343,20 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               entity(as[CreateJobTaskRecord]) { r =>
                 complete {
                   created {
-                    dao.getJobById(jobId).flatMap { job =>
-                      dao.addJobTask(
-                        JobTask(r.uuid,
-                                job.id,
-                                r.taskId,
-                                r.taskTypeId,
-                                r.name,
-                                AnalysisJobStates.CREATED.toString,
-                                r.createdAt,
-                                r.createdAt,
-                                None))
-                    }
+                    dao
+                      .getJobById(jobId)
+                      .flatMap { job =>
+                        dao.addJobTask(
+                          JobTask(r.uuid,
+                                  job.id,
+                                  r.taskId,
+                                  r.taskTypeId,
+                                  r.name,
+                                  AnalysisJobStates.CREATED.toString,
+                                  r.createdAt,
+                                  r.createdAt,
+                                  None))
+                      }(ec)
                   }
                 }
               }
@@ -372,14 +374,15 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               entity(as[UpdateJobTaskRecord]) { r =>
                 complete {
                   created {
-                    dao.getJobById(jobId).flatMap { engineJob =>
-                      dao.updateJobTask(
-                        UpdateJobTask(engineJob.id,
-                                      taskUUID,
-                                      r.state,
-                                      r.message,
-                                      r.errorMessage))
-                    }
+                    dao
+                      .getJobById(jobId)
+                      .flatMap { engineJob =>
+                        dao.updateJobTask(UpdateJobTask(engineJob.id,
+                                                        taskUUID,
+                                                        r.state,
+                                                        r.message,
+                                                        r.errorMessage))
+                      }(ec)
                   }
                 }
               }
@@ -391,7 +394,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               ok {
                 dao
                   .getDataStoreReportByUUID(reportUUID)
-                  .map(_.parseJson) // To get the mime type correct
+                  .map(_.parseJson)(ec) // To get the mime type correct
               }
             }
           }
@@ -399,9 +402,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_REPORT_PREFIX) {
           get {
             complete {
-              dao.getJobById(jobId).flatMap { engineJob =>
-                dao.getDataStoreReportFilesByJobId(engineJob.id)
-              }
+              dao
+                .getJobById(jobId)
+                .flatMap { engineJob =>
+                  dao.getDataStoreReportFilesByJobId(engineJob.id)
+                }(ec)
             }
           }
         } ~
@@ -409,9 +414,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           get {
             complete {
               ok {
-                dao.getJobById(jobId).flatMap { engineJob =>
-                  dao.getJobEventsByJobId(engineJob.id)
-                }
+                dao
+                  .getJobById(jobId)
+                  .flatMap { engineJob =>
+                    dao.getJobEventsByJobId(engineJob.id)
+                  }(ec)
               }
             }
           }
@@ -420,9 +427,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           get {
             complete {
               ok {
-                dao.getJobById(jobId).flatMap { engineJob =>
-                  dao.getDataStoreServiceFilesByJobId(engineJob.id)
-                }
+                dao
+                  .getJobById(jobId)
+                  .flatMap { engineJob =>
+                    dao.getDataStoreServiceFilesByJobId(engineJob.id)
+                  }(ec)
               }
             }
           }
@@ -452,7 +461,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           get {
             complete {
               ok {
-                dao.getJobById(jobId).map(_.jsonSettings)
+                dao.getJobById(jobId).map(_.jsonSettings)(ec)
               }
             }
           }
@@ -528,7 +537,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 
 // All Service Jobs should be defined here. This a bit boilerplate, but it's very simple and there aren't a large number of job types
 class HelloWorldJobsService(override val dao: JobsDao,
-                            override val authenticator: Authenticator,
                             override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[HelloWorldJobOptions],
     implicit val sm: Marshaller[HelloWorldJobOptions],
@@ -538,7 +546,6 @@ class HelloWorldJobsService(override val dao: JobsDao,
 }
 
 class DbBackupJobsService(override val dao: JobsDao,
-                          override val authenticator: Authenticator,
                           override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[DbBackUpJobOptions],
     implicit val sm: Marshaller[DbBackUpJobOptions],
@@ -548,7 +555,6 @@ class DbBackupJobsService(override val dao: JobsDao,
 }
 
 class DeleteDataSetJobsService(override val dao: JobsDao,
-                               override val authenticator: Authenticator,
                                override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[DeleteDataSetJobOptions],
     implicit val sm: Marshaller[DeleteDataSetJobOptions],
@@ -558,7 +564,6 @@ class DeleteDataSetJobsService(override val dao: JobsDao,
 }
 
 class DeleteSmrtLinkJobsService(override val dao: JobsDao,
-                                override val authenticator: Authenticator,
                                 override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[DeleteSmrtLinkJobOptions],
     implicit val sm: Marshaller[DeleteSmrtLinkJobOptions],
@@ -568,7 +573,6 @@ class DeleteSmrtLinkJobsService(override val dao: JobsDao,
 }
 
 class ExportDataSetsJobsService(override val dao: JobsDao,
-                                override val authenticator: Authenticator,
                                 override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ExportDataSetsJobOptions],
     implicit val sm: Marshaller[ExportDataSetsJobOptions],
@@ -578,7 +582,6 @@ class ExportDataSetsJobsService(override val dao: JobsDao,
 }
 
 class ExportJobsService(override val dao: JobsDao,
-                        override val authenticator: Authenticator,
                         override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ExportSmrtLinkJobOptions],
     implicit val sm: Marshaller[ExportSmrtLinkJobOptions],
@@ -588,7 +591,6 @@ class ExportJobsService(override val dao: JobsDao,
 }
 
 class ImportJobService(override val dao: JobsDao,
-                       override val authenticator: Authenticator,
                        override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ImportSmrtLinkJobOptions],
     implicit val sm: Marshaller[ImportSmrtLinkJobOptions],
@@ -598,7 +600,6 @@ class ImportJobService(override val dao: JobsDao,
 }
 
 class ImportBarcodeFastaJobsService(override val dao: JobsDao,
-                                    override val authenticator: Authenticator,
                                     override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions],
     implicit val sm: Marshaller[ImportBarcodeFastaJobOptions],
@@ -608,7 +609,6 @@ class ImportBarcodeFastaJobsService(override val dao: JobsDao,
 }
 
 class ImportDataSetJobsService(override val dao: JobsDao,
-                               override val authenticator: Authenticator,
                                override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ImportDataSetJobOptions],
     implicit val sm: Marshaller[ImportDataSetJobOptions],
@@ -663,7 +663,6 @@ class ImportDataSetJobsService(override val dao: JobsDao,
 }
 
 class ImportFastaJobsService(override val dao: JobsDao,
-                             override val authenticator: Authenticator,
                              override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[ImportFastaJobOptions],
     implicit val sm: Marshaller[ImportFastaJobOptions],
@@ -674,7 +673,6 @@ class ImportFastaJobsService(override val dao: JobsDao,
 }
 
 class MergeDataSetJobsService(override val dao: JobsDao,
-                              override val authenticator: Authenticator,
                               override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[MergeDataSetJobOptions],
     implicit val sm: Marshaller[MergeDataSetJobOptions],
@@ -684,7 +682,6 @@ class MergeDataSetJobsService(override val dao: JobsDao,
 }
 
 class MockPbsmrtpipeJobsService(override val dao: JobsDao,
-                                override val authenticator: Authenticator,
                                 override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions],
     implicit val sm: Marshaller[MockPbsmrtpipeJobOptions],
@@ -694,7 +691,6 @@ class MockPbsmrtpipeJobsService(override val dao: JobsDao,
 }
 
 class PbsmrtpipeJobsService(override val dao: JobsDao,
-                            override val authenticator: Authenticator,
                             override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[PbsmrtpipeJobOptions],
     implicit val sm: Marshaller[PbsmrtpipeJobOptions],
@@ -729,10 +725,8 @@ class PbsmrtpipeJobsService(override val dao: JobsDao,
   }
 }
 
-class RsConvertMovieToDataSetJobsService(
-    override val dao: JobsDao,
-    override val authenticator: Authenticator,
-    override val config: SystemJobConfig)(
+class RsConvertMovieToDataSetJobsService(override val dao: JobsDao,
+                                         override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions],
     implicit val sm: Marshaller[RsConvertMovieToDataSetJobOptions],
     implicit val jwriter: JsonWriter[RsConvertMovieToDataSetJobOptions])
@@ -741,7 +735,6 @@ class RsConvertMovieToDataSetJobsService(
 }
 
 class SimpleJobsService(override val dao: JobsDao,
-                        override val authenticator: Authenticator,
                         override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[SimpleJobOptions],
     implicit val sm: Marshaller[SimpleJobOptions],
@@ -751,7 +744,6 @@ class SimpleJobsService(override val dao: JobsDao,
 }
 
 class TsJobBundleJobsService(override val dao: JobsDao,
-                             override val authenticator: Authenticator,
                              override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[TsJobBundleJobOptions],
     implicit val sm: Marshaller[TsJobBundleJobOptions],
@@ -760,10 +752,8 @@ class TsJobBundleJobsService(override val dao: JobsDao,
   override def jobTypeId = JobTypeIds.TS_JOB
 }
 
-class TsSystemStatusBundleJobsService(
-    override val dao: JobsDao,
-    override val authenticator: Authenticator,
-    override val config: SystemJobConfig)(
+class TsSystemStatusBundleJobsService(override val dao: JobsDao,
+                                      override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions],
     implicit val sm: Marshaller[TsSystemStatusBundleJobOptions],
     implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions])
@@ -773,7 +763,6 @@ class TsSystemStatusBundleJobsService(
 
 // This is the used for the "Naked" untyped job route service <smrt-link>/<job-manager>/jobs
 class NakedNoTypeJobsService(override val dao: JobsDao,
-                             override val authenticator: Authenticator,
                              override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[SimpleJobOptions],
     implicit val sm: Marshaller[SimpleJobOptions],
@@ -788,7 +777,6 @@ class NakedNoTypeJobsService(override val dao: JobsDao,
 }
 
 class MultiAnalysisJobService(override val dao: JobsDao,
-                              override val authenticator: Authenticator,
                               override val config: SystemJobConfig)(
     implicit val um: Unmarshaller[MultiAnalysisJobOptions],
     implicit val sm: Marshaller[MultiAnalysisJobOptions],
@@ -961,10 +949,8 @@ class MultiAnalysisJobService(override val dao: JobsDao,
   * @param dao JobDao
   * @param authenticator Authenticator
   */
-class JobsServiceUtils(
-    dao: JobsDao,
-    authenticator: Authenticator,
-    config: SystemJobConfig)(implicit val actorSystem: ActorSystem)
+class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
+    implicit val actorSystem: ActorSystem)
     extends PacBioService
     with JobServiceConstants
     with FileAndResourceDirectives
@@ -1078,7 +1064,7 @@ class JobsServiceUtils(
   def getServiceJobRoutes(): Route = {
 
     // This will NOT be wrapped in a job-type prefix
-    val nakedCoreJob = new NakedNoTypeJobsService(dao, authenticator, config)
+    val nakedCoreJob = new NakedNoTypeJobsService(dao, config)
 
     // These will be wrapped with the a job-type-id specific prefix
     val coreJobs = getServiceJobs()
@@ -1148,7 +1134,6 @@ class JobsServiceUtils(
 trait JobsServiceProvider {
   this: ActorRefFactoryProvider
     with ActorSystemProvider
-    with AuthenticatorProvider
     with ServiceComposer
     with JobsDaoProvider
     with SmrtLinkConfigProvider =>
@@ -1156,7 +1141,7 @@ trait JobsServiceProvider {
   //FIXME(mpkocher)(8-27-2017) Rename this to something sensible
   val newJobService: Singleton[JobsServiceUtils] = Singleton { () =>
     implicit val system = actorSystem()
-    new JobsServiceUtils(jobsDao(), authenticator(), systemJobConfig())
+    new JobsServiceUtils(jobsDao(), systemJobConfig())
   }
 
   addService(newJobService)

@@ -1,15 +1,14 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ConflictError,
   ResourceNotFoundError
 }
-import com.pacbio.secondary.smrtlink.services.utils.FutureSecurityDirectives
+import com.pacbio.secondary.smrtlink.services.utils.{
+  FutureSecurityDirectives,
+  SmrtDirectives
+}
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
@@ -22,7 +21,7 @@ import scala.concurrent.Future
 /**
   * Accessing Projects
   */
-class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
+class ProjectService(jobsDao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
     with FutureSecurityDirectives
     with SmrtLinkConstants {
@@ -84,7 +83,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     pathPrefix("projects") {
       pathEndOrSingleSlash {
         post {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
                 validateUpdates(sopts)
@@ -99,7 +98,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
           }
         } ~
           get {
-            authenticate(authenticator.wso2Auth) { user =>
+            SmrtDirectives.extractRequiredUserRecord { user =>
               complete {
                 ok {
                   jobsDao.getUserProjects(user.userId).map(_.map(_.project))
@@ -111,7 +110,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
         pathPrefix(IntNumber) { projId =>
           pathEndOrSingleSlash {
             put {
-              authenticate(authenticator.wso2Auth) { user =>
+              SmrtDirectives.extractRequiredUserRecord { user =>
                 entity(as[ProjectRequest]) { sopts =>
                   futureAuthorize(userCanWrite(user.userId, projId)) {
                     complete {
@@ -128,7 +127,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
               }
             } ~
               get {
-                authenticate(authenticator.wso2Auth) { user =>
+                SmrtDirectives.extractRequiredUserRecord { user =>
                   futureAuthorize(userCanRead(user.userId, projId)) {
                     complete {
                       ok {
@@ -141,7 +140,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
                 }
               } ~
               delete {
-                authenticate(authenticator.wso2Auth) { user =>
+                SmrtDirectives.extractRequiredUserRecord { user =>
                   futureAuthorize(userIsOwner(user.userId, projId)) {
                     complete {
                       ok {
@@ -157,7 +156,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     } ~
       path("projects-datasets" / Segment) { login =>
         get {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
               ok {
                 jobsDao.getUserProjectsDatasets(login)
@@ -168,7 +167,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
       } ~
       path("user-projects" / Segment) { login =>
         get {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
               ok {
                 jobsDao.getUserProjects(login)
@@ -184,11 +183,10 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
         "Requested update would remove all project owners.")
 }
 
-trait ProjectServiceProvider {
-  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
+trait ProjectServiceProvider { this: JobsDaoProvider with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
-    Singleton(() => new ProjectService(jobsDao(), authenticator()))
+    Singleton(() => new ProjectService(jobsDao()))
 
   addService(projectService)
 }

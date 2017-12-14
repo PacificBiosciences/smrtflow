@@ -17,6 +17,7 @@ import akka.http.scaladsl.unmarshalling._
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.client.RequestBuilding._
+import akka.stream.ActorMaterializer
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -59,7 +60,15 @@ class ApiManagerAccessLayer(
   import SprayJsonSupport._
   import Wso2Models._
 
+  implicit val materializer = ActorMaterializer()
   implicit val executionContext = actorSystem.dispatcher
+
+  val http = Http()
+
+  // This needs the correct HTTPS configuration
+  val apiPipeHttp = Http()
+  val adminPipeHttp = Http()
+
   implicit val timeout: Timeout = 200.seconds
 
   // this enum isn't described in the wso2 swagger, so I'm including a
@@ -77,22 +86,22 @@ class ApiManagerAccessLayer(
     val RETIRE = Value("Retire")
   }
 
-  protected def getWso2Connection(portNumber: Int) = {
-    IO(Http) ? Http.HostConnectorSetup(host,
-                                       port = portNumber + portOffset,
-                                       sslEncryption = true)
-  }
-
-  // request pipeline for the API port
-  val apiPipe: Future[SendReceive] = {
-    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT))
-      yield sendReceive(connector)
-  }
-
-  // request pipeline for the admin port
-  val adminPipe: Future[SendReceive] =
-    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT))
-      yield sendReceive(connector)
+//  protected def getWso2Connection(portNumber: Int) = {
+//    IO(Http) ? Http.HostConnectorSetup(host,
+//                                       port = portNumber + portOffset,
+//                                       sslEncryption = true)
+//  }
+//
+//  // request pipeline for the API port
+//  val apiPipe: Future[SendReceive] = {
+//    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT))
+//      yield sendReceive(connector)
+//  }
+//
+//  // request pipeline for the admin port
+//  val adminPipe: Future[SendReceive] =
+//    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT))
+//      yield sendReceive(connector)
 
   def register(): Future[ClientRegistrationResponse] = {
     val body = ClientRegistrationRequest("foo",
@@ -107,7 +116,10 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(user, password))
     )
 
-    adminPipe.flatMap(_(request)).map(unmarshal[ClientRegistrationResponse])
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[ClientRegistrationResponse])
+
   }
 
   // the consumer key and secret can come from the dynamic client
@@ -128,7 +140,7 @@ class ApiManagerAccessLayer(
       Post(s"/token", body)
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
     )
-    apiPipe.flatMap(_(request)).map(unmarshal[OauthToken])
+    apiPipeHttp.singleRequest(request).flatMap(Unmarshal(_).to[OauthToken])
   }
 
   /**
@@ -154,35 +166,30 @@ class ApiManagerAccessLayer(
     for {
       //_ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
       _ <- waitForRequest(Get("/api/am/store/v0.10/applications"),
-                          adminPipe,
                           tries,
                           delay)
-      _ <- waitForRequest(Get("/api/am/publisher/v0.10/apis"),
-                          adminPipe,
-                          tries,
-                          delay)
+      _ <- waitForRequest(Get("/api/am/publisher/v0.10/apis"), tries, delay)
     } yield "Successfully Connected to WSO2"
 
   }
 
   def waitForRequest(request: HttpRequest,
-                     pipeline: Future[SendReceive],
                      tries: Int,
                      delay: FiniteDuration): Future[HttpResponse] = {
 
     def retry =
       akka.pattern.after(delay, using = actorSystem.scheduler)(
-        waitForRequest(request, pipeline, tries - 1, delay))
+        waitForRequest(request, tries - 1, delay))
 
     val expectedStatuses: Set[StatusCode] =
       Set(StatusCodes.OK,
           StatusCodes.Unauthorized,
           StatusCodes.MethodNotAllowed)
 
-    pipeline
-      .flatMap(_(request))
+    adminPipeHttp
+      .singleRequest(request)
       .recoverWith({
-        case exc: Http.ConnectionAttemptFailedException => {
+        case exc: ConnectionAttemptFailedException => {
           if (tries > 1) {
             retry
           } else {
@@ -210,7 +217,8 @@ class ApiManagerAccessLayer(
       Put(s"/api/am/store/v0.10/applications/${app.applicationId.get}", app)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request))
+
+    adminPipeHttp.singleRequest(request)
   }
 
   def getApplication(applicationId: String,
@@ -219,17 +227,24 @@ class ApiManagerAccessLayer(
       Get(s"/api/am/store/v0.10/applications/${applicationId}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[store.models.Application])
+
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[store.models.Application])
   }
 
   def searchApplications(
       name: String,
       token: OauthToken): Future[store.models.ApplicationList] = {
+
     val request = (
       Get(s"/api/am/store/v0.10/applications?query=${name}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[store.models.ApplicationList])
+
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[store.models.ApplicationList])
   }
 
   def subscribe(apiId: String,
@@ -248,7 +263,9 @@ class ApiManagerAccessLayer(
       Post(s"/api/am/store/v0.10/subscriptions", subscription)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[store.models.Subscription])
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[store.models.Subscription])
   }
 
   // publisher APIs
@@ -258,7 +275,10 @@ class ApiManagerAccessLayer(
       Get(s"/api/am/publisher/v0.10/apis?query=${name}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.APIList])
+
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[publisher.models.APIList])
   }
 
   def getApiDetails(id: String,
@@ -267,7 +287,10 @@ class ApiManagerAccessLayer(
       Get(s"/api/am/publisher/v0.10/apis/${id}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
   def putApiDetails(api: publisher.models.API,
@@ -276,7 +299,9 @@ class ApiManagerAccessLayer(
       Put(s"/api/am/publisher/v0.10/apis/${api.id.get}", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
   def postApiDetails(api: publisher.models.API,
@@ -285,7 +310,9 @@ class ApiManagerAccessLayer(
       Post(s"/api/am/publisher/v0.10/apis", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request)).map(unmarshal[publisher.models.API])
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
   def apiChangeLifecycle(apiId: String,
@@ -296,7 +323,7 @@ class ApiManagerAccessLayer(
         s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipe.flatMap(_(request))
+    adminPipeHttp.singleRequest(request)
   }
 
   // User Store admin API
@@ -318,9 +345,9 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(user, password))
         ~> addHeader("SOAPAction", action)
     )
-    adminPipe
-      .flatMap(_(request))
-      .map(unmarshal[NodeSeq])
+    adminPipeHttp
+      .singleRequest(request)
+      .flatMap(Unmarshal(_).to[NodeSeq])
   }
 
   def getRoleNames(user: String, password: String): Future[Seq[String]] = {

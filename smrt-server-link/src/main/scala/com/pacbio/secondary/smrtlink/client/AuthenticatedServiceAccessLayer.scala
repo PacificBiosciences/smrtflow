@@ -39,23 +39,23 @@ class AuthenticatedServiceAccessLayer(
             wso2Port,
             s"/SMRTLink/1.0.0$segment").toString
 
-  private def sslSendReceive(request: HttpRequest): Future[HttpResponse] = {
-    for {
-      Http
-        .HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(
-        baseUrl.getHost,
-        port = wso2Port,
-        sslEncryption = true)
-      response <- connector ? request
-    } yield
-      response match {
-        case r: HttpResponse => r
-        case x => throw new RuntimeException(s"Unexpected response $x")
-      }
-  }
+//  private def sslSendReceive(request: HttpRequest): Future[HttpResponse] = {
+//    for {
+//      Http
+//        .HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(
+//        baseUrl.getHost,
+//        port = wso2Port,
+//        sslEncryption = true)
+//      response <- connector ? request
+//    } yield
+//      response match {
+//        case r: HttpResponse => r
+//        case x => throw new RuntimeException(s"Unexpected response $x")
+//      }
+//  }
 
-  override def requestPipe: HttpRequest => Future[HttpResponse] =
-    addHeader("Authorization", s"Bearer ${token}") ~> sslSendReceive
+  def addAuthHeader(request: HttpRequest): HttpRequest =
+    request ~> addHeader("Authorization", s"Bearer ${token}")
 }
 
 object AuthenticatedServiceAccessLayer {

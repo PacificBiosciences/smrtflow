@@ -2,10 +2,10 @@ package com.pacbio.secondary.smrtlink.services.utils
 
 import scala.language.implicitConversions
 import akka.http.scaladsl.server._
-import spray.routing.directives.BasicDirectives._
-import spray.routing.directives._
+
 import scala.concurrent.{ExecutionContext, Future}
-import FutureDirectives._
+import akka.http.scaladsl.server.directives.FutureDirectives._
+import akka.http.scaladsl.server.directives.SecurityDirectives
 
 // from https://gist.github.com/larryboymi/2838db7c476873a71d22
 trait FutureSecurityDirectives extends SecurityDirectives {

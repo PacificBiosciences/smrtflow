@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,10 +18,6 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import SprayJsonSupport._
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.server.Route
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
@@ -50,7 +47,7 @@ import collection.JavaConverters._
   * Accessing DataSets by type. Currently several datasets types are
   * not completely supported (ContigSet, CCSreads, CCS Alignments)
   */
-class DataSetService(dao: JobsDao, authenticator: Authenticator)
+class DataSetService(dao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
     with SmrtLinkConstants {
   // For all the Message types
@@ -269,7 +266,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       implicit ct: ClassTag[R],
       ma: Marshaller[R],
       sm: Marshaller[Seq[R]]): Route =
-    optionalAuthenticate(authenticator.wso2Auth) { user =>
+    SmrtDirectives.extractOptionalUserRecord { user =>
       pathPrefix(shortName) {
         pathEnd {
           get {
@@ -448,11 +445,10 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       }
 }
 
-trait DataSetServiceProvider {
-  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
+trait DataSetServiceProvider { this: JobsDaoProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDao(), authenticator()))
+    Singleton(() => new DataSetService(jobsDao()))
 
   addService(dataSetService)
 }

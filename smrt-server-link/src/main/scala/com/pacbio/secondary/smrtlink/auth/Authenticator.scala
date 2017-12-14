@@ -35,7 +35,7 @@ trait Authenticator {
   /**
     * Parses claims passed to SMRTLink from WSO2 as a JWT. Does not validate the JWT signature.
     */
-  def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord]
+  //def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord]
 }
 
 object Authenticator {
@@ -56,37 +56,48 @@ trait AuthenticatorProvider {
 class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
   import Authenticator.JWT_HEADER
 
-  override def wso2Auth(
-      implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
-    import akka.http.scaladsl.server.AuthenticationFailedRejection._
+  def authHeader(ctx: RequestContext) =
+    ctx.request.headers.find(_.is(JWT_HEADER))
 
-    def authHeader(ctx: RequestContext) =
-      ctx.request.headers.find(_.is(JWT_HEADER))
+  def validateToken(ctx: RequestContext): Future[Option[UserRecord]] =
+    Future {
+      // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
+      authHeader(ctx)
+        .map(_.value) // Render header as string
+        .flatMap(jwt => jwtUtils.parse(jwt)) // Parse JWT and get claims
+    }
 
-    def validateToken(ctx: RequestContext): Future[Option[UserRecord]] =
-      Future {
-        // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
-        authHeader(ctx)
-          .map(_.value) // Render header as string
-          .flatMap(jwt => jwtUtils.parse(jwt)) // Parse JWT and get claims
-      }
-
-    def authenticate(
-        ctx: RequestContext): Future[Either[Rejection, UserRecord]] =
-      validateToken(ctx).map {
-        case Some(user) => Right(user)
-        case None =>
-          val cause =
-            if (authHeader(ctx).isEmpty) CredentialsMissing
-            else CredentialsRejected
-          Left(
-            AuthenticationFailedRejection(cause,
-                                          HttpChallenge("http", realm = None)))
-      }
-
-    ctx: RequestContext =>
-      authenticate(ctx)
-  }
+//  override def wso2Auth(
+//      implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
+//    import akka.http.scaladsl.server.AuthenticationFailedRejection._
+//
+//    def authHeader(ctx: RequestContext) =
+//      ctx.request.headers.find(_.is(JWT_HEADER))
+//
+//    def validateToken(ctx: RequestContext): Future[Option[UserRecord]] =
+//      Future {
+//        // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
+//        authHeader(ctx)
+//          .map(_.value) // Render header as string
+//          .flatMap(jwt => jwtUtils.parse(jwt)) // Parse JWT and get claims
+//      }
+//
+//    def authenticate(
+//        ctx: RequestContext): Future[Either[Rejection, UserRecord]] =
+//      validateToken(ctx).map {
+//        case Some(user) => Right(user)
+//        case None =>
+//          val cause =
+//            if (authHeader(ctx).isEmpty) CredentialsMissing
+//            else CredentialsRejected
+//          Left(
+//            AuthenticationFailedRejection(cause,
+//                                          HttpChallenge("http", realm = None)))
+//      }
+//
+//    ctx: RequestContext =>
+//      authenticate(ctx)
+//  }
 }
 
 /**

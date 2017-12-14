@@ -4,8 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.auth.Authenticator
-import com.pacbio.secondary.smrtlink.auth.AuthenticatorProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{
@@ -14,20 +12,22 @@ import com.pacbio.secondary.smrtlink.actors.{
 }
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
-import spray.http.{
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.{
   HttpEntity,
   HttpHeader,
   HttpMethod,
-  HttpResponse => SprayHttpResponse
+  HttpResponse => SprayHttpResponse,
+  StatusCodes
 }
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.RawHeader
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scalaj.http.HttpResponse
 
-class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
+class RegistryService(registryActor: ActorRef)
     extends SmrtLinkBaseMicroService
     with SmrtLinkJsonProtocols {
 
@@ -110,7 +110,7 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
                 extract[HttpEntity](_.request.entity) { ent =>
                   extract[List[HttpHeader]](_.request.headers) { headers =>
                     parameterMap { params =>
-                      path(Rest) { path =>
+                      path(RemainingPath) { path =>
                         complete {
                           handleProxy(uuid, path, method, ent, headers, params)
                         }
@@ -136,8 +136,6 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
                   ent: HttpEntity,
                   head: List[HttpHeader],
                   par: Map[String, String]): Future[SprayHttpResponse] = {
-    import spray.http.{HttpEntity, StatusCodes}
-    import spray.http.HttpHeaders.RawHeader
 
     val path: String = if (pth startsWith "/") pth else "/" + pth
     val method: String = meth.value
@@ -166,13 +164,10 @@ class RegistryService(registryActor: ActorRef, authenticator: Authenticator)
 }
 
 trait RegistryServiceProvider {
-  this: RegistryServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: RegistryServiceActorRefProvider with ServiceComposer =>
 
   val registryService: Singleton[RegistryService] =
-    Singleton(
-      () => new RegistryService(registryServiceActorRef(), authenticator()))
+    Singleton(() => new RegistryService(registryServiceActorRef()))
 
   addService(registryService)
 }

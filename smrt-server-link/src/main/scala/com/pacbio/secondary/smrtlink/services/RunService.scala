@@ -2,10 +2,7 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
+
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -22,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits._
 
 // TODO(smcclellan): Add documentation
 
-class RunService(runActor: ActorRef, authenticator: Authenticator)
+class RunService(runActor: ActorRef)
     extends SmrtLinkBaseMicroService
     with SmrtLinkJsonProtocols {
 
@@ -129,12 +126,10 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
   * a {{{RunServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
   */
 trait RunServiceProvider {
-  this: RunServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: RunServiceActorRefProvider with ServiceComposer =>
 
   final val runService: Singleton[RunService] =
-    Singleton(() => new RunService(runServiceActorRef(), authenticator()))
+    Singleton(() => new RunService(runServiceActorRef()))
 
   addService(runService)
 }

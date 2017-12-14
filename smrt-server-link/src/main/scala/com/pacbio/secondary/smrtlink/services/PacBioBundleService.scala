@@ -258,7 +258,7 @@ class PacBioBundleService(
             }
           }
         } ~
-        path(Segment / "active" / "files" / RestPath) {
+        path(Segment / "active" / "files" / RemainingPath) {
           (bundleTypeId, uriPath) =>
             onSuccess(getFileInBundle(bundleTypeId, uriPath)) { rPath =>
               getFromFile(rPath.toFile)

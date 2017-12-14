@@ -51,12 +51,11 @@ class EulaServiceSpec
     this: JobsDaoProvider
       with SmrtLinkTestDalProvider
       with SmrtLinkConfigProvider
-      with AuthenticatorProvider
       with ServiceComposer =>
 
     val eulaService: Singleton[EulaService] =
       Singleton { () =>
-        new EulaService(Some(testSmrtLinkVersion), jobsDao(), authenticator())
+        new EulaService(Some(testSmrtLinkVersion), jobsDao())
       }
 
     addService(eulaService)

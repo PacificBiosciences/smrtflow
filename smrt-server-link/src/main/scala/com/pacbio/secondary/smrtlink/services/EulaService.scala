@@ -26,9 +26,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Future
 
-class EulaService(smrtLinkSystemVersion: Option[String],
-                  dao: JobsDao,
-                  authenticator: Authenticator)
+class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao)
     extends BaseSmrtService
     with JobServiceConstants
     with OSUtils {
@@ -127,14 +125,11 @@ class EulaService(smrtLinkSystemVersion: Option[String],
 }
 
 trait EulaServiceProvider {
-  this: JobsDaoProvider
-    with SmrtLinkConfigProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: JobsDaoProvider with SmrtLinkConfigProvider with ServiceComposer =>
 
   val eulaService: Singleton[EulaService] =
     Singleton { () =>
-      new EulaService(smrtLinkVersion(), jobsDao(), authenticator())
+      new EulaService(smrtLinkVersion(), jobsDao())
     }
 
   addService(eulaService)
