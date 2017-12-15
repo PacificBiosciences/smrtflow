@@ -67,6 +67,26 @@ package object semver {
       )
 
     }
+
+    /**
+      * Add Some slop until we all components strictly use SemVer.
+      *
+      * Note, this SHOULD NOT be used liberally.
+      *
+      * Only supported is the 1.2.3.1234 format used by ICS and other places in PB.
+      *
+      * @param rawVersion a Raw version string
+      * @return
+      */
+    def parseWithSlop(rawVersion: String): SemVersion = {
+      val rx = """(\d+).(\d+).(\d+).(\d+)""".r
+
+      rawVersion.replace("SNAPSHOT", "") match {
+        case rx(major, minor, patch, extra) =>
+          SemVersion.fromString(s"$major.$minor.$patch+$extra")
+        case _ => SemVersion.fromString(rawVersion)
+      }
+    }
   }
 
 }
