@@ -15,6 +15,7 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives.{LogEntry, DebuggingDirectives}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 import scala.util.control.NonFatal
 
@@ -155,7 +156,6 @@ package object services {
       extends BasicToResponseMarshallers
       with LazyLogging {
 
-    import CORSSupport._
     import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
     import PacBioServiceErrors._
     import SprayJsonSupport._
@@ -239,12 +239,11 @@ package object services {
       extends StatusCodeJoiners
       with Directives
       with ServiceIdUtils {
-    import CORSSupport._
 
     val manifest: PacBioComponentManifest
     def routes: Route
 
-    def prefixedRoutes = cors { routes }
+    def prefixedRoutes = cors() { routes }
   }
 
   class RoutedHttpService(route: Route)

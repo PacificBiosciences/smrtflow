@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -14,6 +13,7 @@ import com.pacbio.secondary.smrtlink.actors.{
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
 
 import scala.concurrent.ExecutionContext.Implicits._
 
@@ -31,18 +31,37 @@ class RunService(runActor: ActorRef)
     "0.1.0",
     "Database-backed CRUD operations for Runs")
 
+  /**
+    * The spray interface has changed
+    *
+    * parameters('reserved.?.as[Option[Boolean]]) doesn't
+    * appear to work in the new API.
+    *
+    * @param sx
+    * @return
+    */
+  def stringToBoolean(sx: String): Boolean = sx.toLowerCase match {
+    case "true" => true
+    case "false" => false
+    case _ =>
+      // FIXME. This should probably raise
+      false
+  }
+
   val routes =
     //authenticate(authenticator.wso2Auth) { user =>
     pathPrefix("runs") {
-      pathEnd {
+      pathEndOrSingleSlash {
         get {
-          parameters('name.?,
-                     'substring.?,
-                     'createdBy.?,
-                     'reserved.?.as[Option[Boolean]]).as(SearchCriteria) {
-            criteria =>
+          parameters('name.?, 'substring.?, 'createdBy.?, 'reserved.?) {
+            (name, substring, createdBy, reserved) =>
               complete {
-                (runActor ? GetRuns(criteria)).mapTo[Set[RunSummary]]
+                (runActor ? GetRuns(
+                  SearchCriteria(name,
+                                 substring,
+                                 createdBy,
+                                 reserved.map(stringToBoolean))))
+                  .mapTo[Set[RunSummary]]
               }
           }
         } ~

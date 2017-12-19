@@ -1,17 +1,12 @@
 package com.pacbio.secondary.smrtlink.services.utils
 
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.headers.{
-  `Access-Control-Allow-Origin`,
-  `Access-Control-Allow-Methods`,
-  `Access-Control-Allow-Headers`,
-  `Access-Control-Max-Age`
-}
+import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{
+  HttpMethod,
   HttpMethods,
   HttpRequest,
-  HttpResponse,
-  HttpMethod
+  HttpResponse
 }
 import akka.http.scaladsl.server.RouteResult.Rejected
 import akka.http.scaladsl.server.directives.BasicDirectives
@@ -30,33 +25,36 @@ import akka.http.scaladsl.server.directives.BasicDirectives
   */
 object CORSSupport extends BasicDirectives {
 
-  val allowOriginHeader = `Access-Control-Allow-Origin`(AllOrigins)
+  val allOrigins: HttpOriginRange = HttpOriginRange.*
+  val allowOriginHeader = `Access-Control-Allow-Origin`(allOrigins)
   val optionsCorsHeaders = List(
     `Access-Control-Allow-Headers`(
       "Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding, Accept-Language, Host, Referer, User-Agent, Authorization"),
     `Access-Control-Max-Age`(1728000)
   )
 
-  val cors: Directive0 = mapRequestContext { ctx =>
-    ctx
-      .withRouteResponseHandling {
-        //It is an option request for a resource that responds to some other method
-        case Rejected(rejections)
-            if ctx.request.method.equals(HttpMethods.OPTIONS) && rejections
-              .exists(_.isInstanceOf[MethodRejection]) =>
-          val allowedMethods: List[HttpMethod] =
-            rejections
-              .filter(_.isInstanceOf[MethodRejection])
-              .map(_.asInstanceOf[MethodRejection].supported)
-
-          ctx.complete(
-            HttpResponse().withHeaders(
-              `Access-Control-Allow-Methods`(OPTIONS, allowedMethods: _*) :: allowOriginHeader ::
-                optionsCorsHeaders
-            ))
-      }
-      .withHttpResponseHeadersMapped { headers =>
-        allowOriginHeader :: headers
-      }
-  }
+//  val cors: Directive0 = mapRequestContext { ctx =>
+//    ctx
+//      .withRouteResponseHandling {
+//        //It is an option request for a resource that responds to some other method
+//        case Rejected(rejections)
+//            if ctx.request.method.equals(HttpMethods.OPTIONS) && rejections
+//              .exists(_.isInstanceOf[MethodRejection]) =>
+//          val allowedMethods: List[HttpMethod] =
+//            rejections
+//              .filter(_.isInstanceOf[MethodRejection])
+//              .map(_.asInstanceOf[MethodRejection].supported)
+//
+//          ctx.complete(
+//            val customHeaders: Seq[HttpMethod] = Seq(HttpMethods.OPTIONS, allowedMethods: _*) :: allowOriginHeader ::
+//        optionsCorsHeaders
+//            HttpResponse().withHeaders(
+//              `Access-Control-Allow-Methods`(HttpMethods.OPTIONS, allowedMethods: _*) :: allowOriginHeader ::
+//                optionsCorsHeaders
+//            ))
+//      }
+//      .withHttpResponseHeadersMapped { headers =>
+//        allowOriginHeader :: headers
+//      }
+//  }
 }

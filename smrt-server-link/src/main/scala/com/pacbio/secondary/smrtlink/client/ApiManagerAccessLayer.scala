@@ -13,6 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
 import akka.http.scaladsl.unmarshalling._
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model._

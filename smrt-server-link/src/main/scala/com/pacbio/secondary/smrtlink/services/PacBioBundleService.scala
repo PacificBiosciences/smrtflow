@@ -13,8 +13,11 @@ import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.model.headers.`Content-Disposition`
+import akka.http.scaladsl.model.{HttpHeader, Uri}
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.settings.RoutingSettings
@@ -282,8 +285,12 @@ class PacBioBundleService(
                 case b: PacBioDataBundleIO =>
                   val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
                   logger.info(s"Downloading bundle $b to $fileName")
-                  respondWithHeader(`Content-Disposition`(
-                    "attachment; filename=" + fileName)) {
+                  val params: Map[String, String] = Map("filename" -> fileName)
+                  val customHeader: HttpHeader =
+                    `Content-Disposition`(ContentDispositionTypes.attachment,
+                                          params)
+
+                  respondWithHeader(customHeader) {
                     getFromFile(b.tarGzPath.toFile)
                   }
               }

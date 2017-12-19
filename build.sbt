@@ -87,6 +87,8 @@ lazy val baseSettings = Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpV,
   "com.typesafe.akka" %% "akka-http-core" % akkaHttpV,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpV,
+  "com.typesafe.akka" %% "akka-http-xml" % akkaHttpV,
+  "ch.megard" %% "akka-http-cors" % "0.2.2",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV % "test",
   "com.enragedginger" %% "akka-quartz-scheduler" % "1.6.0-akka-2.4.x",
   "com.github.samtools" % "htsjdk" % "1.129",

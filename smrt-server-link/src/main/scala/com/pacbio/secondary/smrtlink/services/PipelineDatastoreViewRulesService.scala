@@ -49,7 +49,7 @@ class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao)
       } ~
         path(Segment) { pipelineId =>
           get {
-            parameters('version.?.as[Option[String]]) { version =>
+            parameters('version.?) { version =>
               complete {
                 ok {
                   failIfNone[PipelineDataStoreViewRules](

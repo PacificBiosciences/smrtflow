@@ -44,7 +44,10 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.`Content-Disposition`
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
@@ -259,6 +262,9 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     }
   }
 
+  // Means a project wasn't provided
+  val DEFAULT_PROJECT: Option[Int] = None
+
   val allRootJobRoutes: Route =
     pathEndOrSingleSlash {
       post {
@@ -273,7 +279,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         }
       } ~
         get {
-          parameters('showAll.?, 'projectId.?.as[Option[Int]]) {
+          parameters('showAll.?, 'projectId ? DEFAULT_PROJECT) {
             (showAll, projectId) =>
               complete {
                 ok {
@@ -469,9 +475,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(ENTRY_POINTS_PREFIX) {
           get {
             complete {
-              dao.getJobById(jobId).flatMap { engineJob =>
-                dao.getJobEntryPoints(engineJob.id)
-              }
+              dao
+                .getJobById(jobId)
+                .flatMap { engineJob =>
+                  dao.getJobEntryPoints(engineJob.id)
+                }(ec)
             }
           }
         } ~
@@ -1020,8 +1028,13 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
             onSuccess(dao.getDataStoreFileByUUID(dsFileUUID)) { file =>
               val fn =
                 s"job-${file.jobId}-${file.uuid.toString}-${Paths.get(file.path).toAbsolutePath.getFileName}"
-              respondWithHeader(
-                `Content-Disposition`("attachment; filename=" + fn)) {
+
+              val params: Map[String, String] = Map("filename" -> fn)
+              val customHeader: HttpHeader =
+                `Content-Disposition`(ContentDispositionTypes.attachment,
+                                      params)
+
+              respondWithHeader(customHeader) {
                 getFromFile(file.path)
               }
             }

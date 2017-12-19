@@ -17,14 +17,18 @@ import akka.http.scaladsl.model.{
   HttpEntity,
   HttpHeader,
   HttpMethod,
-  HttpResponse => SprayHttpResponse,
-  StatusCodes
+  StatusCodes,
+  Uri,
+  HttpResponse => SprayHttpResponse
 }
 import akka.http.scaladsl.model.headers.RawHeader
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.language.postfixOps
+
+//MK. Why are we using this data model?
 import scalaj.http.HttpResponse
 
 class RegistryService(registryActor: ActorRef)
@@ -108,16 +112,26 @@ class RegistryService(registryActor: ActorRef)
             pathPrefix("proxy") {
               extract[HttpMethod](_.request.method) { method =>
                 extract[HttpEntity](_.request.entity) { ent =>
-                  extract[List[HttpHeader]](_.request.headers) { headers =>
+                  extract[Seq[HttpHeader]](_.request.headers) { headers =>
                     parameterMap { params =>
                       path(RemainingPath) { path =>
                         complete {
-                          handleProxy(uuid, path, method, ent, headers, params)
+                          handleProxy(uuid,
+                                      path,
+                                      method,
+                                      ent,
+                                      headers.toList,
+                                      params)
                         }
                       } ~
                         pathEnd {
                           complete {
-                            handleProxy(uuid, "", method, ent, headers, params)
+                            handleProxy(uuid,
+                                        Uri.Path("/"),
+                                        method,
+                                        ent,
+                                        headers.toList,
+                                        params)
                           }
                         }
                     }
@@ -131,35 +145,47 @@ class RegistryService(registryActor: ActorRef)
 
   // TODO(smcclellan): Do we need to handle cookies?
   def handleProxy(uuid: UUID,
-                  pth: String,
+                  pth: Uri.Path,
                   meth: HttpMethod,
                   ent: HttpEntity,
                   head: List[HttpHeader],
                   par: Map[String, String]): Future[SprayHttpResponse] = {
 
-    val path: String = if (pth startsWith "/") pth else "/" + pth
-    val method: String = meth.value
-    val data: Option[Array[Byte]] = ent.toOption.map(_.data.toByteArray)
+    // FIXME. This should consistently use the Uri.Path type
+    val path: String =
+      if (pth.toString() startsWith "/") pth.toString()
+      else "/" + pth.toString()
+
     val headers: Option[Map[String, String]] =
       if (head isEmpty) None else Some(head.map(h => h.name -> h.value).toMap)
     val params: Option[Map[String, String]] =
       if (par isEmpty) None else Some(par)
 
-    val req = RegistryProxyRequest(path, method, data, headers, params)
+    //val data: Option[Array[Byte]] = ent.toOption.map(_.data.toByteArray)
+    //val req = RegistryProxyRequest(path, method, data, headers, params)
 
-    val resp = (registryActor ? ProxyRequest(uuid, req))
-      .mapTo[HttpResponse[Array[Byte]]]
-
-    resp.map { r =>
-      SprayHttpResponse(
-        StatusCodes.getForKey(r.code).get,
-        HttpEntity.apply(r.body),
+    for {
+      dx <- ent.toStrict(1.second).map(_.data)
+      req <- Future.successful(
+        RegistryProxyRequest(path,
+                             meth.value,
+                             Option(dx.toArray),
+                             headers,
+                             params))
+      r <- (registryActor ? ProxyRequest(uuid, req))
+        .mapTo[HttpResponse[Array[Byte]]]
+      hx <- Future.successful(
         r.headers
           .map { case (n, vs) => vs.map(v => RawHeader(n, v)).toList }
           .toList
-          .flatten
+          .flatten)
+    } yield
+      SprayHttpResponse(
+        status = StatusCodes.getForKey(r.code).get,
+        entity = HttpEntity.apply(r.body),
+        headers = hx
       )
-    }
+
   }
 }
 
