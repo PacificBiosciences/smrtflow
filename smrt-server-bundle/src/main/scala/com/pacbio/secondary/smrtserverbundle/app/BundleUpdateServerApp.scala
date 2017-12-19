@@ -14,31 +14,20 @@ import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.actors.{
-  DaoFutureUtils,
-  EventManagerActor,
-  PacBioBundleDaoActor,
-  PacBioDataBundlePollExternalActor,
-  PacBioBundleDao => LegacyPacBioBundleDao
-}
+import com.pacbio.secondary.smrtlink.actors.{DaoFutureUtils, EventManagerActor, PacBioBundleDaoActor, PacBioDataBundlePollExternalActor, PacBioBundleDao => LegacyPacBioBundleDao}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.app.{
-  ActorSystemCakeProvider,
-  BaseServiceConfigCakeProvider
-}
+import com.pacbio.secondary.smrtlink.app.{ActorSystemCakeProvider, BaseServiceConfigCakeProvider}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
-import com.pacbio.secondary.smrtlink.models.{
-  PacBioComponentManifest,
-  PacBioDataBundleIO
-}
+import com.pacbio.secondary.smrtlink.models.{PacBioComponentManifest, PacBioDataBundleIO}
 import com.pacbio.secondary.smrtserverbundle.dao.BundleUpdateDao
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.can.Http
-import spray.http.HttpHeaders
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.server._
-import spray.routing.directives.FileAndResourceDirectives
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.settings.RoutingSettings
 
 import concurrent.duration._
 import scala.concurrent.Future
@@ -168,9 +157,12 @@ class BundleUpdateService(dao: BundleUpdateDao)(
               case b: PacBioDataBundleIO =>
                 val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
                 logger.info(s"Downloading bundle $b to $fileName")
-                respondWithHeader(
-                  HttpHeaders.`Content-Disposition`(
-                    "attachment; filename=" + fileName)) {
+                val params: Map[String, String] = Map("filename" -> fileName)
+                val customHeader: HttpHeader =
+                  `Content-Disposition`(ContentDispositionTypes.attachment,
+                    params)
+
+                respondWithHeader(customHeader) {
                   getFromFile(b.tarGzPath.toFile)
                 }
             }

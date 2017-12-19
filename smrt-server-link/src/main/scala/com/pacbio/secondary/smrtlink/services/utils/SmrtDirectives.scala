@@ -7,12 +7,12 @@ object SmrtDirectives {
 
   def extractOptionalUserRecord: Directive[Tuple1[Option[UserRecord]]] =
     Directive[Tuple1[Option[UserRecord]]] { inner => ctx =>
-      inner(None)(ctx)
+      inner(Tuple1(None))(ctx)
     }
 
   def extractRequiredUserRecord: Directive[Tuple1[UserRecord]] =
     Directive[Tuple1[UserRecord]] { inner => ctx =>
-      inner(UserRecord("stuff", Some("more-stuff")))(ctx)
+      inner(Tuple1(UserRecord("stuff", Some("more-stuff"))))(ctx)
     }
 
 }

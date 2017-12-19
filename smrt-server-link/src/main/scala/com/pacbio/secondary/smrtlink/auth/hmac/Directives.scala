@@ -1,14 +1,15 @@
 package com.pacbio.secondary.smrtlink.auth.hmac
 
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.{
-  AuthenticationFailedRejection,
-  MalformedHeaderRejection,
-  MissingHeaderRejection,
-  Route
-}
+import akka.http.scaladsl.server._
+
+import scala.concurrent.Future
 
 case class HmacException(msg: String)
+
+case class HmacConfiguration(pattern: String, header: String = "Authenticate") {
+  val regex = pattern.r
+}
 
 object HmacException {
   val InvalidFormat = HmacException("Invalid hmac format")
@@ -27,31 +28,36 @@ trait Directives { this: HmacConfig =>
       case _ => Right(HmacException.InvalidFormat)
     }
 
-  def authenticate[A](block: A => Route)(
-      implicit auth: Authentication[A]): Route = requestInstance { request =>
-    request.headers
-      .find(_.name == header)
-      .map(
-        h =>
-          parseHeader(h.value).fold(
-            verify(_, s"${request.method}+${request.uri.path}", block),
-            ex => invalidFormat(ex.msg)))
-      .getOrElse(missingHeader)
+  def validateHmacKey(c: HmacConfiguration): Directive0 = Directive[Unit] {
+    inner => ctx =>
+      inner(Unit)(ctx)
   }
 
-  def verify[A](hmacData: HmacData, uri: String, block: A => Route)(
-      implicit auth: Authentication[A]): Route = {
-    auth
-      .authenticate(hmacData, uri)
-      .map(account => block(account))
-      .getOrElse(invalidCredentials)
-  }
+//  def authenticate[A](block: A => Route)(
+//      implicit auth: Authentication[A]): Route = requestInstance { request =>
+//    request.headers
+//      .find(_.name == header)
+//      .map(
+//        h =>
+//          parseHeader(h.value).fold(
+//            verify(_, s"${request.method}+${request.uri.path}", block),
+//            ex => invalidFormat(ex.msg)))
+//      .getOrElse(missingHeader)
+//  }
 
-  def missingHeader = reject(MissingHeaderRejection(header))
-  def invalidFormat(msg: String) =
-    reject(MalformedHeaderRejection(header, msg))
-  def invalidCredentials =
-    reject(AuthenticationFailedRejection(CredentialsRejected, Nil))
+//  def verify[A](hmacData: HmacData, uri: String, block: A => Route)(
+//      implicit auth: Authentication[A]): Route = {
+//    auth
+//      .authenticate(hmacData, uri)
+//      .map(account => block(account))
+//      .getOrElse(invalidCredentials)
+//  }
+//
+//  def missingHeader = reject(MissingHeaderRejection(header))
+//  def invalidFormat(msg: String) =
+//    reject(MalformedHeaderRejection(header, msg))
+//  def invalidCredentials =
+//    reject(AuthenticationFailedRejection(CredentialsRejected, Nil))
 }
 
 object Directives extends Directives with HmacConfig

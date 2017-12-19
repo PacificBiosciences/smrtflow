@@ -492,9 +492,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                     Future.successful(MessageResponse(
                       s"Chunked Files are not importable. Skipping Importing of DataStoreFile uuid:${dsf.uniqueId} path:${dsf.path}"))
                   } else {
-                    dao.getJobById(jobId).flatMap { engineJob =>
-                      dao.importDataStoreFile(dsf, engineJob.uuid)
-                    }
+                    dao
+                      .getJobById(jobId)
+                      .flatMap { engineJob =>
+                        dao.importDataStoreFile(dsf, engineJob.uuid)
+                      }(ec)
                   }
                 }
               }
@@ -508,16 +510,21 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                 dao
                   .getDataStoreFileByUUID(datastoreFileUUID)
                   .map { dsf =>
-                    val httpEntity = toHttpEntity(Paths.get(dsf.path))
+                    val httpEntity: ResponseEntity =
+                      toHttpEntity(Paths.get(dsf.path))
                     // The datastore needs to be updated to be written at the root of the job dir,
                     // then the paths should be relative to the root dir. This will require that the DataStoreServiceFile
                     // returns the correct absolute path
                     val fn =
                       s"job-${jobId.toIdString}-${dsf.uuid.toString}-${Paths.get(dsf.path).toAbsolutePath.getFileName}"
                     // Using headers= instead of respondWithHeader because need to set the name file file
-                    HttpResponse(entity = httpEntity,
-                                 headers = List(`Content-Disposition`(
-                                   "attachment; filename=" + fn)))
+                    val params: Map[String, String] = Map("filename" -> fn)
+                    val customHeader: HttpHeader =
+                      `Content-Disposition`(ContentDispositionTypes.attachment,
+                                            params)
+                    val customHeaders: collection.immutable.Seq[HttpHeader] =
+                      collection.immutable.Seq(customHeader)
+                    HttpResponse(entity = httpEntity, headers = customHeaders)
                   }
               }
             }
@@ -527,7 +534,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             logger.info(
               s"Attempting to resolve resource $id from ${jobId.toIdString}")
             complete {
-              resolveJobResource(dao.getJobById(jobId), id)
+              resolveJobResource(dao.getJobById(jobId), id)(ec)
             }
           }
         } ~
@@ -955,7 +962,6 @@ class MultiAnalysisJobService(override val dao: JobsDao,
   * This has all the job related endpoints and a few misc routes.
   *
   * @param dao JobDao
-  * @param authenticator Authenticator
   */
 class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     implicit val actorSystem: ActorSystem)
@@ -976,27 +982,27 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     "New Job Service")
 
   def getServiceMultiJobs(): Seq[JobServiceRoutes] = Seq(
-    new MultiAnalysisJobService(dao, authenticator, config)
+    new MultiAnalysisJobService(dao, config)
   )
 
   def getServiceJobs(): Seq[JobServiceRoutes] = Seq(
-    new DbBackupJobsService(dao, authenticator, config),
-    new DeleteDataSetJobsService(dao, authenticator, config),
-    new DeleteSmrtLinkJobsService(dao, authenticator, config),
-    new ExportDataSetsJobsService(dao, authenticator, config),
-    new ExportJobsService(dao, authenticator, config),
-    new ImportJobService(dao, authenticator, config),
-    new HelloWorldJobsService(dao, authenticator, config),
-    new ImportBarcodeFastaJobsService(dao, authenticator, config),
-    new ImportDataSetJobsService(dao, authenticator, config),
-    new ImportFastaJobsService(dao, authenticator, config),
-    new MergeDataSetJobsService(dao, authenticator, config),
-    new MockPbsmrtpipeJobsService(dao, authenticator, config),
-    new PbsmrtpipeJobsService(dao, authenticator, config),
-    new RsConvertMovieToDataSetJobsService(dao, authenticator, config),
-    new SimpleJobsService(dao, authenticator, config),
-    new TsJobBundleJobsService(dao, authenticator, config),
-    new TsSystemStatusBundleJobsService(dao, authenticator, config)
+    new DbBackupJobsService(dao, config),
+    new DeleteDataSetJobsService(dao, config),
+    new DeleteSmrtLinkJobsService(dao, config),
+    new ExportDataSetsJobsService(dao, config),
+    new ExportJobsService(dao, config),
+    new ImportJobService(dao, config),
+    new HelloWorldJobsService(dao, config),
+    new ImportBarcodeFastaJobsService(dao, config),
+    new ImportDataSetJobsService(dao, config),
+    new ImportFastaJobsService(dao, config),
+    new MergeDataSetJobsService(dao, config),
+    new MockPbsmrtpipeJobsService(dao, config),
+    new PbsmrtpipeJobsService(dao, config),
+    new RsConvertMovieToDataSetJobsService(dao, config),
+    new SimpleJobsService(dao, config),
+    new TsJobBundleJobsService(dao, config),
+    new TsSystemStatusBundleJobsService(dao, config)
   )
 
   // Note these is duplicated within a Job

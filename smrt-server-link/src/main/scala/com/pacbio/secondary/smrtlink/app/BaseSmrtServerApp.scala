@@ -116,7 +116,7 @@ trait BaseApi {
   def startup(): Unit = ()
   def shutdown(): Unit = ()
 
-  lazy val system = providers.actorSystem()
+  implicit lazy val system = providers.actorSystem()
   lazy val routes: Route = providers.routes()
 
   // This is needed with Mixin routes from traits that only extend HttpService
@@ -144,19 +144,14 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
     val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.asScala.mkString(" "))
 
-    val f: Future[Option[BindException]] =
-      Http(system).bindAndHandle(routes, host, port)(materializer).map {
-        case r: Http.CommandFailed =>
-          Some(new BindException(s"Failed to bind to $host:$port"))
-        case r => None
-      }
+    val startF = Http().bindAndHandle(routes, host, port)
 
-    Await.result(f, 10.seconds) map { e =>
-      IO(Http)(system) ! Http.CloseAll
+    startF.failed.foreach { ex =>
+      logger.error(ex.getMessage)
+      System.err.println(ex.getMessage)
       system.terminate()
-      throw new StartupFailedException(e)
     }
-  }
+  } // End of Start
 }
 
 /**

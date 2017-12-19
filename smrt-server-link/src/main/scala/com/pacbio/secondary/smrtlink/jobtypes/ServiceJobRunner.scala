@@ -26,7 +26,6 @@ import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.mail.PbMailer
 
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -38,7 +37,8 @@ import scala.util.{Failure, Success, Try}
   * @param dao Persistence layer for interfacing with the db
   * @param config System Job Config
   */
-class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
+class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
+    implicit ec: ExecutionContext)
     extends timeUtils
     with LazyLogging
     with JobRunnerUtils
@@ -88,8 +88,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
   }
 
   private def importDataStore(datastoreFiles: Seq[DataStoreFile],
-                              jobUUID: UUID)(
-      implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
+                              jobUUID: UUID): Future[Seq[MessageResponse]] = {
 
     for {
       validFiles <- Future.sequence(datastoreFiles.map(validateDsFile))(
@@ -107,16 +106,16 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)
     * Filter out non-chunked files. The are presumed to be intermediate files
     *
     */
-  private def importAbleFile(x: ImportAble, jobUUID: UUID)(
-      implicit ec: ExecutionContext): Future[Seq[MessageResponse]] = {
+  private def importAbleFile(x: ImportAble,
+                             jobUUID: UUID): Future[Seq[MessageResponse]] = {
     x match {
-      case x: DataStoreFile => importDataStore(Seq(x), jobUUID)(ec)
+      case x: DataStoreFile => importDataStore(Seq(x), jobUUID)
       case x: PacBioDataStore =>
         val dataStoreFiles = loadFiles(x.files, None)
         val nonChunkedFiles = dataStoreFiles.filter(f => !f.isChunked)
         logger.info(
           s"Job $jobUUID Loaded ${dataStoreFiles.length} raw files, ${nonChunkedFiles.length} Non-Chunked files")
-        importDataStore(nonChunkedFiles, jobUUID)(ec)
+        importDataStore(nonChunkedFiles, jobUUID)
     }
   }
 

@@ -7,9 +7,11 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import akka.actor.{ActorSystem, Scheduler}
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.io.IO
 import akka.pattern.{after, ask}
 import akka.util.Timeout
+import akka.http.scaladsl.client.RequestBuilding._
 import com.pacbio.secondary.smrtlink.client.Retrying
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
@@ -24,11 +26,10 @@ import com.pacbio.secondary.smrtlink.client.{
 }
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
-import spray.can.Http
-
 import akka.http.scaladsl.server._
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -180,6 +181,8 @@ class GetWso2ComponentStatus(override val host: String,
 abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     extends Retrying {
 
+  val http = Http()
+
   // Sanity Status EndPoint (must have leading slash, or can be empty string)
   val EP_STATUS: String
 
@@ -188,11 +191,10 @@ abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   def toUrl(segment: String): URL =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment)
 
-  def simplePipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
   // The components that we control should implement the ServiceStatus as the interface
   def getStatus(): Future[String] =
-    simplePipeline { Get(STATUS_URL.toString) }
+    http
+      .singleRequest(Get(STATUS_URL.toString))
       .map(_ => s"Successfully got status of $STATUS_URL")
 
   def getStatusWithRetry(
@@ -252,16 +254,17 @@ class AmClientLite(baseUrl: URL)(implicit actorSystem: ActorSystem)
     ctx
   }
 
-  val adminPipe: Future[SendReceive] =
-    for (Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http
-           .HostConnectorSetup(baseUrl.getHost,
-                               port = baseUrl.getPort + WSO2_OFFSET,
-                               sslEncryption = true))
-      yield sendReceive(connector)
+  val badSslConfig =
+    AkkaSSLConfig().mapSettings(s => s.withLoose(s.loose.withDisableSNI(true)))
+  val badCtx = Http().createClientHttpsContext(badSslConfig)
+  val adminHttp = Http().outgoingConnectionHttps(
+    baseUrl.getHost,
+    port = baseUrl.getPort + WSO2_OFFSET,
+    connectionContext = badCtx)
 
   override def getStatus(): Future[String] =
-    adminPipe
-      .flatMap(_(Get(STATUS_URL.toString)))
+    adminHttp
+      .singleRequest(Get(STATUS_URL.toString))
       .map(_ => s"Successfully got status of $STATUS_URL")
 
 }

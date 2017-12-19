@@ -41,13 +41,14 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
 
   def isPathExists(opts: ImportDataSetOptions): ValidateOptError = {
     if (Files.exists(opts.path)) opts.successNel
-    else s"Failed to find DataSet ${opts.path}".failNel
+    else s"Failed to find DataSet ${opts.path}".failureNel
   }
 
   def validateDataSetMetaType(opts: ImportDataSetOptions): ValidateOptError = {
     DataSetMetaTypes.toDataSetType(opts.datasetType.toString) match {
       case Some(_) => opts.successNel
-      case _ => s"Invalid (or unsupported) DataSet ${opts.datasetType}".failNel
+      case _ =>
+        s"Invalid (or unsupported) DataSet ${opts.datasetType}".failureNel
     }
   }
 
@@ -62,7 +63,7 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
     ScTry(getDataSetMiniMeta(opts.path)) match {
       case ScSuccess(_) => opts.successNel
       case ScFailure(err) =>
-        s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failNel
+        s"Failed to parse UUID and MetaType from ${opts.path} (${err.getMessage})".failureNel
     }
   }
 
@@ -84,7 +85,7 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
       opts: ImportDataSetOptions): Option[ValidationErrorMsg] = {
     validateOpts(opts).toEither match {
       case Right(_) => None
-      case Left(er) => Some(s"Errors: ${er.list.reduce(_ + "," + _)}")
+      case Left(er) => Some(s"Errors: ${er.list.toList.reduce(_ + "," + _)}")
     }
   }
 

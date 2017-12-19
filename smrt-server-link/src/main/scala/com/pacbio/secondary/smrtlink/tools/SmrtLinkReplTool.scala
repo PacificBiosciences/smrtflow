@@ -55,7 +55,7 @@ trait SmrtLinkReplTool {
 
   val welcomeBanner = Some("Welcome to the SMRT Link REPL")
 
-  val repl = ammonite.Main(predef = predef, welcomeBanner = welcomeBanner)
+  val repl = ammonite.Main(predefCode = predef, welcomeBanner = welcomeBanner)
 
 }
 
