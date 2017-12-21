@@ -270,11 +270,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       post {
         SmrtDirectives.extractOptionalUserRecord { user =>
           entity(as[T]) { opts =>
-            complete {
-              created {
-                createJob(opts, user)
-              }
-            }
+            complete(StatusCodes.Created -> createJob(opts, user))
           }
         }
       } ~
@@ -282,11 +278,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           parameters('showAll.?, 'projectId ? DEFAULT_PROJECT) {
             (showAll, projectId) =>
               complete {
-                ok {
-                  dao.getJobsByTypeId(jobTypeId.id,
-                                      showAll.isDefined,
-                                      projectId)
-                }
+                dao.getJobsByTypeId(jobTypeId.id, showAll.isDefined, projectId)
               }
           }
         }
@@ -297,9 +289,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              dao.getJobById(jobId)
-            }
+            dao.getJobById(jobId)
           }
         }
       } ~
@@ -308,19 +298,18 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             post {
               entity(as[LogMessageRecord]) { m =>
                 complete {
-                  created {
-                    val f = jobId match {
-                      case IntIdAble(n) => Future.successful(n)
-                      case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)(ec)
-                    }
-                    f.map { intId =>
-                      val message =
-                        s"$LOG_PB_SMRTPIPE_RESOURCE_ID::job::$intId::${m.sourceId} ${m.message}"
-                      // FIXME. Need to map this to the proper log level
-                      logger.info(message)
-                      MessageResponse(s"Successfully logged. $message")
-                    }(ec)
+                  val f = jobId match {
+                    case IntIdAble(n) => Future.successful(n)
+                    case UUIDIdAble(_) => dao.getJobById(jobId).map(_.id)(ec)
                   }
+                  f.map { intId =>
+                    val message =
+                      s"$LOG_PB_SMRTPIPE_RESOURCE_ID::job::$intId::${m.sourceId} ${m.message}"
+                    // FIXME. Need to map this to the proper log level
+                    logger.info(message)
+                    StatusCodes.Created -> MessageResponse(
+                      s"Successfully logged. $message")
+                  }(ec)
                 }
               }
             }
@@ -330,9 +319,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           pathEndOrSingleSlash {
             post {
               complete {
-                ok {
-                  terminateJob(jobId)
-                }
+                terminateJob(jobId)
               }
             }
           }
@@ -340,15 +327,13 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_TASK_PREFIX) {
           get {
             complete {
-              ok {
-                dao.getJobTasks(jobId)
-              }
+              dao.getJobTasks(jobId)
             }
           } ~
             post {
               entity(as[CreateJobTaskRecord]) { r =>
                 complete {
-                  created {
+                  StatusCodes.Created -> {
                     dao
                       .getJobById(jobId)
                       .flatMap { job =>
@@ -371,15 +356,13 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_TASK_PREFIX / JavaUUID) { taskUUID =>
           get {
             complete {
-              ok {
-                dao.getJobTask(taskUUID)
-              }
+              dao.getJobTask(taskUUID)
             }
           } ~
             put {
               entity(as[UpdateJobTaskRecord]) { r =>
                 complete {
-                  created {
+                  StatusCodes.Created -> {
                     dao
                       .getJobById(jobId)
                       .flatMap { engineJob =>
@@ -397,11 +380,9 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_REPORT_PREFIX / JavaUUID) { reportUUID =>
           get {
             complete {
-              ok {
-                dao
-                  .getDataStoreReportByUUID(reportUUID)
-                  .map(_.parseJson)(ec) // To get the mime type correct
-              }
+              dao
+                .getDataStoreReportByUUID(reportUUID)
+                .map(_.parseJson)(ec) // To get the mime type correct
             }
           }
         } ~
@@ -419,46 +400,38 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_EVENT_PREFIX) {
           get {
             complete {
-              ok {
-                dao
-                  .getJobById(jobId)
-                  .flatMap { engineJob =>
-                    dao.getJobEventsByJobId(engineJob.id)
-                  }(ec)
-              }
+              dao
+                .getJobById(jobId)
+                .flatMap { engineJob =>
+                  dao.getJobEventsByJobId(engineJob.id)
+                }(ec)
             }
           }
         } ~
         path(JOB_DATASTORE_PREFIX) {
           get {
             complete {
-              ok {
-                dao
-                  .getJobById(jobId)
-                  .flatMap { engineJob =>
-                    dao.getDataStoreServiceFilesByJobId(engineJob.id)
-                  }(ec)
-              }
+              dao
+                .getJobById(jobId)
+                .flatMap { engineJob =>
+                  dao.getDataStoreServiceFilesByJobId(engineJob.id)
+                }(ec)
             }
           }
         } ~
         path(JOB_DATASTORE_PREFIX / JavaUUID) { datastoreFileUUID =>
           get {
             complete {
-              ok {
-                dao.getDataStoreFileByUUID(datastoreFileUUID)
-              }
+              dao.getDataStoreFileByUUID(datastoreFileUUID)
             }
           } ~
             put {
               entity(as[DataStoreFileUpdateRequest]) { sopts =>
                 complete {
-                  ok {
-                    dao.updateDataStoreFile(datastoreFileUUID,
-                                            sopts.path,
-                                            sopts.fileSize,
-                                            sopts.isActive)
-                  }
+                  dao.updateDataStoreFile(datastoreFileUUID,
+                                          sopts.path,
+                                          sopts.fileSize,
+                                          sopts.isActive)
                 }
               }
             }
@@ -466,9 +439,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_OPTIONS) {
           get {
             complete {
-              ok {
-                dao.getJobById(jobId).map(_.jsonSettings)(ec)
-              }
+              dao.getJobById(jobId).map(_.jsonSettings)(ec)
             }
           }
         } ~
@@ -487,7 +458,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           post {
             entity(as[DataStoreFile]) { dsf =>
               complete {
-                created {
+                StatusCodes.Created -> {
                   if (dsf.isChunked) {
                     Future.successful(MessageResponse(
                       s"Chunked Files are not importable. Skipping Importing of DataStoreFile uuid:${dsf.uniqueId} path:${dsf.path}"))
@@ -540,9 +511,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         } ~
         path("children") {
           complete {
-            ok {
-              dao.getJobChildrenByJobId(jobId).mapTo[Seq[EngineJob]]
-            }
+            dao.getJobChildrenByJobId(jobId).mapTo[Seq[EngineJob]]
           }
         }
     }
@@ -845,21 +814,19 @@ class MultiAnalysisJobService(override val dao: JobsDao,
       pathEndOrSingleSlash {
         post {
           complete {
-            ok {
-              for {
-                job <- dao.getJobById(jobId)
-                _ <- validateStateIsCreated(
-                  job,
-                  s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
-                msg <- Future.successful(
-                  s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                _ <- dao.updateMultiJobState(job.id,
-                                             AnalysisJobStates.SUBMITTED,
-                                             JsObject.empty,
-                                             msg,
-                                             None)
-              } yield MessageResponse(msg)
-            }
+            for {
+              job <- dao.getJobById(jobId)
+              _ <- validateStateIsCreated(
+                job,
+                s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
+              msg <- Future.successful(
+                s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+              _ <- dao.updateMultiJobState(job.id,
+                                           AnalysisJobStates.SUBMITTED,
+                                           JsObject.empty,
+                                           msg,
+                                           None)
+            } yield MessageResponse(msg)
           }
         }
       }
@@ -872,7 +839,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
         put {
           entity(as[MultiAnalysisJobOptions]) { opts =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 for {
                   job <- dao.getJobById(jobId)
                   _ <- validateStateIsCreated(
@@ -892,15 +859,13 @@ class MultiAnalysisJobService(override val dao: JobsDao,
         } ~
           delete {
             complete {
-              ok {
-                for {
-                  job <- dao.getJobById(jobId)
-                  _ <- validateStateIsCreated(
-                    job,
-                    "ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
-                  msg <- dao.deleteMultiJob(job.id)
-                } yield msg
-              }
+              for {
+                job <- dao.getJobById(jobId)
+                _ <- validateStateIsCreated(
+                  job,
+                  "ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
+                msg <- dao.deleteMultiJob(job.id)
+              } yield msg
             }
           }
       }
@@ -913,7 +878,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
         put {
           entity(as[MultiAnalysisJobOptions]) { opts =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 for {
                   job <- dao.getJobById(jobId)
                   _ <- validateStateIsCreated(
@@ -942,9 +907,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              dao.getMultiJobChildren(jobId)
-            }
+            dao.getMultiJobChildren(jobId)
           }
         }
       }
@@ -1011,20 +974,16 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              dao.getDataStoreFile(dsFileUUID)
-            }
+            dao.getDataStoreFile(dsFileUUID)
           }
         } ~
           put {
             entity(as[DataStoreFileUpdateRequest]) { sopts =>
               complete {
-                ok {
-                  dao.updateDataStoreFile(dsFileUUID,
-                                          sopts.path,
-                                          sopts.fileSize,
-                                          sopts.isActive)
-                }
+                dao.updateDataStoreFile(dsFileUUID,
+                                        sopts.path,
+                                        sopts.fileSize,
+                                        sopts.isActive)
               }
             }
           }

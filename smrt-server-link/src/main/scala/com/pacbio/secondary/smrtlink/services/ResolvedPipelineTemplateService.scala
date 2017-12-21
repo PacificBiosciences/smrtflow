@@ -43,12 +43,10 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao)
         path(Segment) { sx =>
           get {
             complete {
-              ok {
-                dao
-                  .getPipelineTemplateById(sx)
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find pipeline $sx"))
-              }
+              dao
+                .getPipelineTemplateById(sx)
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find pipeline $sx"))
             }
           }
         } ~

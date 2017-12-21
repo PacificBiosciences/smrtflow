@@ -13,7 +13,7 @@ import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
-import akka.http.scaladsl.model.{HttpHeader, Uri}
+import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri}
 import akka.http.scaladsl.model.headers.{
   ContentDispositionTypes,
   `Content-Disposition`
@@ -144,10 +144,8 @@ class PacBioBundleService(
         pathEndOrSingleSlash {
           get {
             complete {
-              ok {
-                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckForUpdates)
-                  .mapTo[MessageResponse]
-              }
+              (externalPollActor ? PacBioDataBundlePollExternalActor.CheckForUpdates)
+                .mapTo[MessageResponse]
             }
           }
         }
@@ -156,10 +154,8 @@ class PacBioBundleService(
           pathEndOrSingleSlash {
             get {
               complete {
-                ok {
-                  (externalPollActor ? PacBioDataBundlePollExternalActor.CheckStatus)
-                    .mapTo[ExternalServerStatus]
-                }
+                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckStatus)
+                  .mapTo[ExternalServerStatus]
               }
             }
           }
@@ -173,7 +169,7 @@ class PacBioBundleService(
         post {
           entity(as[PacBioBundleRecord]) { record =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 for {
                   pathBundle <- fromTry[(Path, PacBioDataBundle)](
                     s"Failed to process $record",
@@ -204,12 +200,10 @@ class PacBioBundleService(
         Segment / Segment / "activate")) { (bundleTypeId, bundleVersion) =>
         post {
           complete {
-            ok {
-              for {
-                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
-                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
-              } yield bio.bundle
-            }
+            for {
+              b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
+              bio <- activateBundle(b.bundle.typeId, b.bundle.version)
+            } yield bio.bundle
           }
         }
       }
@@ -220,44 +214,36 @@ class PacBioBundleService(
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
-            }
+            (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
           }
         }
       } ~
         path(Segment) { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetAllBundlesByType(bundleTypeId))
-                  .mapTo[Seq[PacBioDataBundle]]
-              }
+              (daoActor ? GetAllBundlesByType(bundleTypeId))
+                .mapTo[Seq[PacBioDataBundle]]
             }
           }
         } ~
         path(Segment / "latest") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetNewestBundle(bundleTypeId))
-                  .mapTo[Option[PacBioDataBundle]]
-                  .flatMap(failIfNone(
-                    s"Unable to find Newest Data Bundle for type '$bundleTypeId'"))
-              }
+              (daoActor ? GetNewestBundle(bundleTypeId))
+                .mapTo[Option[PacBioDataBundle]]
+                .flatMap(failIfNone(
+                  s"Unable to find Newest Data Bundle for type '$bundleTypeId'"))
             }
           }
         } ~
         path(Segment / "active") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetActiveIOBundle(bundleTypeId))
-                  .mapTo[Option[PacBioDataBundleIO]]
-                  .flatMap(failIfNone(
-                    s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
-                  .map(_.bundle)
-              }
+              (daoActor ? GetActiveIOBundle(bundleTypeId))
+                .mapTo[Option[PacBioDataBundleIO]]
+                .flatMap(failIfNone(
+                  s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
+                .map(_.bundle)
             }
           }
         } ~
@@ -270,10 +256,8 @@ class PacBioBundleService(
         path(Segment / "upgrade") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetUpgradableBundle(bundleTypeId))
-                  .mapTo[PacBioDataBundleUpgrade]
-              }
+              (daoActor ? GetUpgradableBundle(bundleTypeId))
+                .mapTo[PacBioDataBundleUpgrade]
             }
           }
         } ~
@@ -300,10 +284,8 @@ class PacBioBundleService(
         path(Segment / Segment) { (bundleTypeId, bundleVersion) =>
           get {
             complete {
-              ok {
-                getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion).map(
-                  _.bundle)
-              }
+              getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion).map(
+                _.bundle)
             }
           }
         }

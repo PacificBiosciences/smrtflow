@@ -273,12 +273,10 @@ class DataSetService(dao: JobsDao)
             parameters('showAll.?, 'projectId.as[Int].?) {
               (showAll, projectId) =>
                 complete {
-                  ok {
-                    getProjectIds(projectId, user)
-                      .map { ids =>
-                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
-                      }
-                  }
+                  getProjectIds(projectId, user)
+                    .map { ids =>
+                      GetDataSets(DS_LIMIT, showAll.isDefined, ids)
+                    }
                 }
             }
           }
@@ -287,17 +285,13 @@ class DataSetService(dao: JobsDao)
             pathEnd {
               get {
                 complete {
-                  ok {
-                    GetDataSetById(id)
-                  }
+                  GetDataSetById(id)
                 }
               } ~
                 put {
                   entity(as[DataSetUpdateRequest]) { sopts =>
                     complete {
-                      ok {
-                        updateDataSet(id, sopts)
-                      }
+                      updateDataSet(id, sopts)
                     }
                   }
                 }
@@ -305,9 +299,7 @@ class DataSetService(dao: JobsDao)
               path(DETAILS_PREFIX) {
                 get {
                   complete {
-                    ok {
-                      GetDetailsById(id).map(_.parseJson) // To get the correct mime-type
-                    }
+                    GetDetailsById(id).map(_.parseJson) // To get the correct mime-type
                   }
                 }
               } ~
@@ -315,14 +307,12 @@ class DataSetService(dao: JobsDao)
                 pathEndOrSingleSlash {
                   get {
                     complete {
-                      ok {
-                        for {
-                          _ <- validateBarcodeShortName(shortName)
-                          dataset <- GetDataSetById(id)
-                          recordNames <- Future.successful(
-                            loadBarcodeNames(Paths.get(dataset.path)))
-                        } yield recordNames
-                      }
+                      for {
+                        _ <- validateBarcodeShortName(shortName)
+                        dataset <- GetDataSetById(id)
+                        recordNames <- Future.successful(
+                          loadBarcodeNames(Paths.get(dataset.path)))
+                      } yield recordNames
                     }
                   }
                 }
@@ -330,13 +320,11 @@ class DataSetService(dao: JobsDao)
               path(JOB_REPORT_PREFIX) {
                 get {
                   complete {
-                    ok {
-                      for {
-                        dataset <- GetDataSetById(id)
-                        reports <- dao.getDataStoreReportFilesByJobId(
-                          dataset.jobId)
-                      } yield reports
-                    }
+                    for {
+                      dataset <- GetDataSetById(id)
+                      reports <- dao.getDataStoreReportFilesByJobId(
+                        dataset.jobId)
+                    } yield reports
                   }
                 }
               }
@@ -349,22 +337,18 @@ class DataSetService(dao: JobsDao)
       pathEnd {
         get {
           complete {
-            ok {
-              dao.getDataSetTypes
-            }
+            dao.getDataSetTypes
           }
         }
       } ~
         path(shortNameRx) { shortName =>
           get {
             complete {
-              ok {
-                DataSetMetaTypes
-                  .fromShortName(shortName)
-                  .map(t => dao.getDataSetTypeById(t.dsId))
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find dataset type Id '$shortName"))
-              }
+              DataSetMetaTypes
+                .fromShortName(shortName)
+                .map(t => dao.getDataSetTypeById(t.dsId))
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find dataset type Id '$shortName"))
             }
           }
         }
@@ -373,17 +357,13 @@ class DataSetService(dao: JobsDao)
         path(IdAbleMatcher) { id =>
           get {
             complete {
-              ok {
-                dao.getDataSetById(id)
-              }
+              dao.getDataSetById(id)
             }
           } ~
             put {
               entity(as[DataSetUpdateRequest]) { sopts =>
                 complete {
-                  ok {
-                    updateDataSet(id, sopts)
-                  }
+                  updateDataSet(id, sopts)
                 }
               }
             }
@@ -391,9 +371,7 @@ class DataSetService(dao: JobsDao)
           path(JavaUUID / "jobs") { uuid =>
             get {
               complete {
-                ok {
-                  dao.getDataSetJobsByUUID(uuid)
-                }
+                dao.getDataSetJobsByUUID(uuid)
               }
             }
           } ~

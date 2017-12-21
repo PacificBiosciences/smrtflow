@@ -73,18 +73,14 @@ class DiskSpaceService(config: Config, fileSystemUtil: FileSystemUtil)
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              Future.sequence(idsToPaths.keySet.map(toResource))
-            }
+            Future.sequence(idsToPaths.keySet.map(toResource))
           }
         }
       } ~
         path(Segment) { id =>
           get {
             complete {
-              ok {
-                toResource(id)
-              }
+              toResource(id)
             }
           }
         }

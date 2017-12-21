@@ -28,9 +28,7 @@ class StatusService(statusGenerator: StatusGenerator) extends PacBioService {
     path(statusServiceName) {
       get {
         complete {
-          ok {
-            statusGenerator.getStatus
-          }
+          statusGenerator.getStatus
         }
       }
     }

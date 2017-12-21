@@ -45,12 +45,10 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule])
         path(Segment) { sx =>
           get {
             complete {
-              ok {
-                ptvrs
-                  .find(_.id == sx)
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find Report View Rule $sx"))
-              }
+              ptvrs
+                .find(_.id == sx)
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find Report View Rule $sx"))
             }
           }
         }

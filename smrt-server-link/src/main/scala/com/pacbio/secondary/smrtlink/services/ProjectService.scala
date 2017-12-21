@@ -13,6 +13,7 @@ import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.StatusCodes
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -70,13 +71,13 @@ class ProjectService(jobsDao: JobsDao)
   private val ownerRole: Set[ProjectUserRole.ProjectUserRole] =
     Set(ProjectUserRole.OWNER)
 
-  private def userCanRead(login: String, projectId: Int) =
+  private def userCanRead(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, readRoles)
 
-  private def userCanWrite(login: String, projectId: Int) =
+  private def userCanWrite(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, writeRoles)
 
-  private def userIsOwner(login: String, projectId: Int) =
+  private def userIsOwner(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, ownerRole)
 
   val routes =
@@ -86,8 +87,8 @@ class ProjectService(jobsDao: JobsDao)
           SmrtDirectives.extractRequiredUserRecord { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
-                validateUpdates(sopts)
-                created {
+                validateUpdates(sopts) // MK. This looks incorrect. It should be folded into the Future construction
+                StatusCodes.Created -> {
                   jobsDao
                     .createProject(sopts)
                     .flatMap(fullProject)
@@ -100,9 +101,7 @@ class ProjectService(jobsDao: JobsDao)
           get {
             SmrtDirectives.extractRequiredUserRecord { user =>
               complete {
-                ok {
-                  jobsDao.getUserProjects(user.userId).map(_.map(_.project))
-                }
+                jobsDao.getUserProjects(user.userId).map(_.map(_.project))
               }
             }
           }
@@ -114,13 +113,11 @@ class ProjectService(jobsDao: JobsDao)
                 entity(as[ProjectRequest]) { sopts =>
                   futureAuthorize(userCanWrite(user.userId, projId)) {
                     complete {
-                      ok {
-                        validateUpdates(sopts)
-                        jobsDao
-                          .updateProject(projId, sopts)
-                          .flatMap(maybeFullProject(projId))
-                          .recoverWith(translateConflict(sopts))
-                      }
+                      validateUpdates(sopts)
+                      jobsDao
+                        .updateProject(projId, sopts)
+                        .flatMap(maybeFullProject(projId))
+                        .recoverWith(translateConflict(sopts))
                     }
                   }
                 }
@@ -130,11 +127,9 @@ class ProjectService(jobsDao: JobsDao)
                 SmrtDirectives.extractRequiredUserRecord { user =>
                   futureAuthorize(userCanRead(user.userId, projId)) {
                     complete {
-                      ok {
-                        jobsDao
-                          .getProjectById(projId)
-                          .flatMap(maybeFullProject(projId))
-                      }
+                      jobsDao
+                        .getProjectById(projId)
+                        .flatMap(maybeFullProject(projId))
                     }
                   }
                 }
@@ -143,10 +138,8 @@ class ProjectService(jobsDao: JobsDao)
                 SmrtDirectives.extractRequiredUserRecord { user =>
                   futureAuthorize(userIsOwner(user.userId, projId)) {
                     complete {
-                      ok {
-                        jobsDao
-                          .deleteProjectById(projId)
-                      }
+                      jobsDao
+                        .deleteProjectById(projId)
                     }
                   }
                 }
@@ -158,9 +151,7 @@ class ProjectService(jobsDao: JobsDao)
         get {
           SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
-              ok {
-                jobsDao.getUserProjectsDatasets(login)
-              }
+              jobsDao.getUserProjectsDatasets(login)
             }
           }
         }
@@ -169,9 +160,7 @@ class ProjectService(jobsDao: JobsDao)
         get {
           SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
-              ok {
-                jobsDao.getUserProjects(login)
-              }
+              jobsDao.getUserProjects(login)
             }
           }
         }

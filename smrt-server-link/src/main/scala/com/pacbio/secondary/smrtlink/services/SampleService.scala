@@ -15,6 +15,7 @@ import com.pacbio.secondary.smrtlink.actors.{
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.StatusCodes
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.ExecutionContext.Implicits._
@@ -40,20 +41,20 @@ class SampleService(sampleActor: ActorRef)
                                          "0.1.0",
                                          "Subsystem Sample Service")
 
+  // This testing model is a bit suspect
   val routes =
     path("samples/test/clear") {
       post {
         complete {
-          ok {
-            logger.info("Request to clear our database of samples for testing")
-          }
+          logger.info("Request to clear our database of samples for testing")
+          "Request to clear our database of samples for testing"
         }
       }
     } ~ path("samples/test/fill") {
       post {
         entity(as[SampleTestExamples]) { ste =>
           complete {
-            created {
+            StatusCodes.Created -> {
               logger.info(
                 s"Request to fill our database with ${ste.count} test samples")
               "Created"
@@ -66,16 +67,14 @@ class SampleService(sampleActor: ActorRef)
         pathEnd {
           get {
             complete {
-              ok {
-                (sampleActor ? GetSamples()).mapTo[Set[Sample]]
-              }
+              (sampleActor ? GetSamples()).mapTo[Set[Sample]]
             }
           } ~
             post {
               SmrtDirectives.extractRequiredUserRecord { user =>
                 entity(as[SampleCreate]) { create =>
                   complete {
-                    created {
+                    StatusCodes.Created -> {
                       (sampleActor ? CreateSample(user.userId, create))
                         .mapTo[Sample]
                     }
@@ -88,27 +87,21 @@ class SampleService(sampleActor: ActorRef)
             pathEnd {
               get {
                 complete {
-                  ok {
-                    (sampleActor ? GetSample(uniqueId)).mapTo[Sample]
-                  }
+                  (sampleActor ? GetSample(uniqueId)).mapTo[Sample]
                 }
               } ~
                 post {
                   entity(as[SampleUpdate]) { update =>
                     complete {
-                      ok {
-                        (sampleActor ? UpdateSample(uniqueId, update))
-                          .mapTo[Sample]
-                      }
+                      (sampleActor ? UpdateSample(uniqueId, update))
+                        .mapTo[Sample]
                     }
                   }
                 } ~
                 delete {
                   complete {
-                    ok {
-                      (sampleActor ? DeleteSample(uniqueId))
-                        .mapTo[MessageResponse]
-                    }
+                    (sampleActor ? DeleteSample(uniqueId))
+                      .mapTo[MessageResponse]
                   }
                 }
             }

@@ -69,9 +69,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
       path(RemainingPath) { path =>
         get {
           complete {
-            ok {
-              resolve(path).map(getDirectoryResource)
-            }
+            resolve(path).map(getDirectoryResource)
           }
         }
       }
@@ -80,9 +78,7 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
         path(RemainingPath) { path =>
           get {
             complete {
-              ok {
-                resolve(path).map(getDiskSpaceResource)
-              }
+              resolve(path).map(getDiskSpaceResource)
             }
           }
         }

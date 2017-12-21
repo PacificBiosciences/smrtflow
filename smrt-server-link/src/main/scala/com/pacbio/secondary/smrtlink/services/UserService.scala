@@ -29,9 +29,7 @@ class UserService() extends PacBioService {
       SmrtDirectives.extractRequiredUserRecord { user =>
         get {
           complete {
-            ok {
-              user
-            }
+            user
           }
         }
       }

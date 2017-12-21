@@ -59,7 +59,7 @@ class RegistryService(registryActor: ActorRef)
           post {
             entity(as[RegistryResourceCreate]) { create =>
               complete {
-                created {
+                StatusCodes.Created -> {
                   (registryActor ? CreateResource(create))
                     .mapTo[RegistryResource]
                 }
@@ -71,29 +71,23 @@ class RegistryService(registryActor: ActorRef)
           pathEnd {
             get {
               complete {
-                ok {
-                  (registryActor ? GetResource(uuid)).mapTo[RegistryResource]
-                }
+                (registryActor ? GetResource(uuid)).mapTo[RegistryResource]
               }
             } ~
               delete {
                 complete {
-                  ok {
-                    (registryActor ? DeleteResource(uuid))
-                      .mapTo[MessageResponse]
-                  }
+                  (registryActor ? DeleteResource(uuid))
+                    .mapTo[MessageResponse]
                 }
               }
           } ~
             path("update-status") {
               post {
                 complete {
-                  ok {
-                    (registryActor ? UpdateResource(
-                      uuid,
-                      RegistryResourceUpdate(None, None)))
-                      .mapTo[RegistryResource]
-                  }
+                  (registryActor ? UpdateResource(
+                    uuid,
+                    RegistryResourceUpdate(None, None)))
+                    .mapTo[RegistryResource]
                 }
               }
             } ~
@@ -101,10 +95,8 @@ class RegistryService(registryActor: ActorRef)
               post {
                 entity(as[RegistryResourceUpdate]) { update =>
                   complete {
-                    ok {
-                      (registryActor ? UpdateResource(uuid, update))
-                        .mapTo[RegistryResource]
-                    }
+                    (registryActor ? UpdateResource(uuid, update))
+                      .mapTo[RegistryResource]
                   }
                 }
               }

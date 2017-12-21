@@ -14,6 +14,7 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
+import akka.http.scaladsl.model.StatusCodes
 
 import scala.concurrent.ExecutionContext.Implicits._
 
@@ -68,7 +69,7 @@ class RunService(runActor: ActorRef)
           post {
             entity(as[RunCreate]) { create =>
               complete {
-                created {
+                StatusCodes.Created -> {
                   //(runActor ? CreateRun(user.userId, create)).mapTo[RunMetadata]
                   (runActor ? CreateRun(create)).mapTo[RunSummary]
                 }
@@ -80,25 +81,19 @@ class RunService(runActor: ActorRef)
           pathEnd {
             get {
               complete {
-                ok {
-                  (runActor ? GetRun(id)).mapTo[Run]
-                }
+                (runActor ? GetRun(id)).mapTo[Run]
               }
             } ~
               post {
                 entity(as[RunUpdate]) { update =>
                   complete {
-                    ok {
-                      (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
-                    }
+                    (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
                   }
                 }
               } ~
               delete {
                 complete {
-                  ok {
-                    (runActor ? DeleteRun(id)).mapTo[MessageResponse]
-                  }
+                  (runActor ? DeleteRun(id)).mapTo[MessageResponse]
                 }
               }
           } ~
@@ -106,18 +101,14 @@ class RunService(runActor: ActorRef)
               get {
                 pathEnd {
                   complete {
-                    ok {
-                      (runActor ? GetCollections(id))
-                        .mapTo[Seq[CollectionMetadata]]
-                    }
+                    (runActor ? GetCollections(id))
+                      .mapTo[Seq[CollectionMetadata]]
                   }
                 } ~
                   path(JavaUUID) { collectionId =>
                     complete {
-                      ok {
-                        (runActor ? GetCollection(id, collectionId))
-                          .mapTo[CollectionMetadata]
-                      }
+                      (runActor ? GetCollection(id, collectionId))
+                        .mapTo[CollectionMetadata]
                     }
                   }
               }
@@ -125,12 +116,10 @@ class RunService(runActor: ActorRef)
             pathPrefix("datamodel") {
               get {
                 pathEndOrSingleSlash {
-                  complete {
-                    ok { // added as a sugar layer to avoid getting the XML from within the JSON of Run
-                      (runActor ? GetRun(id))
-                        .mapTo[Run]
-                        .map(f => scala.xml.XML.loadString(f.dataModel))
-                    }
+                  complete { // added as a sugar layer to avoid getting the XML from within the JSON of Run
+                    (runActor ? GetRun(id))
+                      .mapTo[Run]
+                      .map(f => scala.xml.XML.loadString(f.dataModel))
                   }
                 }
               }

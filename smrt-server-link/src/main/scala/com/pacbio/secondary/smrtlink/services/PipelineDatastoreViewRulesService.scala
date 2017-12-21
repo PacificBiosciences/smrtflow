@@ -41,9 +41,7 @@ class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao)
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              dao.getResources
-            }
+            dao.getResources
           }
         }
       } ~
@@ -51,11 +49,9 @@ class PipelineDataStoreViewRulesService(dao: PipelineDataStoreViewRulesDao)
           get {
             parameters('version.?) { version =>
               complete {
-                ok {
-                  failIfNone[PipelineDataStoreViewRules](
-                    dao.getById(pipelineId, version),
-                    s"Unable to find view rules for pipeline id $pipelineId (version = $version)")
-                }
+                failIfNone[PipelineDataStoreViewRules](
+                  dao.getById(pipelineId, version),
+                  s"Unable to find view rules for pipeline id $pipelineId (version = $version)")
               }
             }
           }

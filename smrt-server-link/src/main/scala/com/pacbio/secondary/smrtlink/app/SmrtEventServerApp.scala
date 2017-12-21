@@ -22,7 +22,7 @@ import akka.util.Timeout
 import akka.pattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.{HttpHeader, MediaTypes}
+import akka.http.scaladsl.model.{HttpHeader, MediaTypes, StatusCodes}
 import akka.http.scaladsl.Http
 import spray.json._
 import DefaultJsonProtocol._
@@ -36,10 +36,7 @@ import com.pacbio.secondary.smrtlink.auth.hmac.{
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
-import com.pacbio.secondary.smrtlink.services.{
-  PacBioService,
-  RoutedHttpService
-}
+import com.pacbio.secondary.smrtlink.services.{PacBioService}
 import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
@@ -212,11 +209,7 @@ class EventService(
         Directives.authenticate[EveAccount] { account =>
           post {
             entity(as[SmrtLinkSystemEvent]) { event =>
-              complete {
-                created {
-                  eventProcessor.process(event)
-                }
-              }
+              complete(StatusCodes.Created -> eventProcessor.process(event))
             }
           }
         }
@@ -230,11 +223,7 @@ class EventService(
           post {
             respondWithMediaType(MediaTypes.`application/json`) {
               entity(as[MultipartFormData]) { formData =>
-                complete {
-                  created {
-                    processUpload(formData)
-                  }
-                }
+                complete(StatusCodes.Created -> processUpload(formData))
               }
             }
           }

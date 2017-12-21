@@ -4,6 +4,7 @@ import java.net.{BindException, URL}
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
@@ -300,9 +301,6 @@ trait RootPacBioDataBundleServerCakeProvider extends RouteConcatenation {
   this: ActorSystemCakeProvider with PacBioDataBundleServicesCakeProvider =>
 
   lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
-
-  lazy val rootService =
-    actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
 trait PacBioDataBundleServerCakeProvider extends LazyLogging with timeUtils {
@@ -312,18 +310,11 @@ trait PacBioDataBundleServerCakeProvider extends LazyLogging with timeUtils {
 
   implicit val timeout = Timeout(10.seconds)
 
-  //FIXME(mpkocher)(2017-4-11) Add validation on startup
-  def startServices(): Future[String] = {
-    (IO(Http)(actorSystem) ? Http.Bind(rootService,
-                                       systemHost,
-                                       port = systemPort)) flatMap {
-      case r: Http.CommandFailed =>
-        Future.failed(
-          new BindException(s"Failed to bind to $systemHost:$systemPort"))
-      case _ =>
-        Future { s"Successfully started up on $systemHost:$systemPort" }
-    }
-  }
+  //FIXME(mpkocher)(2017-4-11) Add validation on startup. Add explicit unbind call
+  def startServices(): Future[String] =
+    Http().bindAndHandle(allRoutes, systemHost, systemPort)
+      .map(_  => "Successfully Started Services")
+
 }
 
 object PacBioDataBundleServer

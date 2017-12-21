@@ -38,23 +38,19 @@ class AlarmService(alarmDaoActor: ActorRef)
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              (alarmDaoActor ? GetAllAlarmStatus).mapTo[Seq[AlarmStatus]]
-            }
+            (alarmDaoActor ? GetAllAlarmStatus).mapTo[Seq[AlarmStatus]]
           }
         }
       } ~
         path(Segment) { alarmId =>
           get {
             complete {
-              ok {
-                for {
-                  opt <- (alarmDaoActor ? GetAlarmStatusById(alarmId))
-                    .mapTo[Option[AlarmStatus]]
-                  status <- failIfNone[AlarmStatus](
-                    s"Unable to find Alarm Id $alarmId")(opt)
-                } yield status
-              }
+              for {
+                opt <- (alarmDaoActor ? GetAlarmStatusById(alarmId))
+                  .mapTo[Option[AlarmStatus]]
+                status <- failIfNone[AlarmStatus](
+                  s"Unable to find Alarm Id $alarmId")(opt)
+              } yield status
             }
           }
         }

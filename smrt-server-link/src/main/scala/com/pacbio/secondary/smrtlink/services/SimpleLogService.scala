@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.services
 import scala.concurrent._
 import com.typesafe.scalalogging.LazyLogging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.StatusCodes
 import spray.json._
 import akka.http.scaladsl.server._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
@@ -14,10 +15,7 @@ import com.pacbio.secondary.smrtlink.models.{
   PacBioComponentManifest
 }
 
-class SimpleLogService
-    extends SmrtLinkBaseMicroService
-    with StatusCodeJoiners
-    with Directives {
+class SimpleLogService extends SmrtLinkBaseMicroService with Directives {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -34,7 +32,7 @@ class SimpleLogService
         post {
           entity(as[LogMessageRecord]) { msg =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 val msgString = s"sourceId:${msg.sourceId} ${msg.message}"
                 val response = "message logged"
                 msg.level match {

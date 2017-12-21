@@ -11,6 +11,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
+import akka.http.scaladsl.model.StatusCodes
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
@@ -36,7 +37,7 @@ class SmrtLinkEventService(eventManagerActor: ActorRef)
         post {
           entity(as[SmrtLinkEvent]) { event =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 (eventManagerActor ? CreateEvent(event))
                   .mapTo[SmrtLinkSystemEvent]
               }
