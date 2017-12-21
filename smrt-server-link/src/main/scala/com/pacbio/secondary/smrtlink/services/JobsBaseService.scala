@@ -42,7 +42,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaType.NotCompressible
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{
   ContentDispositionTypes,
@@ -50,7 +51,7 @@ import akka.http.scaladsl.model.headers.{
 }
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.settings.RoutingSettings
-import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.unmarshalling.{FromRequestUnmarshaller, Unmarshaller}
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import spray.json._
 
@@ -81,11 +82,13 @@ object JobResourceUtils extends LazyLogging {
   }
 
   def resolveResourceFrom(rootJobDir: Path, imageFileName: String)(
-      implicit ec: ExecutionContext) = Future {
-    JobResourceUtils
-      .getJobResource(rootJobDir.toAbsolutePath.toString, imageFileName)
-      .getOrElse(s"Failed to find resource '$imageFileName' from $rootJobDir")
-  }
+      implicit ec: ExecutionContext) =
+    Future {
+      JobResourceUtils
+        .getJobResource(rootJobDir.toAbsolutePath.toString, imageFileName)
+        .getOrElse(
+          s"Failed to find resource '$imageFileName' from $rootJobDir")
+    }(ec)
 }
 
 trait JobServiceRoutes {
@@ -100,8 +103,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
   val dao: JobsDao
   val config: SystemJobConfig
 
-  implicit val um: Unmarshaller[T]
-  implicit val sm: Marshaller[T]
+  implicit val um: FromRequestUnmarshaller[T]
+  implicit val sm: ToEntityMarshaller[T]
   implicit val jwriter: JsonWriter[T]
 
   import SmrtLinkJsonProtocols._
@@ -214,11 +217,12 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 
   private def resolveContentType(path: Path): ContentType = {
     val mimeType = MimeTypeProperties.fromFile(path.toFile)
-    val mediaType = MediaType.custom(mimeType)
+    val mediaType =
+      MediaType.applicationWithFixedCharset(mimeType, HttpCharsets.`UTF-8`)
     ContentType(mediaType)
   }
 
-  //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up.
+  //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up. This is terrible.
   private def resolveJobResource(fx: Future[EngineJob], id: String)(
       implicit ec: ExecutionContext): Future[HttpEntity] = {
     fx.flatMap { engineJob =>
@@ -235,15 +239,17 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       }(ec)
       .flatMap {
         case Some(x) =>
-          val mtype =
-            if (id.endsWith(".png")) MediaTypes.`image/png`
-            else MediaTypes.`text/plain`
+          val mType =
+            if (id.endsWith(".png")) MediaType.image("png", NotCompressible)
+            else MediaType.text("plain")
+
           Future {
-            blocking {
-              // MK. It's not completely clear if this blocking wrapping is necessary
-              HttpEntity(ContentType(mtype), HttpData(new File(x)))
+            blocking { // MK. It's not completely clear if this blocking wrapping is necessary
+              HttpEntity.fromPath(ContentType(mType,
+                                              () => HttpCharsets.`UTF-8`),
+                                  Paths.get(x))
             }
-          }
+          }(ec)
         case None =>
           Future.failed(
             throw new ResourceNotFoundError(
@@ -254,10 +260,10 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
   private def toHttpEntity(path: Path): HttpEntity = {
     logger.debug(s"Resolving path ${path.toAbsolutePath.toString}")
     if (Files.exists(path)) {
-      HttpEntity(resolveContentType(path), HttpData(path.toFile))
+      HttpEntity.fromPath(resolveContentType(path), path)
     } else {
       logger.error(s"Failed to resolve ${path.toAbsolutePath.toString}")
-      throw new ResourceNotFoundError(
+      throw ResourceNotFoundError(
         s"Failed to find ${path.toAbsolutePath.toString}")
     }
   }
@@ -522,8 +528,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 // All Service Jobs should be defined here. This a bit boilerplate, but it's very simple and there aren't a large number of job types
 class HelloWorldJobsService(override val dao: JobsDao,
                             override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[HelloWorldJobOptions],
-    implicit val sm: Marshaller[HelloWorldJobOptions],
+    implicit val um: FromRequestUnmarshaller[HelloWorldJobOptions],
+    implicit val sm: ToEntityMarshaller[HelloWorldJobOptions],
     implicit val jwriter: JsonWriter[HelloWorldJobOptions])
     extends CommonJobsRoutes[HelloWorldJobOptions] {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
@@ -531,8 +537,8 @@ class HelloWorldJobsService(override val dao: JobsDao,
 
 class DbBackupJobsService(override val dao: JobsDao,
                           override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[DbBackUpJobOptions],
-    implicit val sm: Marshaller[DbBackUpJobOptions],
+    implicit val um: FromRequestUnmarshaller[DbBackUpJobOptions],
+    implicit val sm: ToEntityMarshaller[DbBackUpJobOptions],
     implicit val jwriter: JsonWriter[DbBackUpJobOptions])
     extends CommonJobsRoutes[DbBackUpJobOptions] {
   override def jobTypeId = JobTypeIds.DB_BACKUP
@@ -540,8 +546,8 @@ class DbBackupJobsService(override val dao: JobsDao,
 
 class DeleteDataSetJobsService(override val dao: JobsDao,
                                override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[DeleteDataSetJobOptions],
-    implicit val sm: Marshaller[DeleteDataSetJobOptions],
+    implicit val um: FromRequestUnmarshaller[DeleteDataSetJobOptions],
+    implicit val sm: ToEntityMarshaller[DeleteDataSetJobOptions],
     implicit val jwriter: JsonWriter[DeleteDataSetJobOptions])
     extends CommonJobsRoutes[DeleteDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.DELETE_DATASETS
@@ -549,8 +555,8 @@ class DeleteDataSetJobsService(override val dao: JobsDao,
 
 class DeleteSmrtLinkJobsService(override val dao: JobsDao,
                                 override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[DeleteSmrtLinkJobOptions],
-    implicit val sm: Marshaller[DeleteSmrtLinkJobOptions],
+    implicit val um: FromRequestUnmarshaller[DeleteSmrtLinkJobOptions],
+    implicit val sm: ToEntityMarshaller[DeleteSmrtLinkJobOptions],
     implicit val jwriter: JsonWriter[DeleteSmrtLinkJobOptions])
     extends CommonJobsRoutes[DeleteSmrtLinkJobOptions] {
   override def jobTypeId = JobTypeIds.DELETE_JOB
@@ -558,8 +564,8 @@ class DeleteSmrtLinkJobsService(override val dao: JobsDao,
 
 class ExportDataSetsJobsService(override val dao: JobsDao,
                                 override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ExportDataSetsJobOptions],
-    implicit val sm: Marshaller[ExportDataSetsJobOptions],
+    implicit val um: FromRequestUnmarshaller[ExportDataSetsJobOptions],
+    implicit val sm: ToEntityMarshaller[ExportDataSetsJobOptions],
     implicit val jwriter: JsonWriter[ExportDataSetsJobOptions])
     extends CommonJobsRoutes[ExportDataSetsJobOptions] {
   override def jobTypeId = JobTypeIds.EXPORT_DATASETS
@@ -567,8 +573,8 @@ class ExportDataSetsJobsService(override val dao: JobsDao,
 
 class ExportJobsService(override val dao: JobsDao,
                         override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ExportSmrtLinkJobOptions],
-    implicit val sm: Marshaller[ExportSmrtLinkJobOptions],
+    implicit val um: FromRequestUnmarshaller[ExportSmrtLinkJobOptions],
+    implicit val sm: ToEntityMarshaller[ExportSmrtLinkJobOptions],
     implicit val jwriter: JsonWriter[ExportSmrtLinkJobOptions])
     extends CommonJobsRoutes[ExportSmrtLinkJobOptions] {
   override def jobTypeId = JobTypeIds.EXPORT_JOBS
@@ -576,8 +582,8 @@ class ExportJobsService(override val dao: JobsDao,
 
 class ImportJobService(override val dao: JobsDao,
                        override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ImportSmrtLinkJobOptions],
-    implicit val sm: Marshaller[ImportSmrtLinkJobOptions],
+    implicit val um: FromRequestUnmarshaller[ImportSmrtLinkJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportSmrtLinkJobOptions],
     implicit val jwriter: JsonWriter[ImportSmrtLinkJobOptions])
     extends CommonJobsRoutes[ImportSmrtLinkJobOptions] {
   override def jobTypeId = JobTypeIds.IMPORT_JOB
@@ -585,8 +591,8 @@ class ImportJobService(override val dao: JobsDao,
 
 class ImportBarcodeFastaJobsService(override val dao: JobsDao,
                                     override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ImportBarcodeFastaJobOptions],
-    implicit val sm: Marshaller[ImportBarcodeFastaJobOptions],
+    implicit val um: FromRequestUnmarshaller[ImportBarcodeFastaJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportBarcodeFastaJobOptions],
     implicit val jwriter: JsonWriter[ImportBarcodeFastaJobOptions])
     extends CommonJobsRoutes[ImportBarcodeFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
@@ -594,8 +600,8 @@ class ImportBarcodeFastaJobsService(override val dao: JobsDao,
 
 class ImportDataSetJobsService(override val dao: JobsDao,
                                override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ImportDataSetJobOptions],
-    implicit val sm: Marshaller[ImportDataSetJobOptions],
+    implicit val um: FromRequestUnmarshaller[ImportDataSetJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportDataSetJobOptions],
     implicit val jwriter: JsonWriter[ImportDataSetJobOptions])
     extends CommonJobsRoutes[ImportDataSetJobOptions]
     with DataSetFileUtils {
@@ -648,8 +654,8 @@ class ImportDataSetJobsService(override val dao: JobsDao,
 
 class ImportFastaJobsService(override val dao: JobsDao,
                              override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[ImportFastaJobOptions],
-    implicit val sm: Marshaller[ImportFastaJobOptions],
+    implicit val um: FromRequestUnmarshaller[ImportFastaJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportFastaJobOptions],
     implicit val jwriter: JsonWriter[ImportFastaJobOptions])
     extends CommonJobsRoutes[ImportFastaJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
@@ -658,8 +664,8 @@ class ImportFastaJobsService(override val dao: JobsDao,
 
 class MergeDataSetJobsService(override val dao: JobsDao,
                               override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[MergeDataSetJobOptions],
-    implicit val sm: Marshaller[MergeDataSetJobOptions],
+    implicit val um: FromRequestUnmarshaller[MergeDataSetJobOptions],
+    implicit val sm: ToEntityMarshaller[MergeDataSetJobOptions],
     implicit val jwriter: JsonWriter[MergeDataSetJobOptions])
     extends CommonJobsRoutes[MergeDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.MERGE_DATASETS
@@ -667,8 +673,8 @@ class MergeDataSetJobsService(override val dao: JobsDao,
 
 class MockPbsmrtpipeJobsService(override val dao: JobsDao,
                                 override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[MockPbsmrtpipeJobOptions],
-    implicit val sm: Marshaller[MockPbsmrtpipeJobOptions],
+    implicit val um: FromRequestUnmarshaller[MockPbsmrtpipeJobOptions],
+    implicit val sm: ToEntityMarshaller[MockPbsmrtpipeJobOptions],
     implicit val jwriter: JsonWriter[MockPbsmrtpipeJobOptions])
     extends CommonJobsRoutes[MockPbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
@@ -676,8 +682,8 @@ class MockPbsmrtpipeJobsService(override val dao: JobsDao,
 
 class PbsmrtpipeJobsService(override val dao: JobsDao,
                             override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[PbsmrtpipeJobOptions],
-    implicit val sm: Marshaller[PbsmrtpipeJobOptions],
+    implicit val um: FromRequestUnmarshaller[PbsmrtpipeJobOptions],
+    implicit val sm: ToEntityMarshaller[PbsmrtpipeJobOptions],
     implicit val jwriter: JsonWriter[PbsmrtpipeJobOptions])
     extends CommonJobsRoutes[PbsmrtpipeJobOptions] {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
@@ -711,8 +717,9 @@ class PbsmrtpipeJobsService(override val dao: JobsDao,
 
 class RsConvertMovieToDataSetJobsService(override val dao: JobsDao,
                                          override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[RsConvertMovieToDataSetJobOptions],
-    implicit val sm: Marshaller[RsConvertMovieToDataSetJobOptions],
+    implicit val um: FromRequestUnmarshaller[
+      RsConvertMovieToDataSetJobOptions],
+    implicit val sm: ToEntityMarshaller[RsConvertMovieToDataSetJobOptions],
     implicit val jwriter: JsonWriter[RsConvertMovieToDataSetJobOptions])
     extends CommonJobsRoutes[RsConvertMovieToDataSetJobOptions] {
   override def jobTypeId = JobTypeIds.CONVERT_RS_MOVIE
@@ -720,8 +727,8 @@ class RsConvertMovieToDataSetJobsService(override val dao: JobsDao,
 
 class SimpleJobsService(override val dao: JobsDao,
                         override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[SimpleJobOptions],
-    implicit val sm: Marshaller[SimpleJobOptions],
+    implicit val um: FromRequestUnmarshaller[SimpleJobOptions],
+    implicit val sm: ToEntityMarshaller[SimpleJobOptions],
     implicit val jwriter: JsonWriter[SimpleJobOptions])
     extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
@@ -729,8 +736,8 @@ class SimpleJobsService(override val dao: JobsDao,
 
 class TsJobBundleJobsService(override val dao: JobsDao,
                              override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[TsJobBundleJobOptions],
-    implicit val sm: Marshaller[TsJobBundleJobOptions],
+    implicit val um: FromRequestUnmarshaller[TsJobBundleJobOptions],
+    implicit val sm: ToEntityMarshaller[TsJobBundleJobOptions],
     implicit val jwriter: JsonWriter[TsJobBundleJobOptions])
     extends CommonJobsRoutes[TsJobBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_JOB
@@ -738,8 +745,8 @@ class TsJobBundleJobsService(override val dao: JobsDao,
 
 class TsSystemStatusBundleJobsService(override val dao: JobsDao,
                                       override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[TsSystemStatusBundleJobOptions],
-    implicit val sm: Marshaller[TsSystemStatusBundleJobOptions],
+    implicit val um: FromRequestUnmarshaller[TsSystemStatusBundleJobOptions],
+    implicit val sm: ToEntityMarshaller[TsSystemStatusBundleJobOptions],
     implicit val jwriter: JsonWriter[TsSystemStatusBundleJobOptions])
     extends CommonJobsRoutes[TsSystemStatusBundleJobOptions] {
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
@@ -748,8 +755,8 @@ class TsSystemStatusBundleJobsService(override val dao: JobsDao,
 // This is the used for the "Naked" untyped job route service <smrt-link>/<job-manager>/jobs
 class NakedNoTypeJobsService(override val dao: JobsDao,
                              override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[SimpleJobOptions],
-    implicit val sm: Marshaller[SimpleJobOptions],
+    implicit val um: FromRequestUnmarshaller[SimpleJobOptions],
+    implicit val sm: ToEntityMarshaller[SimpleJobOptions],
     implicit val jwriter: JsonWriter[SimpleJobOptions])
     extends CommonJobsRoutes[SimpleJobOptions] {
   override def jobTypeId = JobTypeIds.SIMPLE
@@ -762,8 +769,8 @@ class NakedNoTypeJobsService(override val dao: JobsDao,
 
 class MultiAnalysisJobService(override val dao: JobsDao,
                               override val config: SystemJobConfig)(
-    implicit val um: Unmarshaller[MultiAnalysisJobOptions],
-    implicit val sm: Marshaller[MultiAnalysisJobOptions],
+    implicit val um: FromRequestUnmarshaller[MultiAnalysisJobOptions],
+    implicit val sm: ToEntityMarshaller[MultiAnalysisJobOptions],
     implicit val jwriter: JsonWriter[MultiAnalysisJobOptions])
     extends CommonJobsRoutes[MultiAnalysisJobOptions] {
 
