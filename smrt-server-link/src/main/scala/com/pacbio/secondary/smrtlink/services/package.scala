@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink
 import java.io.{PrintWriter, StringWriter}
 
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.utils.CORSSupport
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
