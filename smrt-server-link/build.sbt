@@ -26,7 +26,6 @@ assemblyMergeStrategy in assembly := {
 
 packMain := Map(
   "smrt-server-link-analysis" -> mainServer,
-  "smrt-server-eve" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
