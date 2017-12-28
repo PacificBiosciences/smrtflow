@@ -4,6 +4,7 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.actor.Status.Success
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
@@ -99,19 +100,7 @@ class EventManagerActor(smrtLinkId: UUID,
   private def upload(c: EventServerClient,
                      tgz: Path): Future[SmrtLinkSystemEvent] = {
     logger.info(s"Client ${c.toUploadUrl} Attempting to upload $tgz")
-
-    val f = c.upload(tgz)
-
-    f.onSuccess {
-      case e: SmrtLinkSystemEvent =>
-        logger.info(s"Upload successful. Event $e")
-    }
-    f.onFailure {
-      case NonFatal(e) =>
-        logger.error(s"Failed to upload $tgz Error ${e.getMessage}")
-    }
-
-    f
+    c.upload(tgz)
   }
 
   override def receive: Receive = {

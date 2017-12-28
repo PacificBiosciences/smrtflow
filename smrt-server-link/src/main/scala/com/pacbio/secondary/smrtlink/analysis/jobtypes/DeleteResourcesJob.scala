@@ -8,7 +8,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
@@ -277,13 +277,13 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
       filterResource: InputOutputDataType => Boolean): Seq[String] = {
     Option(externalResources)
       .map { ex =>
-        ex.getExternalResource.filter(filterResource(_)).flatMap { e =>
+        ex.getExternalResource.asScala.filter(filterResource(_)).flatMap { e =>
           Seq(e.getResourceId) ++ getPaths(dsType,
                                            e.getExternalResources,
                                            filterResource) ++
             Option(e.getFileIndices)
               .map { fi =>
-                fi.getFileIndex.flatMap { i =>
+                fi.getFileIndex.asScala.flatMap { i =>
                   Seq(i.getResourceId)
                 }
               }
@@ -296,7 +296,7 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
   override def runDelete(job: JobResourceBase,
                          resultsWriter: JobResultsWriter): Seq[DeletedFile] = {
     if (opts.paths.isEmpty) throw new Exception("No paths specified")
-    val deletedFiles: Seq[DeletedFile] = opts.paths.map { dsPath =>
+    val deletedFiles: Seq[DeletedFile] = opts.paths.flatMap { dsPath =>
       if (!dsPath.toFile.isFile) {
         logger.warn(s"${dsPath.toString} is missing, skipping")
         //Seq.empty[DeletedFile]
@@ -323,7 +323,7 @@ class DeleteDatasetsJob(opts: DeleteDatasetsOptions)
             Seq(deleteFileOrDirectory(dsPath.toFile))
         }
       }
-    }.flatten
+    }
     /// XXX not sure what the most appropriate behavior here is...
     if ((deletedFiles.isEmpty || (deletedFiles.count(_.nBytes > 0) == 0)) &&
         opts.removeFiles) {

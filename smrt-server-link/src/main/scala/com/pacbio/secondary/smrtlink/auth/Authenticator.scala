@@ -59,7 +59,8 @@ class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
   def authHeader(ctx: RequestContext) =
     ctx.request.headers.find(_.is(JWT_HEADER))
 
-  def validateToken(ctx: RequestContext): Future[Option[UserRecord]] =
+  def validateToken(ctx: RequestContext)(
+      implicit ec: ExecutionContext): Future[Option[UserRecord]] =
     Future {
       // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
       authHeader(ctx)

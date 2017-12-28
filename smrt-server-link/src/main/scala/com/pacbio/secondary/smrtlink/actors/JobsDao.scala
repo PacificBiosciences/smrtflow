@@ -570,7 +570,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       .run(xs.transactionally)
       .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
 
-    f.onSuccess {
+    f.foreach {
       case job: EngineJob =>
         sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))
     }
@@ -641,9 +641,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
     // Send message to the EngineMultiJobManager to Check for new multiJobs
     if (state == AnalysisJobStates.SUBMITTED) {
-      f onSuccess {
-        case updatedJob =>
-          sendEventToManager(MultiJobSubmitted(updatedJob.id))
+      f.foreach { updatedJob =>
+        sendEventToManager(MultiJobSubmitted(updatedJob.id))
       }
     }
 
@@ -689,14 +688,16 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         case true => updates
         case false =>
           DBIO.failed(
-            new UnprocessableEntityError(
+            UnprocessableEntityError(
               s"Project id ${engineJob.projectId} does not exist"))
       }
 
     val f = db.run(action.transactionally)
 
     // Need to send an event to EngineManager to Check for work
-    f onSuccess { case engineJob: EngineJob => sendEventToManager(engineJob) }
+    f.foreach { engineJob =>
+      sendEventToManager(engineJob)
+    }
 
     f
   }
@@ -2366,7 +2367,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def addEulaRecord(eulaRecord: EulaRecord): Future[EulaRecord] = {
     val f = db.run(eulas += eulaRecord).map(_ => eulaRecord)
-    f.onSuccess { case e: EulaRecord => sendEventToManager[EulaRecord](e) }
+    f.foreach { e: EulaRecord =>
+      sendEventToManager[EulaRecord](e)
+    }
     f
   }
 

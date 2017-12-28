@@ -4,7 +4,6 @@ import java.nio.file.{Paths, Files, Path}
 import java.net.URI
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.FileType
@@ -46,8 +45,8 @@ trait ValidateDataSet {
     * @return
     */
   def hasExternalResourceMetaType(ds: DsType): ValidateDataSetE = {
-    !ds.getExternalResources.getExternalResource.exists(er =>
-      supportedFileTypes contains er.getMetaType) match {
+    !ds.getExternalResources.getExternalResource.asScala.exists(er =>
+      supportedFileTypes.map(_.fileTypeId) contains er.getMetaType) match {
       case true =>
         s"Failed to find required metatype $supportedFileTypes".failureNel
       case false => ds.successNel
@@ -66,7 +65,7 @@ trait ValidateDataSet {
     * @return
     */
   def hasValidExternalResourcePaths(ds: DsType): ValidateDataSetE = {
-    ds.getExternalResources.getExternalResource
+    ds.getExternalResources.getExternalResource.asScala
       .map(r => r.getResourceId)
       .filter(x => !Files.exists(getExternalResourcePath(x)))
       .reduceLeftOption((a, b) => s"$a, $b") match {

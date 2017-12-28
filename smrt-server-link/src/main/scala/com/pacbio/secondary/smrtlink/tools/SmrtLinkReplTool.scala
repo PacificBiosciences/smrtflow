@@ -36,7 +36,7 @@ trait SmrtLinkReplTool {
                  |import com.pacbio.secondary.smrtlink.actors.JobsDao
                  |import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
                  |
-                 |//This will make the repl hang on exit. Need to call actorSystem.shutdown()
+                 |//This will make the repl hang on exit. Need to call actorSystem.terminate()()()
                  |//implicit val actorSystem = ActorSystem("smrtlink-repl")
                  |
                  |object Pb extends ConfigLoader{

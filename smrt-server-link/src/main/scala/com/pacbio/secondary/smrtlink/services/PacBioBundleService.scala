@@ -117,9 +117,9 @@ class PacBioBundleService(
       .mapTo[Try[PacBioDataBundleIO]]
       .flatMap(t => fromTry[PacBioDataBundleIO](errorMessage, t))
 
-    f onSuccess {
-      case bunIO: PacBioDataBundleIO => {
-        logger.info(s"Activated ${bundleType} bundle version ${version}")
+    f.foreach { bunIO =>
+      {
+        logger.info(s"Activated $bundleType bundle version $version")
 
         val slEvent = SmrtLinkEvent(
           eventTypeId = EventTypes.CHEMISTRY_ACTIVATE_BUNDLE,

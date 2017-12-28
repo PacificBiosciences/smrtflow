@@ -22,6 +22,7 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 object PacBioDataBundlePollExternalActor {
@@ -228,13 +229,10 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
       }
 
       allFuts.map { f =>
-        f.onSuccess {
-          case b: PacBioDataBundleIO =>
+        f.onComplete {
+          case Success(b) =>
             logger.info(s"Successfully added bundle to registry $b")
-        }
-
-        f.onFailure {
-          case ex: Exception =>
+          case Failure(ex) =>
             logger.error(s"Failed to add bundle to registry ${ex.getMessage}")
         }
         f

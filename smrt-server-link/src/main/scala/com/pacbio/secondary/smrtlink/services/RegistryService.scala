@@ -7,6 +7,8 @@ import akka.pattern.ask
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{
+  ActorRefFactoryProvider,
+  ActorSystemProvider,
   RegistryServiceActor,
   RegistryServiceActorRefProvider
 }
@@ -22,6 +24,7 @@ import akka.http.scaladsl.model.{
   HttpResponse => SprayHttpResponse
 }
 import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.ActorMaterializer
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
@@ -31,7 +34,7 @@ import scala.language.postfixOps
 //MK. Why are we using this data model?
 import scalaj.http.HttpResponse
 
-class RegistryService(registryActor: ActorRef)
+class RegistryService(registryActor: ActorRef, materializer: ActorMaterializer)
     extends SmrtLinkBaseMicroService
     with SmrtLinkJsonProtocols {
 
@@ -157,7 +160,7 @@ class RegistryService(registryActor: ActorRef)
     //val req = RegistryProxyRequest(path, method, data, headers, params)
 
     for {
-      dx <- ent.toStrict(1.second).map(_.data)
+      dx <- ent.toStrict(1.second)(materializer).map(_.data)
       req <- Future.successful(
         RegistryProxyRequest(path,
                              meth.value,
@@ -182,10 +185,13 @@ class RegistryService(registryActor: ActorRef)
 }
 
 trait RegistryServiceProvider {
-  this: RegistryServiceActorRefProvider with ServiceComposer =>
+  this: RegistryServiceActorRefProvider
+    with ActorSystemProvider
+    with ServiceComposer =>
 
   val registryService: Singleton[RegistryService] =
-    Singleton(() => new RegistryService(registryServiceActorRef()))
+    Singleton(() =>
+      new RegistryService(registryServiceActorRef(), actorMaterializer()))
 
   addService(registryService)
 }

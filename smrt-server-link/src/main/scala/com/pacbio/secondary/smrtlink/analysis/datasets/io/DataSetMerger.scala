@@ -15,7 +15,7 @@ import com.pacificbiosciences.pacbiodatasets._
 import com.pacificbiosciences.pacbiosampleinfo.BioSamples
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
-import collection.JavaConversions._
+import collection.JavaConverters._
 import scala.util.Failure
 
 trait DataSetMerger extends LazyLogging {
@@ -58,7 +58,7 @@ trait DataSetMerger extends LazyLogging {
 
     // Get All Unique External Resources using ResourceId as the key
     val externalResources = uds
-      .flatMap(_.getExternalResources.getExternalResource.toList)
+      .flatMap(_.getExternalResources.getExternalResource.asScala.toList)
       .map(x => (x.getResourceId, x))
       .toMap
       .values
@@ -97,13 +97,13 @@ trait DataSetMerger extends LazyLogging {
     val uniqueCollectionMetadata = ms
       .filter(_.getCollections != null)
       .flatMap(
-        _.getCollections.getCollectionMetadata
+        _.getCollections.getCollectionMetadata.asScala
           .map(mx => (mx.getContext, mx))
           .toMap
           .values)
 
     val collections = new Collections()
-    collections.getCollectionMetadata.addAll(uniqueCollectionMetadata)
+    collections.getCollectionMetadata.addAll(uniqueCollectionMetadata.asJava)
 
     val metadata = new ReadSetMetadataType()
     metadata.setCollections(collections)
@@ -173,7 +173,7 @@ trait DataSetMerger extends LazyLogging {
     // Get All Unique External Resources using ResourceId as the key
     val externalResources = uds
       .filter(_.getExternalResources != null)
-      .flatMap(_.getExternalResources.getExternalResource)
+      .flatMap(_.getExternalResources.getExternalResource.asScala)
       .map(x => (x.getResourceId, x))
       .toMap
       .values
@@ -181,11 +181,12 @@ trait DataSetMerger extends LazyLogging {
     // Overwrite all External Resources
     val exs = new ExternalResources()
     ds.setExternalResources(exs)
-    ds.getExternalResources.getExternalResource.addAll(externalResources)
+    ds.getExternalResources.getExternalResource
+      .addAll(externalResources.asJavaCollection)
 
     val dss = new DataSetType.DataSets()
     ds.setDataSets(dss)
-    ds.getDataSets.getDataSet.addAll(datasets)
+    ds.getDataSets.getDataSet.addAll(datasets.asJava)
 
     ds
   }

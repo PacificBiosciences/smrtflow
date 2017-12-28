@@ -126,7 +126,6 @@ package object services {
           ctx.complete((NotFound, mapErrorToRootObject(emsg)))
         }
         .result()
-        .withFallBack(RejectionHandler.default)
 
     implicit def pacbioExceptionHandler: ExceptionHandler =
       ExceptionHandler {

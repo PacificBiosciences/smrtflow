@@ -2,11 +2,11 @@ package com.pacbio.secondary.smrtlink.analysis.tools
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Path, Paths}
+import java.util
 
 import scopt.OptionParser
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
 import com.pacbio.common.models.contracts.ResolvedToolContract
 import com.pacbio.common.models.contracts._
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
@@ -69,8 +69,8 @@ trait ExampleToolEmitToolContract {
 
   import ExampleToolsConstants._
 
-  def inputFileTypes: Seq[ToolInputFile] =
-    Seq(
+  def inputFileTypes: List[ToolInputFile] =
+    List(
       new ToolInputFile("txt",
                         FileTypes.TXT.fileTypeId,
                         "Txt File",
@@ -103,6 +103,17 @@ trait ExampleToolEmitToolContract {
       .build()
 
   def toolContractTask: ToolContractTask = {
+
+    // Translation of types to get the java API to work
+    val inputFiles: java.util.List[ToolInputFile] =
+      new util.ArrayList[ToolInputFile](inputFileTypes.asJavaCollection)
+    val outputFiles: java.util.List[ToolOutputFile] =
+      new util.ArrayList[ToolOutputFile](outputFileTypes.asJavaCollection)
+    val resources: java.util.List[CharSequence] =
+      new util.ArrayList[CharSequence]()
+    val opts: java.util.List[PacBioOptions] =
+      new util.ArrayList[PacBioOptions](util.Arrays.asList(taskOptions))
+
     ToolContractTask
       .newBuilder()
       .setIsDistributed(false)
@@ -110,11 +121,11 @@ trait ExampleToolEmitToolContract {
       .setToolContractId(TOOL_ID)
       .setName(TOOL_NAME)
       .setDescription(DESCRIPTION)
-      .setInputTypes(inputFileTypes)
-      .setOutputTypes(outputFileTypes)
+      .setInputTypes(inputFiles)
+      .setOutputTypes(outputFiles)
       .setTaskType("pbsmrtpipe.task_types.standard")
-      .setResourceTypes(Seq.empty[String])
-      .setSchemaOptions(Seq(taskOptions))
+      .setResourceTypes(resources)
+      .setSchemaOptions(opts)
       .build()
   }
 
@@ -155,10 +166,12 @@ object ExampleTool extends LazyLogging with ExampleToolEmitToolContract {
 
     // Not using this because
     val inputTxt =
-      Paths.get(rtc.getResolvedToolContract.getInputFiles.head.toString)
+      Paths.get(
+        rtc.getResolvedToolContract.getInputFiles.asScala.head.toString)
 
     val outputFasta =
-      Paths.get(rtc.getResolvedToolContract.getOutputFiles.head.toString)
+      Paths.get(
+        rtc.getResolvedToolContract.getOutputFiles.asScala.head.toString)
 
     // Is there a better way to do this in a type safe manner?
     // In local tests, this will just cast to 0 which is wrong.

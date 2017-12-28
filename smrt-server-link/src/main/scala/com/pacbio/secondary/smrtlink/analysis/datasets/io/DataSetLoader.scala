@@ -6,7 +6,6 @@ import javax.xml.bind.JAXBContext
 
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.language.postfixOps
 import scala.language.higherKinds
@@ -64,14 +63,15 @@ object DataSetLoader extends LazyLogging {
                               path: Path): ExternalResource = {
 
     if (externalResource.getFileIndices != null) {
-      val indexFiles = externalResource.getFileIndices.getFileIndex.map { x =>
-        val px = resourceToAbsolutePath(x.getResourceId, path)
-        x.setResourceId(px.toString)
-        x
-      }
+      val indexFiles =
+        externalResource.getFileIndices.getFileIndex.asScala.map { x =>
+          val px = resourceToAbsolutePath(x.getResourceId, path)
+          x.setResourceId(px.toString)
+          x
+        }
 
       val uniqueIndexFiles =
-        (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList
+        (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList.asJava
 
       val fs = new FileIndices()
       fs.getFileIndex.addAll(uniqueIndexFiles)
@@ -83,7 +83,7 @@ object DataSetLoader extends LazyLogging {
 
     rexsOpt match {
       case Some(rexs) =>
-        if (rexs.getExternalResource.nonEmpty) {
+        if (rexs.getExternalResource.asScala.nonEmpty) {
           val resolvedExs = resolveExternalResources(rexs, path)
           externalResource.setExternalResources(resolvedExs)
           rexs
@@ -101,11 +101,11 @@ object DataSetLoader extends LazyLogging {
 
     if (resources != null) {
       val exs = new ExternalResources()
-      val rx = resources.getExternalResource
+      val rx = resources.getExternalResource.asScala
         .map(x => resolveExternalResource(x, path))
         .toList
 
-      exs.getExternalResource.addAll(rx)
+      exs.getExternalResource.addAll(rx.asJava)
       exs
     } else {
       resources

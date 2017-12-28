@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
@@ -264,8 +265,8 @@ class DataSetService(dao: JobsDao)
       GetDataSetById: IdAble => Future[R],
       GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
-      ma: Marshaller[R],
-      sm: Marshaller[Seq[R]]): Route =
+      ma: ToEntityMarshaller[R],
+      sm: ToEntityMarshaller[Seq[R]]): Route =
     SmrtDirectives.extractOptionalUserRecord { user =>
       pathPrefix(shortName) {
         pathEnd {

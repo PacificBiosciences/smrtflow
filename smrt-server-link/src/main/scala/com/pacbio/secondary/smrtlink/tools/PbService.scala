@@ -2148,7 +2148,7 @@ object PbService extends LazyLogging {
         }
       }
     } finally {
-      actorSystem.shutdown()
+      actorSystem.terminate()
     }
   }
 }

@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.analysis.pipelines
 import java.nio.file.{Paths, Path}
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -115,7 +114,7 @@ trait Loader[T] {
     */
   def loadFromDir(path: Path): Seq[T] = {
     val files = FileUtils.listFiles(path.toFile, extFilter.toArray, false)
-    files.map(x => loadFrom(Paths.get(x.getAbsolutePath))).toList
+    files.asScala.map(x => loadFrom(Paths.get(x.getAbsolutePath))).toList
   }
 }
 

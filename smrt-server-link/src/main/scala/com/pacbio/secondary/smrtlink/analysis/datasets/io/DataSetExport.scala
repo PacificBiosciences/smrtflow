@@ -9,7 +9,6 @@ import java.util.zip._
 import scala.collection.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets._
@@ -76,7 +75,7 @@ trait ExportUtils {
   private def getIndices(res: IndexedDataType): Seq[InputOutputDataType] = {
     Option(res.getFileIndices)
       .map { fi =>
-        fi.getFileIndex.toSeq
+        fi.getFileIndex.asScala.toSeq
       }
       .getOrElse(Seq.empty[InputOutputDataType])
   }
@@ -84,11 +83,11 @@ trait ExportUtils {
   protected def getResources(ds: DataSetType): Seq[InputOutputDataType] = {
     Option(ds.getExternalResources)
       .map { extRes =>
-        extRes.getExternalResource.map { er =>
+        extRes.getExternalResource.asScala.map { er =>
           Seq(er) ++
             Option(er.getExternalResources)
               .map { extRes2 =>
-                extRes2.getExternalResource.map { rr =>
+                extRes2.getExternalResource.asScala.map { rr =>
                   Seq(rr) ++ getIndices(rr)
                 }.flatten
               }
@@ -114,7 +113,7 @@ abstract class ExportBase(zipPath: Path) extends ExportUtils with LazyLogging {
   /**
     * Low-level call for writing the contents of a file to an open zipfile
     * @param path  actual path to input file
-    * @param zipOutPut  path to write to the zipfile
+    * @param zipOutPath  path to write to the zipfile
     */
   protected def writeFile(path: Path, zipOutPath: String): Long = {
     val ze = new ZipEntry(zipOutPath)

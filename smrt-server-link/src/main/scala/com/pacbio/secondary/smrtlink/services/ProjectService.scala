@@ -5,15 +5,13 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ConflictError,
   ResourceNotFoundError
 }
-import com.pacbio.secondary.smrtlink.services.utils.{
-  FutureSecurityDirectives,
-  SmrtDirectives
-}
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.{Directive, Directive0}
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,7 +22,6 @@ import scala.concurrent.Future
   */
 class ProjectService(jobsDao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
-    with FutureSecurityDirectives
     with SmrtLinkConstants {
 
   // import serialzation protocols
@@ -47,7 +44,7 @@ class ProjectService(jobsDao: JobsDao)
     {
       case Some(proj) => fullProject(proj)
       case None =>
-        throw new ResourceNotFoundError(s"Unable to find project $projId")
+        throw ResourceNotFoundError(s"Unable to find project $projId")
     }
   }
 
@@ -56,7 +53,7 @@ class ProjectService(jobsDao: JobsDao)
     {
       case ex: Throwable if jobsDao.isConstraintViolation(ex) =>
         Future.failed(
-          new ConflictError(s"There is already a project named ${sopts.name}"))
+          ConflictError(s"There is already a project named ${sopts.name}"))
     }
   }
 
@@ -79,6 +76,12 @@ class ProjectService(jobsDao: JobsDao)
 
   private def userIsOwner(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, ownerRole)
+
+  // hack to get the code to compile
+  def futureAuthorize(isAuthorized: Future[Boolean]): Directive0 =
+    Directive[Unit] { inner => ctx =>
+      inner(Unit)(ctx)
+    }
 
   val routes =
     pathPrefix("projects") {

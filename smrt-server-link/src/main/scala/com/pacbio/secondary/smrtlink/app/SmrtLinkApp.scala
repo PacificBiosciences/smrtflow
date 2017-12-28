@@ -159,7 +159,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
     // Is this auto closing the datasource?
     //startUpValidation.andThen { case _ => dataSource.clo }
 
-    startUpValidation.onFailure {
+    startUpValidation.failed.foreach {
       case NonFatal(e) =>
         val emsg = s"Failed to connect or perform migration on database"
         logger.error(emsg, e)
@@ -167,10 +167,9 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
         System.exit(1)
     }
 
-    startUpValidation.onSuccess {
-      case summary: String =>
-        logger.info(summary)
-        println(summary)
+    startUpValidation.foreach { summary =>
+      logger.info(summary)
+      println(summary)
     }
 
     logger.info(Await.result(startUpValidation, Duration.Inf))
@@ -186,13 +185,12 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
         case _ => Future.successful(false)
       }
 
-    getInstallMetrics().onSuccess {
-      case installMetrics: Boolean =>
-        providers.eventManagerActor() ! EnableExternalMessages(installMetrics)
+    getInstallMetrics().foreach { installMetrics =>
+      providers.eventManagerActor() ! EnableExternalMessages(installMetrics)
     }
   }
 
-  sys.addShutdownHook(system.shutdown())
+  sys.addShutdownHook(system.terminate())
 }
 
 /**

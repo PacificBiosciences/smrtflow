@@ -1,11 +1,9 @@
 package com.pacbio.secondary.smrtlink.services
 
-import java.io.File
 import java.util.UUID
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.ActorSystem
-import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors.{
   ActorRefFactoryProvider,
   ActorSystemProvider,
@@ -29,10 +27,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbsmrtpipeJobUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
@@ -82,7 +76,7 @@ object JobResourceUtils extends LazyLogging {
   }
 
   def resolveResourceFrom(rootJobDir: Path, imageFileName: String)(
-      implicit ec: ExecutionContext) =
+      implicit ec: ExecutionContext): Future[String] =
     Future {
       JobResourceUtils
         .getJobResource(rootJobDir.toAbsolutePath.toString, imageFileName)
@@ -224,7 +218,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 
   //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up. This is terrible.
   private def resolveJobResource(fx: Future[EngineJob], id: String)(
-      implicit ec: ExecutionContext): Future[HttpEntity] = {
+      implicit ec: ExecutionContext): Future[ResponseEntity] = {
     fx.flatMap { engineJob =>
         // Any IO heavy operation within a Future needs to be
         // wrapped in an explicit blocking {} call
@@ -252,7 +246,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           }(ec)
         case None =>
           Future.failed(
-            throw new ResourceNotFoundError(
+            throw ResourceNotFoundError(
               s"Unable to find image resource '$id'"))
       }(ec)
   }
@@ -487,8 +481,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                 dao
                   .getDataStoreFileByUUID(datastoreFileUUID)
                   .map { dsf =>
-                    val httpEntity: ResponseEntity =
-                      toHttpEntity(Paths.get(dsf.path))
+                    // val httpEntity: ResponseEntity = toHttpEntity(Paths.get(dsf.path))
+
                     // The datastore needs to be updated to be written at the root of the job dir,
                     // then the paths should be relative to the root dir. This will require that the DataStoreServiceFile
                     // returns the correct absolute path
@@ -501,8 +495,9 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                                             params)
                     val customHeaders: collection.immutable.Seq[HttpHeader] =
                       collection.immutable.Seq(customHeader)
-                    HttpResponse(entity = httpEntity, headers = customHeaders)
-                  }
+                    HttpResponse(entity = HttpEntity.Empty,
+                                 headers = customHeaders)
+                  }(ec)
               }
             }
         } ~
@@ -511,7 +506,10 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             logger.info(
               s"Attempting to resolve resource $id from ${jobId.toIdString}")
             complete {
-              resolveJobResource(dao.getJobById(jobId), id)(ec)
+              resolveJobResource(dao.getJobById(jobId), id)(ec).map {
+                responseEntity: ResponseEntity =>
+                  HttpResponse(entity = responseEntity)
+              }(ec)
             }
           }
         } ~

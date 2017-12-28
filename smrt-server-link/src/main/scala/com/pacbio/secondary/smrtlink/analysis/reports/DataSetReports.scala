@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.analysis.reports
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import collection.JavaConversions._
+import collection.JavaConverters._
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.io.FileUtils
 
@@ -45,13 +45,13 @@ object DataSetReports
       val extRes = ds.getExternalResources
       if (extRes == null) false
       else {
-        (extRes.getExternalResource
+        (extRes.getExternalResource.asScala
           .filter(_ != null)
           .map { x =>
             val extRes2 = x.getExternalResources
             if (extRes2 == null) false
             else {
-              extRes2.getExternalResource
+              extRes2.getExternalResource.asScala
                 .filter(_ != null)
                 .map { x2 =>
                   x2.getMetaType == FileTypes.STS_XML.fileTypeId

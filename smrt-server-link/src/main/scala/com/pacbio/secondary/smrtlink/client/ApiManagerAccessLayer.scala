@@ -5,7 +5,8 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{Http, HttpsConnectionContext}
+import akka.http.scaladsl.Http.OutgoingConnection
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
@@ -19,10 +20,13 @@ import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Flow
+import com.typesafe.sslconfig.akka.AkkaSSLConfig
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.util.control.NonFatal
 import scala.xml._
 
 trait ApiManagerClientBase {
@@ -72,6 +76,8 @@ class ApiManagerAccessLayer(
 
   implicit val timeout: Timeout = 200.seconds
 
+  val EP_STATUS = "/publisher"
+
   // this enum isn't described in the wso2 swagger, so I'm including a
   // hand-written version here
   type ApiLifecycleAction = ApiLifecycleAction.Value
@@ -86,6 +92,20 @@ class ApiManagerAccessLayer(
     val RE_PUBLISH = Value("Re-Publish")
     val RETIRE = Value("Retire")
   }
+
+  val badSslConfig =
+    AkkaSSLConfig()
+      .mapSettings(s => s.withLoose(s.loose.withDisableSNI(true)))
+
+  val badCtx: HttpsConnectionContext =
+    Http().createClientHttpsContext(badSslConfig)
+
+  val portNumber = 9443 // Is this correct?
+
+  val adminHttp: Flow[HttpRequest, HttpResponse, Future[OutgoingConnection]] =
+    Http(actorSystem).outgoingConnectionHttps(host,
+                                              port = portNumber + portOffset,
+                                              connectionContext = badCtx)
 
 //  protected def getWso2Connection(portNumber: Int) = {
 //    IO(Http) ? Http.HostConnectorSetup(host,
@@ -103,6 +123,19 @@ class ApiManagerAccessLayer(
 //  val adminPipe: Future[SendReceive] =
 //    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT))
 //      yield sendReceive(connector)
+
+  /**
+    * If we can connect to publisher at :9443/publisher on https, then
+    * this is assumed to be "Successful" status
+    *
+    * @param numRetries Number of retries
+    * @return
+    */
+  def getStatus(numRetries: Int = 3): Future[String] = {
+    apiPipeHttp
+      .singleRequest(Get(""))
+      .map(_ => "Successfully connected to publisher")
+  }
 
   def register(): Future[ClientRegistrationResponse] = {
     val body = ClientRegistrationRequest("foo",
@@ -190,7 +223,7 @@ class ApiManagerAccessLayer(
     adminPipeHttp
       .singleRequest(request)
       .recoverWith({
-        case exc: ConnectionAttemptFailedException => {
+        case NonFatal(exc) => { // ConnectionAttemptFailedException
           if (tries > 1) {
             retry
           } else {

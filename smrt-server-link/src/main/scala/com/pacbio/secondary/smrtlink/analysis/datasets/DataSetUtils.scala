@@ -3,7 +3,7 @@ package com.pacbio.secondary.smrtlink.analysis.datasets
 import java.nio.file.Path
 
 import scala.util.{Try, Failure, Success}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -31,7 +31,7 @@ trait DataSetMetadataUtils extends LazyLogging {
   protected def getCollectionsMetadata(ds: ReadSetType): Seq[XsdMetadata] =
     Try {
       Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[XsdMetadata])
     }.toOption.getOrElse(Seq.empty[XsdMetadata])
 
@@ -50,7 +50,7 @@ trait DataSetMetadataUtils extends LazyLogging {
   private def getWellBioSamples(ws: WellSample): Seq[BioSampleType] = {
     Try {
       Option(ws.getBioSamples.getBioSample)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[BioSampleType])
     }.toOption.getOrElse(Seq.empty[BioSampleType])
   }
@@ -70,7 +70,7 @@ trait DataSetMetadataUtils extends LazyLogging {
   private def getBioSampleBarcodes(bs: BioSampleType): Seq[DNABarcode] =
     Try {
       Option(bs.getDNABarcodes.getDNABarcode)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[DNABarcode])
     }.toOption.getOrElse(Seq.empty[DNABarcode])
 
