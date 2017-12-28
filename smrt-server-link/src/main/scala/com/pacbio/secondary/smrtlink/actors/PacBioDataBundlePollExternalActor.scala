@@ -22,8 +22,9 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.Try
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 object PacBioDataBundlePollExternalActor {
   case object CheckForUpdates
