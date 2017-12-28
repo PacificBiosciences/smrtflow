@@ -16,3 +16,6 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.6")
 //addSbtPlugin("com.sksamuel.sbt-versions" % "sbt-versions" % "0.2.0")
 
 addSbtPlugin("com.lucidchart" % "sbt-scalafmt" % "1.10")
+
+// Compile errors to be colored use `set clippyColorsEnabled := true` in the sbt console to activate
+addSbtPlugin("com.softwaremill.clippy" % "plugin-sbt" % "0.5.3")
