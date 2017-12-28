@@ -282,3 +282,8 @@ lazy val smrtServerBundle =
   toPacBioProject("smrt-server-bundle")
     .dependsOn(common, smrtServerLink)
     .settings()
+
+lazy val smrtServerEve =
+  toPacBioProject("smrt-server-eve")
+    .dependsOn(common, smrtServerLink)
+    .settings()

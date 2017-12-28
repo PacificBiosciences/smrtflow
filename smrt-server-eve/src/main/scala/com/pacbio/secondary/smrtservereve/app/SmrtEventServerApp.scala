@@ -22,7 +22,12 @@ import akka.util.Timeout
 import akka.pattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.{HttpHeader, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.{
+  HttpHeader,
+  MediaTypes,
+  Multipart,
+  StatusCodes
+}
 import akka.http.scaladsl.Http
 import spray.json._
 import DefaultJsonProtocol._
@@ -36,7 +41,7 @@ import com.pacbio.secondary.smrtlink.auth.hmac.{
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
-import com.pacbio.secondary.smrtlink.services.{PacBioService}
+import com.pacbio.secondary.smrtlink.services.PacBioService
 import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
@@ -200,7 +205,7 @@ class EventService(
 
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
     case Some(value) => Future { value }
-    case _ => Future.failed(new UnprocessableEntityError(message))
+    case _ => Future.failed(UnprocessableEntityError(message))
   }
 
   def eventRoutes: Route =
@@ -221,10 +226,8 @@ class EventService(
       pathEndOrSingleSlash {
         Directives.authenticate[EveAccount] { account =>
           post {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              entity(as[MultipartFormData]) { formData =>
-                complete(StatusCodes.Created -> processUpload(formData))
-              }
+            entity(as[Multipart.FormData]) { formData =>
+              complete(StatusCodes.Created -> processUpload(formData))
             }
           }
         }
@@ -377,17 +380,20 @@ class EventService(
       fileName <- failIfNone("Unable to find filename in headers")(
         processHeaders(m.headers))
       validFileName <- onlyAllowTarGz(fileName)
+      ex <- m.entity.toStrict(5.seconds)
       file <- Future.fromTry(
         saver(resolveOutputFile(validFileName),
-              new ByteArrayInputStream(m.entity.data.toByteArray)))
+              new ByteArrayInputStream(ex.)
     } yield file
   }
 
+
   def processForm(
-      formData: MultipartFormData,
+      formData: Multipart.FormData,
       saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
-    val bodyPart: Option[BodyPart] = formData.fields.flatMap {
-      case m: BodyPart if processHeaders(m.headers).isDefined => Some(m)
+    val bodyPart: Option[Multipart.BodyPart] = formData.parts.flatMap {
+      case m: Multipart.BodyPart if processHeaders(m.headers).isDefined =>
+        Some(m)
       case _ => None
     }.lastOption
 
@@ -411,7 +417,8 @@ class EventService(
     * @param formData
     * @return
     */
-  def processUpload(formData: MultipartFormData): Future[SmrtLinkSystemEvent] = {
+  def processUpload(
+      formData: Multipart.FormData): Future[SmrtLinkSystemEvent] = {
     for {
       file <- processForm(formData, saveAttachmentByteArray)
       event <- Future { createImportEvent(file) }
