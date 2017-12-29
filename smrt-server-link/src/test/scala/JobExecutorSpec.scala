@@ -2,15 +2,14 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import spray.http.HttpHeaders.RawHeader
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors._
@@ -56,7 +55,6 @@ import slick.jdbc.PostgresProfile.api._
 class JobExecutorSpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with JobServiceConstants
     with timeUtils
     with LazyLogging

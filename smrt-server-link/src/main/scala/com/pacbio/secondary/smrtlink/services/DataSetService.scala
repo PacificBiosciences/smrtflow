@@ -41,7 +41,7 @@ import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 
-//import collection.JavaConversions._
+//
 import collection.JavaConverters._
 
 /**

@@ -6,7 +6,6 @@ import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.contracts.ContractLoaders
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetWriter
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter._
 import org.joda.time.{DateTime => JodaDateTime}

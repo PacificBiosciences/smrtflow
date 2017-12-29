@@ -19,15 +19,10 @@ import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.routing.{
-  AuthenticationFailedRejection,
-  AuthorizationFailedRejection,
-  Directives
-}
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -153,7 +148,6 @@ class RunSpec
     with RunSpecUtils
     with Directives
     with Specs2RouteTest
-    with NoTimeConversions
     with PacBioServiceErrors {
 
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
@@ -188,7 +182,7 @@ class RunSpec
   val actorRef = TestActorRef[RunServiceActor](TestProviders.runServiceActor())
   val authenticator = TestProviders.authenticator()
 
-  val routes = new RunService(actorRef, authenticator).prefixedRoutes
+  val routes = new RunService(actorRef).prefixedRoutes
 
   trait daoSetup extends Scope {
     TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()

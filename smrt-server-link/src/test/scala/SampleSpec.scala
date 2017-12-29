@@ -22,11 +22,10 @@ import com.pacbio.secondary.smrtlink.services.{SampleService, ServiceComposer}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.routing.Directives
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -36,7 +35,6 @@ class SampleSpec
     with Directives
     with Specs2RouteTest
     with LazyLogging
-    with NoTimeConversions
     with PacBioServiceErrors {
 
   // run sequentially because of shared InMemoryDAO state
@@ -84,7 +82,7 @@ class SampleSpec
   val actorRef =
     TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
   val authenticator = TestProviders.authenticator()
-  val routes = new SampleService(actorRef, authenticator).prefixedRoutes
+  val routes = new SampleService(actorRef).prefixedRoutes
 
   //
   // Create a fake DB with three pre-populated samples

@@ -1,7 +1,7 @@
 package com.pacbio.common.models
 
 import java.util.{Properties, UUID}
-import collection.JavaConversions._
+
 import collection.JavaConverters._
 
 import scala.util.Try

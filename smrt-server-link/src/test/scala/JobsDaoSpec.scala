@@ -22,6 +22,7 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import org.joda.time.{DateTime => JodaDateTime}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
   sequential

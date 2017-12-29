@@ -17,14 +17,11 @@ import com.pacbio.secondary.smrtlink.services.{
 import org.mockito.Mockito._
 import org.specs2.mock._
 import org.specs2.mutable.Specification
-
 import spray.json._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server._
-
-import spray.testkit.Specs2RouteTest
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 class DiskSpaceServiceSpec
     extends Specification

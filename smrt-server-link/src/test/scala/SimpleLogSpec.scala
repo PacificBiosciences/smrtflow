@@ -1,10 +1,9 @@
 import scala.concurrent.duration._
-import spray.http.StatusCodes
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
-import spray.testkit.Specs2RouteTest
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.models.{LogLevels, LogMessageRecord}
 import com.pacbio.secondary.smrtlink.services.{
@@ -12,10 +11,7 @@ import com.pacbio.secondary.smrtlink.services.{
   SimpleLogServiceProvider
 }
 
-class SimpleLogSpec
-    extends Specification
-    with NoTimeConversions
-    with Specs2RouteTest {
+class SimpleLogSpec extends Specification with Specs2RouteTest {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 

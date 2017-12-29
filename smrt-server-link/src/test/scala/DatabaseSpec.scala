@@ -2,6 +2,7 @@ import java.nio.file.Paths
 import java.util.UUID
 import java.sql
 
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
@@ -16,11 +17,9 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedRunStates
 }
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.meta.MTable
-import spray.testkit.Specs2RouteTest
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Await
@@ -43,7 +42,6 @@ import scala.concurrent.duration._
 class DatabaseSpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with SmrtLinkTestDalProvider
     with TestUtils {
   import PacBioDateTimeFormat.TIME_ZONE

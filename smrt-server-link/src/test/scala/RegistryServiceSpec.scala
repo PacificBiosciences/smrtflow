@@ -21,10 +21,11 @@ import com.pacbio.secondary.smrtlink.services.{
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-import spray.http.HttpHeaders.RawHeader
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.routing.Directives
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.testkit.Specs2RouteTest
+import akka.stream.ActorMaterializer
 
 import scalaj.http.{BaseHttp, HttpConstants, HttpRequest, HttpResponse}
 
@@ -77,7 +78,7 @@ class RegistryServiceSpec
       TestActorRef[RegistryServiceActor](TestProviders.registryServiceActor())
     val authenticator = TestProviders.authenticator()
 
-    val routes = new RegistryService(actorRef, authenticator).prefixedRoutes
+    val routes = new RegistryService(actorRef, materializer).prefixedRoutes
 
     TestProviders.clock().asInstanceOf[FakeClock].reset(NOW)
     TestProviders.registryDao().asInstanceOf[InMemoryRegistryDao].clear()

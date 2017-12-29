@@ -2,6 +2,14 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import akka.actor.ActorRefFactory
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.server.{
+  AuthenticationFailedRejection,
+  AuthorizationFailedRejection
+}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+
 import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{
@@ -34,16 +42,9 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
-import spray.http.StatusCodes
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing.{
-  AuthenticationFailedRejection,
-  AuthorizationFailedRejection
-}
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import org.specs2.execute.FailureException
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Await
@@ -51,7 +52,6 @@ import scala.concurrent.duration._
 
 class ProjectSpec
     extends Specification
-    with NoTimeConversions
     with Specs2RouteTest
     with SetupMockData
     with PacBioServiceErrors
@@ -257,10 +257,6 @@ class ProjectSpec
     }
 
     "fail to update a project with an unknown user role" in {
-      import spray.http.{ContentTypes, HttpEntity}
-      import ContentTypes.`application/json`
-      import org.specs2.execute.FailureException
-
       val newProjectJson =
         """
           |{
@@ -270,7 +266,8 @@ class ProjectSpec
           |  "members": [{"user": {"login": "jsnow"}, "role": "BAD_ROLE"}]
           |}
         """.stripMargin
-      val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
+      val newProjectEntity =
+        HttpEntity(ContentTypes.`application/json`, newProjectJson)
 
       try {
         Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(
@@ -285,10 +282,6 @@ class ProjectSpec
     }
 
     "fail to update a project with an unknown state" in {
-      import spray.http.{ContentTypes, HttpEntity}
-      import ContentTypes.`application/json`
-      import org.specs2.execute.FailureException
-
       val newProjectJson =
         """
           |{
@@ -298,7 +291,8 @@ class ProjectSpec
           |  "members": []
           |}
         """.stripMargin
-      val newProjectEntity = HttpEntity(`application/json`, newProjectJson)
+      val newProjectEntity =
+        HttpEntity(ContentTypes.`application/json`, newProjectJson)
 
       try {
         Put(s"/$ROOT_SA_PREFIX/projects/$newProjId", newProjectEntity) ~> addHeader(

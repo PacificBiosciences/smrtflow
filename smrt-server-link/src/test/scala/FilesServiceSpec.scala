@@ -16,9 +16,8 @@ import org.specs2.mutable.Specification
 import spray.json._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server._
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 class FilesServiceSpec
     extends Specification

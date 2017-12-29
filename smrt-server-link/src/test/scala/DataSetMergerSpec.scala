@@ -2,7 +2,6 @@ import java.nio.file.{Files, Paths, Path}
 import java.io.File
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.typesafe.scalalogging.LazyLogging
@@ -71,7 +70,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       // Not really clear what the expected behavior is here. The Schema of the HdfSubreadSet has not changed
       // but the DataSet "version" is across all schemas.
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(3)
@@ -124,7 +123,7 @@ class DataSetMergerAdvancedSpec
       println(p)
       DataSetWriter.writeSubreadSet(mergedDataSet, p)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         2)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(81354)
       mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(137)
@@ -146,7 +145,7 @@ class DataSetMergerAdvancedSpec
       mergedDataSet.getMetaType must beEqualTo(
         DataSetMetaTypes.Alignment.toString)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         3)
       //FIXME Metadata isn't being handled properly right now
       //mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(274217)

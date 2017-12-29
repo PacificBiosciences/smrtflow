@@ -4,6 +4,18 @@ import java.util.UUID
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaType.NotCompressible
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.unmarshalling.{FromRequestUnmarshaller, Unmarshaller}
 import com.pacbio.secondary.smrtlink.actors.{
   ActorRefFactoryProvider,
   ActorSystemProvider,
@@ -32,21 +44,9 @@ import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
-import akka.http.scaladsl.model.MediaType.NotCompressible
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{
-  ContentDispositionTypes,
-  `Content-Disposition`
-}
-import akka.http.scaladsl.server.directives.FileAndResourceDirectives
-import akka.http.scaladsl.settings.RoutingSettings
-import akka.http.scaladsl.unmarshalling.{FromRequestUnmarshaller, Unmarshaller}
-import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import spray.json._
 
 import scala.collection.JavaConverters._
@@ -134,7 +134,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
   def validator(opts: T, user: Option[UserRecord]): Future[T] = {
     opts.validate(dao, config) match {
       case Some(ex) =>
-        Future.failed(throw new UnprocessableEntityError(ex.msg))
+        Future.failed(UnprocessableEntityError(ex.msg))
       case _ => Future.successful(opts)
     }
   }
@@ -147,7 +147,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     */
   def terminateJob(jobId: IdAble): Future[MessageResponse] =
     Future.failed(
-      throw new MethodNotImplementedError(
+      MethodNotImplementedError(
         s"Job type ${jobTypeId.id} does NOT support termination"))
 
   /**
@@ -250,6 +250,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               s"Unable to find image resource '$id'"))
       }(ec)
   }
+
+//  private def toResponseEntity(path: Path): ResponseEntity = {
+//    ResponseEntity
+//
+//  }
 
   private def toHttpEntity(path: Path): HttpEntity = {
     logger.debug(s"Resolving path ${path.toAbsolutePath.toString}")
@@ -439,7 +444,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         path(JOB_OPTIONS) {
           get {
             complete {
-              dao.getJobById(jobId).map(_.jsonSettings)(ec)
+              dao.getJobById(jobId).map(_.jsonSettings.parseJson)(ec)
             }
           }
         } ~
@@ -515,7 +520,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         } ~
         path("children") {
           complete {
-            dao.getJobChildrenByJobId(jobId).mapTo[Seq[EngineJob]]
+            dao.getJobChildrenByJobId(jobId)
           }
         }
     }

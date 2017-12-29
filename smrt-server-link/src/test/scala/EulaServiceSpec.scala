@@ -1,7 +1,7 @@
 import org.specs2.mutable.Specification
-import spray.testkit.Specs2RouteTest
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.ActorRefFactory
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import spray.json._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
