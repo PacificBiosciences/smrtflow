@@ -80,6 +80,9 @@ class SampleSpec
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => jwtUtil)
   }
 
+  implicit val customExceptionHandler = pacbioExceptionHandler
+  implicit val customRejectionHandler = pacBioRejectionHandler
+
   val actorRef =
     TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
   val authenticator = TestProviders.authenticator()

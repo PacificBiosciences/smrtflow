@@ -179,6 +179,9 @@ class RunSpec
     })
   }
 
+  implicit val customExceptionHandler = pacbioExceptionHandler
+  implicit val customRejectionHandler = pacBioRejectionHandler
+
   val actorRef = TestActorRef[RunServiceActor](TestProviders.runServiceActor())
   val authenticator = TestProviders.authenticator()
 

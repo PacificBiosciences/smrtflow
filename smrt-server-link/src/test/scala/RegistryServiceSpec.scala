@@ -51,6 +51,9 @@ class RegistryServiceSpec
   val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
   val ADMIN_CREDENTIALS = RawHeader(JWT_HEADER, ADMIN_USER_LOGIN)
 
+  implicit val customExceptionHandler = pacbioExceptionHandler
+  implicit val customRejectionHandler = pacBioRejectionHandler
+
   trait daoSetup extends Scope {
 
     val mockHttp = mock[BaseHttp]

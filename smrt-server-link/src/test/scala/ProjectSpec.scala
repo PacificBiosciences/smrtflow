@@ -112,6 +112,9 @@ class ProjectSpec
       system)
   }
 
+  implicit val customExceptionHandler = pacbioExceptionHandler
+  implicit val customRejectionHandler = pacBioRejectionHandler
+
   override val dao: JobsDao = TestProviders.jobsDao()
   override val db: Database = dao.db
   val totalRoutes = TestProviders.routes()
