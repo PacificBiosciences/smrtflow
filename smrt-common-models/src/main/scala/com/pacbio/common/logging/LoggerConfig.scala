@@ -117,7 +117,7 @@ trait LoggerConfig {
   def setFile(file: String,
               maxFileSize: String = ROLLOVER_MAX_FILE_SIZE,
               totalSizeCap: String = ROLLOVER_MAX_TOTAL_SIZE) {
-    var absPath = Paths.get(file).toAbsolutePath.toString
+    val absPath = Paths.get(file).toAbsolutePath.toString
     this.logFile = absPath
     val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     lc.reset()
