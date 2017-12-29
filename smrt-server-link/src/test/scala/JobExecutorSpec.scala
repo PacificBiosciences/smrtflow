@@ -159,9 +159,12 @@ class JobExecutorSpec
   "Job Execution Service list" should {
 
     var newJob: Option[EngineJob] = None
+    val jwtUtilsImpl = new JwtUtilsImpl
 
     "execute mock-pbsmrtpipe job with project id 1" in {
-      val credentials = RawHeader(JWT_HEADER, "jsnow")
+      val userRecord = UserRecord("jsnow", Some("carbon/jsnow@domain.com"))
+      val credentials =
+        RawHeader(JWT_HEADER, jwtUtilsImpl.userRecordToJwt(userRecord))
       val projectRoutes = TestProviders.projectService().prefixedRoutes
       Post(s"/$ROOT_SA_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
         status.isSuccess must beTrue
