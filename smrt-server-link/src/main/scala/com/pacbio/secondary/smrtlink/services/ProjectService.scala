@@ -16,6 +16,7 @@ import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 /**
   * Accessing Projects
@@ -77,12 +78,6 @@ class ProjectService(jobsDao: JobsDao)
   private def userIsOwner(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, ownerRole)
 
-  // hack to get the code to compile
-  def futureAuthorize(isAuthorized: Future[Boolean]): Directive0 =
-    Directive[Unit] { inner => ctx =>
-      inner(Unit)(ctx)
-    }
-
   val routes =
     pathPrefix("projects") {
       pathEndOrSingleSlash {
@@ -114,7 +109,7 @@ class ProjectService(jobsDao: JobsDao)
             put {
               SmrtDirectives.extractRequiredUserRecord { user =>
                 entity(as[ProjectRequest]) { sopts =>
-                  futureAuthorize(userCanWrite(user.userId, projId)) {
+                  authorizeAsync(_ => userCanWrite(user.userId, projId)) {
                     complete {
                       validateUpdates(sopts)
                       jobsDao
@@ -128,7 +123,7 @@ class ProjectService(jobsDao: JobsDao)
             } ~
               get {
                 SmrtDirectives.extractRequiredUserRecord { user =>
-                  futureAuthorize(userCanRead(user.userId, projId)) {
+                  authorizeAsync(_ => userCanRead(user.userId, projId)) {
                     complete {
                       jobsDao
                         .getProjectById(projId)
@@ -139,7 +134,7 @@ class ProjectService(jobsDao: JobsDao)
               } ~
               delete {
                 SmrtDirectives.extractRequiredUserRecord { user =>
-                  futureAuthorize(userIsOwner(user.userId, projId)) {
+                  authorizeAsync(_ => userIsOwner(user.userId, projId)) {
                     complete {
                       jobsDao
                         .deleteProjectById(projId)
@@ -171,7 +166,7 @@ class ProjectService(jobsDao: JobsDao)
 
   def validateUpdates(updates: ProjectRequest): Unit =
     if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER)))
-      throw new ConflictError(
+      throw ConflictError(
         "Requested update would remove all project owners.")
 }
 
