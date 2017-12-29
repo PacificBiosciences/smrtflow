@@ -302,11 +302,14 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Int] {
     override val name = "GetDataStoreFileResource"
     override def runWith =
-      smrtLinkClient.getDataStoreFileResource(fileId.get, relpath.get).map {
-        a =>
+      smrtLinkClient
+        .getDataStoreFileResource(fileId.get, relpath.get)
+        .flatMap { a =>
           // 'a' is Array[Byte], all we test for is the size
-          a.entity.data.toByteArray.size
-      }
+          a.entity
+            .toStrict(5.seconds)(smrtLinkClient.materializer)
+            .map(_.data.length)
+        }
   }
 
   case object GetProjects extends VarStep[Seq[Project]] {

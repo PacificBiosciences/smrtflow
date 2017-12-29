@@ -8,7 +8,6 @@ import scala.collection._
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PacBioTestData,
