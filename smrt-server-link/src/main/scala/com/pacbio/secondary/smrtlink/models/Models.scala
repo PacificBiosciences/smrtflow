@@ -33,7 +33,17 @@ object PacBioNamespaces {
 
 }
 
-case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
+/**
+  * Core SMRT Server Error model that is returned in failed requests
+  *
+  * @param httpCode  HTTP Code
+  * @param message   detail message
+  * @param errorType Terse error message type description
+  */
+case class ThrowableResponse(httpCode: Int, message: String, errorType: String) {
+  def toLogMessage(): String =
+    s"Request rejected: $httpCode - $errorType - $message"
+}
 
 object LogLevels {
 
