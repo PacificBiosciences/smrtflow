@@ -130,7 +130,7 @@ case class LogMessageRecord(message: String,
   * User data model
   *
   * @param userId  User "Id" Example: mskinner This this user primary key that is used in the SL db.
-  * @param userEmail User email address
+  * @param userEmail User email address (This is a bit odd. The CLAIM is required, but it's optional here)
   * @param firstName User first name
   * @param lastName  User last name
   * @param roles     Roles of the specific user
