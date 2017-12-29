@@ -9,7 +9,6 @@ import akka.http.scaladsl.server.{
   AuthorizationFailedRejection
 }
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-
 import com.pacbio.secondary.smrtlink.actors.ActorSystemProvider
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{
@@ -44,6 +43,7 @@ import com.typesafe.config.Config
 import org.specs2.mutable.Specification
 import spray.json._
 import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import authentikat.jwt.JsonWebToken
 import org.specs2.execute.FailureException
 import slick.jdbc.PostgresProfile.api._
 
@@ -66,13 +66,24 @@ class ProjectSpec
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
-  val READ_USER_LOGIN = "reader"
-  val ADMIN_USER_1_LOGIN = "admin1"
-  val ADMIN_USER_2_LOGIN = "admin2"
+  val jwtUtil = new JwtUtilsImpl
+
+  def toJwtHeader(userRecord: UserRecord): RawHeader = {
+    RawHeader(JWT_HEADER, jwtUtil.userRecordToJwt(userRecord))
+  }
+
+  val READ_USER_LOGIN = UserRecord("reader", Some("carbon/reader@domain.com"))
+  val ADMIN_USER_1_LOGIN =
+    UserRecord("admin1", Some("carbon/admin1@domain.com"))
+  val ADMIN_USER_2_LOGIN =
+    UserRecord("admin2", Some("carbon/admin2@domain.com"))
+
   val INVALID_JWT = "invalid.jwt"
-  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
-  val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
-  val ADMIN_CREDENTIALS_2 = RawHeader(JWT_HEADER, ADMIN_USER_2_LOGIN)
+
+  val READ_CREDENTIALS = toJwtHeader(READ_USER_LOGIN)
+  val ADMIN_CREDENTIALS_1 = toJwtHeader(ADMIN_USER_1_LOGIN)
+  val ADMIN_CREDENTIALS_2 = toJwtHeader(ADMIN_USER_2_LOGIN)
+
   val INVALID_CREDENTIALS = RawHeader(JWT_HEADER, INVALID_JWT)
 
   object TestProviders
@@ -93,12 +104,8 @@ class ProjectSpec
       with SetBindings
       with ActorRefFactoryProvider {
 
-    // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
-      new JwtUtils {
-        override def parse(jwt: String): Option[UserRecord] =
-          if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
-    })
+    // This design is completely unnecessary.
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => jwtUtil)
 
     override val config: Singleton[Config] = Singleton(testConfig)
     override val actorRefFactory: Singleton[ActorRefFactory] = Singleton(
@@ -115,7 +122,9 @@ class ProjectSpec
     Some(ProjectState.CREATED),
     None,
     None,
-    Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
+    Some(
+      List(
+        ProjectRequestUser(ADMIN_USER_1_LOGIN.userId, ProjectUserRole.OWNER))))
   val newProject2 = ProjectRequest("TestProject2",
                                    "Test Description",
                                    Some(ProjectState.ACTIVE),
@@ -128,24 +137,28 @@ class ProjectSpec
     Some(ProjectState.ACTIVE),
     None,
     None,
-    Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER))))
+    Some(
+      List(
+        ProjectRequestUser(ADMIN_USER_1_LOGIN.userId, ProjectUserRole.OWNER))))
   val newProject4 = ProjectRequest(
     "TestProject4",
     "Test Description",
     Some(ProjectState.ACTIVE),
     Some(ProjectRequestRole.CAN_VIEW),
     None,
-    Some(List(ProjectRequestUser(ADMIN_USER_1_LOGIN, ProjectUserRole.OWNER)))
+    Some(
+      List(
+        ProjectRequestUser(ADMIN_USER_1_LOGIN.userId, ProjectUserRole.OWNER)))
   )
 
   val newUser =
-    ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_EDIT)
+    ProjectRequestUser(ADMIN_USER_2_LOGIN.userId, ProjectUserRole.CAN_EDIT)
   val newUser2 =
-    ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.CAN_VIEW)
+    ProjectRequestUser(ADMIN_USER_2_LOGIN.userId, ProjectUserRole.CAN_VIEW)
 
   var newProjId = 0
   var newProjMembers: Seq[ProjectRequestUser] =
-    List(ProjectRequestUser(ADMIN_USER_2_LOGIN, ProjectUserRole.OWNER))
+    List(ProjectRequestUser(ADMIN_USER_2_LOGIN.userId, ProjectUserRole.OWNER))
   var dsCount = 0
   var movingDsId = 0
 
@@ -157,6 +170,19 @@ class ProjectSpec
   step(runInsertAllMockData(dao))
 
   "Project list" should {
+    "Sanity Test for JWT" in {
+      val jwt = jwtUtil.userRecordToJwt(ADMIN_USER_1_LOGIN)
+      //println(s"jwt is '$jwt'")
+      val isValid: Boolean = JsonWebToken.validate(jwt, "abc")
+      isValid must beTrue
+      val parsedUserRecord = jwtUtil.parse(jwt)
+      parsedUserRecord must beSome
+    }
+    "Sanity List of projects from admin" in {
+      Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
+        status.isSuccess() must beTrue
+      }
+    }
     "reject unauthorized users" in {
       Get(s"/$ROOT_SA_PREFIX/projects") ~> addHeader(INVALID_CREDENTIALS) ~> totalRoutes ~> check {
         handled must beFalse
@@ -231,7 +257,7 @@ class ProjectSpec
         val proj = responseAs[FullProject]
         proj.id === newProjId
         proj.members.length === 1
-        proj.members.head.login === ADMIN_USER_1_LOGIN
+        proj.members.head.login === ADMIN_USER_1_LOGIN.userId
         proj.members.head.role === ProjectUserRole.OWNER
       }
     }
@@ -606,7 +632,7 @@ class ProjectSpec
         proj.id === newProjId
         proj.grantRoleToAll === Some(ProjectUserRole.CAN_VIEW)
         proj.members.length === 1
-        proj.members.head.login === ADMIN_USER_1_LOGIN
+        proj.members.head.login === ADMIN_USER_1_LOGIN.userId
         proj.members.head.role === ProjectUserRole.OWNER
       }
     }
