@@ -511,7 +511,7 @@ class ProjectSpec
     }
 
     "get projects available to user" in {
-      Get(s"/$ROOT_SA_PREFIX/user-projects/$ADMIN_USER_1_LOGIN") ~> addHeader(
+      Get(s"/$ROOT_SA_PREFIX/user-projects/${ADMIN_USER_1_LOGIN.userId}") ~> addHeader(
         ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[UserProjectResponse]]
@@ -520,7 +520,7 @@ class ProjectSpec
     }
 
     "get projects/datasets available to user" in {
-      Get(s"/$ROOT_SA_PREFIX/projects-datasets/$ADMIN_USER_1_LOGIN") ~> addHeader(
+      Get(s"/$ROOT_SA_PREFIX/projects-datasets/${ADMIN_USER_1_LOGIN.userId}") ~> addHeader(
         ADMIN_CREDENTIALS_1) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val results = responseAs[Seq[ProjectDatasetResponse]]
