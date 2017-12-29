@@ -3,22 +3,19 @@ import java.util.UUID
 import org.apache.commons.io.FileUtils
 
 import org.specs2.mutable._
-import org.specs2.specification.BeforeAfterEach
+import org.specs2.specification.BeforeAfterAll
 
 import com.pacbio.secondary.smrtlink.analysis.converters.FastaBarcodesConverter
 
-class FastaToBarcodesSpec extends Specification with BeforeAfterEach {
+class FastaToBarcodesSpec extends Specification with BeforeAfterAll {
   lazy val tmpDir: Path = Files.createTempDirectory("test-barcodes")
 
-  def before = true // placeholder
-  def after = FileUtils.deleteDirectory(tmpDir.toFile)
+  def beforeAll(): Unit = Unit // placeholder
+  def afterAll() = FileUtils.deleteDirectory(tmpDir.toFile)
 
   def generateBarcodes(fastaPath: Path): Boolean = {
     val name = UUID.randomUUID().toString
-    FastaBarcodesConverter(name, fastaPath, tmpDir, mkdir = true) match {
-      case Right(io) => true
-      case Left(err) => false
-    }
+    FastaBarcodesConverter(name, fastaPath, tmpDir, mkdir = true).isRight
   }
 
   "Generate BarcodeSet" should {
