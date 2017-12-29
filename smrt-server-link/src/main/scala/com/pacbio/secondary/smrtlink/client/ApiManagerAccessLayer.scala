@@ -2,10 +2,11 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
+import javax.net.ssl._
+import java.net.URL
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, HttpsConnectionContext}
+import akka.http.scaladsl.{Http, HttpsConnectionContext, ConnectionContext}
 import akka.http.scaladsl.Http.OutgoingConnection
 import akka.io.IO
 import akka.pattern.ask
@@ -18,6 +19,7 @@ import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
 import akka.http.scaladsl.unmarshalling._
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model._
+import akka.stream.scaladsl.{Sink, Source => AkkaSource}
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -33,7 +35,7 @@ trait ApiManagerClientBase {
   val ADMIN_PORT = 9443
   val API_PORT = 8243
 
-  implicit val sslContext = {
+  protected val trustfulSslContext = {
     // Create a trust manager that does not validate certificate chains.
     val permissiveTrustManager: TrustManager = new X509TrustManager() {
       override def checkClientTrusted(chain: Array[X509Certificate],
@@ -67,13 +69,6 @@ class ApiManagerAccessLayer(
 
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = actorSystem.dispatcher
-
-  val http = Http()
-
-  // This needs the correct HTTPS configuration
-  val apiPipeHttp = Http()
-  val adminPipeHttp = Http()
-
   implicit val timeout: Timeout = 200.seconds
 
   val EP_STATUS = "/publisher"
@@ -95,34 +90,53 @@ class ApiManagerAccessLayer(
 
   val badSslConfig =
     AkkaSSLConfig()
-      .mapSettings(s => s.withLoose(s.loose.withDisableSNI(true)))
+      .mapSettings(
+        s =>
+          s.withLoose(
+            s.loose
+              .withDisableSNI(true)
+              .withAcceptAnyCertificate(true)
+              .withDisableHostnameVerification(true)))
 
-  val badCtx: HttpsConnectionContext =
-    Http().createClientHttpsContext(badSslConfig)
+//  val badCtx: HttpsConnectionContext = ConnectionContext.https(sslContext)
+  val badCtx = Http().createClientHttpsContext(badSslConfig)
+
+  val permissiveCtx = new HttpsConnectionContext(
+    trustfulSslContext,
+    badCtx.sslConfig,
+    badCtx.enabledCipherSuites,
+    badCtx.enabledProtocols,
+    badCtx.clientAuth,
+    badCtx.sslParameters
+  )
 
   val portNumber = 9443 // Is this correct?
 
-  val adminHttp: Flow[HttpRequest, HttpResponse, Future[OutgoingConnection]] =
-    Http(actorSystem).outgoingConnectionHttps(host,
-                                              port = portNumber + portOffset,
-                                              connectionContext = badCtx)
+  protected def getWso2Connection(
+      port: Int): Flow[HttpRequest, HttpResponse, Future[OutgoingConnection]] =
+    Http(actorSystem).outgoingConnectionHttps(
+      host,
+      port = port + portOffset,
+      connectionContext = permissiveCtx)
 
-//  protected def getWso2Connection(portNumber: Int) = {
-//    IO(Http) ? Http.HostConnectorSetup(host,
-//                                       port = portNumber + portOffset,
-//                                       sslEncryption = true)
-//  }
-//
-//  // request pipeline for the API port
-//  val apiPipe: Future[SendReceive] = {
-//    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(API_PORT))
-//      yield sendReceive(connector)
-//  }
-//
-//  // request pipeline for the admin port
-//  val adminPipe: Future[SendReceive] =
-//    for (Http.HostConnectorInfo(connector, _) <- getWso2Connection(ADMIN_PORT))
-//      yield sendReceive(connector)
+  val apiPipeHttp = getWso2Connection(API_PORT)
+  val adminPipeHttp = getWso2Connection(ADMIN_PORT)
+
+  // This needs the correct HTTPS configuration
+  def apiPipe(request: HttpRequest): Future[HttpResponse] =
+    AkkaSource
+      .single(request)
+      .via(apiPipeHttp)
+      .runWith(Sink.head)
+
+  def adminPipe(request: HttpRequest): Future[HttpResponse] =
+    AkkaSource
+      .single(request)
+      .via(adminPipeHttp)
+      .runWith(Sink.head)
+
+  def toUrl(segment: String): String = segment
+  //new URL("https", host, portNumber + portOffset, segment).toString
 
   /**
     * If we can connect to publisher at :9443/publisher on https, then
@@ -132,8 +146,7 @@ class ApiManagerAccessLayer(
     * @return
     */
   def getStatus(numRetries: Int = 3): Future[String] = {
-    apiPipeHttp
-      .singleRequest(Get(""))
+    apiPipe(Get(EP_STATUS))
       .map(_ => "Successfully connected to publisher")
   }
 
@@ -146,12 +159,11 @@ class ApiManagerAccessLayer(
                                          true)
 
     val request = (
-      Post(s"/client-registration/v0.10/register", body)
+      Post(toUrl(s"/client-registration/v0.10/register"), body)
         ~> addCredentials(BasicHttpCredentials(user, password))
     )
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[ClientRegistrationResponse])
 
   }
@@ -171,10 +183,10 @@ class ApiManagerAccessLayer(
       ))
 
     val request = (
-      Post(s"/token", body)
+      Post(toUrl(s"/token"), body)
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
     )
-    apiPipeHttp.singleRequest(request).flatMap(Unmarshal(_).to[OauthToken])
+    apiPipe(request).flatMap(Unmarshal(_).to[OauthToken])
   }
 
   /**
@@ -199,10 +211,12 @@ class ApiManagerAccessLayer(
 
     for {
       //_ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
-      _ <- waitForRequest(Get("/api/am/store/v0.10/applications"),
+      _ <- waitForRequest(Get(toUrl("/api/am/store/v0.10/applications")),
                           tries,
                           delay)
-      _ <- waitForRequest(Get("/api/am/publisher/v0.10/apis"), tries, delay)
+      _ <- waitForRequest(Get(toUrl("/api/am/publisher/v0.10/apis")),
+                          tries,
+                          delay)
     } yield "Successfully Connected to WSO2"
 
   }
@@ -220,8 +234,7 @@ class ApiManagerAccessLayer(
           StatusCodes.Unauthorized,
           StatusCodes.MethodNotAllowed)
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .recoverWith({
         case NonFatal(exc) => { // ConnectionAttemptFailedException
           if (tries > 1) {
@@ -252,18 +265,17 @@ class ApiManagerAccessLayer(
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
-    adminPipeHttp.singleRequest(request)
+    adminPipe(request)
   }
 
   def getApplication(applicationId: String,
                      token: OauthToken): Future[store.models.Application] = {
     val request = (
-      Get(s"/api/am/store/v0.10/applications/${applicationId}")
+      Get(toUrl(s"/api/am/store/v0.10/applications/${applicationId}"))
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[store.models.Application])
   }
 
@@ -272,12 +284,11 @@ class ApiManagerAccessLayer(
       token: OauthToken): Future[store.models.ApplicationList] = {
 
     val request = (
-      Get(s"/api/am/store/v0.10/applications?query=${name}")
+      Get(toUrl(s"/api/am/store/v0.10/applications?query=${name}"))
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[store.models.ApplicationList])
   }
 
@@ -294,11 +305,10 @@ class ApiManagerAccessLayer(
     )
 
     val request = (
-      Post(s"/api/am/store/v0.10/subscriptions", subscription)
+      Post(toUrl(s"/api/am/store/v0.10/subscriptions"), subscription)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[store.models.Subscription])
   }
 
@@ -306,24 +316,22 @@ class ApiManagerAccessLayer(
   def searchApis(name: String,
                  token: OauthToken): Future[publisher.models.APIList] = {
     val request = (
-      Get(s"/api/am/publisher/v0.10/apis?query=${name}")
+      Get(toUrl(s"/api/am/publisher/v0.10/apis?query=${name}"))
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[publisher.models.APIList])
   }
 
   def getApiDetails(id: String,
                     token: OauthToken): Future[publisher.models.API] = {
     val request = (
-      Get(s"/api/am/publisher/v0.10/apis/${id}")
+      Get(toUrl(s"/api/am/publisher/v0.10/apis/${id}"))
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
@@ -333,19 +341,17 @@ class ApiManagerAccessLayer(
       Put(s"/api/am/publisher/v0.10/apis/${api.id.get}", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
   def postApiDetails(api: publisher.models.API,
                      token: OauthToken): Future[publisher.models.API] = {
     val request = (
-      Post(s"/api/am/publisher/v0.10/apis", api)
+      Post(toUrl(s"/api/am/publisher/v0.10/apis"), api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[publisher.models.API])
   }
 
@@ -353,16 +359,17 @@ class ApiManagerAccessLayer(
                          action: ApiLifecycleAction,
                          token: OauthToken): Future[HttpResponse] = {
     val request = (
-      Post(
-        s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}")
+      Post(toUrl(
+        s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}"))
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
-    adminPipeHttp.singleRequest(request)
+    adminPipe(request)
   }
 
   // User Store admin API
   val userStoreUrl =
-    "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
+    toUrl(
+      "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint")
 
   def soapCall(action: String,
                content: Elem,
@@ -379,8 +386,7 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(user, password))
         ~> addHeader("SOAPAction", action)
     )
-    adminPipeHttp
-      .singleRequest(request)
+    adminPipe(request)
       .flatMap(Unmarshal(_).to[NodeSeq])
   }
 
