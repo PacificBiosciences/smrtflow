@@ -6,6 +6,7 @@ import com.pacbio.secondary.smrtlink.app.{
 }
 import org.specs2.mutable.Specification
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.Specs2RouteTest
 
 /**
@@ -20,24 +21,26 @@ class SmrtLinkAnalysisSanitySpec extends Specification with Specs2RouteTest {
   object TestProviders extends BaseServer with SmrtLinkApi {
     override val host = providers.serverHost()
     override val port = providers.serverPort()
+
+    val totalRoutes = providers.routes
+    val eventManagerActor = providers.eventManagerActor()
+    val engineManagerActor = providers.engineManagerActor()
   }
 
-  val totalRoutes = TestProviders.providers.routes
-  val eventManagerActor = TestProviders.providers.eventManagerActor()
-  val engineManagerActor = TestProviders.providers.engineManagerActor()
+  lazy val totalRoutes: Route = TestProviders.totalRoutes
 
   "Service list" should {
-    "return a list of services" in {
-      Get("/services/manifests") ~> totalRoutes ~> check {
-        status.isSuccess must beTrue
-      }
-    }
     "Uptime should be >0" in {
       Get("/status") ~> totalRoutes ~> check {
         val status = responseAs[ServiceStatus]
         // Uptime is in sec, not millisec
         // this is the best we can do
         status.uptime must be_>=(0L)
+      }
+    }
+    "return a list of services" in {
+      Get("/services/manifests") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
       }
     }
   }
