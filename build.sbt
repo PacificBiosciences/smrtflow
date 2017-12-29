@@ -95,7 +95,7 @@ lazy val baseSettings = Seq(
 //  "com.github.fge" % "json-schema-validator" % "2.2.5", // this should probably be removed. It's only used in the "Visible" for testing
   "com.google.guava" % "guava" % "23.5-jre", // this is only added for the VisibleForTesting annotation. We should consider removing this
   "com.github.nscala-time" %% "nscala-time" % "2.18.0",
-  "com.github.scopt" %% "scopt" % "3.7.0",
+  "com.github.scopt" %% "scopt" % "3.5.0", // Explicitly use this version to be bin compat with ammonite
   "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.3.0",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.5",
@@ -127,8 +127,9 @@ lazy val baseSettings = Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" %% "scalaz-core" % "7.2.17", // We should get rid of this in favor of cats
-//  "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test,it",
-  "org.specs2" %% "specs2-core" % "4.0.1" % "test,it", // this is the new group for specs2
+  "org.specs2" %% "specs2-core" % "4.0.2" % "test,it", // this is the new group for specs2
+  "org.specs2" %% "specs2-mock" % "4.0.2" % "test,it",
+  "org.specs2" %% "specs2-junit" % "4.0.2" % "test,it",
   "org.postgresql" % "postgresql" % "42.1.4",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
