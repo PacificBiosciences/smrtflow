@@ -48,16 +48,23 @@ class SampleSpec
   // Setup TestProvider to compose our actors with an InMemory DAO
   //
 
+  val jwtUtil = new JwtUtilsImpl
+
+  def toUserRecord(user: String): UserRecord =
+    UserRecord(user, Some(s"carbon/$user@domain.com"))
+
   val SAMPLE1_UUID = UUID.randomUUID()
   val SAMPLE2_UUID = UUID.randomUUID()
   val SAMPLE3_UUID = UUID.randomUUID()
-  val READ_USER_LOGIN = "reader"
-  val ADMIN_USER_1_LOGIN = "admin1"
-  val ADMIN_USER_2_LOGIN = "admin2"
-  val INVALID_JWT = "invalid.jwt"
+  val READ_USER_LOGIN = toUserRecord("reader")
+  val ADMIN_USER_1_LOGIN = toUserRecord("admin1")
+  val ADMIN_USER_2_LOGIN = toUserRecord("admin2")
+
   val FAKE_SAMPLE = "{Chemistry:S1, InputConcentration:23.1}"
-  val READ_CREDENTIALS = RawHeader(JWT_HEADER, READ_USER_LOGIN)
-  val ADMIN_CREDENTIALS_1 = RawHeader(JWT_HEADER, ADMIN_USER_1_LOGIN)
+  val READ_CREDENTIALS =
+    RawHeader(JWT_HEADER, jwtUtil.userRecordToJwt(READ_USER_LOGIN))
+  val ADMIN_CREDENTIALS_1 =
+    RawHeader(JWT_HEADER, jwtUtil.userRecordToJwt(ADMIN_USER_1_LOGIN))
 
   val SAMPLE_PATH = "/smrt-link/samples"
   var SAMPLE_PATH_SLASH = SAMPLE_PATH + "/"
@@ -70,13 +77,7 @@ class SampleSpec
       with JwtUtilsProvider
       with FakeClockProvider {
 
-    // Provide a fake JwtUtils that uses the login as the JWT, and validates every JWT except for invalidJwt.
-
-    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
-      new JwtUtils {
-        override def parse(jwt: String): Option[UserRecord] =
-          if (jwt == INVALID_JWT) None else Some(UserRecord(jwt))
-    })
+    override final val jwtUtils: Singleton[JwtUtils] = Singleton(() => jwtUtil)
   }
 
   val actorRef =
@@ -95,13 +96,13 @@ class SampleSpec
 
     val fx = for {
       _ <- sampleDao.createSample(
-        ADMIN_USER_1_LOGIN,
+        ADMIN_USER_1_LOGIN.userId,
         SampleCreate(FAKE_SAMPLE, SAMPLE1_UUID, "Sample One"))
       _ <- sampleDao.createSample(
-        ADMIN_USER_2_LOGIN,
+        ADMIN_USER_2_LOGIN.userId,
         SampleCreate(FAKE_SAMPLE, SAMPLE2_UUID, "Sample Two"))
       _ <- sampleDao.createSample(
-        ADMIN_USER_2_LOGIN,
+        ADMIN_USER_2_LOGIN.userId,
         SampleCreate(FAKE_SAMPLE, SAMPLE3_UUID, "Sample Three"))
     } yield "Completed inserting Test Samples"
 
@@ -114,9 +115,10 @@ class SampleSpec
         status.isSuccess must beTrue
         val samples = responseAs[Set[Sample]]
         samples.size === 3
-        samples.map(_.createdBy) === Set(ADMIN_USER_1_LOGIN,
-                                         ADMIN_USER_2_LOGIN,
-                                         ADMIN_USER_2_LOGIN)
+        samples.map(_.createdBy) === Seq(
+          ADMIN_USER_1_LOGIN,
+          ADMIN_USER_2_LOGIN,
+          ADMIN_USER_2_LOGIN).map(_.userId).toSet
       }
     }
 
@@ -184,7 +186,7 @@ class SampleSpec
       Post(SAMPLE_PATH, newSample) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         val sample = responseAs[Sample]
         sample.name === "Created Sample"
-        sample.createdBy === ADMIN_USER_1_LOGIN
+        sample.createdBy === ADMIN_USER_1_LOGIN.userId
       }
     }
   }
