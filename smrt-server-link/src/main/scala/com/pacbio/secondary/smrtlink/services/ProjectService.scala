@@ -78,6 +78,15 @@ class ProjectService(jobsDao: JobsDao)
   private def userIsOwner(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, ownerRole)
 
+  def validateProjectUpdates(updates: ProjectRequest): Future[ProjectRequest] = {
+    if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER))) {
+      Future.failed(
+        ConflictError("Requested update would remove all project owners."))
+    } else {
+      Future.successful(updates)
+    }
+  }
+
   val routes =
     pathPrefix("projects") {
       pathEndOrSingleSlash {
@@ -85,12 +94,13 @@ class ProjectService(jobsDao: JobsDao)
           SmrtDirectives.extractRequiredUserRecord { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
-                validateUpdates(sopts) // MK. This looks incorrect. It should be folded into the Future construction
                 StatusCodes.Created -> {
-                  jobsDao
-                    .createProject(sopts)
-                    .flatMap(fullProject)
-                    .recoverWith(translateConflict(sopts))
+                  validateProjectUpdates(sopts).flatMap { validProjectUpdate =>
+                    jobsDao
+                      .createProject(validProjectUpdate)
+                      .flatMap(fullProject)
+                      .recoverWith(translateConflict(sopts))
+                  }
                 }
               }
             }
@@ -111,11 +121,13 @@ class ProjectService(jobsDao: JobsDao)
                 entity(as[ProjectRequest]) { sopts =>
                   authorizeAsync(_ => userCanWrite(user.userId, projId)) {
                     complete {
-                      validateUpdates(sopts)
-                      jobsDao
-                        .updateProject(projId, sopts)
-                        .flatMap(maybeFullProject(projId))
-                        .recoverWith(translateConflict(sopts))
+                      validateProjectUpdates(sopts).flatMap {
+                        validProjectUpdate =>
+                          jobsDao
+                            .updateProject(projId, sopts)
+                            .flatMap(maybeFullProject(projId))
+                            .recoverWith(translateConflict(sopts))
+                      }
                     }
                   }
                 }
@@ -163,11 +175,6 @@ class ProjectService(jobsDao: JobsDao)
           }
         }
       }
-
-  def validateUpdates(updates: ProjectRequest): Unit =
-    if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER)))
-      throw ConflictError(
-        "Requested update would remove all project owners.")
 }
 
 trait ProjectServiceProvider { this: JobsDaoProvider with ServiceComposer =>
