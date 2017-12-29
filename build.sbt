@@ -92,7 +92,6 @@ lazy val baseSettings = Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV % "test",
   "com.enragedginger" %% "akka-quartz-scheduler" % "1.6.0-akka-2.4.x",
   "com.github.samtools" % "htsjdk" % "1.129",
-//  "com.github.fge" % "json-schema-validator" % "2.2.5", // this should probably be removed. It's only used in the "Visible" for testing
   "com.google.guava" % "guava" % "23.5-jre", // this is only added for the VisibleForTesting annotation. We should consider removing this
   "com.github.nscala-time" %% "nscala-time" % "2.18.0",
   "com.github.scopt" %% "scopt" % "3.5.0", // Explicitly use this version to be bin compat with ammonite
@@ -114,7 +113,7 @@ lazy val baseSettings = Seq(
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-compress" % "1.13",
   "io.spray" %% "spray-json" % "1.3.2",
-  "com.github.fommil" %% "spray-json-shapeless" % "1.4.0", // Is this necessary?
+  "com.github.fommil" %% "spray-json-shapeless" % "1.4.0", // Is this still necessary for 2.12?
   "joda-time" % "joda-time" % "2.9.9",
   "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
   "org.apache.avro" % "avro" % "1.8.0",
@@ -129,6 +128,7 @@ lazy val baseSettings = Seq(
   "org.scalaz" %% "scalaz-core" % "7.2.17", // We should get rid of this in favor of cats
   "org.specs2" %% "specs2-core" % "4.0.2" % "test,it", // this is the new group for specs2
   "org.specs2" %% "specs2-mock" % "4.0.2" % "test,it",
+  "com.novocode" % "junit-interface" % "0.11" % "test,it",
   "org.specs2" %% "specs2-junit" % "4.0.2" % "test,it",
   "org.postgresql" % "postgresql" % "42.1.4",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
