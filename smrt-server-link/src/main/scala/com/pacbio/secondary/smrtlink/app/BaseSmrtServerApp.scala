@@ -117,6 +117,7 @@ trait BaseApi {
   def shutdown(): Unit = ()
 
   implicit lazy val system = providers.actorSystem()
+  implicit lazy val materializer = ActorMaterializer()(system)
   lazy val routes: Route = providers.routes()
 
   // This is needed with Mixin routes from traits that only extend HttpService
@@ -128,7 +129,6 @@ trait BaseApi {
 trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
-  implicit val materializer = ActorMaterializer()(system)
 
   val host: String
   val port: Int
