@@ -126,7 +126,8 @@ trait BaseApi {
   sys.addShutdownHook(system.terminate())
 }
 
-trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
+trait BaseServer extends LazyLogging with OSUtils with PacBioServiceErrors {
+  this: BaseApi =>
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -134,7 +135,8 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
   val port: Int
 
   def start = {
-    logger.info(s"Starting App using smrtflow ${Constants.SMRTFLOW_VERSION}")
+    logger.info(
+      s"Starting App using smrtflow ${Constants.SMRTFLOW_VERSION} on $host:$port")
     logger.info(s"Running on OS ${getOsVersion()}")
     logger.info(
       s"Number of Available Processors ${Runtime.getRuntime().availableProcessors()}")
@@ -143,6 +145,9 @@ trait BaseServer extends LazyLogging with OSUtils { this: BaseApi =>
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean
     val arguments = runtimeMxBean.getInputArguments
     logger.info("Java Args: " + arguments.asScala.mkString(" "))
+
+    implicit val customExceptionHandler = pacbioExceptionHandler
+    implicit val customRejectionHandler = pacBioRejectionHandler
 
     val startF = Http().bindAndHandle(routes, host, port)
 
