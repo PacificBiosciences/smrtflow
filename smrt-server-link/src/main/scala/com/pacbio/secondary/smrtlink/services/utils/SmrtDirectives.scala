@@ -2,7 +2,10 @@ package com.pacbio.secondary.smrtlink.services.utils
 
 import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.headers.HttpChallenge
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsMissing
+import akka.http.scaladsl.server.AuthenticationFailedRejection.{
+  CredentialsMissing,
+  CredentialsRejected
+}
 import akka.http.scaladsl.server.{
   AuthenticationFailedRejection,
   Directive,
@@ -33,8 +36,14 @@ object SmrtDirectives {
       parseFromHeaders(ctx.request.headers) match {
         case Some(userRecord) => inner(Tuple1(userRecord))(ctx)
         case _ =>
+          val cause = ctx.request.headers.find(_.is(JWT_HEADER)) match {
+            case Some(_) =>
+              // This should distinguish between rejected and invalid format
+              CredentialsRejected
+            case _ => CredentialsMissing
+          }
           ctx.reject(
-            AuthenticationFailedRejection(CredentialsMissing,
+            AuthenticationFailedRejection(cause,
                                           HttpChallenge("http", realm = None)))
       }
     }
