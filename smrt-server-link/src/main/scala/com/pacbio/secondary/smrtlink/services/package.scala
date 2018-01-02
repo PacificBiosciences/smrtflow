@@ -10,6 +10,7 @@ import akka.http.scaladsl.marshalling._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{
   HttpOrigin,
+  HttpOriginRange,
   `Access-Control-Allow-Origin`
 }
 import akka.http.scaladsl.server._
@@ -18,6 +19,7 @@ import Directives._
 import akka.http.scaladsl.server.directives.{DebuggingDirectives, LogEntry}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import spray.json._
 
@@ -161,7 +163,10 @@ package object services {
     val manifest: PacBioComponentManifest
     def routes: Route
 
-    def prefixedRoutes = cors() { routes }
+    // This is where this should be customized
+    val corsSettings = CorsSettings.defaultSettings
+
+    def prefixedRoutes = cors(corsSettings) { routes }
   }
 
   trait ServiceIdUtils {
