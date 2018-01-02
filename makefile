@@ -79,7 +79,7 @@ start-smrt-server-link-jar:
 
 test: validate-pacbio-manifests
 	sbt scalafmt::test
-	sbt -batch "test-only -- junitxml html console"
+	sbt -batch "testOnly -- junitxml console"
 
 test-int-clean: db-reset-prod
 	rm -rf jobs-root

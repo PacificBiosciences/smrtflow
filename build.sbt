@@ -65,6 +65,8 @@ val sprayV = "1.3.3"
 
 val slickV = "3.2.1"
 
+val specs2V = "4.0.2"
+
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
 scalafmtOnCompile in ThisBuild := true // all projects
@@ -126,10 +128,11 @@ lazy val baseSettings = Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" %% "scalaz-core" % "7.2.17", // We should get rid of this in favor of cats
-  "org.specs2" %% "specs2-core" % "4.0.2" % "test,it", // this is the new group for specs2
-  "org.specs2" %% "specs2-mock" % "4.0.2" % "test,it",
+  "org.specs2" %% "specs2-core" % specs2V % "test,it", // this is the new group for specs2
+  "org.specs2" %% "specs2-mock" % specs2V % "test,it",
   "com.novocode" % "junit-interface" % "0.11" % "test,it",
-  "org.specs2" %% "specs2-junit" % "4.0.2" % "test,it",
+  "org.specs2" %% "specs2-junit" % specs2V % "test,it",
+  "org.specs2" %% "specs2-html" % specs2V % "test,it",
   "org.postgresql" % "postgresql" % "42.1.4",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
