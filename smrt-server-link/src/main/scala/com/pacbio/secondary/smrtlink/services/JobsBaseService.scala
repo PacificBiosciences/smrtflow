@@ -31,6 +31,7 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
 }
 import com.pacbio.common.models.CommonModelImplicits
 import CommonModelImplicits._
+import akka.stream.scaladsl.FileIO
 import com.pacbio.common.models.CommonModelSpraySupport
 import com.pacbio.common.models.CommonModelSpraySupport.IdAbleMatcher
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -74,15 +75,6 @@ object JobResourceUtils extends LazyLogging {
       case _ => None
     }
   }
-
-  def resolveResourceFrom(rootJobDir: Path, imageFileName: String)(
-      implicit ec: ExecutionContext): Future[String] =
-    Future {
-      JobResourceUtils
-        .getJobResource(rootJobDir.toAbsolutePath.toString, imageFileName)
-        .getOrElse(
-          s"Failed to find resource '$imageFileName' from $rootJobDir")
-    }(ec)
 }
 
 trait JobServiceRoutes {
@@ -251,20 +243,21 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       }(ec)
   }
 
-//  private def toResponseEntity(path: Path): ResponseEntity = {
-//    ResponseEntity
-//
-//  }
+  def downloadFile(path: Path,
+                   customFileName: String,
+                   chunkSize: Int = 8192): HttpResponse = {
+    val params: Map[String, String] = Map("filename" -> customFileName)
+    val customHeader: HttpHeader =
+      `Content-Disposition`(ContentDispositionTypes.attachment, params)
+    val customHeaders: collection.immutable.Seq[HttpHeader] =
+      collection.immutable.Seq(customHeader)
 
-  private def toHttpEntity(path: Path): HttpEntity = {
-    logger.debug(s"Resolving path ${path.toAbsolutePath.toString}")
-    if (Files.exists(path)) {
-      HttpEntity.fromPath(resolveContentType(path), path)
-    } else {
-      logger.error(s"Failed to resolve ${path.toAbsolutePath.toString}")
-      throw ResourceNotFoundError(
-        s"Failed to find ${path.toAbsolutePath.toString}")
-    }
+    val f = path.toFile
+    val responseEntity = HttpEntity(
+      MediaTypes.`application/octet-stream`,
+      f.length,
+      FileIO.fromPath(path, chunkSize = chunkSize))
+    HttpResponse(entity = responseEntity, headers = customHeaders)
   }
 
   // Means a project wasn't provided
@@ -486,22 +479,9 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                 dao
                   .getDataStoreFileByUUID(datastoreFileUUID)
                   .map { dsf =>
-                    // val httpEntity: ResponseEntity = toHttpEntity(Paths.get(dsf.path))
-
-                    // The datastore needs to be updated to be written at the root of the job dir,
-                    // then the paths should be relative to the root dir. This will require that the DataStoreServiceFile
-                    // returns the correct absolute path
                     val fn =
                       s"job-${jobId.toIdString}-${dsf.uuid.toString}-${Paths.get(dsf.path).toAbsolutePath.getFileName}"
-                    // Using headers= instead of respondWithHeader because need to set the name file file
-                    val params: Map[String, String] = Map("filename" -> fn)
-                    val customHeader: HttpHeader =
-                      `Content-Disposition`(ContentDispositionTypes.attachment,
-                                            params)
-                    val customHeaders: collection.immutable.Seq[HttpHeader] =
-                      collection.immutable.Seq(customHeader)
-                    HttpResponse(entity = HttpEntity.Empty,
-                                 headers = customHeaders)
+                    downloadFile(Paths.get(dsf.path), fn)
                   }(ec)
               }
             }
