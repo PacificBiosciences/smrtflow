@@ -82,10 +82,42 @@ trait JobServiceRoutes {
   def routes: Route
 }
 
+trait DownloadFileUtils {
+
+  def failIfNotFound(path: Path)(implicit ec: ExecutionContext): Future[Path] = {
+    if (path.toFile.exists()) Future.successful(path)
+    else Future.failed(ResourceNotFoundError(s"File $path is not found"))
+  }
+
+  def downloadFile(path: Path,
+                   customFileName: String,
+                   chunkSize: Int = 8192): HttpResponse = {
+
+    //FIXME. this will yield an illegal argument exception, it should be a NotFound
+    require(path.toFile.exists(), s"File does not exist $path")
+
+    val params: Map[String, String] = Map("filename" -> customFileName)
+    val customHeader: HttpHeader =
+      `Content-Disposition`(ContentDispositionTypes.attachment, params)
+    val customHeaders: collection.immutable.Seq[HttpHeader] =
+      collection.immutable.Seq(customHeader)
+
+    val f = path.toFile
+    println(s"Downloading file (size:${f.length()} file:$f ")
+
+    val responseEntity = HttpEntity(
+      MediaTypes.`application/octet-stream`,
+      f.length,
+      FileIO.fromPath(path, chunkSize = chunkSize))
+    HttpResponse(entity = responseEntity, headers = customHeaders)
+  }
+}
+
 trait CommonJobsRoutes[T <: ServiceJobOptions]
     extends SmrtLinkBaseMicroService
     with JobServiceConstants
-    with JobServiceRoutes {
+    with JobServiceRoutes
+    with DownloadFileUtils {
   val dao: JobsDao
   val config: SystemJobConfig
 
@@ -209,6 +241,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
   }
 
   //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up. This is terrible.
+  // Is this only for resolving images?
   private def resolveJobResource(fx: Future[EngineJob], id: String)(
       implicit ec: ExecutionContext): Future[ResponseEntity] = {
     fx.flatMap { engineJob =>
@@ -241,23 +274,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             throw ResourceNotFoundError(
               s"Unable to find image resource '$id'"))
       }(ec)
-  }
-
-  def downloadFile(path: Path,
-                   customFileName: String,
-                   chunkSize: Int = 8192): HttpResponse = {
-    val params: Map[String, String] = Map("filename" -> customFileName)
-    val customHeader: HttpHeader =
-      `Content-Disposition`(ContentDispositionTypes.attachment, params)
-    val customHeaders: collection.immutable.Seq[HttpHeader] =
-      collection.immutable.Seq(customHeader)
-
-    val f = path.toFile
-    val responseEntity = HttpEntity(
-      MediaTypes.`application/octet-stream`,
-      f.length,
-      FileIO.fromPath(path, chunkSize = chunkSize))
-    HttpResponse(entity = responseEntity, headers = customHeaders)
   }
 
   // Means a project wasn't provided
@@ -921,7 +937,8 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     extends PacBioService
     with JobServiceConstants
     with FileAndResourceDirectives
-    with LazyLogging {
+    with LazyLogging
+    with DownloadFileUtils {
 
   import SmrtLinkJsonProtocols._
 
@@ -980,17 +997,11 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
       } ~
         path("download") {
           get {
-            onSuccess(dao.getDataStoreFileByUUID(dsFileUUID)) { file =>
-              val fn =
-                s"job-${file.jobId}-${file.uuid.toString}-${Paths.get(file.path).toAbsolutePath.getFileName}"
-
-              val params: Map[String, String] = Map("filename" -> fn)
-              val customHeader: HttpHeader =
-                `Content-Disposition`(ContentDispositionTypes.attachment,
-                                      params)
-
-              respondWithHeader(customHeader) {
-                getFromFile(file.path)
+            complete {
+              dao.getDataStoreFileByUUID(dsFileUUID).map { f =>
+                val fn =
+                  s"job-${f.jobId}-${f.uuid.toString}-${Paths.get(f.path).toAbsolutePath.getFileName}"
+                downloadFile(Paths.get(f.path), fn)
               }
             }
           }
