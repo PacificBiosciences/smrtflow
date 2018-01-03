@@ -258,7 +258,7 @@ def _publish_to(bundle_tgz, publish_dir):
 
 
 def _get_smrtflow_version(root_dir):
-    p = os.path.join(root_dir, 'smrt-common-models/target/scala-2.11/resource_managed/main/pacbio-manifest.json')
+    p = os.path.join(root_dir, 'smrt-common-models/target/scala-2.12/resource_managed/main/pacbio-manifest.json')
     return load_pacbio_versions(p)
 
 
