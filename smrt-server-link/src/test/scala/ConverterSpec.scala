@@ -4,7 +4,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 /**
@@ -29,7 +28,7 @@ class ConverterSpec extends Specification with LazyLogging {
       val x = convertMovieMetaDataToSubread(path)
       x.isRight must beTrue
       val xs =
-        x.right.get.getExternalResources.getExternalResource.toList.length
+        x.right.get.getExternalResources.getExternalResource.asScala.toList.length
       xs mustEqual 3
     }
   }

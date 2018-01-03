@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.pipelines
 
 import java.nio.file.{Paths, Path}
-import collection.JavaConversions._
+
 import collection.JavaConverters._
 
 import com.typesafe.scalalogging.LazyLogging

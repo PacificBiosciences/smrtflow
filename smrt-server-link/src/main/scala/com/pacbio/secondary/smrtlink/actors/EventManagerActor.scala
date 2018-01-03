@@ -4,12 +4,13 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.actor.Status.Success
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
 import spray.json._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._
@@ -99,19 +100,7 @@ class EventManagerActor(smrtLinkId: UUID,
   private def upload(c: EventServerClient,
                      tgz: Path): Future[SmrtLinkSystemEvent] = {
     logger.info(s"Client ${c.toUploadUrl} Attempting to upload $tgz")
-
-    val f = c.upload(tgz)
-
-    f.onSuccess {
-      case e: SmrtLinkSystemEvent =>
-        logger.info(s"Upload successful. Event $e")
-    }
-    f.onFailure {
-      case NonFatal(e) =>
-        logger.error(s"Failed to upload $tgz Error ${e.getMessage}")
-    }
-
-    f
+    c.upload(tgz)
   }
 
   override def receive: Receive = {
@@ -120,7 +109,9 @@ class EventManagerActor(smrtLinkId: UUID,
       checkExternalServerStatus()
 
     case EnableExternalMessages(enable) =>
+      // Unless the system is Configured with a Eve URL, this has no impact
       enableExternalMessages = enable
+      sender ! s"Enabled External Messages to $externalEveUrl"
 
     case CreateEvent(e) =>
       if (enableExternalMessages) {

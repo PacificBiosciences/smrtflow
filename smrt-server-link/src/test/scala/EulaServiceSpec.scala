@@ -1,7 +1,7 @@
 import org.specs2.mutable.Specification
-import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.ActorRefFactory
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import spray.json._
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
@@ -51,12 +51,11 @@ class EulaServiceSpec
     this: JobsDaoProvider
       with SmrtLinkTestDalProvider
       with SmrtLinkConfigProvider
-      with AuthenticatorProvider
       with ServiceComposer =>
 
     val eulaService: Singleton[EulaService] =
       Singleton { () =>
-        new EulaService(Some(testSmrtLinkVersion), jobsDao(), authenticator())
+        new EulaService(Some(testSmrtLinkVersion), jobsDao())
       }
 
     addService(eulaService)

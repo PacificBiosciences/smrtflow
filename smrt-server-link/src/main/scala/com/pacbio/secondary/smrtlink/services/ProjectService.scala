@@ -1,30 +1,28 @@
 package com.pacbio.secondary.smrtlink.services
 
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ConflictError,
   ResourceNotFoundError
 }
-import com.pacbio.secondary.smrtlink.services.utils.FutureSecurityDirectives
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.{Directive, Directive0}
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 /**
   * Accessing Projects
   */
-class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
+class ProjectService(jobsDao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
-    with FutureSecurityDirectives
     with SmrtLinkConstants {
 
   // import serialzation protocols
@@ -47,7 +45,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     {
       case Some(proj) => fullProject(proj)
       case None =>
-        throw new ResourceNotFoundError(s"Unable to find project $projId")
+        throw ResourceNotFoundError(s"Unable to find project $projId")
     }
   }
 
@@ -56,7 +54,7 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     {
       case ex: Throwable if jobsDao.isConstraintViolation(ex) =>
         Future.failed(
-          new ConflictError(s"There is already a project named ${sopts.name}"))
+          ConflictError(s"There is already a project named ${sopts.name}"))
     }
   }
 
@@ -71,39 +69,47 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
   private val ownerRole: Set[ProjectUserRole.ProjectUserRole] =
     Set(ProjectUserRole.OWNER)
 
-  private def userCanRead(login: String, projectId: Int) =
+  private def userCanRead(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, readRoles)
 
-  private def userCanWrite(login: String, projectId: Int) =
+  private def userCanWrite(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, writeRoles)
 
-  private def userIsOwner(login: String, projectId: Int) =
+  private def userIsOwner(login: String, projectId: Int): Future[Boolean] =
     jobsDao.userHasProjectRole(login, projectId, ownerRole)
+
+  def validateProjectUpdates(updates: ProjectRequest): Future[ProjectRequest] = {
+    if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER))) {
+      Future.failed(
+        ConflictError("Requested update would remove all project owners."))
+    } else {
+      Future.successful(updates)
+    }
+  }
 
   val routes =
     pathPrefix("projects") {
       pathEndOrSingleSlash {
         post {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             entity(as[ProjectRequest]) { sopts =>
               complete {
-                validateUpdates(sopts)
-                created {
-                  jobsDao
-                    .createProject(sopts)
-                    .flatMap(fullProject)
-                    .recoverWith(translateConflict(sopts))
+                StatusCodes.Created -> {
+                  validateProjectUpdates(sopts).flatMap { validProjectUpdate =>
+                    jobsDao
+                      .createProject(validProjectUpdate)
+                      .flatMap(fullProject)
+                      .recoverWith(translateConflict(sopts))
+                  }
                 }
               }
             }
           }
         } ~
           get {
-            authenticate(authenticator.wso2Auth) { user =>
+            SmrtDirectives.extractRequiredUserRecord { user =>
               complete {
-                ok {
-                  jobsDao.getUserProjects(user.userId).map(_.map(_.project))
-                }
+                jobsDao.getUserProjects(user.userId).map(_.map(_.project))
               }
             }
           }
@@ -111,16 +117,16 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
         pathPrefix(IntNumber) { projId =>
           pathEndOrSingleSlash {
             put {
-              authenticate(authenticator.wso2Auth) { user =>
+              SmrtDirectives.extractRequiredUserRecord { user =>
                 entity(as[ProjectRequest]) { sopts =>
-                  futureAuthorize(userCanWrite(user.userId, projId)) {
+                  authorizeAsync(_ => userCanWrite(user.userId, projId)) {
                     complete {
-                      ok {
-                        validateUpdates(sopts)
-                        jobsDao
-                          .updateProject(projId, sopts)
-                          .flatMap(maybeFullProject(projId))
-                          .recoverWith(translateConflict(sopts))
+                      validateProjectUpdates(sopts).flatMap {
+                        validProjectUpdate =>
+                          jobsDao
+                            .updateProject(projId, sopts)
+                            .flatMap(maybeFullProject(projId))
+                            .recoverWith(translateConflict(sopts))
                       }
                     }
                   }
@@ -128,26 +134,22 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
               }
             } ~
               get {
-                authenticate(authenticator.wso2Auth) { user =>
-                  futureAuthorize(userCanRead(user.userId, projId)) {
+                SmrtDirectives.extractRequiredUserRecord { user =>
+                  authorizeAsync(_ => userCanRead(user.userId, projId)) {
                     complete {
-                      ok {
-                        jobsDao
-                          .getProjectById(projId)
-                          .flatMap(maybeFullProject(projId))
-                      }
+                      jobsDao
+                        .getProjectById(projId)
+                        .flatMap(maybeFullProject(projId))
                     }
                   }
                 }
               } ~
               delete {
-                authenticate(authenticator.wso2Auth) { user =>
-                  futureAuthorize(userIsOwner(user.userId, projId)) {
+                SmrtDirectives.extractRequiredUserRecord { user =>
+                  authorizeAsync(_ => userIsOwner(user.userId, projId)) {
                     complete {
-                      ok {
-                        jobsDao
-                          .deleteProjectById(projId)
-                      }
+                      jobsDao
+                        .deleteProjectById(projId)
                     }
                   }
                 }
@@ -157,38 +159,28 @@ class ProjectService(jobsDao: JobsDao, authenticator: Authenticator)
     } ~
       path("projects-datasets" / Segment) { login =>
         get {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
-              ok {
-                jobsDao.getUserProjectsDatasets(login)
-              }
+              jobsDao.getUserProjectsDatasets(login)
             }
           }
         }
       } ~
       path("user-projects" / Segment) { login =>
         get {
-          authenticate(authenticator.wso2Auth) { user =>
+          SmrtDirectives.extractRequiredUserRecord { user =>
             complete {
-              ok {
-                jobsDao.getUserProjects(login)
-              }
+              jobsDao.getUserProjects(login)
             }
           }
         }
       }
-
-  def validateUpdates(updates: ProjectRequest): Unit =
-    if (updates.members.exists(!_.exists(_.role == ProjectUserRole.OWNER)))
-      throw new ConflictError(
-        "Requested update would remove all project owners.")
 }
 
-trait ProjectServiceProvider {
-  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
+trait ProjectServiceProvider { this: JobsDaoProvider with ServiceComposer =>
 
   val projectService: Singleton[ProjectService] =
-    Singleton(() => new ProjectService(jobsDao(), authenticator()))
+    Singleton(() => new ProjectService(jobsDao()))
 
   addService(projectService)
 }

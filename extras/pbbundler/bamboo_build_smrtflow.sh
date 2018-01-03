@@ -129,4 +129,5 @@ dataset --help
 pbsmrtpipe --help
 python -m pbreports.report.mapping_stats --help
 
-make test-int
+make test
+#make test-int

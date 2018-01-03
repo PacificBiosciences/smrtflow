@@ -34,13 +34,11 @@ import com.pacbio.secondary.smrtlink.services.{
 }
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mock._
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
-import spray.routing._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.testkit.Specs2RouteTest
+import org.specs2.mock._
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -50,7 +48,6 @@ class AlarmSpec
     with Mockito
     with Directives
     with Specs2RouteTest
-    with NoTimeConversions
     with LazyLogging {
 
   sequential

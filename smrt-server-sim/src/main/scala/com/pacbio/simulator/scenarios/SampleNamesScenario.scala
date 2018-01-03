@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -114,25 +113,25 @@ class SampleNamesScenario(host: String, port: Int)
   private val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   private val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
 
-  private val singleSampleSteps = Seq("subreads-sequel",
-                                      "subreads-biosample-1",
-                                      "subreads-biosample-2").map { dsId =>
-    val path = testdata.getTempDataSet(dsId)
-    val uuid = getDataSetMiniMeta(path).uuid
-    Seq(
-      jobStatus := GetStatus,
-      fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-      jobId := ImportDataSet(Var(path), FT_SUBREADS),
-      WaitForSuccessfulJob(jobId),
-      updateSubreadSet(Var(uuid)),
-      subreads := GetSubreadSet(Var(uuid)),
-      failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),
-      failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
-      // test propagation of sampe names to pbsmrtpipe
-      jobId := RunAnalysisPipeline(toPbsmrtpipeOpts(dsId, Var(uuid))),
-      WaitForSuccessfulJob(jobId)
-    )
-  }.flatten
+  private val singleSampleSteps =
+    Seq("subreads-sequel", "subreads-biosample-1", "subreads-biosample-2")
+      .flatMap { dsId =>
+        val path = testdata.getTempDataSet(dsId)
+        val uuid = getDataSetMiniMeta(path).uuid
+        Seq(
+          jobStatus := GetStatus,
+          fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
+          jobId := ImportDataSet(Var(path), FT_SUBREADS),
+          WaitForSuccessfulJob(jobId),
+          updateSubreadSet(Var(uuid)),
+          subreads := GetSubreadSet(Var(uuid)),
+          failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),
+          failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
+          // test propagation of sampe names to pbsmrtpipe
+          jobId := RunAnalysisPipeline(toPbsmrtpipeOpts(dsId, Var(uuid))),
+          WaitForSuccessfulJob(jobId)
+        )
+      }
 
   private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
   private val sampleDsTmp = sampleDsIds.map(id => testdata.getTempDataSet(id))
@@ -144,7 +143,7 @@ class SampleNamesScenario(host: String, port: Int)
   private val sampleDsUuids =
     sampleDs.map(ds => UUID.fromString(ds.getUniqueId))
   private val mergedDataSetSteps =
-    sampleDsTmp.zipWithIndex.map {
+    sampleDsTmp.zipWithIndex.flatMap {
       case (path, idx) =>
         // import and merge two related samples
         Seq(
@@ -155,7 +154,7 @@ class SampleNamesScenario(host: String, port: Int)
           failIfWrongBioSampleName(subreads, sampleBioNames(idx)),
           failIfWrongWellSampleName(subreads, sampleWellNames(idx))
         )
-    }.flatten ++ Seq(
+    } ++ Seq(
       subreadSets := GetSubreadSets,
       subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
       // merging the two inputs should result in name = '[multiple]', which we
@@ -173,7 +172,7 @@ class SampleNamesScenario(host: String, port: Int)
       failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
       failIfWrongBioSampleName(subreads, MULTIPLE_SAMPLES_NAME),
       updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[
-        UnsuccessfulResponseException],
+        Exception],
       // the individual sample names should still be propagated to pbsmrtpipe
       jobId := RunAnalysisPipeline(
         toPbsmrtpipeOpts("merged-bio-samples",

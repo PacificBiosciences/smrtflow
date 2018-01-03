@@ -24,19 +24,17 @@ import com.pacbio.secondary.smrtlink.services.{
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
-import spray.testkit.Specs2RouteTest
 import slick.jdbc.PostgresProfile.api._
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class DataSetServiceSpec
     extends Specification
-    with NoTimeConversions
     with Specs2RouteTest
     with SetupMockData
     with JobServiceConstants

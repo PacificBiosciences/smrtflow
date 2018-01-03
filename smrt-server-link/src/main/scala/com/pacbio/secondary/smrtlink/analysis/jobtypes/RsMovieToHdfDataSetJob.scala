@@ -84,7 +84,7 @@ class RsMovieToHdfDataSetJob(opts: MovieMetadataToHdfSubreadOptions)
             writeDataStore(ds, resources.datastoreJson)
             Right(ds)
           case Failure(errorsNel) =>
-            val msg = errorsNel.list.mkString("; ")
+            val msg = errorsNel.list.toList.mkString("; ")
             Left(
               ResultFailed(job.jobId,
                            jobTypeId.toString,

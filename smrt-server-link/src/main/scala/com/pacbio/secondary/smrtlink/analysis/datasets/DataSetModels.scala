@@ -95,7 +95,8 @@ object DataSetMetaTypes {
                 Reference,
                 AlignmentCCS,
                 GmapReference)
-  val BAM_DATASETS = Set(Subread, CCS, Alignment, AlignmentCCS)
+  val BAM_DATASETS: Set[DataSetMetaType] =
+    Set(Subread, CCS, Alignment, AlignmentCCS)
 
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString

@@ -2,7 +2,7 @@ import java.nio.file.Paths
 
 import scala.io.Source
 
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 import org.specs2.mutable.Specification
 

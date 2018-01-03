@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import org.joda.time.{DateTime => JodaDateTime}
 import org.joda.time.format.DateTimeFormat

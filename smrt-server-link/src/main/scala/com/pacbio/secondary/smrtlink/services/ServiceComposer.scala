@@ -1,8 +1,8 @@
 package com.pacbio.secondary.smrtlink.services
 
+import akka.http.scaladsl.server.{Route, RouteConcatenation}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
-import spray.routing.{Route, RouteConcatenation}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

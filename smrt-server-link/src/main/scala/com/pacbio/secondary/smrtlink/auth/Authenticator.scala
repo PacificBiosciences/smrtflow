@@ -1,13 +1,17 @@
 package com.pacbio.secondary.smrtlink.auth
 
+import akka.http.scaladsl.model.headers.HttpChallenge
+import akka.http.scaladsl.server.{
+  AuthenticationFailedRejection,
+  Rejection,
+  RequestContext
+}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models.UserRecord
-import spray.routing.directives.AuthMagnet
-import spray.routing.{AuthenticationFailedRejection, Rejection, RequestContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-// TODO(smcclellan): Add unit tests
+//FIXME(mpkocher)(2017-12-29) This doesn't really provide enough value. It should be deleted.
 
 /**
   * Contains methods that can be passed as a parameter to the spray authenticate directive in order to extract a
@@ -31,7 +35,7 @@ trait Authenticator {
   /**
     * Parses claims passed to SMRTLink from WSO2 as a JWT. Does not validate the JWT signature.
     */
-  def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord]
+  //def wso2Auth(implicit ec: ExecutionContext): AuthMagnet[UserRecord]
 }
 
 object Authenticator {
@@ -52,37 +56,18 @@ trait AuthenticatorProvider {
 class AuthenticatorImpl(jwtUtils: JwtUtils) extends Authenticator {
   import Authenticator.JWT_HEADER
 
-  override def wso2Auth(
-      implicit ec: ExecutionContext): AuthMagnet[UserRecord] = {
-    import AuthenticationFailedRejection._
+  def authHeader(ctx: RequestContext) =
+    ctx.request.headers.find(_.is(JWT_HEADER))
 
-    def authHeader(ctx: RequestContext) =
-      ctx.request.headers.find(_.is(JWT_HEADER))
+  def validateToken(ctx: RequestContext)(
+      implicit ec: ExecutionContext): Future[Option[UserRecord]] =
+    Future {
+      // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
+      authHeader(ctx)
+        .map(_.value) // Render header as string
+        .flatMap(jwt => jwtUtils.parse(jwt)) // Parse JWT and get claims
+    }
 
-    def validateToken(ctx: RequestContext): Future[Option[UserRecord]] =
-      Future {
-        // Expect JWT to be passed as "X-JWT-Assertion: jwtstring"
-        authHeader(ctx)
-          .map(_.value) // Render header as string
-          .flatMap(jwt => jwtUtils.parse(jwt)) // Parse JWT and get claims
-      }
-
-    def authenticate(
-        ctx: RequestContext): Future[Either[Rejection, UserRecord]] =
-      validateToken(ctx).map {
-        case Some(user) => Right(user)
-        case None =>
-          val cause =
-            if (authHeader(ctx).isEmpty) CredentialsMissing
-            else CredentialsRejected
-          Left(
-            AuthenticationFailedRejection(cause,
-                                          challengeHeaders = List.empty))
-      }
-
-    ctx: RequestContext =>
-      authenticate(ctx)
-  }
 }
 
 /**

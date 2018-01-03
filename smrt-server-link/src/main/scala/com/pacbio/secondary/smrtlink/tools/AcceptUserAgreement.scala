@@ -106,7 +106,7 @@ object AcceptUserAgreement
     } yield s"Accepted Eula $eula"
 
     fx.onComplete { _ =>
-      actorSystem.shutdown()
+      actorSystem.terminate()
     }
 
     Try { Await.result(fx, TIMEOUT) }

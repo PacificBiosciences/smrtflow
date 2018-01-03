@@ -7,17 +7,22 @@ import javax.crypto.spec.SecretKeySpec
 import javax.xml.bind.DatatypeConverter
 
 import spray.json._
-import spray.client.pipelining._
-import spray.http.HttpRequest
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model._
 import akka.actor.ActorSystem
+import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.model.Multipart._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.scaladsl.{FileIO, Source}
 import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import mbilski.spray.hmac.{
+import com.pacbio.secondary.smrtlink.auth.hmac.{
   Authentication,
   DefaultSigner,
   Directives,
@@ -65,8 +70,6 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
     this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
   }
 
-  val sender = sendReceive
-
   // Useful for debugging
   val logRequest: HttpRequest => HttpRequest = { r =>
     println(r.toString); r
@@ -75,20 +78,11 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
     println(r.toString); r
   }
 
-  /**
-    * Add the HMAC auth key
-    *
-    * @param method HTTP method
-    * @param segment Segment of the URL
-    * @return
-    */
-  def sendReceiveAuthenticated(
-      method: String,
-      segment: String): HttpRequest => Future[HttpResponse] = {
+  private def generateAuthHeader(method: HttpMethod,
+                                 segment: String): HttpHeader = {
     val key = generate(apiSecret, s"$method+$segment", timestamp)
     val authHeader = s"hmac uid:$key"
-    // addHeader("Authentication", s"hmac uid:$key") ~> logRequest ~> sender ~> logResponse
-    addHeader("Authentication", authHeader) ~> sender
+    RawHeader("Authentication", authHeader)
   }
 
   /**
@@ -115,13 +109,18 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
   val filesUrl = toApiUrl(SEGMENT_FILES)
 
   def smrtLinkSystemEventPipeline(
-      method: String,
-      segment: String): HttpRequest => Future[SmrtLinkSystemEvent] =
-    sendReceiveAuthenticated(method, segment) ~> unmarshal[SmrtLinkSystemEvent]
+      method: HttpMethod,
+      segment: String): HttpRequest => Future[SmrtLinkSystemEvent] = {
+    httpRequest =>
+      http
+        .singleRequest(
+          httpRequest.withHeaders(generateAuthHeader(method, segment)))
+        .flatMap(Unmarshal(_).to[SmrtLinkSystemEvent])
+  }
 
   def sendSmrtLinkSystemEvent(
       event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline("POST", PREFIX_EVENTS) {
+    smrtLinkSystemEventPipeline(HttpMethods.POST, PREFIX_EVENTS) {
       Post(eventsUrl.toString, event)
     }
 
@@ -144,16 +143,28 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
       numRetries)
   }
 
-  def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
-    val multiForm = MultipartFormData(
-      Seq(
-        BodyPart(pathTgz.toFile,
-                 "techsupport_tgz",
-                 ContentType(MediaTypes.`application/octet-stream`)))
-    )
+  private def createUploadEntity(path: Path): Future[RequestEntity] = {
 
-    smrtLinkSystemEventPipeline("POST", PREFIX_FILES) {
-      Post(toUploadUrl.toString, multiForm)
+    // the chunk size here is currently critical for performance
+    val chunkSize = 100000
+    val fx = path.toFile
+    val formData =
+      Multipart.FormData(
+        Source.single(
+          Multipart.FormData.BodyPart(
+            "techsupport_tgz",
+            HttpEntity(MediaTypes.`application/octet-stream`,
+                       fx.length(),
+                       FileIO.fromPath(path, chunkSize = chunkSize)),
+            Map("filename" -> fx.getName)
+          )))
+    Marshal(formData).to[RequestEntity]
+  }
+
+  def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
+
+    smrtLinkSystemEventPipeline(HttpMethods.POST, PREFIX_FILES) {
+      Post(toUploadUrl.toString, createUploadEntity(pathTgz))
     }
   }
 

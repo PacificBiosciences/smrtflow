@@ -4,23 +4,21 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import shapeless.HNil
-import spray.httpx.marshalling.Marshaller
-import spray.routing.{PathMatcher1, Route}
-import spray.http.MediaTypes
+//import shapeless.HNil
+
 import spray.json._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import SprayJsonSupport._
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.server.Route
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
@@ -43,13 +41,14 @@ import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 
-import collection.JavaConversions._
+//
+import collection.JavaConverters._
 
 /**
   * Accessing DataSets by type. Currently several datasets types are
   * not completely supported (ContigSet, CCSreads, CCS Alignments)
   */
-class DataSetService(dao: JobsDao, authenticator: Authenticator)
+class DataSetService(dao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
     with SmrtLinkConstants {
   // For all the Message types
@@ -81,7 +80,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
     val bs = DataSetLoader.loadAndResolveBarcodeSet(barcodeSet)
 
-    bs.getExternalResources.getExternalResource
+    bs.getExternalResources.getExternalResource.asScala
       .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
       .map(_.getResourceId)
       .map(p => new FastaIterator(Paths.get(p).toFile))
@@ -266,21 +265,19 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       GetDataSetById: IdAble => Future[R],
       GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
-      ma: Marshaller[R],
-      sm: Marshaller[Seq[R]]): Route =
-    optionalAuthenticate(authenticator.wso2Auth) { user =>
+      ma: ToEntityMarshaller[R],
+      sm: ToEntityMarshaller[Seq[R]]): Route =
+    SmrtDirectives.extractOptionalUserRecord { user =>
       pathPrefix(shortName) {
         pathEnd {
           get {
             parameters('showAll.?, 'projectId.as[Int].?) {
               (showAll, projectId) =>
                 complete {
-                  ok {
-                    getProjectIds(projectId, user)
-                      .map { ids =>
-                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
-                      }
-                  }
+                  getProjectIds(projectId, user)
+                    .map { ids =>
+                      GetDataSets(DS_LIMIT, showAll.isDefined, ids)
+                    }
                 }
             }
           }
@@ -289,29 +286,21 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
             pathEnd {
               get {
                 complete {
-                  ok {
-                    GetDataSetById(id)
-                  }
+                  GetDataSetById(id)
                 }
               } ~
                 put {
                   entity(as[DataSetUpdateRequest]) { sopts =>
                     complete {
-                      ok {
-                        updateDataSet(id, sopts)
-                      }
+                      updateDataSet(id, sopts)
                     }
                   }
                 }
             } ~
               path(DETAILS_PREFIX) {
                 get {
-                  respondWithMediaType(MediaTypes.`application/json`) {
-                    complete {
-                      ok {
-                        GetDetailsById(id)
-                      }
-                    }
+                  complete {
+                    GetDetailsById(id).map(_.parseJson) // To get the correct mime-type
                   }
                 }
               } ~
@@ -319,14 +308,12 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                 pathEndOrSingleSlash {
                   get {
                     complete {
-                      ok {
-                        for {
-                          _ <- validateBarcodeShortName(shortName)
-                          dataset <- GetDataSetById(id)
-                          recordNames <- Future.successful(
-                            loadBarcodeNames(Paths.get(dataset.path)))
-                        } yield recordNames
-                      }
+                      for {
+                        _ <- validateBarcodeShortName(shortName)
+                        dataset <- GetDataSetById(id)
+                        recordNames <- Future.successful(
+                          loadBarcodeNames(Paths.get(dataset.path)))
+                      } yield recordNames
                     }
                   }
                 }
@@ -334,13 +321,11 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
               path(JOB_REPORT_PREFIX) {
                 get {
                   complete {
-                    ok {
-                      for {
-                        dataset <- GetDataSetById(id)
-                        reports <- dao.getDataStoreReportFilesByJobId(
-                          dataset.jobId)
-                      } yield reports
-                    }
+                    for {
+                      dataset <- GetDataSetById(id)
+                      reports <- dao.getDataStoreReportFilesByJobId(
+                        dataset.jobId)
+                    } yield reports
                   }
                 }
               }
@@ -353,22 +338,18 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       pathEnd {
         get {
           complete {
-            ok {
-              dao.getDataSetTypes
-            }
+            dao.getDataSetTypes
           }
         }
       } ~
         path(shortNameRx) { shortName =>
           get {
             complete {
-              ok {
-                DataSetMetaTypes
-                  .fromShortName(shortName)
-                  .map(t => dao.getDataSetTypeById(t.dsId))
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find dataset type Id '$shortName"))
-              }
+              DataSetMetaTypes
+                .fromShortName(shortName)
+                .map(t => dao.getDataSetTypeById(t.dsId))
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find dataset type Id '$shortName"))
             }
           }
         }
@@ -377,17 +358,13 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
         path(IdAbleMatcher) { id =>
           get {
             complete {
-              ok {
-                dao.getDataSetById(id)
-              }
+              dao.getDataSetById(id)
             }
           } ~
             put {
               entity(as[DataSetUpdateRequest]) { sopts =>
                 complete {
-                  ok {
-                    updateDataSet(id, sopts)
-                  }
+                  updateDataSet(id, sopts)
                 }
               }
             }
@@ -395,9 +372,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
           path(JavaUUID / "jobs") { uuid =>
             get {
               complete {
-                ok {
-                  dao.getDataSetJobsByUUID(uuid)
-                }
+                dao.getDataSetJobsByUUID(uuid)
               }
             }
           } ~
@@ -449,11 +424,10 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       }
 }
 
-trait DataSetServiceProvider {
-  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
+trait DataSetServiceProvider { this: JobsDaoProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDao(), authenticator()))
+    Singleton(() => new DataSetService(jobsDao()))
 
   addService(dataSetService)
 }

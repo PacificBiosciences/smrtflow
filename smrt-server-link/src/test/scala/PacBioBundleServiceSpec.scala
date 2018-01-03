@@ -1,15 +1,12 @@
 import com.pacbio.secondary.smrtlink.models.{PacBioDataBundle, ServiceStatus}
 import com.pacbio.secondary.smrtlink.app.{SmrtLinkApi, SmrtLinkProviders}
 import org.specs2.mutable.Specification
-import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
 
-  object Api extends SmrtLinkApi {
-    override val providers = new SmrtLinkProviders {}
-    val eventManagerActorX = providers.eventManagerActor()
-  }
+  object Api extends SmrtLinkApi {}
 
   val routes = Api.routes
 

@@ -11,7 +11,6 @@ import scala.collection._
 import spray.json._
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 import org.apache.commons.io.FileUtils
 
 import com.pacbio.common.models._
@@ -297,9 +296,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     } !=? true,
     // Import the job we just exported
     ImportJob(Var(Paths.get("/path/does/not/exist.zip"))) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     ImportJob(getExportedZip(dataStore), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException], // duplicate UUID
+      Exception], // duplicate UUID
     jobId2 := ImportJob(getExportedZip(dataStore)),
     WaitForSuccessfulJob(jobId2),
     dataStore := GetAnalysisJobDataStore(jobId2),
@@ -343,9 +342,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
       rs.filter(_.uuid == subreadsUuid.get).head.jobId
     }),
     DeleteJob(importJob.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     DeleteJob(importJob.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     // delete pbsmrtpipe jobs
     jobId2 := DeleteJob(jobId2, Var(false)),
     jobStatus := WaitForJob(jobId2),

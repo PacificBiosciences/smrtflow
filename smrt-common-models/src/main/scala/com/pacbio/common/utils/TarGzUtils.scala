@@ -12,7 +12,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.DirectoryFileFilter
 import org.apache.commons.io.filefilter.RegexFileFilter
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by mkocher on 5/1/17.
@@ -102,7 +102,7 @@ trait TarGzUtils {
                                       new RegexFileFilter("^(.*?)"),
                                       DirectoryFileFilter.DIRECTORY)
 
-      for (currentFile <- files) {
+      for (currentFile <- files.asScala) {
 
         val relativeFilePath: String = new File(inputDirectoryPath.toUri).toURI
           .relativize(new File(currentFile.getAbsolutePath).toURI)

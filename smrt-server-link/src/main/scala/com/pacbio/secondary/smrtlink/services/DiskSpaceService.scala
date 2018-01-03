@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.file.{
 }
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.typesafe.config.Config
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -73,18 +73,14 @@ class DiskSpaceService(config: Config, fileSystemUtil: FileSystemUtil)
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              Future.sequence(idsToPaths.keySet.map(toResource))
-            }
+            Future.sequence(idsToPaths.keySet.map(toResource))
           }
         }
       } ~
         path(Segment) { id =>
           get {
             complete {
-              ok {
-                toResource(id)
-              }
+              toResource(id)
             }
           }
         }

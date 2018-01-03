@@ -3,20 +3,24 @@ package com.pacbio.secondary.smrtlink.services
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent._
 import scala.util.{Failure, Success, Try}
-import spray.http.{HttpHeaders, Uri}
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing._
-import spray.routing.directives.FileAndResourceDirectives
 import org.joda.time.{DateTime => JodaDateTime}
 import DefaultJsonProtocol._
 import akka.actor.{ActorRef, ActorSystem}
+import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri}
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.settings.RoutingSettings
 import akka.pattern._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
@@ -113,9 +117,9 @@ class PacBioBundleService(
       .mapTo[Try[PacBioDataBundleIO]]
       .flatMap(t => fromTry[PacBioDataBundleIO](errorMessage, t))
 
-    f onSuccess {
-      case bunIO: PacBioDataBundleIO => {
-        logger.info(s"Activated ${bundleType} bundle version ${version}")
+    f.foreach { bunIO =>
+      {
+        logger.info(s"Activated $bundleType bundle version $version")
 
         val slEvent = SmrtLinkEvent(
           eventTypeId = EventTypes.CHEMISTRY_ACTIVATE_BUNDLE,
@@ -140,10 +144,8 @@ class PacBioBundleService(
         pathEndOrSingleSlash {
           get {
             complete {
-              ok {
-                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckForUpdates)
-                  .mapTo[MessageResponse]
-              }
+              (externalPollActor ? PacBioDataBundlePollExternalActor.CheckForUpdates)
+                .mapTo[MessageResponse]
             }
           }
         }
@@ -152,10 +154,8 @@ class PacBioBundleService(
           pathEndOrSingleSlash {
             get {
               complete {
-                ok {
-                  (externalPollActor ? PacBioDataBundlePollExternalActor.CheckStatus)
-                    .mapTo[ExternalServerStatus]
-                }
+                (externalPollActor ? PacBioDataBundlePollExternalActor.CheckStatus)
+                  .mapTo[ExternalServerStatus]
               }
             }
           }
@@ -169,7 +169,7 @@ class PacBioBundleService(
         post {
           entity(as[PacBioBundleRecord]) { record =>
             complete {
-              created {
+              StatusCodes.Created -> {
                 for {
                   pathBundle <- fromTry[(Path, PacBioDataBundle)](
                     s"Failed to process $record",
@@ -200,12 +200,10 @@ class PacBioBundleService(
         Segment / Segment / "activate")) { (bundleTypeId, bundleVersion) =>
         post {
           complete {
-            ok {
-              for {
-                b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
-                bio <- activateBundle(b.bundle.typeId, b.bundle.version)
-              } yield bio.bundle
-            }
+            for {
+              b <- getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion)
+              bio <- activateBundle(b.bundle.typeId, b.bundle.version)
+            } yield bio.bundle
           }
         }
       }
@@ -216,48 +214,40 @@ class PacBioBundleService(
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
-            }
+            (daoActor ? GetAllBundles).mapTo[Seq[PacBioDataBundle]]
           }
         }
       } ~
         path(Segment) { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetAllBundlesByType(bundleTypeId))
-                  .mapTo[Seq[PacBioDataBundle]]
-              }
+              (daoActor ? GetAllBundlesByType(bundleTypeId))
+                .mapTo[Seq[PacBioDataBundle]]
             }
           }
         } ~
         path(Segment / "latest") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetNewestBundle(bundleTypeId))
-                  .mapTo[Option[PacBioDataBundle]]
-                  .flatMap(failIfNone(
-                    s"Unable to find Newest Data Bundle for type '$bundleTypeId'"))
-              }
+              (daoActor ? GetNewestBundle(bundleTypeId))
+                .mapTo[Option[PacBioDataBundle]]
+                .flatMap(failIfNone(
+                  s"Unable to find Newest Data Bundle for type '$bundleTypeId'"))
             }
           }
         } ~
         path(Segment / "active") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetActiveIOBundle(bundleTypeId))
-                  .mapTo[Option[PacBioDataBundleIO]]
-                  .flatMap(failIfNone(
-                    s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
-                  .map(_.bundle)
-              }
+              (daoActor ? GetActiveIOBundle(bundleTypeId))
+                .mapTo[Option[PacBioDataBundleIO]]
+                .flatMap(failIfNone(
+                  s"Unable to find Active Data Bundle for type '$bundleTypeId'"))
+                .map(_.bundle)
             }
           }
         } ~
-        path(Segment / "active" / "files" / RestPath) {
+        path(Segment / "active" / "files" / RemainingPath) {
           (bundleTypeId, uriPath) =>
             onSuccess(getFileInBundle(bundleTypeId, uriPath)) { rPath =>
               getFromFile(rPath.toFile)
@@ -266,10 +256,8 @@ class PacBioBundleService(
         path(Segment / "upgrade") { bundleTypeId =>
           get {
             complete {
-              ok {
-                (daoActor ? GetUpgradableBundle(bundleTypeId))
-                  .mapTo[PacBioDataBundleUpgrade]
-              }
+              (daoActor ? GetUpgradableBundle(bundleTypeId))
+                .mapTo[PacBioDataBundleUpgrade]
             }
           }
         } ~
@@ -281,8 +269,12 @@ class PacBioBundleService(
                 case b: PacBioDataBundleIO =>
                   val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
                   logger.info(s"Downloading bundle $b to $fileName")
-                  respondWithHeader(HttpHeaders.`Content-Disposition`(
-                    "attachment; filename=" + fileName)) {
+                  val params: Map[String, String] = Map("filename" -> fileName)
+                  val customHeader: HttpHeader =
+                    `Content-Disposition`(ContentDispositionTypes.attachment,
+                                          params)
+
+                  respondWithHeader(customHeader) {
                     getFromFile(b.tarGzPath.toFile)
                   }
               }
@@ -292,10 +284,8 @@ class PacBioBundleService(
         path(Segment / Segment) { (bundleTypeId, bundleVersion) =>
           get {
             complete {
-              ok {
-                getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion).map(
-                  _.bundle)
-              }
+              getBundleIOByTypeAndVersion(bundleTypeId, bundleVersion).map(
+                _.bundle)
             }
           }
         }

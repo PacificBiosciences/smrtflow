@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.loaders.ReportViewRulesResourceLoader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 /**
   *
@@ -45,12 +45,10 @@ class ReportViewRulesService(ptvrs: Seq[ReportViewRule])
         path(Segment) { sx =>
           get {
             complete {
-              ok {
-                ptvrs
-                  .find(_.id == sx)
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find Report View Rule $sx"))
-              }
+              ptvrs
+                .find(_.id == sx)
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find Report View Rule $sx"))
             }
           }
         }

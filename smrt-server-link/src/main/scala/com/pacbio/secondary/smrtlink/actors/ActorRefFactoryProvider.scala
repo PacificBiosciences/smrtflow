@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.actors
 
 import akka.actor.{ActorRefFactory, ActorSystem}
+import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, Singleton}
 
 /**
@@ -22,6 +23,10 @@ trait ActorSystemProvider extends ActorRefFactoryProvider {
   val actorSystem: Singleton[ActorSystem] =
     Singleton(
       () => ActorSystem(actorSystemName.getOrElse("default"), config()))
+
+  val actorMaterializer: Singleton[ActorMaterializer] = Singleton(
+    () => ActorMaterializer()(actorRefFactory())
+  )
 
   override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
 }

@@ -2,15 +2,14 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import spray.http.HttpHeaders.RawHeader
 
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors._
@@ -56,7 +55,6 @@ import slick.jdbc.PostgresProfile.api._
 class JobExecutorSpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with JobServiceConstants
     with timeUtils
     with LazyLogging
@@ -161,9 +159,12 @@ class JobExecutorSpec
   "Job Execution Service list" should {
 
     var newJob: Option[EngineJob] = None
+    val jwtUtilsImpl = new JwtUtilsImpl
 
     "execute mock-pbsmrtpipe job with project id 1" in {
-      val credentials = RawHeader(JWT_HEADER, "jsnow")
+      val userRecord = UserRecord("jsnow", Some("carbon/jsnow@domain.com"))
+      val credentials =
+        RawHeader(JWT_HEADER, jwtUtilsImpl.userRecordToJwt(userRecord))
       val projectRoutes = TestProviders.projectService().prefixedRoutes
       Post(s"/$ROOT_SA_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
         status.isSuccess must beTrue

@@ -15,7 +15,6 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModelImplicits
@@ -240,10 +239,8 @@ class DataSetScenario(host: String, port: Int)
     job := GetJobById(subreadSets.mapWith(_.takeRight(3).head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
-    DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
-    DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+    DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[Exception],
+    DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[Exception],
     childJobs := GetJobChildren(jobId),
     fail("Expected 0 children for merge job") IF childJobs
       .mapWith(_.size) !=? 0,
@@ -270,10 +267,9 @@ class DataSetScenario(host: String, port: Int)
       subreadsZip),
     job := WaitForSuccessfulJob(jobId),
     // attempt to export to already existing .zip file
-    ExportDataSets(
-      ftSubreads,
-      subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
-      subreadsZip) SHOULD_RAISE classOf[UnsuccessfulResponseException]
+    ExportDataSets(ftSubreads,
+                   subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
+                   subreadsZip) SHOULD_RAISE classOf[Exception]
   ) ++ (if (!HAVE_PBREPORTS) Seq()
         else
           Seq(
@@ -457,8 +453,7 @@ class DataSetScenario(host: String, port: Int)
   // FAILURE MODES
   val failureTests = Seq(
     // not a dataset
-    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[Exception],
     // wrong ds metatype
     // FIXME to be removed since we can get the metatype from the XML instead
     // of making it a POST parameter
@@ -493,10 +488,9 @@ class DataSetScenario(host: String, port: Int)
     // TODO check report?
     // failure modes
     referenceSets := GetReferenceSets,
-    DeleteDataSets(
-      ftReference,
-      referenceSets.mapWith(rs => Seq(rs.last.id)),
-      Var(true)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteDataSets(ftReference,
+                   referenceSets.mapWith(rs => Seq(rs.last.id)),
+                   Var(true)) SHOULD_RAISE classOf[Exception],
     // already deleted
     jobId := DeleteDataSets(ftSubreads,
                             subreadSets.mapWith(ss => Seq(ss.last.id)),

@@ -6,8 +6,6 @@ import java.nio.file.{Files, Path}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import org.apache.commons.io.FileUtils
 
-import collection.JavaConversions._
-
 trait FileSizeFormatterUtil {
 
   def humanReadableByteSize(fileSize: Long): String = {

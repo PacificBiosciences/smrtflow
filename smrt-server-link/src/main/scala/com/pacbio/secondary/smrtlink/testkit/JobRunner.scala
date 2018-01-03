@@ -396,7 +396,7 @@ object TestkitRunner {
                         c.ignoreTestFailures)
       } else tk.runTestkitCfg(c.cfgFile, c.xunitOut)
     } finally {
-      actorSystem.shutdown()
+      actorSystem.terminate()
     }
   }
 }

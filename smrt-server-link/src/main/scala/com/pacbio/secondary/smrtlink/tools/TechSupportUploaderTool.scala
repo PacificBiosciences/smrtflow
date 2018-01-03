@@ -124,7 +124,7 @@ object TechSupportUploaderTool
     } yield s"Create System Event ${event.uuid}"
 
     fx.onComplete { _ =>
-      actorSystem.shutdown()
+      actorSystem.terminate()
     }
 
     runAndBlock(fx, timeOut)

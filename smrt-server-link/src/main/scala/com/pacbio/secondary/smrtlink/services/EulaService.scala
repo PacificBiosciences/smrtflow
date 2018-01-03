@@ -5,10 +5,11 @@ import scala.concurrent.duration._
 import akka.actor.ActorRef
 import akka.pattern._
 import akka.util.Timeout
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing._
+import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
+import akka.http.scaladsl.model.StatusCodes
 import com.pacbio.secondary.smrtlink.auth.{
   Authenticator,
   AuthenticatorProvider
@@ -26,9 +27,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Future
 
-class EulaService(smrtLinkSystemVersion: Option[String],
-                  dao: JobsDao,
-                  authenticator: Authenticator)
+class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao)
     extends BaseSmrtService
     with JobServiceConstants
     with OSUtils {
@@ -83,42 +82,33 @@ class EulaService(smrtLinkSystemVersion: Option[String],
       path(Segment) { version =>
         get {
           complete {
-            ok {
-              dao.getEulaByVersion(version)
-            }
+            dao.getEulaByVersion(version)
           }
         } ~
           delete {
             complete {
-              ok {
-                for {
-                  _ <- dao.getEulaByVersion(version)
-                  msg <- deleteEula(version)
-                } yield msg
-              }
+              for {
+                _ <- dao.getEulaByVersion(version)
+                msg <- deleteEula(version)
+              } yield msg
             }
           }
       } ~
         pathEndOrSingleSlash {
           post {
             entity(as[EulaAcceptance]) { sopts =>
-              complete {
-                created {
-                  for {
-                    eulaRecord <- convertToEulaRecord(
-                      sopts.user,
-                      sopts.enableInstallMetrics)
-                    acceptedRecord <- dao.addEulaRecord(eulaRecord)
-                  } yield acceptedRecord
-                }
-              }
+              complete(StatusCodes.Created -> {
+                for {
+                  eulaRecord <- convertToEulaRecord(sopts.user,
+                                                    sopts.enableInstallMetrics)
+                  acceptedRecord <- dao.addEulaRecord(eulaRecord)
+                } yield acceptedRecord
+              })
             }
           } ~
             get {
               complete {
-                ok {
-                  dao.getEulas
-                }
+                dao.getEulas
               }
             }
         }
@@ -127,14 +117,11 @@ class EulaService(smrtLinkSystemVersion: Option[String],
 }
 
 trait EulaServiceProvider {
-  this: JobsDaoProvider
-    with SmrtLinkConfigProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: JobsDaoProvider with SmrtLinkConfigProvider with ServiceComposer =>
 
   val eulaService: Singleton[EulaService] =
     Singleton { () =>
-      new EulaService(smrtLinkVersion(), jobsDao(), authenticator())
+      new EulaService(smrtLinkVersion(), jobsDao())
     }
 
   addService(eulaService)

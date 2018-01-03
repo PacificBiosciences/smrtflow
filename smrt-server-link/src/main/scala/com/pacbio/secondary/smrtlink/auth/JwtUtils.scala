@@ -2,8 +2,7 @@ package com.pacbio.secondary.smrtlink.auth
 
 import com.pacbio.secondary.smrtlink.models.UserRecord
 import org.json4s._
-
-import authentikat.jwt.JsonWebToken
+import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtClaimsSetMap, JwtHeader}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 
 import scala.language.implicitConversions
@@ -49,8 +48,9 @@ class JwtUtilsImpl extends JwtUtils {
 
   private implicit val claimFormats = DefaultFormats
 
-  private def extractUsername(raw: String): String =
+  private def extractUsername(raw: String): String = {
     raw.split("/").last.split("@").head
+  }
 
   override def parse(jwt: String): Option[UserRecord] = {
     for {
@@ -67,6 +67,19 @@ class JwtUtilsImpl extends JwtUtils {
       }.toOption
     } yield ur
   }
+
+  def userRecordToJwt(userRecord: UserRecord): String = {
+    val key = "abc" // This doesn't really matter?
+    val claimsSet: JwtClaimsSet = JwtClaimsSetMap(
+      Map(
+        USERNAME_CLAIM -> userRecord.userId,
+        ROLES_CLAIM -> userRecord.roles,
+        USER_EMAIL_CLAIM -> userRecord.userEmail
+      ))
+    val header: JwtHeader = new JwtHeader(Some("HS256"), None, None)
+    JsonWebToken(header, claimsSet, key)
+  }
+
 }
 
 /**

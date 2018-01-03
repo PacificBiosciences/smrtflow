@@ -7,17 +7,17 @@ import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.{Try, Success, Failure}
-
+import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
-import spray.can.Http
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.client.RequestBuilding._
 
 class AuthenticatedServiceAccessLayer(
     baseUrl: URL,
@@ -39,23 +39,23 @@ class AuthenticatedServiceAccessLayer(
             wso2Port,
             s"/SMRTLink/1.0.0$segment").toString
 
-  private def sslSendReceive(request: HttpRequest): Future[HttpResponse] = {
-    for {
-      Http
-        .HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(
-        baseUrl.getHost,
-        port = wso2Port,
-        sslEncryption = true)
-      response <- connector ? request
-    } yield
-      response match {
-        case r: HttpResponse => r
-        case x => throw new RuntimeException(s"Unexpected response $x")
-      }
-  }
+//  private def sslSendReceive(request: HttpRequest): Future[HttpResponse] = {
+//    for {
+//      Http
+//        .HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(
+//        baseUrl.getHost,
+//        port = wso2Port,
+//        sslEncryption = true)
+//      response <- connector ? request
+//    } yield
+//      response match {
+//        case r: HttpResponse => r
+//        case x => throw new RuntimeException(s"Unexpected response $x")
+//      }
+//  }
 
-  override def requestPipe: HttpRequest => Future[HttpResponse] =
-    addHeader("Authorization", s"Bearer ${token}") ~> sslSendReceive
+  def addAuthHeader(request: HttpRequest): HttpRequest =
+    request ~> addHeader("Authorization", s"Bearer ${token}")
 }
 
 object AuthenticatedServiceAccessLayer {

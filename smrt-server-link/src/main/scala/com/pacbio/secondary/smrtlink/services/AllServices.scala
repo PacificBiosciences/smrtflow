@@ -1,8 +1,8 @@
 package com.pacbio.secondary.smrtlink.services
 
+import akka.http.scaladsl.server.{Route, RouteConcatenation}
 import com.pacbio.secondary.smrtlink.dependency._
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
-import spray.routing.{Route, RouteConcatenation}
 
 /**
   * {{{SetBinding}}} for spray services that must be included in the total set of services.

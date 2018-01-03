@@ -33,7 +33,17 @@ object PacBioNamespaces {
 
 }
 
-case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
+/**
+  * Core SMRT Server Error model that is returned in failed requests
+  *
+  * @param httpCode  HTTP Code
+  * @param message   detail message
+  * @param errorType Terse error message type description
+  */
+case class ThrowableResponse(httpCode: Int, message: String, errorType: String) {
+  def toLogMessage(): String =
+    s"Request rejected: $httpCode - $errorType - $message"
+}
 
 object LogLevels {
 
@@ -120,7 +130,7 @@ case class LogMessageRecord(message: String,
   * User data model
   *
   * @param userId  User "Id" Example: mskinner This this user primary key that is used in the SL db.
-  * @param userEmail User email address
+  * @param userEmail User email address (This is a bit odd. The CLAIM is required, but it's optional here)
   * @param firstName User first name
   * @param lastName  User last name
   * @param roles     Roles of the specific user

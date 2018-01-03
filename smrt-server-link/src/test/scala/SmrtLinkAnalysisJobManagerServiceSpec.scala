@@ -26,8 +26,8 @@ import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 
 import scala.concurrent.duration.FiniteDuration
 import slick.jdbc.PostgresProfile.api._

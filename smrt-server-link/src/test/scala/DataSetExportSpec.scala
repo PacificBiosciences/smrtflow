@@ -3,7 +3,7 @@ import java.io.File
 import java.util.UUID
 
 import scala.util.Try
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
@@ -198,7 +198,8 @@ class DataSetExportSpecAdvanced
     val dsUnzip = dest.resolve(s"${uuid}/${basename}")
     val subreads = DataSetLoader.loadSubreadSet(dsUnzip)
     val resPaths =
-      subreads.getExternalResources.getExternalResource.map(_.getResourceId)
+      subreads.getExternalResources.getExternalResource.asScala
+        .map(_.getResourceId)
     resPaths.forall(Paths.get(_).isAbsolute) must beFalse
     val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
     ValidateSubreadSet.validator(subreads2).isSuccess must beTrue

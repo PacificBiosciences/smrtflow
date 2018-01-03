@@ -135,14 +135,23 @@ class LoggerSpec extends Specification with LazyLogging {
       vals() mustEqual ("ERROR", "Show ERROR")
     }
     "Set up rollover policy" in {
+
+      def writeNRecords(n: Int): Unit =
+        (1 to n).map(i => s"Mark $i").foreach { sx =>
+          logger.info(sx)
+        }
+
       val c2 = new LoggerConfig() {}
       val tmpFile = Files.createTempFile("analysis", ".log")
       c2.setFile(tmpFile.toString, "1KB", "2KB")
       c2.logFile must beEqualTo(tmpFile.toString)
-      (1 to 15).map(x => logger.info(s"Mark $x"))
+      val numRecords = 30
+
+      writeNRecords(numRecords)
       Thread.sleep(1)
-      (1 to 15).map(x => logger.info(s"Mark $x"))
+      writeNRecords(numRecords)
       //println(tmpFile)
+      //println(s"Size is ${tmpFile.toFile.length()}")
       //val lc = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
       //StatusPrinter.print(lc)
       tmpFile.toFile.exists must beTrue
@@ -152,8 +161,7 @@ class LoggerSpec extends Specification with LazyLogging {
         .toFile
         .listFiles
         .filter(_.getName().startsWith(baseName))
-        .filter(_.getName().endsWith(".gz"))
-        .size
+        .count(_.getName().endsWith(".gz"))
       nGzLogFiles must beEqualTo(1)
     }
   }

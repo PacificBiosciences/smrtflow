@@ -1,6 +1,5 @@
 package com.pacbio.common
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 /**

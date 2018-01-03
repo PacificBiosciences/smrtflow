@@ -8,8 +8,6 @@ test in assembly := {}
 
 val mainServer = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"
 
-Revolver.settings
-
 mainClass in (Compile, run) := Some(mainServer)
 
 mainClass in assembly := Some(mainServer)
@@ -26,11 +24,8 @@ assemblyMergeStrategy in assembly := {
     oldStrategy(x)
 }
 
-packSettings
-
 packMain := Map(
   "smrt-server-link-analysis" -> mainServer,
-  "smrt-server-eve" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",

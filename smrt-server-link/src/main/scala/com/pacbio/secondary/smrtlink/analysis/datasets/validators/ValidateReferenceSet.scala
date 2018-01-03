@@ -4,21 +4,19 @@ import java.nio.file.{Files, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
 import collection.JavaConverters._
-
 import scalaz._
 import Scalaz._
-
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.{
-  FileType,
   FileBaseType,
+  FileType,
   IndexFileBaseType
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.InValidDataSetError
-import com.pacificbiosciences.pacbiodatasets.{ReferenceSet, GmapReferenceSet}
+import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType
+import com.pacificbiosciences.pacbiodatasets.{GmapReferenceSet, ReferenceSet}
 
 /**
   * Misc utils for validating that the ReferenceSet is valid
@@ -59,11 +57,11 @@ trait ValidateReferenceSetBase[T <: DataSetType]
 
   // Validate the Resource Path of the fasta file is found
   def validateExternalResourcePaths(rs: T): ValidateDataSetE = {
-    rs.getExternalResources.getExternalResource
+    rs.getExternalResources.getExternalResource.asScala
       .map(r => r.getResourceId)
       .filter(x => !Files.exists(Paths.get(x)))
       .reduceLeftOption((a, b) => s"$a, $b") match {
-      case Some(msg) => s"Unable to find Resource(s) $msg".failNel
+      case Some(msg) => s"Unable to find Resource(s) $msg".failureNel
       case _ => rs.successNel
     }
   }
@@ -75,26 +73,26 @@ object ValidateReferenceSet extends ValidateReferenceSetBase[ReferenceSet] {
   private def validateIndexMetaTypeExists(
       metaType: IndexFileBaseType,
       rs: ReferenceSet): ValidateDataSetE = {
-    rs.getExternalResources.getExternalResource
+    rs.getExternalResources.getExternalResource.asScala
       .map(x => x.getFileIndices)
-      .flatMap(i => i.getFileIndex)
+      .flatMap(i => i.getFileIndex.asScala)
       .find(_.getMetaType == metaType.fileTypeId) match {
       case Some(fx) => rs.successNel
       case None =>
-        s"Unable to find required External Resource MetaType ${metaType.fileTypeId}".failNel
+        s"Unable to find required External Resource MetaType ${metaType.fileTypeId}".failureNel
     }
   }
 
   private def validateIndexMetaTypePathExists(
       metaType: IndexFileBaseType,
       rs: ReferenceSet): ValidateDataSetE = {
-    rs.getExternalResources.getExternalResource
+    rs.getExternalResources.getExternalResource.asScala
       .map(x => x.getFileIndices)
-      .flatMap(i => i.getFileIndex)
+      .flatMap(i => i.getFileIndex.asScala)
       .find(_.getMetaType == metaType.fileTypeId)
       .filter(x => !Files.exists(Paths.get(x.getResourceId))) match {
       case Some(fx) =>
-        s"Resource Path not found ${fx.getResourceId} for ${metaType.fileTypeId}".failNel
+        s"Resource Path not found ${fx.getResourceId} for ${metaType.fileTypeId}".failureNel
       case None => rs.successNel
     }
   }
@@ -123,26 +121,26 @@ object ValidateGmapReferenceSet
   private def validateDbMetaTypeExists(
       metaType: FileBaseType,
       rs: GmapReferenceSet): ValidateDataSetE = {
-    rs.getExternalResources.getExternalResource
+    rs.getExternalResources.getExternalResource.asScala
       .map(x => x.getExternalResources)
-      .flatMap(i => i.getExternalResource)
+      .flatMap(i => i.getExternalResource.asScala)
       .find(_.getMetaType == metaType.fileTypeId) match {
       case Some(fx) => rs.successNel
       case None =>
-        s"Unable to find required External Resource MetaType ${metaType.fileTypeId}".failNel
+        s"Unable to find required External Resource MetaType ${metaType.fileTypeId}".failureNel
     }
   }
 
   private def validateDbMetaTypePathExists(
       metaType: FileBaseType,
       rs: GmapReferenceSet): ValidateDataSetE = {
-    rs.getExternalResources.getExternalResource
+    rs.getExternalResources.getExternalResource.asScala
       .map(x => x.getExternalResources)
-      .flatMap(i => i.getExternalResource)
+      .flatMap(i => i.getExternalResource.asScala)
       .find(_.getMetaType == metaType.fileTypeId)
       .filter(x => !Files.exists(Paths.get(x.getResourceId))) match {
       case Some(fx) =>
-        s"Resource Path not found ${fx.getResourceId} for ${metaType.fileTypeId}".failNel
+        s"Resource Path not found ${fx.getResourceId} for ${metaType.fileTypeId}".failureNel
       case None => rs.successNel
     }
   }

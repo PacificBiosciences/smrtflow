@@ -7,28 +7,27 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import akka.actor.{ActorSystem, Scheduler}
+import akka.http.scaladsl.Http.OutgoingConnection
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.io.IO
 import akka.pattern.{after, ask}
 import akka.util.Timeout
-import com.pacbio.secondary.smrtlink.client.Retrying
+import akka.http.scaladsl.client.RequestBuilding._
+import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure
 }
-import com.pacbio.secondary.smrtlink.client.{
-  Retrying,
-  SmrtLinkServiceAccessLayer,
-  UrlUtils
-}
 import com.typesafe.scalalogging.LazyLogging
 import scopt.OptionParser
-import spray.can.Http
-import spray.client.pipelining._
-import spray.http._
+import akka.http.scaladsl.server._
 import spray.json._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.stream.scaladsl.Flow
+import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -180,6 +179,8 @@ class GetWso2ComponentStatus(override val host: String,
 abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
     extends Retrying {
 
+  val http = Http()
+
   // Sanity Status EndPoint (must have leading slash, or can be empty string)
   val EP_STATUS: String
 
@@ -188,11 +189,10 @@ abstract class BaseSmrtClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   def toUrl(segment: String): URL =
     new URL(baseUrl.getProtocol, baseUrl.getHost, baseUrl.getPort, segment)
 
-  def simplePipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
   // The components that we control should implement the ServiceStatus as the interface
   def getStatus(): Future[String] =
-    simplePipeline { Get(STATUS_URL.toString) }
+    http
+      .singleRequest(Get(STATUS_URL.toString))
       .map(_ => s"Successfully got status of $STATUS_URL")
 
   def getStatusWithRetry(
@@ -221,7 +221,14 @@ class TomcatClient(baseUrl: URL)(implicit actorSystem: ActorSystem)
   val EP_STATUS = "/sl"
 }
 
-// This is largely cribbed from AmClient. This needs to be folded back into a base trait
+/**
+  * THere's still a bit of duplication here because of the lack of common client interface.
+  * Adding a thin wrapper to (hopefully) minimize duplication.
+  *
+  *
+  * @param baseUrl
+  * @param actorSystem
+  */
 class AmClientLite(baseUrl: URL)(implicit actorSystem: ActorSystem)
     extends BaseSmrtClient(baseUrl) {
 
@@ -230,39 +237,13 @@ class AmClientLite(baseUrl: URL)(implicit actorSystem: ActorSystem)
   }
 
   val EP_STATUS = "/publisher"
-  val WSO2_OFFSET = 0
 
-  implicit val timeout: Timeout = 200.seconds
+  // The user and password aren't used for the getStatus call.
+  val apiManagerClient =
+    new ApiManagerAccessLayer(baseUrl.getHost, 0, "user", "password")(
+      actorSystem)
 
-  implicit val sslContext = {
-    // Create a trust manager that does not validate certificate chains.
-    val permissiveTrustManager: TrustManager = new X509TrustManager() {
-      override def checkClientTrusted(chain: Array[X509Certificate],
-                                      authType: String): Unit = {}
-      override def checkServerTrusted(chain: Array[X509Certificate],
-                                      authType: String): Unit = {}
-      override def getAcceptedIssuers(): Array[X509Certificate] = {
-        null
-      }
-    }
-
-    val initTrustManagers = Array(permissiveTrustManager)
-    val ctx = SSLContext.getInstance("TLS")
-    ctx.init(null, initTrustManagers, new SecureRandom())
-    ctx
-  }
-
-  val adminPipe: Future[SendReceive] =
-    for (Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http
-           .HostConnectorSetup(baseUrl.getHost,
-                               port = baseUrl.getPort + WSO2_OFFSET,
-                               sslEncryption = true))
-      yield sendReceive(connector)
-
-  override def getStatus(): Future[String] =
-    adminPipe
-      .flatMap(_(Get(STATUS_URL.toString)))
-      .map(_ => s"Successfully got status of $STATUS_URL")
+  override def getStatus(): Future[String] = apiManagerClient.getStatus()
 
 }
 
@@ -513,7 +494,7 @@ object GetSystemStatusTool
     }
 
     logger.debug("Shutting down actor system")
-    actorSystem.shutdown()
+    actorSystem.terminate()
 
     result
   }

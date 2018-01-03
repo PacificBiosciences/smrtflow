@@ -725,12 +725,12 @@ object AmClient extends LazyLogging {
 
     tx() match {
       case Success(msg) =>
-        actorSystem.shutdown()
+        actorSystem.terminate()
         println(msg)
         logger.info(msg)
         0
       case Failure(ex) =>
-        actorSystem.shutdown()
+        actorSystem.terminate()
         val msg = s"Failed running ${c.mode} ${ex.getMessage}"
         System.err.println(msg)
         logger.error(msg)

@@ -5,7 +5,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Test for all pipeline related specs
@@ -38,7 +38,8 @@ class ToolContractSpec
 
       //logger.info(tc.toString)
       rtc.getResolvedToolContract.getIsDistributed must beEqualTo(false)
-      rtc.getResolvedToolContract.getInputFiles.length must beEqualTo(1)
+      rtc.getResolvedToolContract.getInputFiles.asScala.length must beEqualTo(
+        1)
     }
   }
 }

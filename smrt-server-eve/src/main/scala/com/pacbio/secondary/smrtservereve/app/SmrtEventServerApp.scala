@@ -20,14 +20,19 @@ import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
-import spray.can.Http
-import spray.routing.{Route, RouteConcatenation}
-import spray.http._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.{
+  HttpHeader,
+  MediaTypes,
+  Multipart,
+  StatusCodes
+}
+import akka.http.scaladsl.Http
 import spray.json._
-import spray.routing._
 import DefaultJsonProtocol._
-import mbilski.spray.hmac.{
+import akka.http.scaladsl.settings.RoutingSettings
+import com.pacbio.secondary.smrtlink.auth.hmac.{
   Authentication,
   DefaultSigner,
   Directives,
@@ -36,10 +41,7 @@ import mbilski.spray.hmac.{
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
-import com.pacbio.secondary.smrtlink.services.{
-  PacBioService,
-  RoutedHttpService
-}
+import com.pacbio.secondary.smrtlink.services.PacBioService
 import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
@@ -203,7 +205,7 @@ class EventService(
 
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
     case Some(value) => Future { value }
-    case _ => Future.failed(new UnprocessableEntityError(message))
+    case _ => Future.failed(UnprocessableEntityError(message))
   }
 
   def eventRoutes: Route =
@@ -212,11 +214,7 @@ class EventService(
         Directives.authenticate[EveAccount] { account =>
           post {
             entity(as[SmrtLinkSystemEvent]) { event =>
-              complete {
-                created {
-                  eventProcessor.process(event)
-                }
-              }
+              complete(StatusCodes.Created -> eventProcessor.process(event))
             }
           }
         }
@@ -228,14 +226,8 @@ class EventService(
       pathEndOrSingleSlash {
         Directives.authenticate[EveAccount] { account =>
           post {
-            respondWithMediaType(MediaTypes.`application/json`) {
-              entity(as[MultipartFormData]) { formData =>
-                complete {
-                  created {
-                    processUpload(formData)
-                  }
-                }
-              }
+            entity(as[Multipart.FormData]) { formData =>
+              complete(StatusCodes.Created -> processUpload(formData))
             }
           }
         }
@@ -382,23 +374,26 @@ class EventService(
   }
 
   def processBodyPart(
-      m: BodyPart,
+      m: Multipart.BodyPart,
       saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
     for {
       fileName <- failIfNone("Unable to find filename in headers")(
         processHeaders(m.headers))
       validFileName <- onlyAllowTarGz(fileName)
+      ex <- m.entity.toStrict(5.seconds)
       file <- Future.fromTry(
         saver(resolveOutputFile(validFileName),
-              new ByteArrayInputStream(m.entity.data.toByteArray)))
+              new ByteArrayInputStream(ex.)
     } yield file
   }
 
+
   def processForm(
-      formData: MultipartFormData,
+      formData: Multipart.FormData,
       saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
-    val bodyPart: Option[BodyPart] = formData.fields.flatMap {
-      case m: BodyPart if processHeaders(m.headers).isDefined => Some(m)
+    val bodyPart: Option[Multipart.BodyPart] = formData.parts.flatMap {
+      case m: Multipart.BodyPart if processHeaders(m.headers).isDefined =>
+        Some(m)
       case _ => None
     }.lastOption
 
@@ -422,7 +417,8 @@ class EventService(
     * @param formData
     * @return
     */
-  def processUpload(formData: MultipartFormData): Future[SmrtLinkSystemEvent] = {
+  def processUpload(
+      formData: Multipart.FormData): Future[SmrtLinkSystemEvent] = {
     for {
       file <- processForm(formData, saveAttachmentByteArray)
       event <- Future { createImportEvent(file) }
@@ -474,6 +470,16 @@ class EventService(
 
 }
 
+trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
+
+  override lazy val systemName = "smrt-eve"
+  // This should be loaded from the application.conf with an ENV var mapping
+  lazy val eventMessageDir: Path =
+    Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
+  // Make this independently configurable
+  lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
+}
+
 trait EventServicesCakeProvider {
   this: ActorSystemCakeProvider with EventServiceConfigCakeProvider =>
 
@@ -499,8 +505,6 @@ trait RootEventServerCakeProvider extends RouteConcatenation {
 
   lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
 
-  lazy val rootService =
-    actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
 trait EventServerCakeProvider
@@ -539,15 +543,9 @@ trait EventServerCakeProvider
     } yield s"$validMsg\n$message\nSuccessfully executed preStartUpHook"
 
   private def startServices(): Future[String] = {
-    (IO(Http)(actorSystem) ? Http.Bind(rootService,
-                                       systemHost,
-                                       port = systemPort)) flatMap {
-      case r: Http.CommandFailed =>
-        Future.failed(
-          new BindException(s"Failed to bind to $systemHost:$systemPort"))
-      case _ =>
-        Future { s"Successfully started up on $systemHost:$systemPort" }
-    }
+    Http()
+      .bindAndHandle(allRoutes, systemHost, port = systemPort)
+      .map(_ => s"Successfully started up on $systemHost:$systemPort")
   }
 
   /**
@@ -637,9 +635,11 @@ trait EventServerCakeProvider
         logger.info(msg)
         println("Successfully started up System")
       case Failure(ex) =>
-        IO(Http)(actorSystem) ! Http.CloseAll
-        actorSystem.shutdown()
-        throw new StartupFailedException(ex)
+        // This should call unbind?
+        // flatMap(_.unbind()) // trigger unbinding from the port
+        //IO(Http)(actorSystem) ! Http.CloseAll
+        actorSystem.terminate()
+        //throw new StartupFailedException(ex)
     }
 
   }

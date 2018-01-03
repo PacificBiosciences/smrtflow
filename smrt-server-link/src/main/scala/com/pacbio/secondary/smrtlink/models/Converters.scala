@@ -5,7 +5,7 @@ import java.security.MessageDigest
 import java.util.UUID
 
 import scala.util.Try
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -88,7 +88,7 @@ object Converters extends DataSetMetadataUtils {
     // This might not be correct. Should the description come from the Collection Metadata
     val comments = Try {
       Option(
-        dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getDescription)
+        dataset.getDataSetMetadata.getBioSamples.getBioSample.asScala.head.getDescription)
         .getOrElse(" ")
     } getOrElse " "
 
@@ -132,7 +132,7 @@ object Converters extends DataSetMetadataUtils {
 
     val cellId = Try {
       Option(
-        dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getCellPac.getBarcode)
+        dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getCellPac.getBarcode)
         .getOrElse(DEFAULT_CELL_ID)
     }.getOrElse(DEFAULT_CELL_ID)
 
@@ -185,27 +185,27 @@ object Converters extends DataSetMetadataUtils {
     val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = Try { dataset.getTags } getOrElse "converted"
     val wellSampleName = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getWellSample.getName
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getWellSample.getName
     } getOrElse UNKNOWN
     val comments = Try {
-      dataset.getDataSetMetadata.getBioSamples.getBioSample.head.getDescription
+      dataset.getDataSetMetadata.getBioSamples.getBioSample.asScala.head.getDescription
     } getOrElse " "
 
     // Plate Id doesn't exist, but keeping it so I don't have to update the db schema
     val cellIndex = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getCellIndex.toInt
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getCellIndex.toInt
     } getOrElse -1
     val wellName = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getWellSample.getWellName
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getWellSample.getWellName
     } getOrElse UNKNOWN
     val runName = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getRunDetails.getName
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getRunDetails.getName
     } getOrElse UNKNOWN
     val contextId = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getContext
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getContext
     } getOrElse UNKNOWN
     val instrumentName = Try {
-      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.head.getInstrumentName
+      dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getInstrumentName
     } getOrElse UNKNOWN
 
     val bioSampleName = getNameOrDefault(getBioSampleNames(dataset))
