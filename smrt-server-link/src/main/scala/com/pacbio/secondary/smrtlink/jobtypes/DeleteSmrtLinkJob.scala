@@ -99,13 +99,14 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
       case _ => (opts.force.getOrElse(false), opts.removeFiles, false)
     }
 
-    val f1: Future[DeleteResourcesOptions] = for {
-      targetJob <- opts.confirmIsDeletable(dao, jobId, force)
-      oldOpts <- Future.successful(
-        DeleteResourcesOptions(Paths.get(targetJob.path),
-                               removeFiles,
-                               targetJob.projectId))
-    } yield oldOpts
+    def f1: Future[DeleteResourcesOptions] =
+      for {
+        targetJob <- opts.confirmIsDeletable(dao, jobId, force)
+        oldOpts <- Future.successful(
+          DeleteResourcesOptions(Paths.get(targetJob.path),
+                                 removeFiles,
+                                 targetJob.projectId))
+      } yield oldOpts
 
     //FIXME(mpkocher)(8-31-2017) The order of this should be clearer. And perhaps handle a rollback if possible.
     def f2: Future[String] =
