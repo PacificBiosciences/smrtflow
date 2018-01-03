@@ -28,7 +28,7 @@ getSmrtLinkAssemblyJar := {
   val classpathJars = Attributed.data((dependencyClasspath in Runtime).value) // Not clear why this is added
   val bd = (baseDirectory in ThisBuild).value
   new File(
-    "./smrt-server-link/target/scala-2.11/smrt-server-link-analysis.jar").getAbsoluteFile
+    "./smrt-server-link/target/scala-2.12/smrt-server-link-analysis.jar").getAbsoluteFile
 }
 
 val smrtLinkServerRunner =
