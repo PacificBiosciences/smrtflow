@@ -74,7 +74,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     sx
   }
 
-  private def getManagerStatus() = {
+  private def getManagerStatus(): EngineManagerStatus = {
     val n = config.numGeneralWorkers - workers.length
     val m = config.numQuickWorkers - quickWorkers.length
     EngineManagerStatus(config.numGeneralWorkers, n, config.numQuickWorkers, m)

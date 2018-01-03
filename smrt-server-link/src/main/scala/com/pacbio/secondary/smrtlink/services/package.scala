@@ -101,9 +101,8 @@ package object services {
     private def toErrorAndLog(
         statusCode: StatusCode,
         message: String): (StatusCode, ThrowableResponse) = {
-      val throwAble = ThrowableResponse(statusCode.intValue(),
-                                        message,
-                                        statusCode.defaultMessage())
+      val throwAble =
+        ThrowableResponse(statusCode.intValue(), message, statusCode.reason())
       logger.error(throwAble.toLogMessage())
       (statusCode, throwAble)
     }
@@ -153,6 +152,8 @@ package object services {
               toErrorAndLog(UnprocessableEntity,
                             UnprocessableEntity.defaultMessage))
           }
+        case ex: IllegalArgumentException =>
+          complete(toErrorAndLog(NotFound, ex.getMessage))
         case ex: PacBioServiceError =>
           complete(toThrowAbleAndLog(ex))
       }

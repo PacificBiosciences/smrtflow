@@ -109,7 +109,9 @@ class EventManagerActor(smrtLinkId: UUID,
       checkExternalServerStatus()
 
     case EnableExternalMessages(enable) =>
+      // Unless the system is Configured with a Eve URL, this has no impact
       enableExternalMessages = enable
+      sender ! s"Enabled External Messages to $externalEveUrl"
 
     case CreateEvent(e) =>
       if (enableExternalMessages) {

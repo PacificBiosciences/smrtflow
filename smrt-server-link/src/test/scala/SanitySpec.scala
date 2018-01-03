@@ -6,12 +6,9 @@ import akka.http.scaladsl.testkit.Specs2RouteTest
 
 class SanitySpec extends Specification with Specs2RouteTest {
 
-  object Api extends SmrtLinkApi {
-    override val providers = new SmrtLinkProviders {}
-  }
+  object Api extends SmrtLinkApi {}
 
   val routes = Api.routes
-  val eventManagerActorX = Api.providers.eventManagerActor()
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
