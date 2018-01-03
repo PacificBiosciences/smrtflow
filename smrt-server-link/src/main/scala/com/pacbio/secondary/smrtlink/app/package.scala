@@ -33,16 +33,6 @@ package object app {
     lazy val eveUrl = new URL(s"https:$systemHost:$systemPort")
   }
 
-  trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
-
-    override lazy val systemName = "smrt-eve"
-    // This should be loaded from the application.conf with an ENV var mapping
-    lazy val eventMessageDir: Path =
-      Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
-    // Make this independently configurable
-    lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
-  }
-
   trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
     implicit lazy val actorSystem = ActorSystem(systemName)
     implicit lazy val materializer = ActorMaterializer()

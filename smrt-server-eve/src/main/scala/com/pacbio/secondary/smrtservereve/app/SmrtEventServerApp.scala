@@ -470,6 +470,16 @@ class EventService(
 
 }
 
+trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
+
+  override lazy val systemName = "smrt-eve"
+  // This should be loaded from the application.conf with an ENV var mapping
+  lazy val eventMessageDir: Path =
+    Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
+  // Make this independently configurable
+  lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
+}
+
 trait EventServicesCakeProvider {
   this: ActorSystemCakeProvider with EventServiceConfigCakeProvider =>
 
@@ -629,7 +639,7 @@ trait EventServerCakeProvider
         // flatMap(_.unbind()) // trigger unbinding from the port
         //IO(Http)(actorSystem) ! Http.CloseAll
         actorSystem.terminate()
-        throw new StartupFailedException(ex)
+        //throw new StartupFailedException(ex)
     }
 
   }
