@@ -100,6 +100,7 @@ lazy val baseSettings = Seq(
   "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
   "com.github.tototoshi" %% "slick-joda-mapper" % "2.3.0",
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.5",
+  // "com.pauldijou" %% "jwt-core" % "0.14.0", // We should use this. https://github.com/pauldijou/jwt-scala
   "com.jsuereth" %% "scala-arm" % "2.0",
   "com.lihaoyi" % "ammonite" % "1.0.3" cross CrossVersion.full,
   "com.lihaoyi" %% "scalatags" % "0.6.7",
