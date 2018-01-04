@@ -154,7 +154,7 @@ class RunSpec
   sequential
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
+  import JwtUtils._
 
   val READ_USER_LOGIN = "reader"
   val ADMIN_USER_1_LOGIN = "admin1"
@@ -167,7 +167,6 @@ class RunSpec
       extends ServiceComposer
       with RunServiceActorProvider
       with InMemoryRunDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with DataModelParserImplProvider {
@@ -183,7 +182,6 @@ class RunSpec
   implicit val customRejectionHandler = pacBioRejectionHandler
 
   val actorRef = TestActorRef[RunServiceActor](TestProviders.runServiceActor())
-  val authenticator = TestProviders.authenticator()
 
   val routes = new RunService(actorRef).prefixedRoutes
 

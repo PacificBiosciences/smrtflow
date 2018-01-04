@@ -64,7 +64,6 @@ abstract class SmrtLinkAnalysisJobExecutorSpecBase
       with SmrtLinkConfigProvider
       with PbsmrtpipeConfigLoader
       with EngineCoreConfigLoader
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with ActorSystemProvider
       with ConfigProvider

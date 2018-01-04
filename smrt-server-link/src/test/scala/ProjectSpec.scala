@@ -62,7 +62,7 @@ class ProjectSpec
   sequential
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
+  import JwtUtils._
 
   implicit val routeTestTimeout = RouteTestTimeout(10.seconds)
 
@@ -98,7 +98,6 @@ class ProjectSpec
       with EngineCoreConfigLoader
       with EventManagerActorProvider
       with JobsDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings

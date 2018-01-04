@@ -1,8 +1,6 @@
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
-
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
@@ -78,7 +76,6 @@ class JobExecutorSpec
       with JobsServiceProvider
       with PbsmrtpipeConfigLoader
       with EngineCoreConfigLoader
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with ActorSystemProvider
       with ConfigProvider
@@ -164,7 +161,8 @@ class JobExecutorSpec
     "execute mock-pbsmrtpipe job with project id 1" in {
       val userRecord = UserRecord("jsnow", Some("carbon/jsnow@domain.com"))
       val credentials =
-        RawHeader(JWT_HEADER, jwtUtilsImpl.userRecordToJwt(userRecord))
+        RawHeader(JwtUtils.JWT_HEADER,
+                  jwtUtilsImpl.userRecordToJwt(userRecord))
       val projectRoutes = TestProviders.projectService().prefixedRoutes
       Post(s"/$ROOT_SA_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
         status.isSuccess must beTrue

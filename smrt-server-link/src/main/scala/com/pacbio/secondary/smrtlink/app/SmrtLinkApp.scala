@@ -39,10 +39,7 @@ import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.GetEngineManagerStatus
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineManagerStatus
-import com.pacbio.secondary.smrtlink.auth.{
-  AuthenticatorImplProvider,
-  JwtUtilsImplProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{JwtUtilsImplProvider}
 import com.pacbio.secondary.smrtlink.file.JavaFileSystemUtilProvider
 import com.pacbio.secondary.smrtlink.services.utils.StatusGeneratorProvider
 import com.pacbio.secondary.smrtlink.time.SystemClockProvider
@@ -71,7 +68,6 @@ trait CoreProviders
     with DiskSpaceServiceProvider
     with MimeTypeDetectors
     with JwtUtilsImplProvider
-    with AuthenticatorImplProvider
     with JavaFileSystemUtilProvider
     with SystemClockProvider
     with ConfigLoader {
@@ -103,7 +99,6 @@ trait AuthenticatedCoreProviders
     with DiskSpaceServiceProviderx
     with MimeTypeDetectors
     with JwtUtilsImplProvider
-    with AuthenticatorImplProvider
     with JavaFileSystemUtilProvider
     with SystemClockProvider
     with ConfigLoader {

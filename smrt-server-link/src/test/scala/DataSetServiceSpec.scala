@@ -1,12 +1,7 @@
 import java.nio.file.Files
 
 import akka.actor.ActorRefFactory
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import com.pacbio.secondary.smrtlink.auth.{
-  AuthenticatorImplProvider,
-  JwtUtils,
-  JwtUtilsProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{
@@ -58,7 +53,6 @@ class DataSetServiceSpec
       with DataSetServiceProvider
       with EventManagerActorProvider
       with JobsDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings
@@ -100,7 +94,7 @@ class DataSetServiceSpec
     "Sanity DAO insertion test" in {
       val timeout = 10.seconds
       val datasets = Await.result(dao.getSubreadDataSets(), timeout)
-      datasets.length == 2
+      datasets.length === 2
     }
     "Secondary analysis Get SubreadSet list" in {
       Get(s"/$ROOT_SA_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
@@ -110,7 +104,7 @@ class DataSetServiceSpec
       }
     }
     "Secondary analysis SubreadSets by TEST/MOCK PROJECT ID" in {
-      val credentials = RawHeader(JWT_HEADER, MOCK_USER_LOGIN)
+      val credentials = RawHeader(JwtUtils.JWT_HEADER, MOCK_USER_LOGIN)
 
       val fx: Future[Option[Int]] =
         dao.getProjects().map(_.find(_.name == TEST_PROJECT_NAME).map(_.id))

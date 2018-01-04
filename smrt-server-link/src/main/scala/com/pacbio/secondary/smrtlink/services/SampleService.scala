@@ -2,10 +2,7 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
+
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{
@@ -114,9 +111,7 @@ class SampleService(sampleActor: ActorRef)
   * a {{{SampleServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
   */
 trait SampleServiceProvider {
-  this: SampleServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: SampleServiceActorRefProvider with ServiceComposer =>
 
   final val sampleService: Singleton[SampleService] =
     Singleton(() => new SampleService(sampleServiceActorRef()))

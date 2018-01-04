@@ -56,7 +56,6 @@ class SmrtLinkEventSpec
       with SmrtLinkEventServiceProvider
       with JobsDaoProvider
       with SmrtLinkTestDalProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings

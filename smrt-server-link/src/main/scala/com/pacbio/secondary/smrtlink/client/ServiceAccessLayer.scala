@@ -17,7 +17,6 @@ import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.unmarshalling.{FromResponseUnmarshaller, Unmarshal}
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes

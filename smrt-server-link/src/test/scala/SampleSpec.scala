@@ -42,7 +42,6 @@ class SampleSpec
 
   // for implicit json converters
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
 
   //
   // Setup TestProvider to compose our actors with an InMemory DAO
@@ -62,9 +61,9 @@ class SampleSpec
 
   val FAKE_SAMPLE = "{Chemistry:S1, InputConcentration:23.1}"
   val READ_CREDENTIALS =
-    RawHeader(JWT_HEADER, jwtUtil.userRecordToJwt(READ_USER_LOGIN))
+    RawHeader(JwtUtils.JWT_HEADER, jwtUtil.userRecordToJwt(READ_USER_LOGIN))
   val ADMIN_CREDENTIALS_1 =
-    RawHeader(JWT_HEADER, jwtUtil.userRecordToJwt(ADMIN_USER_1_LOGIN))
+    RawHeader(JwtUtils.JWT_HEADER, jwtUtil.userRecordToJwt(ADMIN_USER_1_LOGIN))
 
   val SAMPLE_PATH = "/smrt-link/samples"
   var SAMPLE_PATH_SLASH = SAMPLE_PATH + "/"
@@ -73,7 +72,6 @@ class SampleSpec
       extends ServiceComposer
       with SampleServiceActorProvider
       with InMemorySampleDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider {
 
@@ -85,7 +83,6 @@ class SampleSpec
 
   val actorRef =
     TestActorRef[SampleServiceActor](TestProviders.sampleServiceActor())
-  val authenticator = TestProviders.authenticator()
   val routes = new SampleService(actorRef).prefixedRoutes
 
   //
