@@ -34,12 +34,16 @@ xsd-java:
 tools-smrt-server-link:
 	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
+# This is used by the internal incremental build
+# http://bitbucket.nanofluidics.com:7990/projects/DEP/repos/smrtlink-build/browse/bbmig/build/buildctl/pacbio/pbscala
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	sbt smrt-server-link/pack
+	# adding a clean call here to make sure incremental (dirty) builds don't fail
+	sbt clean
+	sbt smrt-server-link/{compile,pack}
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 repl:
