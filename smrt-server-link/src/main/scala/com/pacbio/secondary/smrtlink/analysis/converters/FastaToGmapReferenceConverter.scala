@@ -147,10 +147,10 @@ object GmapReferenceConverter
   }
 
   def apply(name: String,
-            fastaPath: Path,
-            outputDir: Path,
             organism: Option[String],
             ploidy: Option[String],
+            fastaPath: Path,
+            outputDir: Path,
             inPlace: Boolean = false)
     : Either[DatasetConvertError, GmapReferenceSetIO] = {
     val target = setupTargetDir(name, fastaPath, outputDir, inPlace)
@@ -164,6 +164,18 @@ object GmapReferenceConverter
         Right(GmapReferenceSetIO(rs, target.dsFile))
       }
       case Left(err) => Left(err)
+    }
+  }
+
+  def toTry(name: String,
+            organism: Option[String],
+            ploidy: Option[String],
+            fastaPath: Path,
+            outputDir: Path,
+            inPlace: Boolean = false): Try[GmapReferenceSetIO] = {
+    apply(name, organism, ploidy, fastaPath, outputDir, inPlace) match {
+      case Right(rio) => Success(rio)
+      case Left(ex) => Failure(new Exception(ex.getMessage))
     }
   }
 }

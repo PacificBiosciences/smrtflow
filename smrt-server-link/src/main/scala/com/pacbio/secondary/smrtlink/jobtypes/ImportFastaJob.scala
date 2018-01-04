@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.analysis.converters.{
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
-  ReferenceSetIO
+  DataSetIO
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -30,17 +30,13 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success, Try}
 
-// See comments on Job "name" vs Job option scoped "name" used to assign DataSet name.
-// This should have been "datasetName" to avoid confusion
-case class ImportFastaJobOptions(path: String,
-                                 ploidy: String,
-                                 organism: String,
-                                 name: Option[String],
-                                 description: Option[String],
-                                 projectId: Option[Int] = Some(
-                                   JobConstants.GENERAL_PROJECT_ID))
-    extends ServiceJobOptions {
-  override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
+trait ImportFastaBaseJobOptions extends ServiceJobOptions {
+  val path: String
+  val ploidy: String
+  val organism: String
+  val name: Option[String]
+  val description: Option[String]
+  val projectId: Option[Int]
 
   /**
     * Minimal lightweight validation.
@@ -51,20 +47,38 @@ case class ImportFastaJobOptions(path: String,
     if (Files.exists(Paths.get(path))) None
     else Some(InvalidJobOptionError(s"Unable to find $path"))
   }
+}
+
+// See comments on Job "name" vs Job option scoped "name" used to assign DataSet name.
+// This should have been "datasetName" to avoid confusion
+case class ImportFastaJobOptions(path: String,
+                                 ploidy: String,
+                                 organism: String,
+                                 name: Option[String],
+                                 description: Option[String],
+                                 projectId: Option[Int] = Some(
+                                   JobConstants.GENERAL_PROJECT_ID))
+    extends ImportFastaBaseJobOptions {
+  override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
+
   override def toJob() = new ImportFastaJob(this)
 }
 
-class ImportFastaJob(opts: ImportFastaJobOptions)
+abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
     with timeUtils {
   type Out = PacBioDataStore
 
+  val PIPELINE_ID: String
+  val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
+
+  def dsTypeName = DS_METATYPE.fileType.fileTypeId.split(".").last
+
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
   final val LOCAL_MAX_SIZE_MB = 50 // this takes about 2.5 minutes
 
-  final val PIPELINE_ID = "pbsmrtpipe.pipelines.sa3_ds_fasta_to_reference"
   final val PIPELINE_ENTRY_POINT_ID = "eid_ref_fasta"
 
   // Accessible via pbsmrtpipe show-task-details pbcoretools.tasks.fasta_to_reference
@@ -73,7 +87,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
   final val OPT_PLOIDY = "pbcoretools.task_options.ploidy"
   final val DEFAULT_REFERENCE_SET_NAME = "Fasta-Convert"
 
-  private def toPbsmrtPipeJobOptions(opts: ImportFastaJobOptions,
+  private def toPbsmrtPipeJobOptions(opts: ImportFastaBaseJobOptions,
                                      config: SystemJobConfig,
                                      jobUUID: UUID): PbSmrtPipeJobOptions = {
 
@@ -113,14 +127,14 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     DataStoreFile(
       uuid,
       s"pbscala::${jobTypeId.id}",
-      DataSetMetaTypes.Reference.toString,
+      DS_METATYPE.toString,
       path.toFile.length(),
       importedAt,
       importedAt,
       path.toAbsolutePath.toString,
       isChunked = false,
-      s"ReferenceSet $name",
-      s"Converted Fasta and Imported ReferenceSet $name"
+      s"${dsTypeName} $name",
+      s"Converted Fasta and Imported ${dsTypeName} $name"
     )
   }
 
@@ -133,12 +147,15 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     ds
   }
 
+  protected def runConverter(opts: ImportFastaBaseJobOptions,
+                             outputDir: Path): Try[DataSetIO]
+
   /**
     * Run locally (don't submit to the cluster resources)
     */
   private def runLocal(
       dao: JobsDao,
-      opts: ImportFastaJobOptions,
+      opts: ImportFastaBaseJobOptions,
       job: JobResourceBase,
       resultsWriter: JobResultsWriter): Try[PacBioDataStore] = {
 
@@ -151,7 +168,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
       resultsWriter.writeLine(sx)
     }
 
-    def writeFiles(rio: ReferenceSetIO): PacBioDataStore = {
+    def writeFiles(rio: DataSetIO): PacBioDataStore = {
       w(s"Successfully wrote DataSet uuid:${rio.dataset.getUniqueId} name:${rio.dataset.getName} to path:${rio.path}")
       val dsFile =
         toDataStoreFile(UUID.fromString(rio.dataset.getUniqueId),
@@ -163,7 +180,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
       datastore
     }
 
-    w(s"Attempting to converting Fasta to ReferenceSet ${opts.path}")
+    w(s"Attempting to converting Fasta to ${dsTypeName} ${opts.path}")
     w(s"Job Options $opts")
 
     // Proactively add the log file, so the datastore file will show up in
@@ -173,13 +190,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
                        opts.DEFAULT_TIMEOUT)
       _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
       _ <- Success(w(s"Successfully validated fasta file ${opts.path}"))
-      r <- FastaToReferenceConverter
-        .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
-               Option(opts.organism),
-               Option(opts.ploidy),
-               Paths.get(opts.path),
-               outputDir,
-               mkdir = true)
+      r <- runConverter(opts, outputDir)
       results <- Try(writeFiles(r))
     } yield results
   }
@@ -188,7 +199,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     * Run With pbsmrtpipe for large references
     *
     */
-  private def runNonLocal(opts: ImportFastaJobOptions,
+  private def runNonLocal(opts: ImportFastaBaseJobOptions,
                           job: JobResourceBase,
                           resultsWriter: JobResultsWriter,
                           config: SystemJobConfig): Try[PacBioDataStore] = {
@@ -201,7 +212,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     }
   }
 
-  private def shouldRunLocal(opts: ImportFastaJobOptions,
+  private def shouldRunLocal(opts: ImportFastaBaseJobOptions,
                              job: JobResourceBase,
                              resultsWriter: JobResultsWriter): Boolean = {
     val fileSizeMB = Paths.get(opts.path).toFile.length / 1024 / 1024
@@ -212,7 +223,7 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     * Run and dispatch to correct computation resources
     */
   def runner(dao: JobsDao,
-             opts: ImportFastaJobOptions,
+             opts: ImportFastaBaseJobOptions,
              job: JobResourceBase,
              resultsWriter: JobResultsWriter,
              config: SystemJobConfig): Try[PacBioDataStore] = {
@@ -255,4 +266,20 @@ class ImportFastaJob(opts: ImportFastaJobOptions)
     }
   }
 
+}
+
+class ImportFastaJob(opts: ImportFastaJobOptions)
+    extends ImportFastaBaseJob(opts) {
+  override val PIPELINE_ID = "pbsmrtpipe.pipelines.sa3_ds_fasta_to_reference"
+  override val DS_METATYPE = DataSetMetaTypes.Reference
+
+  override def runConverter(opts: ImportFastaBaseJobOptions,
+                            outputDir: Path): Try[DataSetIO] =
+    FastaToReferenceConverter
+      .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
+             Option(opts.organism),
+             Option(opts.ploidy),
+             Paths.get(opts.path),
+             outputDir,
+             mkdir = true)
 }

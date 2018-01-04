@@ -162,6 +162,13 @@ object JobModels {
       val description = "Convert PacBio spec Fasta file to ReferenceSet XML"
     }
 
+    case object CONVERT_FASTA_GMAPREFERENCE extends JobType {
+      val id = "convert-fasta-gmapreference"
+      val name = "Convert Fasta to GmapReferenceSet"
+      val description =
+        "Convert PacBio spec Fasta file to GmapReferenceSet XML"
+    }
+
     case object CONVERT_RS_MOVIE extends JobType {
       val id = "convert-rs-movie"
       val name = "Convert RS to HdfSubreadSet"
@@ -274,6 +281,7 @@ object JobModels {
     val ALL = Seq(
       CONVERT_FASTA_BARCODES,
       CONVERT_FASTA_REFERENCE,
+      CONVERT_FASTA_GMAPREFERENCE,
       CONVERT_RS_MOVIE,
       DELETE_DATASETS,
       DELETE_JOB,

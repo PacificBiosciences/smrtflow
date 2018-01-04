@@ -430,6 +430,8 @@ package object jobtypes {
         case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
         case JobTypeIds.CONVERT_FASTA_REFERENCE =>
           jx.convertTo[ImportFastaJobOptions]
+        case JobTypeIds.CONVERT_FASTA_GMAPREFERENCE =>
+          jx.convertTo[ImportFastaGmapJobOptions]
         case JobTypeIds.MERGE_DATASETS => jx.convertTo[MergeDataSetJobOptions]
         case JobTypeIds.MOCK_PBSMRTPIPE =>
           jx.convertTo[MockPbsmrtpipeJobOptions]
