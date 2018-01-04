@@ -6,7 +6,7 @@ import javax.net.ssl._
 import java.net.URL
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, HttpsConnectionContext, ConnectionContext}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.http.scaladsl.Http.OutgoingConnection
 import akka.io.IO
 import akka.pattern.ask
@@ -17,7 +17,11 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
 import akka.http.scaladsl.unmarshalling._
-import akka.http.scaladsl.model.headers.BasicHttpCredentials
+import akka.http.scaladsl.model.headers.{
+  Accept,
+  BasicHttpCredentials,
+  `Content-Type`
+}
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.{Sink, Source => AkkaSource}
 import akka.http.scaladsl.client.RequestBuilding._
@@ -72,6 +76,9 @@ class ApiManagerAccessLayer(
   implicit val timeout: Timeout = 200.seconds
 
   val EP_STATUS = "/publisher"
+
+  val HEADER_CONTENT_JSON = `Content-Type`(ContentTypes.`application/json`)
+  val HEADER_ACCEPT_JSON = Accept(MediaRange(MediaTypes.`application/json`))
 
   // this enum isn't described in the wso2 swagger, so I'm including a
   // hand-written version here
@@ -159,7 +166,7 @@ class ApiManagerAccessLayer(
                                          true)
 
     val request = (
-      Post(toUrl(s"/client-registration/v0.10/register"), body)
+      Post("/client-registration/v0.10/register", body)
         ~> addCredentials(BasicHttpCredentials(user, password))
     )
 
@@ -174,17 +181,23 @@ class ApiManagerAccessLayer(
   def login(consumerKey: String,
             consumerSecret: String,
             scopes: Set[String]): Future[OauthToken] = {
-    val body = FormData(
-      Map(
-        "grant_type" -> "password",
-        "username" -> user,
-        "password" -> password,
-        "scope" -> scopes.mkString(" ")
-      ))
 
+    // These need to be URL encoded, or does the library do this automagically?
+    val body = FormData(
+      "grant_type" -> "password",
+      "username" -> user,
+      "password" -> password,
+      "scope" -> scopes.mkString(" ")
+    )
+
+    // This is not really clear to me how this API works.
+    // The call body.toEntity is important and will generate the correct content type
+    // of application/x-www-form-urlencoded. Otherwise, it will be set as
+    // application/json.
     val request = (
-      Post(toUrl(s"/token"), body)
+      Post("/token", body.toEntity)
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
+      //~> logRequest((r: HttpRequest) => println(s"Request $r"))
     )
     apiPipe(request).flatMap(Unmarshal(_).to[OauthToken])
   }
@@ -211,12 +224,10 @@ class ApiManagerAccessLayer(
 
     for {
       //_ <- waitForRequest(Get("/token"), apiPipe, tries, delay)
-      _ <- waitForRequest(Get(toUrl("/api/am/store/v0.10/applications")),
+      _ <- waitForRequest(Get("/api/am/store/v0.10/applications"),
                           tries,
                           delay)
-      _ <- waitForRequest(Get(toUrl("/api/am/publisher/v0.10/apis")),
-                          tries,
-                          delay)
+      _ <- waitForRequest(Get("/api/am/publisher/v0.10/apis"), tries, delay)
     } yield "Successfully Connected to WSO2"
 
   }
@@ -271,7 +282,7 @@ class ApiManagerAccessLayer(
   def getApplication(applicationId: String,
                      token: OauthToken): Future[store.models.Application] = {
     val request = (
-      Get(toUrl(s"/api/am/store/v0.10/applications/${applicationId}"))
+      Get(s"/api/am/store/v0.10/applications/$applicationId")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
@@ -284,7 +295,7 @@ class ApiManagerAccessLayer(
       token: OauthToken): Future[store.models.ApplicationList] = {
 
     val request = (
-      Get(toUrl(s"/api/am/store/v0.10/applications?query=${name}"))
+      Get(s"/api/am/store/v0.10/applications?query=$name")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
@@ -305,7 +316,7 @@ class ApiManagerAccessLayer(
     )
 
     val request = (
-      Post(toUrl(s"/api/am/store/v0.10/subscriptions"), subscription)
+      Post("/api/am/store/v0.10/subscriptions", subscription)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe(request)
@@ -327,7 +338,7 @@ class ApiManagerAccessLayer(
   def getApiDetails(id: String,
                     token: OauthToken): Future[publisher.models.API] = {
     val request = (
-      Get(toUrl(s"/api/am/publisher/v0.10/apis/${id}"))
+      Get(s"/api/am/publisher/v0.10/apis/${id}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
@@ -348,7 +359,7 @@ class ApiManagerAccessLayer(
   def postApiDetails(api: publisher.models.API,
                      token: OauthToken): Future[publisher.models.API] = {
     val request = (
-      Post(toUrl(s"/api/am/publisher/v0.10/apis"), api)
+      Post("/api/am/publisher/v0.10/apis", api)
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe(request)
@@ -359,8 +370,8 @@ class ApiManagerAccessLayer(
                          action: ApiLifecycleAction,
                          token: OauthToken): Future[HttpResponse] = {
     val request = (
-      Post(toUrl(
-        s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=${apiId}&action=${action.toString}"))
+      Post(
+        s"/api/am/publisher/v0.10/apis/change-lifecycle?apiId=$apiId&action=${action.toString}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
     adminPipe(request)
@@ -368,8 +379,7 @@ class ApiManagerAccessLayer(
 
   // User Store admin API
   val userStoreUrl =
-    toUrl(
-      "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint")
+    "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
 
   def soapCall(action: String,
                content: Elem,
