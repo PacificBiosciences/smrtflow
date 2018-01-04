@@ -41,8 +41,6 @@ tools-tarball:
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	# adding a clean call here to make sure incremental (dirty) builds don't fail
-	sbt clean
 	sbt smrt-server-link/{compile,pack}
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
