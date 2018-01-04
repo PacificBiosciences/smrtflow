@@ -350,13 +350,17 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobId2 := DeleteJob(jobId2, Var(false)),
     jobStatus := WaitForJob(jobId2),
     fail("Delete job failed") IF jobStatus !=? EXIT_SUCCESS,
-    job := GetJob(jobId),
     jobId2 := DeleteJob(jobId, Var(true)),
     jobStatus := WaitForJob(jobId2),
     fail(s"Delete job ${jobId2} failed with dryRun=true") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(jobId),
+    fail(s"Job should still be active since dryRun=true") IF job.mapWith(
+      _.isActive) !=? true,
     jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     jobStatus := WaitForJob(jobId),
     fail(s"Delete job ${jobId} failed") IF jobStatus !=? EXIT_SUCCESS,
+    job := GetJob(job.mapWith(_.uuid)),
+    fail(s"Job should now be inactive") IF job.mapWith(_.isActive) !=? false,
     jobReports := GetAnalysisJobReports(job.mapWith(_.uuid)),
     fail("Expected report file to be deleted") IF jobReports.mapWith(
       _(0).dataStoreFile.fileExists) !=? false,
