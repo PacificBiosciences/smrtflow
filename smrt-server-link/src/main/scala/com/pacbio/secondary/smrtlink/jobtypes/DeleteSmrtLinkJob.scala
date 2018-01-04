@@ -99,23 +99,25 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
       case _ => (opts.force.getOrElse(false), opts.removeFiles, false)
     }
 
-    val f1: Future[DeleteResourcesOptions] = for {
-      targetJob <- opts.confirmIsDeletable(dao, jobId, force)
-      oldOpts <- Future.successful(
-        DeleteResourcesOptions(Paths.get(targetJob.path),
-                               removeFiles,
-                               targetJob.projectId))
-    } yield oldOpts
+    def f1: Future[DeleteResourcesOptions] =
+      for {
+        targetJob <- opts.confirmIsDeletable(dao, jobId, force)
+        oldOpts <- Future.successful(
+          DeleteResourcesOptions(Paths.get(targetJob.path),
+                                 removeFiles,
+                                 targetJob.projectId))
+      } yield oldOpts
 
     //FIXME(mpkocher)(8-31-2017) The order of this should be clearer. And perhaps handle a rollback if possible.
-    val f2: Future[String] = for {
-      _ <- dao.deleteJobById(jobId)
-      updatedJob <- dao.getJobById(jobId)
-      files <- dao.getDataStoreFilesByJobId(updatedJob.uuid)
-      _ <- Future.sequence(
-        files.map(f => dao.deleteDataStoreJobFile(f.dataStoreFile.uniqueId)))
-    } yield
-      s"Updated job ${updatedJob.id}. isActive=${updatedJob.isActive} ${files.length} files updated as isActive=false"
+    def f2: Future[String] =
+      for {
+        _ <- dao.deleteJobById(jobId)
+        updatedJob <- dao.getJobById(jobId)
+        files <- dao.getDataStoreFilesByJobId(updatedJob.uuid)
+        _ <- Future.sequence(
+          files.map(f => dao.deleteDataStoreJobFile(f.dataStoreFile.uniqueId)))
+      } yield
+        s"Updated job ${updatedJob.id}. isActive=${updatedJob.isActive} ${files.length} files updated as isActive=false"
 
     // If running in dryMode, don't call the db updating
     val updater =
