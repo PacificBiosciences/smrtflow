@@ -10,10 +10,6 @@ import spray.json._
 import akka.http.scaladsl.server._
 import DefaultJsonProtocol._
 import akka.http.scaladsl.model.StatusCodes
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError

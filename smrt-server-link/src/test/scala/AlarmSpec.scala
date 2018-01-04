@@ -3,12 +3,7 @@ import java.nio.file.Paths
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorImplProvider,
-  JwtUtils,
-  JwtUtilsProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{
   DefaultConfigProvider,
   StringConfigProvider
@@ -52,7 +47,6 @@ class AlarmSpec
 
   sequential
 
-  import Authenticator._
   import AlarmSeverity._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 

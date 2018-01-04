@@ -8,9 +8,12 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import scala.language.implicitConversions
 import scala.util.Try
 
-// TODO(smcclellan): Add unit tests
+//FIXME(mpkocher)(1-4-2018) This entire abstraction could be reduced to simple functions.
 
 object JwtUtils {
+
+  val JWT_HEADER = "x-jwt-assertion"
+
   // Required
   val USERNAME_CLAIM = "http://wso2.org/claims/enduser"
   val ROLES_CLAIM = "http://wso2.org/claims/role"

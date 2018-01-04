@@ -72,7 +72,6 @@ class EulaServiceSpec
       with DataSetServiceProvider
       with EventManagerActorProvider
       with JobsDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings

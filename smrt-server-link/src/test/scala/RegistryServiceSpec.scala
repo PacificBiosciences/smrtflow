@@ -38,7 +38,7 @@ class RegistryServiceSpec
   sequential
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-  import Authenticator._
+  import JwtUtils._
 
   val FAKE_HOST = "fake.server.com"
   val FAKE_PORT = 1234
@@ -66,7 +66,6 @@ class RegistryServiceSpec
         extends ServiceComposer
         with RegistryServiceActorProvider
         with InMemoryRegistryDaoProvider
-        with AuthenticatorImplProvider
         with JwtUtilsProvider
         with FakeClockProvider {
 
@@ -83,7 +82,6 @@ class RegistryServiceSpec
 
     val actorRef =
       TestActorRef[RegistryServiceActor](TestProviders.registryServiceActor())
-    val authenticator = TestProviders.authenticator()
 
     val routes = new RegistryService(actorRef, materializer).prefixedRoutes
 
