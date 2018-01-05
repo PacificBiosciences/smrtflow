@@ -228,25 +228,29 @@ class DataSetService(dao: JobsDao)
   def getContigDataSetDetails(i: IdAble): Future[String] =
     dao.getContigDataSetDetailsById(i)
 
-  def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
-    val f1 = sopts.isActive
-      .map { setIsActive =>
-        dao.deleteDataSetById(id, setIsActive = setIsActive)
-      }
-      .getOrElse(Future.successful(MessageResponse("")))
+  def updateDataSet(id: IdAble,
+                    sopts: DataSetUpdateRequest): Future[MessageResponse] = {
+    def f1 =
+      sopts.isActive
+        .map { setIsActive =>
+          dao.deleteDataSetById(id, setIsActive = setIsActive)
+        }
+        .getOrElse(Future.successful(MessageResponse("")))
 
-    val f2 =
+    def mapError(opt: Option[String]): Future[MessageResponse] = {
+      opt
+        .map(msg => Future.failed(UnprocessableEntityError(msg)))
+        .getOrElse(Future.successful(MessageResponse("Successfully Updated")))
+    }
+
+    def f2 =
       if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
         for {
           ds <- dao.getDataSetMetaData(id)
-          _ <- DataSetUpdateUtils
-            .testApplyEdits(Paths.get(ds.path),
-                            sopts.bioSampleName,
-                            sopts.wellSampleName)
-            .map { err =>
-              Future.failed(new UnprocessableEntityError(err))
-            }
-            .getOrElse(Future.successful("no errors"))
+          _ <- mapError(
+            DataSetUpdateUtils.testApplyEdits(Paths.get(ds.path),
+                                              sopts.bioSampleName,
+                                              sopts.wellSampleName))
           msg <- dao.updateSubreadSetDetails(id,
                                              sopts.bioSampleName,
                                              sopts.wellSampleName)
