@@ -4,11 +4,15 @@ import java.nio.file.{Path, Paths}
 
 import scala.util.Try
 
+import com.pacificbiosciences.pacbiodatasets.{
+  ContigSetMetadataType,
+  GmapReferenceSet
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.converters.GmapReferenceConverter
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
-  DataSetIO
+  GmapReferenceSetIO
 }
 
 case class ImportFastaGmapJobOptions(path: String,
@@ -25,18 +29,11 @@ case class ImportFastaGmapJobOptions(path: String,
 }
 
 class ImportFastaGmapJob(opts: ImportFastaGmapJobOptions)
-    extends ImportFastaBaseJob(opts) {
+    extends ImportFastaBaseJob[GmapReferenceSet,
+                               ContigSetMetadataType,
+                               GmapReferenceSetIO](opts) {
   override val PIPELINE_ID =
     "pbsmrtpipe.pipelines.sa3_ds_fasta_to_gmapreference"
   override val DS_METATYPE = DataSetMetaTypes.GmapReference
-
-  override def runConverter(opts: ImportFastaBaseJobOptions,
-                            outputDir: Path): Try[DataSetIO] =
-    GmapReferenceConverter
-      .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
-             Option(opts.organism),
-             Option(opts.ploidy),
-             Paths.get(opts.path),
-             outputDir,
-             mkdir = true)
+  override val CONVERTER = GmapReferenceConverter
 }

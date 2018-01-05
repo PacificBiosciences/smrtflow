@@ -33,7 +33,9 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 }
 
 object FastaBarcodesConverter
-    extends FastaConverterBase[BarcodeSet, BarcodeSetMetadataType]
+    extends FastaConverterBase[BarcodeSet,
+                               BarcodeSetMetadataType,
+                               BarcodeSetIO]
     with LazyLogging {
 
   protected val baseName: String = "barcodes"

@@ -87,7 +87,8 @@ object FastaToGmapReferenceSet
                              ploidy,
                              fastaPath,
                              outputDir,
-                             c.inPlace)
+                             inPlace = c.inPlace,
+                             mkdir = false)
     } match {
       case Success(x) =>
         x match {

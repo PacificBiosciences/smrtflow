@@ -36,7 +36,9 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 }
 
 object FastaToReferenceConverter
-    extends FastaConverterBase[ReferenceSet, ContigSetMetadataType]
+    extends ReferenceConverterBase[ReferenceSet,
+                                   ContigSetMetadataType,
+                                   ReferenceSetIO]
     with LazyLogging {
 
   protected val baseName: String = "reference"
@@ -146,26 +148,12 @@ object FastaToReferenceConverter
     }
   }
 
-  def toTry(name: String,
+  def apply(name: String,
             organism: Option[String],
             ploidy: Option[String],
             fastaPath: Path,
             outputDir: Path,
-            inPlace: Boolean = false,
-            mkdir: Boolean = false,
-            skipNgmlr: Boolean = false): Try[ReferenceSetIO] = {
-
-    apply(name,
-          organism,
-          ploidy,
-          fastaPath,
-          outputDir,
-          inPlace,
-          mkdir,
-          skipNgmlr) match {
-      case Right(rio) => Success(rio)
-      case Left(ex) => Failure(new Exception(ex.getMessage))
-    }
-  }
-
+            inPlace: Boolean,
+            mkdir: Boolean) =
+    apply(name, organism, ploidy, fastaPath, outputDir, inPlace, mkdir)
 }

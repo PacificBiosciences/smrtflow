@@ -4,18 +4,26 @@ import java.net.{URI, URL}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetMetadataType,
+  DataSetType,
+  ContigSetMetadataType,
+  ReferenceSet
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
   MockJobUtils,
   PbSmrtPipeJobOptions
 }
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.converters.{
+  ReferenceConverterBase,
   FastaToReferenceConverter,
   PacBioFastaValidator
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
-  DataSetIO
+  DataSetIO,
+  ReferenceSetIO
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -51,7 +59,8 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   }
 }
 
-abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
+abstract class ImportFastaBaseJob[T <: DataSetType, U <: DataSetMetadataType,
+V <: DataSetIO](opts: ImportFastaBaseJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
     with timeUtils {
@@ -59,6 +68,7 @@ abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
 
   val PIPELINE_ID: String
   val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
+  val CONVERTER: ReferenceConverterBase[T, U, V]
 
   private def dsTypeName = DS_METATYPE.fileType.dsName
 
@@ -134,9 +144,6 @@ abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
     ds
   }
 
-  protected def runConverter(opts: ImportFastaBaseJobOptions,
-                             outputDir: Path): Try[DataSetIO]
-
   /**
     * Run locally (don't submit to the cluster resources)
     */
@@ -177,7 +184,12 @@ abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
                        opts.DEFAULT_TIMEOUT)
       _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
       _ <- Success(w(s"Successfully validated fasta file ${opts.path}"))
-      r <- runConverter(opts, outputDir)
+      r <- CONVERTER.toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
+                           Option(opts.organism),
+                           Option(opts.ploidy),
+                           Paths.get(opts.path),
+                           outputDir,
+                           mkdir = true)
       results <- Try(writeFiles(r))
     } yield results
   }
@@ -269,17 +281,10 @@ case class ImportFastaJobOptions(path: String,
 }
 
 class ImportFastaJob(opts: ImportFastaJobOptions)
-    extends ImportFastaBaseJob(opts) {
+    extends ImportFastaBaseJob[ReferenceSet,
+                               ContigSetMetadataType,
+                               ReferenceSetIO](opts) {
   override val PIPELINE_ID = "pbsmrtpipe.pipelines.sa3_ds_fasta_to_reference"
   override val DS_METATYPE = DataSetMetaTypes.Reference
-
-  override def runConverter(opts: ImportFastaBaseJobOptions,
-                            outputDir: Path): Try[DataSetIO] =
-    FastaToReferenceConverter
-      .toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),
-             Option(opts.organism),
-             Option(opts.ploidy),
-             Paths.get(opts.path),
-             outputDir,
-             mkdir = true)
+  override val CONVERTER = FastaToReferenceConverter
 }
