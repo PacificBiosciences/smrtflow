@@ -11,7 +11,7 @@ import scalaj.http.Base64
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri, ContentTypes}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.unmarshalling.{FromResponseUnmarshaller, Unmarshal}
@@ -374,6 +374,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   def getReport(reportId: UUID): Future[Report] =
     http
       .singleRequest(Get(toUrl(ROOT_DATASTORE + s"/$reportId/download")))
+      .map(_.entity.withContentType(ContentTypes.`application/json`))
       .flatMap(Unmarshal(_).to[Report])
 
   protected def getJobReports(
