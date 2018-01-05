@@ -37,5 +37,6 @@ class ImportFastaGmapJob(opts: ImportFastaGmapJobOptions)
              Option(opts.organism),
              Option(opts.ploidy),
              Paths.get(opts.path),
-             outputDir)
+             outputDir,
+             mkdir = true)
 }

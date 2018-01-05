@@ -151,9 +151,10 @@ object GmapReferenceConverter
             ploidy: Option[String],
             fastaPath: Path,
             outputDir: Path,
-            inPlace: Boolean = false)
+            inPlace: Boolean = false,
+            mkdir: Boolean = false)
     : Either[DatasetConvertError, GmapReferenceSetIO] = {
-    val target = setupTargetDir(name, fastaPath, outputDir, inPlace)
+    val target = setupTargetDir(name, fastaPath, outputDir, inPlace, mkdir)
     createDataset(target.name,
                   organism,
                   ploidy,
@@ -172,8 +173,9 @@ object GmapReferenceConverter
             ploidy: Option[String],
             fastaPath: Path,
             outputDir: Path,
-            inPlace: Boolean = false): Try[GmapReferenceSetIO] = {
-    apply(name, organism, ploidy, fastaPath, outputDir, inPlace) match {
+            inPlace: Boolean = false,
+            mkdir: Boolean = false): Try[GmapReferenceSetIO] = {
+    apply(name, organism, ploidy, fastaPath, outputDir, inPlace, mkdir) match {
       case Right(rio) => Success(rio)
       case Left(ex) => Failure(new Exception(ex.getMessage))
     }

@@ -34,6 +34,8 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   val path: String
   val ploidy: String
   val organism: String
+  // See comments on Job "name" vs Job option scoped "name" used to assign DataSet name.
+  // This should have been "datasetName" to avoid confusion
   val name: Option[String]
   val description: Option[String]
   val projectId: Option[Int]
@@ -49,21 +51,6 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   }
 }
 
-// See comments on Job "name" vs Job option scoped "name" used to assign DataSet name.
-// This should have been "datasetName" to avoid confusion
-case class ImportFastaJobOptions(path: String,
-                                 ploidy: String,
-                                 organism: String,
-                                 name: Option[String],
-                                 description: Option[String],
-                                 projectId: Option[Int] = Some(
-                                   JobConstants.GENERAL_PROJECT_ID))
-    extends ImportFastaBaseJobOptions {
-  override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
-
-  override def toJob() = new ImportFastaJob(this)
-}
-
 abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
@@ -73,7 +60,7 @@ abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
   val PIPELINE_ID: String
   val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
 
-  def dsTypeName = DS_METATYPE.fileType.fileTypeId.split(".").last
+  private def dsTypeName = DS_METATYPE.fileType.dsName
 
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
@@ -266,6 +253,19 @@ abstract class ImportFastaBaseJob(opts: ImportFastaBaseJobOptions)
     }
   }
 
+}
+
+case class ImportFastaJobOptions(path: String,
+                                 ploidy: String,
+                                 organism: String,
+                                 name: Option[String],
+                                 description: Option[String],
+                                 projectId: Option[Int] = Some(
+                                   JobConstants.GENERAL_PROJECT_ID))
+    extends ImportFastaBaseJobOptions {
+  override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
+
+  override def toJob() = new ImportFastaJob(this)
 }
 
 class ImportFastaJob(opts: ImportFastaJobOptions)
