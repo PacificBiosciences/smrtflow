@@ -2253,6 +2253,42 @@
         ]
       }
     },
+    "/secondary-analysis/job-manager/jobs/convert-fasta-gmapreference": {
+      "post": {
+        "description": "Generate a PacBio GmapReferenceSet XML (including required index files) from a FASTA file",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import GMAP reference FASTA job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertImportFastaOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/secondary-analysis/job-manager/jobs/convert-fasta-barcodes": {
       "post": {
         "description": "Generate a PacBio BarcodeSet XML from a FASTA file",

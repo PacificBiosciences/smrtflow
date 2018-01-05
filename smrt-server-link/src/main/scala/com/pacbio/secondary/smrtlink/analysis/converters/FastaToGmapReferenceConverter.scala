@@ -45,7 +45,9 @@ trait GmapDbProtocol extends DefaultJsonProtocol {
 }
 
 object GmapReferenceConverter
-    extends FastaConverterBase[GmapReferenceSet, ContigSetMetadataType]
+    extends ReferenceConverterBase[GmapReferenceSet,
+                                   ContigSetMetadataType,
+                                   GmapReferenceSetIO]
     with LazyLogging
     with GmapDbProtocol {
 
@@ -146,14 +148,15 @@ object GmapReferenceConverter
     }
   }
 
-  def apply(name: String,
-            fastaPath: Path,
-            outputDir: Path,
-            organism: Option[String],
-            ploidy: Option[String],
-            inPlace: Boolean = false)
-    : Either[DatasetConvertError, GmapReferenceSetIO] = {
-    val target = setupTargetDir(name, fastaPath, outputDir, inPlace)
+  def apply(
+      name: String,
+      organism: Option[String],
+      ploidy: Option[String],
+      fastaPath: Path,
+      outputDir: Path,
+      inPlace: Boolean,
+      mkdir: Boolean): Either[DatasetConvertError, GmapReferenceSetIO] = {
+    val target = setupTargetDir(name, fastaPath, outputDir, inPlace, mkdir)
     createDataset(target.name,
                   organism,
                   ploidy,

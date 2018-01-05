@@ -79,7 +79,7 @@ object FileTypes {
                              mimeType: String)
       extends FileType
       with PacBioDataSetType {
-    def dsName: String = fileTypeId.split(".").last
+    def dsName: String = fileTypeId.split('.').last
   }
 
   // The most generic file type

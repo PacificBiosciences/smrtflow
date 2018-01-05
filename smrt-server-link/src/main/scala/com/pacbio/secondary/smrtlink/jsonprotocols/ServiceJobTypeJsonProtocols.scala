@@ -35,6 +35,8 @@ trait ServiceJobTypeJsonProtocols
     ImportBarcodeFastaJobOptions)
   implicit val importFastaJobOptionsJsonFormat = jsonFormat6(
     ImportFastaJobOptions)
+  implicit val importFastaGmapJobOptionsJsonFormat = jsonFormat6(
+    ImportFastaGmapJobOptions)
 
   // Renaming workaround
   implicit val pbsmrtpipeJobOptionsJsonFormat = jsonFormat7(

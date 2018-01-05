@@ -661,6 +661,16 @@ class ImportFastaJobsService(override val dao: JobsDao,
 
 }
 
+class ImportFastaGmapJobsService(override val dao: JobsDao,
+                                 override val config: SystemJobConfig)(
+    implicit val um: FromRequestUnmarshaller[ImportFastaGmapJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportFastaGmapJobOptions],
+    implicit val jwriter: JsonWriter[ImportFastaGmapJobOptions])
+    extends CommonJobsRoutes[ImportFastaGmapJobOptions] {
+  override def jobTypeId = JobTypeIds.CONVERT_FASTA_GMAPREFERENCE
+
+}
+
 class MergeDataSetJobsService(override val dao: JobsDao,
                               override val config: SystemJobConfig)(
     implicit val um: FromRequestUnmarshaller[MergeDataSetJobOptions],
@@ -966,6 +976,7 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     new ImportBarcodeFastaJobsService(dao, config),
     new ImportDataSetJobsService(dao, config),
     new ImportFastaJobsService(dao, config),
+    new ImportFastaGmapJobsService(dao, config),
     new MergeDataSetJobsService(dao, config),
     new MockPbsmrtpipeJobsService(dao, config),
     new PbsmrtpipeJobsService(dao, config),
