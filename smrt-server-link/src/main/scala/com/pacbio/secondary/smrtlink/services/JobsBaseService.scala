@@ -103,7 +103,6 @@ trait DownloadFileUtils {
       collection.immutable.Seq(customHeader)
 
     val f = path.toFile
-    println(s"Downloading file (size:${f.length()} file:$f ")
 
     val responseEntity = HttpEntity(
       MediaTypes.`application/octet-stream`,
@@ -233,49 +232,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     } yield engineJob
   }
 
-  private def resolveContentType(path: Path): ContentType = {
-    val mimeType = MimeTypeProperties.fromFile(path.toFile)
-    val mediaType =
-      MediaType.applicationWithFixedCharset(mimeType, HttpCharsets.`UTF-8`)
-    ContentType(mediaType)
-  }
-
-  //FIXME(mpkocher)(2017-10-18) This needs to be cleaned up. This is terrible.
-  // Is this only for resolving images?
-  private def resolveJobResource(fx: Future[EngineJob], id: String)(
-      implicit ec: ExecutionContext): Future[ResponseEntity] = {
-    fx.flatMap { engineJob =>
-        // Any IO heavy operation within a Future needs to be
-        // wrapped in an explicit blocking {} call
-        Future {
-          blocking {
-            JobResourceUtils.getJobResource(engineJob.path, id)
-          }
-        }(ec)
-      }(ec)
-      .recover {
-        case NonFatal(_) => None
-      }(ec)
-      .flatMap {
-        case Some(x) =>
-          val mType =
-            if (id.endsWith(".png")) MediaType.image("png", NotCompressible)
-            else MediaType.text("plain")
-
-          Future {
-            blocking { // MK. It's not completely clear if this blocking wrapping is necessary
-              HttpEntity.fromPath(ContentType(mType,
-                                              () => HttpCharsets.`UTF-8`),
-                                  Paths.get(x))
-            }
-          }(ec)
-        case None =>
-          Future.failed(
-            throw ResourceNotFoundError(
-              s"Unable to find image resource '$id'"))
-      }(ec)
-  }
-
   // Means a project wasn't provided
   val DEFAULT_PROJECT: Option[Int] = None
 
@@ -392,11 +348,23 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             }
         } ~
         path(JOB_REPORT_PREFIX / JavaUUID) { reportUUID =>
-          get {
-            complete {
-              dao
-                .getDataStoreReportByUUID(reportUUID)
-                .map(_.parseJson)(ec) // To get the mime type correct
+          pathEndOrSingleSlash {
+            get {
+              complete {
+                dao
+                  .getDataStoreReportByUUID(reportUUID)
+                  .map(_.parseJson)(ec) // To get the mime type correct
+              }
+            }
+          }
+        } ~
+        path(JOB_REPORT_PREFIX / JavaUUID / "resources") { reportUUID =>
+          pathEndOrSingleSlash {
+            parameter("relpath") { relpath =>
+              onSuccess(dao.getDataStoreFileByUUID(reportUUID)) { file =>
+                val resourcePath = Paths.get(file.path).resolveSibling(relpath)
+                getFromFile(resourcePath.toFile)
+              }
             }
           }
         } ~
@@ -501,18 +469,6 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                   }(ec)
               }
             }
-        } ~
-        path("resources") {
-          parameter('id) { id =>
-            logger.info(
-              s"Attempting to resolve resource $id from ${jobId.toIdString}")
-            complete {
-              resolveJobResource(dao.getJobById(jobId), id)(ec).map {
-                responseEntity: ResponseEntity =>
-                  HttpResponse(entity = responseEntity)
-              }(ec)
-            }
-          }
         } ~
         path("children") {
           complete {

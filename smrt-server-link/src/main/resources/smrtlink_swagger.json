@@ -3121,46 +3121,11 @@
           }
         ],
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "id",
-            "in": "query"
-          }
-        ],
-        "x-auth-type": "Application & Application User"
       }
     },
     "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
@@ -3271,6 +3236,51 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}/resources": {
+      "get": {
+        "description": "Get a Report resource (png) using the (relative path) file name of the resource",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return the Report Resource"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "relpath",
+            "in": "query"
+          }
+        ],
+        "produces": [
+          "image/png"
         ],
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
