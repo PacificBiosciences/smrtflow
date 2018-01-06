@@ -392,11 +392,23 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             }
         } ~
         path(JOB_REPORT_PREFIX / JavaUUID) { reportUUID =>
-          get {
-            complete {
-              dao
-                .getDataStoreReportByUUID(reportUUID)
-                .map(_.parseJson)(ec) // To get the mime type correct
+          pathEndOrSingleSlash {
+            get {
+              complete {
+                dao
+                  .getDataStoreReportByUUID(reportUUID)
+                  .map(_.parseJson)(ec) // To get the mime type correct
+              }
+            }
+          }
+        } ~
+        path(JOB_REPORT_PREFIX / JavaUUID / "resources") { reportUUID =>
+          pathEndOrSingleSlash {
+            parameter("relpath") { relpath =>
+              onSuccess(dao.getDataStoreFileByUUID(reportUUID)) { file =>
+                val resourcePath = Paths.get(file.path).resolveSibling(relpath)
+                getFromFile(resourcePath.toFile)
+              }
             }
           }
         } ~
