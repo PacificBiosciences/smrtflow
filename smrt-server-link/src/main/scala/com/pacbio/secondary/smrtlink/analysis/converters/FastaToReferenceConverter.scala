@@ -154,6 +154,7 @@ object FastaToReferenceConverter
             fastaPath: Path,
             outputDir: Path,
             inPlace: Boolean,
-            mkdir: Boolean) =
-    apply(name, organism, ploidy, fastaPath, outputDir, inPlace, mkdir)
+            mkdir: Boolean) = {
+    apply(name, organism, ploidy, fastaPath, outputDir, inPlace, mkdir, false)
+  }
 }
