@@ -1,12 +1,8 @@
-package com.pacbio.secondary.smrtlink.app
+package com.pacbio.secondary.smrtservereve.app
 
 import java.io._
-import java.net.{BindException, URL}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import javax.xml.bind.DatatypeConverter
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -22,56 +18,75 @@ import akka.util.Timeout
 import akka.pattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.{
-  HttpHeader,
-  MediaTypes,
-  Multipart,
-  StatusCodes
-}
+import akka.http.scaladsl.model.{HttpHeader, MediaTypes, Multipart, StatusCodes}
 import akka.http.scaladsl.Http
 import spray.json._
 import DefaultJsonProtocol._
+import akka.http.scaladsl.model.headers.HttpChallenge
+import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.settings.RoutingSettings
-import com.pacbio.secondary.smrtlink.auth.hmac.{
-  Authentication,
-  DefaultSigner,
-  Directives,
-  SignerConfig
-}
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
 import com.pacbio.secondary.smrtlink.services.PacBioService
 import com.pacbio.secondary.smrtlink.time.SystemClock
-import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{
-  EventTypes,
-  PacBioComponentManifest,
-  SmrtLinkSystemEvent
-}
+import com.pacbio.secondary.smrtlink.models.{EventTypes, PacBioComponentManifest, SmrtLinkSystemEvent}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.services.StatusService
-import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.common.logging.LoggerOptions
+import com.pacbio.secondary.smrtlink.app.{ActorSystemCakeProvider, BaseServiceConfigCakeProvider}
+import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
 import scala.util.control.NonFatal
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
 
-case class EveAccount(secret: String)
 
-case class EveAuth(a: Option[EveAccount], s: Option[String])
-    extends Authentication[EveAccount]
-    with DefaultSigner
-    with SignerConfig {
-  def accountAndSecret(uuid: String): (Option[EveAccount], Option[String]) =
-    (a, s)
+/**
+  * This could be made more configurable, currently keep the
+  * defaults hardcoded in this trait.
+  */
+trait HmacDirectives {
+
+  val pattern = """^hmac (\S+):(\S+)$"""
+  val header = "Authentication"
+  val regex = pattern.r
+
+
+  /**
+    * Auth Directive for validating the Hmac Authentication
+    *
+    * Trying to keep this as simple as possible.
+    *
+    * @param hmacSecret API secret key
+    * @return
+    */
+  def validateHmac(hmacSecret: String): Directive0 = Directive[Unit] {
+    inner =>
+      ctx => {
+        ctx.request.headers.find(_.is(header)).map(_.value()) match {
+          case Some(rawHeaderValue) =>
+            rawHeaderValue match {
+              case regex(_, hash) =>
+                if (Signer.valid(hash, hmacSecret, ctx.request.uri.path.toString())) {
+                  inner(Unit)(ctx)
+                } else {
+                  ctx.reject(AuthenticationFailedRejection(CredentialsRejected, HttpChallenge(ctx.request.uri.scheme, realm = None)))
+                }
+              case _ =>
+                ctx.reject(MalformedHeaderRejection(header, s"Malformed header $rawHeaderValue"))
+            }
+            inner(Unit)(ctx)
+          case _ => ctx.reject(MissingHeaderRejection(header))
+        }
+      }
+  }
 }
 
 // Push this back to FileSystemUtils in common
@@ -181,6 +196,7 @@ class EventService(
     apiSecret: String,
     swaggerResourceName: String)(implicit actorSystem: ActorSystem)
     extends EventServiceBaseMicroService
+    with HmacDirectives
     with LazyLogging
     with timeUtils
     with FileSizeFormatterUtil {
@@ -189,8 +205,6 @@ class EventService(
   implicit val routing = RoutingSettings.default
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-
-  implicit var auth = EveAuth(Some(EveAccount(apiSecret)), Some(apiSecret))
 
   val PREFIX_EVENTS = "events"
   val PREFIX_FILES = "files"
@@ -211,7 +225,7 @@ class EventService(
   def eventRoutes: Route =
     pathPrefix(PREFIX_EVENTS) {
       pathEndOrSingleSlash {
-        Directives.authenticate[EveAccount] { account =>
+        validateHmac(apiSecret) {
           post {
             entity(as[SmrtLinkSystemEvent]) { event =>
               complete(StatusCodes.Created -> eventProcessor.process(event))
@@ -224,7 +238,7 @@ class EventService(
   def filesRoute: Route =
     pathPrefix(PREFIX_FILES) {
       pathEndOrSingleSlash {
-        Directives.authenticate[EveAccount] { account =>
+        validateHmac(apiSecret) {
           post {
             entity(as[Multipart.FormData]) { formData =>
               complete(StatusCodes.Created -> processUpload(formData))

@@ -2,9 +2,6 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.net.URL
 import java.nio.file.Path
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import javax.xml.bind.DatatypeConverter
 
 import spray.json._
 import akka.http.scaladsl.server._
@@ -18,16 +15,11 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.scaladsl.{FileIO, Source}
 import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
+import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import com.pacbio.secondary.smrtlink.auth.hmac.{
-  Authentication,
-  DefaultSigner,
-  Directives,
-  SignerConfig
-}
 
 /**
   * Create a Client for the Eve Server.
@@ -41,8 +33,6 @@ import com.pacbio.secondary.smrtlink.auth.hmac.{
 class EventServerClient(baseUrl: URL, apiSecret: String)(
     implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
-    with DefaultSigner
-    with SignerConfig
     with LazyLogging {
 
   import SprayJsonSupport._
@@ -80,7 +70,7 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
 
   private def generateAuthHeader(method: HttpMethod,
                                  segment: String): HttpHeader = {
-    val key = generate(apiSecret, s"$method+$segment", timestamp)
+    val key = Signer.generate(apiSecret, s"$method+$segment", Signer.timestamp)
     val authHeader = s"hmac uid:$key"
     RawHeader("Authentication", authHeader)
   }
