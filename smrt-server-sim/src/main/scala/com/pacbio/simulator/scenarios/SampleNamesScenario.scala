@@ -171,7 +171,8 @@ class SampleNamesScenario(host: String, port: Int)
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
       failIfWrongBioSampleName(subreads, MULTIPLE_SAMPLES_NAME),
-      //FIXME updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[Exception],
+      updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[
+        Exception],
       // the individual sample names should still be propagated to pbsmrtpipe
       jobId := RunAnalysisPipeline(
         toPbsmrtpipeOpts("merged-bio-samples",
