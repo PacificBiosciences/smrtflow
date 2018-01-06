@@ -64,7 +64,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       .flatMap { response =>
         response.status match {
           case StatusCodes.OK => Future.successful(response)
-          case _ => Future.failed(new Exception(response.toString))
+          case _ =>
+            Future.failed(
+              new Exception(
+                s"HTTP ERROR ${response.status}: ${response.toString}"))
         }
       }
 
