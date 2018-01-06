@@ -11,7 +11,13 @@ import scalaj.http.Base64
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri, ContentTypes}
+import akka.http.scaladsl.model.{
+  HttpRequest,
+  HttpResponse,
+  Uri,
+  ContentTypes,
+  StatusCodes
+}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.unmarshalling.{FromResponseUnmarshaller, Unmarshal}
@@ -51,6 +57,24 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
   def toUri(segment: String): Uri =
     Uri(
       s"${baseUrl.getProtocol}://${baseUrl.getHost}:${baseUrl.getPort}$segment")
+
+  protected def getResponse(request: HttpRequest): Future[HttpResponse] =
+    http
+      .singleRequest(request)
+      .flatMap { response =>
+        response.status match {
+          case StatusCodes.OK => Future.successful(response)
+          case _ =>
+            Future.failed(
+              new Exception(
+                s"HTTP ERROR ${response.status}: ${response.toString}"))
+        }
+      }
+
+  protected def getMessageResponse(
+      request: HttpRequest): Future[MessageResponse] =
+    getResponse(request)
+      .flatMap(Unmarshal(_).to[MessageResponse])
 
   def getUrlResponse(uri: Uri) = http.singleRequest(Get(uri))
 
@@ -126,11 +150,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       .flatMap(Unmarshal(_).to[DataSetMetaDataSet])
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] =
-    http
-      .singleRequest(
-        Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
-            DataSetUpdateRequest(Some(false))))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(
+      Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
+          DataSetUpdateRequest(Some(false))))
 
   def getSubreadSets: Future[Seq[SubreadServiceDataSet]] =
     http
@@ -166,11 +188,9 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       isActive: Option[Boolean] = None,
       bioSampleName: Option[String] = None,
       wellSampleName: Option[String] = None): Future[MessageResponse] =
-    http
-      .singleRequest(
-        Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
-            DataSetUpdateRequest(isActive, bioSampleName, wellSampleName)))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(
+      Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
+          DataSetUpdateRequest(isActive, bioSampleName, wellSampleName)))
 
   def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] =
     http
@@ -359,13 +379,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       isActive: Boolean = true,
       path: Option[Path] = None,
       fileSize: Option[Long] = None): Future[MessageResponse] =
-    http
-      .singleRequest(
-        Put(toUrl(ROOT_DATASTORE + s"/$fileId"),
-            DataStoreFileUpdateRequest(isActive,
-                                       path.map(_.toString),
-                                       fileSize)))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(
+      Put(
+        toUrl(ROOT_DATASTORE + s"/$fileId"),
+        DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize)))
 
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
     Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
@@ -484,9 +501,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       .flatMap(Unmarshal(_).to[RunSummary])
 
   def deleteRun(runId: UUID): Future[MessageResponse] =
-    http
-      .singleRequest(Delete(getRunUrl(runId)))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(Delete(getRunUrl(runId)))
 
   def getProjects: Future[Seq[Project]] =
     http
@@ -534,9 +549,7 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       .flatMap(Unmarshal(_).to[EulaRecord])
 
   def deleteEula(version: String): Future[MessageResponse] =
-    http
-      .singleRequest(Delete(toUrl(ROOT_EULA + s"/$version")))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(Delete(toUrl(ROOT_EULA + s"/$version")))
 
   def getJobsByType(jobType: String,
                     showAll: Boolean = false,
@@ -699,10 +712,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getJobOptions(JobTypeIds.PBSMRTPIPE.id, jobId)
 
   def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
-    http
-      .singleRequest(
-        Post(toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, TERMINATE_JOB)))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(
+      Post(toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, TERMINATE_JOB)))
 
   def getReportViewRules: Future[Seq[ReportViewRule]] =
     http
@@ -823,10 +834,8 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       .flatMap(Unmarshal(_).to[EngineJob])
 
   def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] =
-    http
-      .singleRequest(Post(toUrl(
-        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit")))
-      .flatMap(Unmarshal(_).to[MessageResponse])
+    getMessageResponse(Post(toUrl(
+      s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit")))
 
   def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] =
     http
