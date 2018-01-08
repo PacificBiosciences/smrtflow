@@ -2,24 +2,13 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.net.URL
 
-import akka.actor.{ActorSystem, Scheduler}
-import akka.http.scaladsl.Http
-import akka.pattern.after
+import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.model.{
-  HttpRequest,
-  HttpResponse,
-  StatusCode,
-  StatusCodes,
-  Uri
-}
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.model.HttpResponse
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}

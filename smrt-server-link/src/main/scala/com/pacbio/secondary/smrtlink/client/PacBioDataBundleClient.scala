@@ -6,9 +6,7 @@ import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.models.PacBioDataBundle
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.unmarshalling.Unmarshal
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

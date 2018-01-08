@@ -12,21 +12,15 @@ import scalaj.http.Base64
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri, ContentTypes}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
-import akka.http.scaladsl.unmarshalling.{
-  FromResponseUnmarshaller,
-  Unmarshal,
-  Unmarshaller
-}
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._

@@ -12,11 +12,11 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.Multipart._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.scaladsl.{FileIO, Source}
+import com.typesafe.scalalogging.LazyLogging
+
 import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.pacbio.secondary.smrtlink.auth.hmac.Signer
-import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent._
 import scala.concurrent.duration._
