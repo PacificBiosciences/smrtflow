@@ -103,7 +103,7 @@ test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-reso
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
 	rm -rf jobs-root
-	sbt -batch -no-colors "smrt-server-sim/it:test"
+	sbt -batch -no-colors "smrt-server-sim/runInt"
 
 jsontest:
 	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v './repos/' | grep -v './jobs-root/' | grep -v './tmp/' | grep -v 'target/scala'`)

@@ -22,8 +22,6 @@ packGenerateWindowsBatFile := false
 val getSmrtLinkAssemblyJar =
   taskKey[File]("Resolve to SMRT Link Analysis Assembly Jar file")
 
-// FIXME. This shouldn't be harcoded to scala-2.X
-//(bd / "smrt-server-link/target/scala-2.11/smrt-server-link-analysis.jar").getAbsoluteFile
 getSmrtLinkAssemblyJar := {
   val classpathJars = Attributed.data((dependencyClasspath in Runtime).value) // Not clear why this is added
   val bd = (baseDirectory in ThisBuild).value
@@ -34,8 +32,6 @@ getSmrtLinkAssemblyJar := {
 val smrtLinkServerRunner =
   taskKey[SmrtLinkServerRunner]("Integration Test SMRT Link Server Runner")
 
-// this can be initialized from assembly.value but this creates a bunch of de-dupe yakk shaving
-// Hard coding this value for now
 smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner(
   getSmrtLinkAssemblyJar.value,
   streams.value.log)
@@ -46,15 +42,16 @@ testOptions in IntegrationTest := {
   (testOptions in IntegrationTest).value
 }
 
-// Using the above section to start
-// Original Version. runner.start() has compile error of ` error: value flatMap is not a member of Unit`
-// but runner.stop() doesn't raise a compiler error
-//executeTests in IntegrationTest <<=
-//  (executeTests in IntegrationTest, smrtLinkServerRunner) apply {
-//    (testTask, runnerTask) =>
-//      for {
-//        runner <- runnerTask
-//        //_ <- runner.start()
-//        result <- testTask.andFinally(runner.stop())
-//      } yield result
-//  }
+
+val runInt =
+  taskKey[String]("Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
+
+runInt := {
+  val r = smrtLinkServerRunner.value
+  r.start()
+  // FIXME. This needs to the set the PATH to included exe's from pack and a task dependency on sbt-pack
+  (executeTests in IntegrationTest).value
+  // this should be done as an andFinally call executeTests task
+  r.stop()
+  "Completed running integration tests"
+}
