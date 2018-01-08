@@ -105,7 +105,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
       user,
       Var("Sim TS Status support comment")),
     WaitForSuccessfulJob(jobStatusId),
-    dataStore := GetAnalysisJobDataStore(jobStatusId),
+    dataStore := GetJobDataStore(jobStatusId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )
@@ -130,7 +130,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
                                      user,
                                      Var("Sim TS Failed Job support comment")),
     WaitForSuccessfulJob(jobFailedId),
-    dataStore := GetAnalysisJobDataStore(jobFailedId),
+    dataStore := GetJobDataStore(jobFailedId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )

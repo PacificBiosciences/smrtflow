@@ -166,7 +166,7 @@ class SampleNamesScenario(host: String, port: Int)
       WaitForSuccessfulJob(jobId),
       // we will use the existing subreadSets again below, so we get the new
       // SubreadSet from the job datastore
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
@@ -189,7 +189,7 @@ class SampleNamesScenario(host: String, port: Int)
         Var("merge-bio-samples-renamed")),
       WaitForSuccessfulJob(jobId),
       // the new merged dataset should have the single names, which we can edit
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),

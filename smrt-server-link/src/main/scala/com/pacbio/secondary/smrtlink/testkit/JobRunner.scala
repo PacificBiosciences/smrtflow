@@ -152,7 +152,7 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer)
                                rptTest: ReportTestRules): Int = {
     Try {
       // FIXME this actually works for any job type
-      Await.result(sal.getAnalysisJobReport(jobId, reportId), TIMEOUT)
+      Await.result(sal.getJobReport(jobId, reportId), TIMEOUT)
     } match {
       case Success(report) => {
         println(s"Report ${report.id}:")
@@ -236,7 +236,7 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer)
 
   def runTests(reportTests: Seq[ReportTestRules], jobId: Int): Int = {
     val reports = Try {
-      Await.result(sal.getAnalysisJobReports(jobId), TIMEOUT)
+      Await.result(sal.getJobReports(jobId), TIMEOUT)
     } match {
       case Success(r) => r
       case Failure(err) => Seq[DataStoreReportFile]()

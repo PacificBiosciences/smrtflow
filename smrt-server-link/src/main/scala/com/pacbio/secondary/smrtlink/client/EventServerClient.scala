@@ -102,10 +102,7 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
       method: HttpMethod,
       segment: String): HttpRequest => Future[SmrtLinkSystemEvent] = {
     httpRequest =>
-      http
-        .singleRequest(
-          httpRequest.withHeaders(generateAuthHeader(method, segment)))
-        .flatMap(Unmarshal(_).to[SmrtLinkSystemEvent])
+      getObject[SmrtLinkSystemEvent](httpRequest)
   }
 
   def sendSmrtLinkSystemEvent(

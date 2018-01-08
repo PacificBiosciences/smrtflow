@@ -924,16 +924,15 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
         var rc = printJobInfo(job, asJson, dumpJobSettings)
         if (showReports && (rc == 0)) {
           rc = Try {
-            Await.result(sal.getAnalysisJobReports(job.uuid), TIMEOUT)
+            Await.result(sal.getJobReports(job.uuid), TIMEOUT)
           } match {
             case Success(rpts) =>
               rpts
                 .map { dsr =>
                   Try {
-                    Await.result(
-                      sal.getAnalysisJobReport(job.uuid,
-                                               dsr.dataStoreFile.uuid),
-                      TIMEOUT)
+                    Await.result(sal.getJobReport(job.uuid,
+                                                  dsr.dataStoreFile.uuid),
+                                 TIMEOUT)
                   } match {
                     case Success(rpt) => showReportAttributes(rpt)
                     case Failure(err) =>
@@ -996,13 +995,11 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     }
   }
 
-  private def importFasta(
-      path: Path,
-      dsType: FileTypes.DataSetBaseType,
-      runJob: => Future[EngineJob],
-      getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
-      projectName: Option[String],
-      barcodeMode: Boolean = false): Int = {
+  private def importFasta(path: Path,
+                          dsType: FileTypes.DataSetBaseType,
+                          runJob: => Future[EngineJob],
+                          projectName: Option[String],
+                          barcodeMode: Boolean = false): Int = {
     val projectId = getProjectIdByName(projectName)
     if (projectId < 0)
       return errorExit("Can't continue with an invalid project.")
@@ -1011,7 +1008,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(runJob, TIMEOUT) }
       successfulJob <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
       dataStoreFiles <- Try {
-        Await.result(getDataStore(successfulJob.id), TIMEOUT)
+        Await.result(sal.getJobDataStore(successfulJob.id), TIMEOUT)
       }
     } yield dataStoreFiles
 
@@ -1037,7 +1034,6 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     importFasta(path,
                 FileTypes.DS_REFERENCE,
                 sal.importFasta(path, nameFinal, organism, ploidy),
-                sal.getImportFastaJobDataStore,
                 projectName)
   }
 
@@ -1047,7 +1043,6 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     importFasta(path,
                 FileTypes.DS_BARCODE,
                 sal.importFastaBarcodes(path, name),
-                sal.getImportBarcodesJobDataStore,
                 projectName,
                 barcodeMode = true)
 
@@ -1488,7 +1483,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(sal.convertRsMovie(path, finalName), TIMEOUT) }
       job <- sal.pollForSuccessfulJob(job.uuid)
       dataStoreFiles <- Try {
-        Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT)
+        Await.result(sal.getJobDataStore(job.uuid), TIMEOUT)
       }
     } yield dataStoreFiles
 
@@ -1897,7 +1892,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       }
       _ <- sal.pollForSuccessfulJob(exportJob.uuid, Some(maxTime))
       ds <- Try {
-        Await.result(sal.getExportJobsDataStore(exportJob.id), TIMEOUT)
+        Await.result(sal.getJobDataStore(exportJob.id), TIMEOUT)
       }
     } yield
       ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId)

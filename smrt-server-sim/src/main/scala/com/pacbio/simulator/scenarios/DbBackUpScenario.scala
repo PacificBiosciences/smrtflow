@@ -55,7 +55,7 @@ class DbBackUpScenario(host: String, port: Int)
   override val steps: Seq[Step] = Seq(
     jobId := CreateDbBackUpJob(user, comment),
     WaitForSuccessfulJob(jobId),
-    dataStore := GetAnalysisJobDataStore(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail("Expected 2 datastore files. Log and JSON file") IF dataStore.mapWith(
       _.size) !=? 2
   )

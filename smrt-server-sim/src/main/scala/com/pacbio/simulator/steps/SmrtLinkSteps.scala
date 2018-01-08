@@ -279,23 +279,10 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     override def runWith = smrtLinkClient.getSubreadSetReports(dsId.get)
   }
 
-  case class GetReport(reportId: Var[UUID]) extends VarStep[Report] {
-    override val name = "GetReport"
-    override def runWith = smrtLinkClient.getReport(reportId.get)
-  }
-
-  case class GetImportJobDataStore(jobId: Var[UUID])
-      extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetImportJobDataStore"
-    override def runWith =
-      smrtLinkClient.getImportDatasetJobDataStore(jobId.get)
-  }
-
-  case class GetMergeJobDataStore(jobId: Var[UUID])
-      extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetMergeJobDataStore"
-    override def runWith =
-      smrtLinkClient.getMergeDatasetJobDataStore(jobId.get)
+  case class GetJobReport(jobId: Var[Int], reportId: Var[UUID])
+      extends VarStep[Report] {
+    override val name = "GetJobReport"
+    override def runWith = smrtLinkClient.getJobReport(jobId.get, reportId.get)
   }
 
   case class GetDataStoreFileResource(fileId: Var[UUID], relpath: Var[String])
@@ -523,41 +510,38 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.getPipelineDataStoreViewRules(pipelineId.get)
   }
 
-  case class GetAnalysisJobDataStore(jobId: Var[UUID])
+  case class GetJobDataStore(jobId: Var[UUID])
       extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetAnalysisJobDataStore"
-    override def runWith = smrtLinkClient.getAnalysisJobDataStore(jobId.get)
+    override val name = "GetJobDataStore"
+    override def runWith = smrtLinkClient.getJobDataStore(jobId.get)
   }
 
-  case class GetAnalysisJobReports(jobId: Var[UUID])
+  case class GetJobReports(jobId: Var[UUID])
       extends VarStep[Seq[DataStoreReportFile]] {
-    override val name = "GetAnalysisJobReports"
-    override def runWith = smrtLinkClient.getAnalysisJobReports(jobId.get)
+    override val name = "GetJobReports"
+    override def runWith = smrtLinkClient.getJobReports(jobId.get)
   }
 
-  // XXX this only works with Int
-  case class GetAnalysisJobEntryPoints(jobId: Var[Int])
+  case class GetJobEntryPoints(jobId: Var[Int])
       extends VarStep[Seq[EngineJobEntryPoint]] {
-    override val name = "GetAnalysisJobEntryPoints"
-    override def runWith = smrtLinkClient.getAnalysisJobEntryPoints(jobId.get)
+    override val name = "GetJobEntryPoints"
+    override def runWith = smrtLinkClient.getJobEntryPoints(jobId.get)
   }
 
-  case class GetAnalysisJobEvents(jobId: Var[Int])
-      extends VarStep[Seq[JobEvent]] {
-    override val name = "GetAnalysisJobEvents"
-    override def runWith = smrtLinkClient.getAnalysisJobEvents(jobId.get)
+  case class GetJobEvents(jobId: Var[Int]) extends VarStep[Seq[JobEvent]] {
+    override val name = "GetJobEvents"
+    override def runWith = smrtLinkClient.getJobEvents(jobId.get)
   }
 
-  case class GetAnalysisJobTasks(jobId: Var[Int])
-      extends VarStep[Seq[JobTask]] {
-    override val name = "GetAnalysisJobTasks"
-    override def runWith = smrtLinkClient.getAnalysisJobTasks(jobId.get)
+  case class GetJobTasks(jobId: Var[Int]) extends VarStep[Seq[JobTask]] {
+    override val name = "GetJobTasks"
+    override def runWith = smrtLinkClient.getJobTasks(jobId.get)
   }
 
-  case class GetAnalysisJobOptions(jobId: Var[Int])
+  case class GetJobOptions(jobId: Var[Int])
       extends VarStep[PipelineTemplatePreset] {
-    override val name = "GetAnalysisJobOptions"
-    override def runWith = smrtLinkClient.getAnalysisJobOptions(jobId.get)
+    override val name = "GetJobOptions"
+    override def runWith = smrtLinkClient.getJobOptions(jobId.get)
   }
 
   case class GetJobChildren(jobId: Var[UUID]) extends VarStep[Seq[EngineJob]] {

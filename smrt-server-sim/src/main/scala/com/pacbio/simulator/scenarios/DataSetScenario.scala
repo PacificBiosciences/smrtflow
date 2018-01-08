@@ -197,7 +197,7 @@ class DataSetScenario(host: String, port: Int)
       .mapWith(_.getUniqueId) !=? subreadsUuid1.get.toString,
     dsReports := GetSubreadSetReports(subreadsUuid1),
     fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
-    dataStore := GetImportJobDataStore(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
     fail("Wrong UUID in datastore") IF dataStore.mapWith { dss =>
       dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
@@ -209,7 +209,8 @@ class DataSetScenario(host: String, port: Int)
     dsReports := GetSubreadSetReports(subreadsUuid2),
     fail(s"Expected $N_SUBREAD_REPORTS reports") IF dsReports
       .mapWith(_.size) !=? N_SUBREAD_REPORTS,
-    dsReport := GetReport(dsReports.mapWith(_(0).dataStoreFile.uuid)),
+    dsReport := GetJobReport(dsMeta.mapWith(_.jobId),
+                             dsReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF dsReports.mapWith(
       _(0).dataStoreFile.uuid) !=? dsReport.mapWith(_.uuid),
     // merge SubreadSets
@@ -222,7 +223,7 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     subreadSets := GetSubreadSets,
-    dataStore := GetMergeJobDataStore(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail(s"Expected $N_SUBREAD_MERGE_REPORTS datastore files") IF dataStore
       .mapWith(_.size) !=? N_SUBREAD_MERGE_REPORTS,
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
@@ -256,7 +257,7 @@ class DataSetScenario(host: String, port: Int)
     fail(s"Expected isActive=false for $dsMeta") IF dsMeta
       .mapWith(_.isActive) !=? false,
     job := GetJobById(subreadSets.mapWith(_.last.jobId)),
-    dataStore := GetMergeJobDataStore(job.mapWith(_.uuid)),
+    dataStore := GetJobDataStore(job.mapWith(_.uuid)),
     fail("Expected isActive=false") IF dataStore.mapWith(
       _.filter(f => f.isActive).size) !=? 0,
     // export SubreadSets
@@ -274,8 +275,10 @@ class DataSetScenario(host: String, port: Int)
         else
           Seq(
             // RUN QC FUNCTIONS (see run-qc-service.ts)
+            dsMeta := GetDataSet(subreadsUuid2),
             dsReports := GetSubreadSetReports(subreadsUuid2),
-            dsReport := GetReport(
+            dsReport := GetJobReport(
+              dsMeta.mapWith(_.jobId),
               getReportUuid(dsReports,
                             "pbreports.tasks.filter_stats_report_xml")),
             fail("Wrong report ID") IF dsReport
@@ -290,7 +293,8 @@ class DataSetScenario(host: String, port: Int)
               dsReport.mapWith(_.uuid),
               dsReport.mapWith(_.getPlot(RPT_PLOT_GROUP, RPT_PLOT).get.image)),
             fail("Image has no content") IF nBytes ==? 0,
-            dsReport := GetReport(
+            dsReport := GetJobReport(
+              dsMeta.mapWith(_.jobId),
               getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
             fail("Wrong report ID") IF dsReport
               .mapWith(_.id) !=? "loading_xml_report",
