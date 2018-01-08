@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PbReports
 }
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceAccessLayer,
+  SmrtLinkServiceClient,
   ClientUtils
 }
 import com.pacbio.secondary.smrtlink.models._
@@ -52,7 +52,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   import JobModels._
 
   override val name = "UpgradeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(

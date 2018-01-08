@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -54,7 +54,7 @@ class ChemistryBundleScenario(host: String, port: Int)
   override val name = "ChemistryBundleScenario"
   override val requirements = Seq("SEQ-306", "SL-458", "SL-998")
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)

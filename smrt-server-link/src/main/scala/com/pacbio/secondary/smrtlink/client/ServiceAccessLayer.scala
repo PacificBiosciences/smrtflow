@@ -31,7 +31,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
+class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     implicit actorSystem: ActorSystem)
     extends ServiceAccessLayer(baseUrl)(actorSystem)
     with ServiceEndpointConstants
@@ -98,7 +98,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     toUrl(ROOT_PB_DATA_BUNDLE + segment)
   }
 
-  override def serviceStatusEndpoints: Vector[String] =
+  protected def toUiRootUrl(port: Int): String =
+    new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
+
+  def serviceStatusEndpoints: Vector[String] =
     Vector(
       ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id,
       ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id,
@@ -110,9 +113,44 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
       ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName
     )
 
+  /**
+    * Check an endpoint for status 200
+    *
+    * @param endpointPath Provided as Relative to the base url in Client.
+    * @return
+    */
+  def checkServiceEndpoint(endpointPath: String): Int =
+    checkEndpoint(toUrl(endpointPath))
+
+  /**
+    * Check the UI webserver for "Status"
+    *
+    * @param uiPort UI webserver port
+    * @return
+    */
+  def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
+
+  /**
+    * Run over each defined Endpoint (provided as relative segments to the base)
+    *
+    * Will NOT fail early. It will run over all endpoints and return non-zero
+    * if the any of the results have failed.
+    *
+    * Note, this is blocking.
+    *
+    * @return
+    */
+  def checkServiceEndpoints: Int = {
+    serviceStatusEndpoints
+      .map(checkServiceEndpoint)
+      .foldLeft(0) { (a, v) =>
+        Seq(a, v).max
+      }
+  }
+
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] =
     getObject[DataSetMetaDataSet](
-      Get(toUri(ROOT_DS + "/" + datasetId.toIdString)))
+      Get(toUrl(ROOT_DS + "/" + datasetId.toIdString)))
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] =
     getMessageResponse(

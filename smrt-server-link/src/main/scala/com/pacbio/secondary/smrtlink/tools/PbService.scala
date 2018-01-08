@@ -582,8 +582,7 @@ object PbServiceParser extends CommandLineToolVersion {
 }
 
 // TODO consolidate Try behavior
-class PbService(val sal: SmrtLinkServiceAccessLayer,
-                val maxTime: FiniteDuration)
+class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     extends LazyLogging
     with ClientUtils
     with DaoFutureUtils {
@@ -2062,7 +2061,7 @@ object PbService extends LazyLogging {
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    def toClient = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    def toClient = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
     def toAuthClient(t: String) =
       new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
     def toAuthClientLogin(u: String, p: String) =

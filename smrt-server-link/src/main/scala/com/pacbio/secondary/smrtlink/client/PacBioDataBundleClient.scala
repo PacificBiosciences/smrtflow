@@ -11,12 +11,17 @@ import akka.http.scaladsl.client.RequestBuilding._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-// This is largely duplicated between ServiceAccessLayer
-// The Service AccessLayer needs to extend a base trait
-// to enable better extensibility. This should be able
-// to be mixed-in to SAL and define toPacBioDataBundleUrl
-// and everything should work as expected.
-trait PacBioDataBundleClientTrait extends ClientBase {
+/**
+  * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
+  *
+  *
+  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
+  * @param actorSystem Actor System
+  */
+class PacBioDataBundleClient(override val baseUrl: URL)(
+    implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(baseUrl)(actorSystem) {
+
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -26,7 +31,15 @@ trait PacBioDataBundleClientTrait extends ClientBase {
     * @param bundleType
     * @return
     */
-  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String
+  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
+    val segment = bundleType.map(b => s"/$b").getOrElse("")
+    toUrl(segment)
+  }
+
+  def toPacBioBundleDownloadUrl(bundleType: String, bundleVersion: String) = {
+    val segment = s"/$bundleType/$bundleVersion/download"
+    toUrl(segment)
+  }
 
   /**
     * Get Bundles of All Types
@@ -53,27 +66,6 @@ trait PacBioDataBundleClientTrait extends ClientBase {
 }
 
 /**
-  * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
-  *
-  *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
-  * @param actorSystem Actor System
-  */
-class PacBioDataBundleClient(override val baseUrl: URL)(
-    implicit val actorSystem: ActorSystem)
-    extends PacBioDataBundleClientTrait {
-
-  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
-    val segment = bundleType.map(b => s"/$b").getOrElse("")
-    toUrl(segment)
-  }
-  def toPacBioBundleDownloadUrl(bundleType: String, bundleVersion: String) = {
-    val segment = s"/$bundleType/$bundleVersion/download"
-    toUrl(segment)
-  }
-}
-
-/**
   * For <= 5.1.0, the Update Server and SMRT Link service interface has diverged.
   *
   * This client can access the legacy "V1" routes, or the new "V2" routes.
@@ -82,7 +74,7 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
   * @param actorSystem Actor System
   */
 class PacBioDataBundleUpdateServerClient(override val baseUrl: URL)(
-    implicit override val actorSystem: ActorSystem)
+    implicit actorSystem: ActorSystem)
     extends PacBioDataBundleClient(baseUrl)(actorSystem) {
 
   import SprayJsonSupport._

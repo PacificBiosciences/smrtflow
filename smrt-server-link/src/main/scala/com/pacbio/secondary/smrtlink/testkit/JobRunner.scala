@@ -12,7 +12,7 @@ import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.tools.PbService
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
@@ -86,7 +86,7 @@ object TestkitParser {
     }
 }
 
-class TestkitRunner(sal: SmrtLinkServiceAccessLayer)
+class TestkitRunner(sal: SmrtLinkServiceClient)
     extends PbService(sal, 30.minutes)
     with TestkitJsonProtocol {
   import CommonModelImplicits._
@@ -386,7 +386,7 @@ class TestkitRunner(sal: SmrtLinkServiceAccessLayer)
 object TestkitRunner {
   def apply(c: TestkitParser.TestkitConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
-    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    val sal = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
     val tk = new TestkitRunner(sal)
     try {
       if (c.testJobId > 0) {

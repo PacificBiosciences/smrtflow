@@ -137,7 +137,7 @@ class GetSmrtLinkComponentStatus(override val host: String,
   def getServiceStatus(maxRetries: Int = 3,
                        retryDelay: FiniteDuration = 1.second)(
       implicit actorSystem: ActorSystem): Future[String] = {
-    val client = new SmrtLinkServiceAccessLayer(host, port)
+    val client = new SmrtLinkServiceClient(host, port)
     client
       .getStatusWithRetry(maxRetries)
       .map(status => s"Successfully got status ${status.message}")

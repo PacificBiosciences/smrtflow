@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -48,7 +48,7 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
 
   override val name = "LargeMergeScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val SLEEP_TIME = 2000 // polling interval for checking import job status
   val EXIT_SUCCESS: Var[Int] = Var(0)

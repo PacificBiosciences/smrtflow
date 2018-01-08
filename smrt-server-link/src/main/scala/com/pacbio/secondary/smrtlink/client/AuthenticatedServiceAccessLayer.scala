@@ -23,7 +23,7 @@ class AuthenticatedServiceAccessLayer(
     baseUrl: URL,
     token: String,
     wso2Port: Int = 8243)(implicit actorSystem: ActorSystem)
-    extends SmrtLinkServiceAccessLayer(baseUrl, None)(actorSystem)
+    extends SmrtLinkServiceClient(baseUrl, None)(actorSystem)
     with ApiManagerClientBase {
 
   implicit val timeout: Timeout = 30.seconds

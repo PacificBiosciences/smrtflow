@@ -29,7 +29,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceAccessLayer,
+  SmrtLinkServiceClient,
   ClientUtils
 }
 import com.pacbio.secondary.smrtlink.models._
@@ -60,7 +60,7 @@ class DataSetScenario(host: String, port: Int)
 
   override val name = "DataSetScenario"
   override val requirements = Seq("SL-1303")
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   import CommonModelImplicits._
 

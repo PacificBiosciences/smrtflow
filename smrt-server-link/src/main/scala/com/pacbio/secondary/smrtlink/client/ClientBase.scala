@@ -8,8 +8,7 @@ import akka.http.scaladsl.model.{
   HttpRequest,
   HttpResponse,
   StatusCode,
-  StatusCodes,
-  Uri
+  StatusCodes
 }
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
@@ -72,16 +71,6 @@ trait ClientBase extends Retrying {
             baseUrl.getPath + segment).toString
 
   val statusUrl = toUrl("/status")
-
-  /**
-    * Migration to internally use Spray/akka data models.
-    *
-    * @param segment relative segment (this must include the leading slash!)
-    * @return
-    */
-  protected def toUri(segment: String): Uri =
-    Uri(
-      s"${baseUrl.getProtocol}://${baseUrl.getHost}:${baseUrl.getPort}$segment")
 
   protected def getEndpoint(endpointUrl: String): Future[HttpResponse] =
     http.singleRequest(Get(endpointUrl))
@@ -182,5 +171,20 @@ trait ClientBase extends Retrying {
         1
       }
     }
+  }
+}
+
+/**
+  * Base class for clients
+  */
+abstract class ServiceAccessLayer(val baseUrl: URL)(
+    implicit val actorSystem: ActorSystem)
+    extends ClientBase {
+
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+  import SprayJsonSupport._
+
+  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
+    this(UrlUtils.convertToUrl(host, port))(actorSystem)
   }
 }

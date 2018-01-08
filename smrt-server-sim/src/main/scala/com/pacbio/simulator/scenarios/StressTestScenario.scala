@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -59,7 +59,7 @@ class StressTestScenario(host: String,
   override val name = "StressTestScenario"
   override val requirements = Seq("SL-41", "SL-1295")
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val TIMEOUT_ERR = s"Job did not complete within $maxTime seconds"
   val EXIT_SUCCESS: Var[Int] = Var(0)

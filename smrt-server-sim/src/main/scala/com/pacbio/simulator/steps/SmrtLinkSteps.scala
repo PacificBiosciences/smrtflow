@@ -15,7 +15,7 @@ import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
@@ -26,7 +26,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   import CommonModelImplicits._
   import ReportModels._
 
-  val smrtLinkClient: SmrtLinkServiceAccessLayer
+  val smrtLinkClient: SmrtLinkServiceClient
 
   def andLog(sx: String): Future[String] = Future {
     logger.info(sx)

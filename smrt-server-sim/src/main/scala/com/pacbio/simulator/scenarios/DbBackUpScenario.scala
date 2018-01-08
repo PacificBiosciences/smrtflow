@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models.DataStoreServiceFile
 import com.pacbio.simulator.steps.{
@@ -44,7 +44,7 @@ class DbBackUpScenario(host: String, port: Int)
   import CommonModelImplicits._
 
   override val name = "DbBackUpScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val user = "sim-user"
   val comment = "Sim Submitted Database BackUp Request"

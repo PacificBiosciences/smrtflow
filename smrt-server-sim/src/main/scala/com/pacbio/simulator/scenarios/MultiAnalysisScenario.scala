@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.jobtypes.MultiAnalysisJobOptions
 import com.pacbio.secondary.smrtlink.models._
@@ -60,7 +60,7 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
                                          DEFAULT_MAX_2N_NUM_JOBS)
 
     val testData = PacBioTestResourcesLoader.loadFromConfig()
-    val smrtLinkClient = new SmrtLinkServiceAccessLayer(getHost(c), getPort(c))
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
 
     new MultiAnalysisScenario(smrtLinkClient,
                               testData,
@@ -79,7 +79,7 @@ object MultiAnalysisScenarioLoader extends ScenarioLoader {
   * 5. check children jobs created from multi-job to be successful
   *
   */
-class MultiAnalysisScenario(client: SmrtLinkServiceAccessLayer,
+class MultiAnalysisScenario(client: SmrtLinkServiceClient,
                             testData: PacBioTestResources,
                             numSubreadSets: Int,
                             max2nNumJobs: Int,
