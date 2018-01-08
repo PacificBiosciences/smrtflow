@@ -811,13 +811,19 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     Await.result(sal.getDataSet(datasetId), TIMEOUT)
   }
 
-  def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
-    getDataSet(datasetId) match {
-      case Success(ds) => printDataSetInfo(ds, asJson)
-      case Failure(err) =>
-        errorExit(s"Could not retrieve existing dataset record: $err")
-    }
+  def runGetDataSetInfo(datasetId: IdAble,
+                        asJson: Boolean = false): Future[String] = {
+    for {
+      ds <- sal.getDataSet(datasetId)
+      summary <- Future.successful {
+        if (asJson) ds.toJson.prettyPrint
+        else toDataSetInfoSummary(ds)
+      }
+    } yield summary
   }
+
+  def showDataSetInfo(datasetId: IdAble) =
+    println(Await.result(runGetDataSetInfo(datasetId), TIMEOUT))
 
   def runGetDataSets(dsType: DataSetMetaTypes.DataSetMetaType,
                      maxItems: Int,
@@ -868,35 +874,23 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runGetJobInfo(jobId: IdAble,
                     asJson: Boolean = false,
                     dumpJobSettings: Boolean = false,
-                    showReports: Boolean = false): Int = {
-    Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
-      case Success(job) =>
-        var rc = printJobInfo(job, asJson, dumpJobSettings)
-        if (showReports && (rc == 0)) {
-          rc = Try {
-            Await.result(sal.getJobReports(job.uuid), TIMEOUT)
-          } match {
-            case Success(rpts) =>
-              rpts
-                .map { dsr =>
-                  Try {
-                    Await.result(sal.getJobReport(job.uuid,
-                                                  dsr.dataStoreFile.uuid),
-                                 TIMEOUT)
-                  } match {
-                    case Success(rpt) => showReportAttributes(rpt)
-                    case Failure(err) =>
-                      errorExit(
-                        s"Couldn't retrieve report ${dsr.dataStoreFile.uuid} for job ${job.uuid}: $err")
-                  }
-                }
-                .reduceLeft(_ max _)
-            case Failure(err) => errorExit(s"Could not retrieve reports: $err")
-          }
+                    showReports: Boolean = false): Future[String] = {
+    for {
+      job <- sal.getJob(jobId)
+      jobInfo <- Future.successful(formatJobInfo(job, asJson, dumpJobSettings))
+      reportFiles <- {
+        if (showReports) sal.getJobReports(job.uuid)
+        else Future.successful(Seq.empty[DataStoreReportFile])
+      }
+      reports <- Future.sequence {
+        reportFiles.map { dsr =>
+          sal.getJobReport(job.uuid, dsr.dataStoreFile.uuid)
         }
-        rc
-      case Failure(err) => errorExit(s"Could not retrieve job record: $err")
-    }
+      }
+      reportInfo <- Future.successful {
+        reports.map(r => formatReportAttributes(r)).mkString("\n")
+      }
+    } yield jobInfo + reportInfo
   }
 
   def jobsSummary(maxItems: Int,
@@ -937,9 +931,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   protected def waitForJob(jobId: IdAble): Int = {
     logger.info(s"waiting for job ${jobId.toIdString} to complete...")
     sal.pollForSuccessfulJob(jobId, Some(maxTime)) match {
-      case Success(msg) => runGetJobInfo(jobId)
+      case Success(msg) =>
+        printMsg(Await.result(runGetJobInfo(jobId), TIMEOUT))
       case Failure(err) => {
-        runGetJobInfo(jobId)
+        printMsg(Await.result(runGetJobInfo(jobId), TIMEOUT))
         errorExit(err.getMessage)
       }
     }
@@ -966,7 +961,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       case Success(dataStoreFiles) =>
         dataStoreFiles.find(_.fileTypeId == dsType.fileTypeId) match {
           case Some(ds) =>
-            runGetDataSetInfo(ds.uuid)
+            showDataSetInfo(ds.uuid)
             if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
           case None => errorExit(s"Couldn't find ${dsType.dsName}")
         }
@@ -1028,7 +1023,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def importDs = {
       val rc = runImportDataSet(path, dsMiniMeta.metatype)
       if (rc == 0) {
-        runGetDataSetInfo(dsMiniMeta.uuid)
+        showDataSetInfo(dsMiniMeta.uuid)
         if (projectId > 0) addDataSetToProject(dsMiniMeta.uuid, projectId)
         else 0
       } else rc
@@ -1442,7 +1437,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         dataStoreFiles.find(
           _.fileTypeId == FileTypes.DS_HDF_SUBREADS.fileTypeId) match {
           case Some(ds) =>
-            runGetDataSetInfo(ds.uuid)
+            showDataSetInfo(ds.uuid)
             if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
           case None => errorExit(s"Couldn't find HdfSubreadSet")
         }
@@ -1679,12 +1674,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   }
 
   protected def getPipelinePresets(
-      presetXml: Option[Path]): PipelineTemplatePreset = {
-    presetXml match {
-      case Some(path) => PipelineTemplatePresetLoader.loadFrom(path)
-      case _ => defaultPresets
-    }
-  }
+      presetXml: Option[Path]): PipelineTemplatePreset =
+    presetXml
+      .map(path => PipelineTemplatePresetLoader.loadFrom(path))
+      .getOrElse(defaultPresets)
 
   private def validateEntryPointIds(
       entryPoints: Seq[BoundServiceEntryPoint],
@@ -2064,7 +2057,11 @@ object PbService extends LazyLogging {
                          asJson = c.asJson)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB =>
-          ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
+          executeBlockAndSummary(ps.runGetJobInfo(c.jobId,
+                                                  c.asJson,
+                                                  c.dumpJobSettings,
+                                                  c.showReports),
+                                 c.maxTime)
         case Modes.JOBS =>
           ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
@@ -2072,7 +2069,9 @@ object PbService extends LazyLogging {
         case Modes.EXPORT_JOB =>
           ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.IMPORT_JOB => executeAndSummary(ps.runImportJob(c.path))
-        case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+        case Modes.DATASET =>
+          executeBlockAndSummary(ps.runGetDataSetInfo(c.datasetId, c.asJson),
+                                 c.maxTime)
         case Modes.DATASETS =>
           executeBlockAndSummary(ps.runGetDataSets(c.datasetType,
                                                    c.maxItems,

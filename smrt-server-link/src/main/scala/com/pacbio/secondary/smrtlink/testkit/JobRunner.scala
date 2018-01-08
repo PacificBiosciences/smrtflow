@@ -372,14 +372,19 @@ class TestkitRunner(sal: SmrtLinkServiceClient)
                    testJobId: Int,
                    xunitOut: File,
                    ignoreTestFailures: Boolean = false): Int = {
-    if (runGetJobInfo(testJobId) != 0)
-      return errorExit(s"Couldn't retrieve job ${testJobId}")
-    val cfg = loadTestkitCfg(cfgFile)
-    if (cfg.reportTests.size > 0) {
-      var testStatus = runTests(cfg.reportTests, testJobId)
-      writeTestResults(xunitOut.getAbsolutePath)
-      if (ignoreTestFailures) 0 else testStatus
-    } else errorExit("No tests defined")
+    Try {
+      Await.result(runGetJobInfo(testJobId), TIMEOUT)
+    }.toOption
+      .map { jobInfo =>
+        println(jobInfo)
+        val cfg = loadTestkitCfg(cfgFile)
+        if (cfg.reportTests.size > 0) {
+          var testStatus = runTests(cfg.reportTests, testJobId)
+          writeTestResults(xunitOut.getAbsolutePath)
+          if (ignoreTestFailures) 0 else testStatus
+        } else errorExit("No tests defined")
+      }
+      .getOrElse(errorExit(s"Couldn't retrieve job ${testJobId}"))
   }
 }
 

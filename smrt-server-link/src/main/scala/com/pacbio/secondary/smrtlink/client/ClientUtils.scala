@@ -92,16 +92,22 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     Seq(header, body, errorMessage).reduce(_ + "\n" + _)
   }
 
+  def formatJobInfo(job: EngineJob,
+                    asJson: Boolean = false,
+                    dumpJobSettings: Boolean = false): String = {
+    if (dumpJobSettings) {
+      job.jsonSettings.parseJson.prettyPrint
+    } else if (asJson) {
+      job.toJson.prettyPrint
+    } else {
+      toJobSummary(job)
+    }
+  }
+
   def printJobInfo(job: EngineJob,
                    asJson: Boolean = false,
                    dumpJobSettings: Boolean = false): Int = {
-    if (dumpJobSettings) {
-      println(job.jsonSettings.parseJson.prettyPrint)
-    } else if (asJson) {
-      println(job.toJson.prettyPrint)
-    } else {
-      println(toJobSummary(job))
-    }
+    println(formatJobInfo(job, asJson, dumpJobSettings))
     0
   }
 
@@ -142,11 +148,14 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     0
   }
 
+  def formatReportAttributes(r: Report, prefix: String = ""): String = {
+    (Seq(s"${prefix}${r.title}:") ++ r.attributes.map { a =>
+      s"  ${prefix}${a.name} = ${a.value}"
+    }).mkString("\n")
+  }
+
   def showReportAttributes(r: Report, prefix: String = ""): Int = {
-    println(s"${prefix}${r.title}:")
-    r.attributes.foreach { a =>
-      println(s"  ${prefix}${a.name} = ${a.value}")
-    }
+    println(formatReportAttributes(r, prefix))
     0
   }
 
