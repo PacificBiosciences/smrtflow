@@ -1,7 +1,5 @@
 import sbt._
 import java.time.LocalDateTime
-import java.lang.{Process, ProcessBuilder}
-import scala.sys.process
 
 
 trait SmrtLinkServerRunner {
@@ -37,6 +35,12 @@ class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logg
 
   override def stop():Unit = {
     log.info(s"Stopping SMRT Link Analysis Server at ${LocalDateTime.now()}")
-    serverProcess.foreach(_.destroy())
+    serverProcess match {
+      case Some(p) =>
+        log.info(s"Destroying process $p")
+        p.destroy()
+      case _ =>
+        log.info("No running SMRT Link process to destroy")
+    }
   }
 }
