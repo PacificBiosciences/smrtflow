@@ -38,9 +38,6 @@ class ServiceAccessLayer(val baseUrl: URL)(
     */
   def serviceStatusEndpoints: Vector[String] = Vector()
 
-  def getServiceEndpoint(endpointPath: String): Future[HttpResponse] =
-    http.singleRequest(Get(toUrl(endpointPath)))
-
   /**
     * Check an endpoint for status 200
     *
