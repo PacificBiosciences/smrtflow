@@ -131,6 +131,9 @@ object DataSetMetaTypes {
       ds.attributes("MetaType").toString
     }.toOption.flatMap(toDataSetType)
   }
+
+  def fromAnyName(dsType: String): Option[DataSetMetaType] =
+    toDataSetType(dsType).orElse(fromShortName(dsType))
 }
 
 // Small General Container for Dataset
