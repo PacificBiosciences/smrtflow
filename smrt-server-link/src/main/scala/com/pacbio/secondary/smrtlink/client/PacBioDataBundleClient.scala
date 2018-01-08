@@ -34,18 +34,14 @@ trait PacBioDataBundleClientTrait extends ClientBase {
     * Get Bundles of All Types
     */
   def getPacBioDataBundles(): Future[Seq[PacBioDataBundle]] =
-    http
-      .singleRequest(Get(toPacBioDataBundleUrl()))
-      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl()))
 
   /**
     * Get Bundles of a specific Type
     */
   def getPacBioDataBundleByTypeId(
       typeId: String): Future[Seq[PacBioDataBundle]] =
-    http
-      .singleRequest(Get(toPacBioDataBundleUrl(Some(typeId))))
-      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl(Some(typeId))))
 
   /**
     * Get a Specific Bundle by Type and Version
@@ -53,9 +49,8 @@ trait PacBioDataBundleClientTrait extends ClientBase {
   def getPacBioDataBundleByTypeAndVersionId(
       typeId: String,
       versionId: String): Future[Seq[PacBioDataBundle]] =
-    http
-      .singleRequest(Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId"))))
-      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
+    getObject[Seq[PacBioDataBundle]](
+      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId"))))
 
 }
 
@@ -119,9 +114,7 @@ class PacBioDataBundleUpdateServerClient(override val baseUrl: URL)(
   def getV2PacBioDataBundleByTypeId(
       pacBioSystemVersion: String,
       bundleType: String): Future[Seq[PacBioDataBundle]] =
-    http
-      .singleRequest(
-        Get(toV2PacBioDataBundleUrl(pacBioSystemVersion, Some(bundleType))))
-      .flatMap(Unmarshal(_).to[Seq[PacBioDataBundle]])
+    getObject[Seq[PacBioDataBundle]](
+      Get(toV2PacBioDataBundleUrl(pacBioSystemVersion, Some(bundleType))))
 
 }
