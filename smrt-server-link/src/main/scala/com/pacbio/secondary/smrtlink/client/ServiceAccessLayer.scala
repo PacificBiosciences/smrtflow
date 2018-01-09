@@ -561,6 +561,15 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
            ConvertImportFastaBarcodesOptions(toP(path), name)))
 
+  def importFastaGmap(path: Path,
+                      name: String,
+                      organism: String,
+                      ploidy: String): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(
+        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id),
+        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
+
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
                     name: String) =
