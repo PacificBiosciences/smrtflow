@@ -20,6 +20,7 @@ import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.collection.immutable
 
 /**
   * Create a Client for the Eve Server.
@@ -70,7 +71,8 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
 
   private def generateAuthHeader(method: HttpMethod,
                                  segment: String): HttpHeader = {
-    val key = Signer.generate(apiSecret, s"$method+$segment", Signer.timestamp)
+    val key =
+      Signer.generate(apiSecret, s"${method.value}+$segment", Signer.timestamp)
     val authHeader = s"hmac uid:$key"
     RawHeader("Authentication", authHeader)
   }
@@ -102,7 +104,9 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
       method: HttpMethod,
       segment: String): HttpRequest => Future[SmrtLinkSystemEvent] = {
     httpRequest =>
-      getObject[SmrtLinkSystemEvent](httpRequest)
+      getObject[SmrtLinkSystemEvent](
+        httpRequest.withHeaders(
+          immutable.Seq(generateAuthHeader(method, segment))))
   }
 
   def sendSmrtLinkSystemEvent(

@@ -48,10 +48,9 @@ val runInt =
 
 runInt := {
   val r = smrtLinkServerRunner.value
-  r.start()
+  //r.start()
   // FIXME. This needs to the set the PATH to included exe's from pack and a task dependency on sbt-pack
   (executeTests in IntegrationTest).value
-  // this should be done as an andFinally call executeTests task
   r.stop()
   "Completed running integration tests"
 }

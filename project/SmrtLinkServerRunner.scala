@@ -30,14 +30,14 @@ class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logg
     val p = Fork.java.fork(forkOptions, serverArgs)
     serverProcess = Some(p)
     // Calling p.exitCode will BLOCK
-    log.info(s"process '$p'")
+    log.info(s"Created forked process '$p'")
   }
 
   override def stop():Unit = {
     log.info(s"Stopping SMRT Link Analysis Server at ${LocalDateTime.now()}")
     serverProcess match {
       case Some(p) =>
-        log.info(s"Destroying process $p")
+        log.info(s"Destroying process $p (isAlive:${p.isAlive()})")
         p.destroy()
       case _ =>
         log.info("No running SMRT Link process to destroy")
