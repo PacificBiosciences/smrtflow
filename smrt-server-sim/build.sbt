@@ -42,16 +42,15 @@ testOptions in IntegrationTest := {
   (testOptions in IntegrationTest).value
 }
 
-
 val runInt =
-  taskKey[String]("Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
+  taskKey[String](
+    "Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
 
 runInt := {
   val r = smrtLinkServerRunner.value
-  r.start()
+  //r.start()
   // FIXME. This needs to the set the PATH to included exe's from pack and a task dependency on sbt-pack
   (executeTests in IntegrationTest).value
-  // this should be done as an andFinally call executeTests task
   r.stop()
   "Completed running integration tests"
 }
