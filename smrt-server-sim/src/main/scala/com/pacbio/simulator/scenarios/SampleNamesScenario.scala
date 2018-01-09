@@ -18,7 +18,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobModels,
   OptionTypes
 }
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -51,7 +51,7 @@ class SampleNamesScenario(host: String, port: Int)
 
   override val name = "SampleNamesScenario"
   override val requirements = Seq.empty[String]
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   private val EXIT_SUCCESS: Var[Int] = Var(0)
   private val EXIT_FAILURE: Var[Int] = Var(1)
@@ -166,7 +166,7 @@ class SampleNamesScenario(host: String, port: Int)
       WaitForSuccessfulJob(jobId),
       // we will use the existing subreadSets again below, so we get the new
       // SubreadSet from the job datastore
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
@@ -189,7 +189,7 @@ class SampleNamesScenario(host: String, port: Int)
         Var("merge-bio-samples-renamed")),
       WaitForSuccessfulJob(jobId),
       // the new merged dataset should have the single names, which we can edit
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),

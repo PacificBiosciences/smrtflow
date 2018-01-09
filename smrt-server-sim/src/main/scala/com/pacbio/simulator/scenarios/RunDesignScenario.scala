@@ -7,7 +7,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models.{RunSummary, Run}
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -34,7 +34,7 @@ class RunDesignScenario(host: String, port: Int, runXmlFile: Path)
 
   override val name = "RunDesignScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val runXmlPath: Var[String] = Var(runXmlFile.toString)
   val runXml: Var[String] = Var()

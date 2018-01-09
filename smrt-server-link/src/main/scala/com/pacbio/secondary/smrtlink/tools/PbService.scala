@@ -128,7 +128,7 @@ object PbServiceParser extends CommandLineToolVersion {
       organism: String = "",
       ploidy: String = "",
       maxItems: Int = 25,
-      datasetType: String = "subreads",
+      datasetType: DataSetMetaTypes.DataSetMetaType = DataSetMetaTypes.Subread,
       jobType: String = "pbsmrtpipe",
       jobState: Option[String] = None,
       nonLocal: Option[DataSetMetaTypes.DataSetMetaType] = None,
@@ -165,6 +165,9 @@ object PbServiceParser extends CommandLineToolVersion {
 
   lazy val parser = new OptionParser[CustomConfig]("pbservice") {
 
+    private val DS_META_TYPE_NAME =
+      "Dataset Meta type name (e.g., subreads, references, PacBio.DataSet.SubreadSet, etc.)"
+
     private def validateId(entityId: String,
                            entityType: String): Either[String, Unit] = {
       entityIdOrUuid(entityId) match {
@@ -193,7 +196,7 @@ object PbServiceParser extends CommandLineToolVersion {
           .map(_.toString)
           .reduce(_ + "," + _)}"
       DataSetMetaTypes
-        .toDataSetType(dsType)
+        .fromAnyName(dsType)
         .map(_ => success)
         .getOrElse(failure(errorMsg))
     }
@@ -270,7 +273,7 @@ object PbServiceParser extends CommandLineToolVersion {
         .validate(validateDataSetMetaType)
         .text("Import non-local dataset require specified the dataset metatype (e.g. PacBio.DataSet.SubreadSet)")
         .action { (t, c) =>
-          c.copy(nonLocal = DataSetMetaTypes.toDataSetType(t))
+          c.copy(nonLocal = DataSetMetaTypes.fromAnyName(t))
         },
       opt[Unit]("block")
         .text(
@@ -493,9 +496,13 @@ object PbServiceParser extends CommandLineToolVersion {
     cmd(Modes.DATASETS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASETS)
     } children (
-      opt[String]('t', "dataset-type") action { (t, c) =>
-        c.copy(datasetType = t)
-      } text "Dataset Meta type short name (e.g., subreads, references)", // TODO validate. This needs to be made consistent with other subparsers. Either the full id, PacBio.DataSet.SubreadSet or shortname e.g., "subreads" needs to be used.
+      arg[String]("dataset-type")
+        .required()
+        .text(DS_META_TYPE_NAME)
+        .validate(t => validateDataSetMetaType(t))
+        .action { (t, c) =>
+          c.copy(datasetType = DataSetMetaTypes.fromAnyName(t).get)
+        },
       opt[Int]('m', "max-items") action { (m, c) =>
         c.copy(maxItems = m)
       } text "Max number of Datasets to show",
@@ -582,8 +589,7 @@ object PbServiceParser extends CommandLineToolVersion {
 }
 
 // TODO consolidate Try behavior
-class PbService(val sal: SmrtLinkServiceAccessLayer,
-                val maxTime: FiniteDuration)
+class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     extends LazyLogging
     with ClientUtils
     with DaoFutureUtils {
@@ -805,149 +811,86 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     Await.result(sal.getDataSet(datasetId), TIMEOUT)
   }
 
-  def runGetDataSetInfo(datasetId: IdAble, asJson: Boolean = false): Int = {
-    getDataSet(datasetId) match {
-      case Success(ds) => printDataSetInfo(ds, asJson)
-      case Failure(err) =>
-        errorExit(s"Could not retrieve existing dataset record: $err")
-    }
+  def runGetDataSetInfo(datasetId: IdAble,
+                        asJson: Boolean = false): Future[String] = {
+    for {
+      ds <- sal.getDataSet(datasetId)
+      summary <- Future.successful {
+        if (asJson) ds.toJson.prettyPrint
+        else toDataSetInfoSummary(ds)
+      }
+    } yield summary
   }
 
-  // FIXME. dsType should be a proper type and validation
-  // should be outside of this function (e.g.,  CLI level)
-  def runGetDataSets(dsType: String,
+  def showDataSetInfo(datasetId: IdAble) =
+    println(Await.result(runGetDataSetInfo(datasetId), TIMEOUT))
+
+  def runGetDataSets(dsType: DataSetMetaTypes.DataSetMetaType,
                      maxItems: Int,
                      asJson: Boolean = false,
                      searchName: Option[String] = None,
-                     searchPath: Option[String] = None): Int = {
+                     searchPath: Option[String] = None): Future[String] = {
     def isMatching(ds: ServiceDataSetMetadata): Boolean = {
       val qName = searchName.map(n => ds.name contains n).getOrElse(true)
       val qPath = searchPath.map(p => ds.path contains p).getOrElse(true)
       qName && qPath
     }
-    Try {
-      dsType match {
-        case "subreads" => Await.result(sal.getSubreadSets, TIMEOUT)
-        case "hdfsubreads" => Await.result(sal.getHdfSubreadSets, TIMEOUT)
-        case "barcodes" => Await.result(sal.getBarcodeSets, TIMEOUT)
-        case "references" => Await.result(sal.getReferenceSets, TIMEOUT)
-        case "gmapreferences" =>
-          Await.result(sal.getGmapReferenceSets, TIMEOUT)
-        case "contigs" => Await.result(sal.getContigSets, TIMEOUT)
-        case "alignments" => Await.result(sal.getAlignmentSets, TIMEOUT)
-        case "ccsalignments" =>
-          Await.result(sal.getConsensusAlignmentSets, TIMEOUT)
-        case "ccsreads" => Await.result(sal.getConsensusReadSets, TIMEOUT)
-        case x => throw new Exception(s"Not a valid dataset type '$x'")
-      }
-    } match {
-      case Success(records) => {
+    def fx: Future[Seq[(ServiceDataSetMetadata, JsValue)]] = dsType match {
+      case DataSetMetaTypes.Subread =>
+        sal.getSubreadSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.HdfSubread =>
+        sal.getHdfSubreadSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.Barcode =>
+        sal.getBarcodeSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.Reference =>
+        sal.getReferenceSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.GmapReference =>
+        sal.getGmapReferenceSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.Contig =>
+        sal.getContigSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.Alignment =>
+        sal.getAlignmentSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.AlignmentCCS =>
+        sal.getConsensusAlignmentSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.CCS =>
+        sal.getConsensusReadSets.map(_.map(ds => (ds, ds.toJson)))
+    }
+    for {
+      records <- fx
+      filtered <- Future.successful(records.filter(r => isMatching(r._1)))
+      outstr <- Future.successful {
         if (asJson) {
-          var k = 1
-          for (ds <- records.filter(r => isMatching(r))) {
-            // XXX this is annoying - the records get interpreted as
-            // Seq[ServiceDataSetMetaData], which can't be unmarshalled
-            val sep = if (k < records.size) "," else ""
-            dsType match {
-              case "subreads" =>
-                println(
-                  ds.asInstanceOf[SubreadServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "hdfsubreads" =>
-                println(
-                  ds.asInstanceOf[HdfSubreadServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "barcodes" =>
-                println(
-                  ds.asInstanceOf[BarcodeServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "references" =>
-                println(
-                  ds.asInstanceOf[ReferenceServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "gmapreferences" =>
-                println(
-                  ds.asInstanceOf[GmapReferenceServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "ccsreads" =>
-                println(
-                  ds.asInstanceOf[ConsensusReadServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "ccsalignments" =>
-                println(
-                  ds.asInstanceOf[ConsensusAlignmentServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "contigs" =>
-                println(
-                  ds.asInstanceOf[ContigServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-              case "alignments" =>
-                println(
-                  ds.asInstanceOf[AlignmentServiceDataSet]
-                    .toJson
-                    .prettyPrint + sep)
-            }
-            k += 1
-          }
+          filtered.map(_._2).map(_.prettyPrint).mkString(",\n")
         } else {
-          var k = 0
-          val table = for {
-            ds <- records.filter(r => isMatching(r)).reverse if k < maxItems
-          } yield {
-            k += 1
+          val table = filtered.map(_._1).reverse.take(maxItems).map { ds =>
             Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
           }
-          printTable(table, Seq("ID", "UUID", "Name", "Path"))
+          toTable(table, Seq("ID", "UUID", "Name", "Path"))
         }
-        0
       }
-      case Failure(err) => {
-        errorExit(s"Error: ${err.getMessage}")
-      }
-    }
+    } yield outstr
   }
 
   def runGetJobInfo(jobId: IdAble,
                     asJson: Boolean = false,
                     dumpJobSettings: Boolean = false,
-                    showReports: Boolean = false): Int = {
-    Try { Await.result(sal.getJob(jobId), TIMEOUT) } match {
-      case Success(job) =>
-        var rc = printJobInfo(job, asJson, dumpJobSettings)
-        if (showReports && (rc == 0)) {
-          rc = Try {
-            Await.result(sal.getAnalysisJobReports(job.uuid), TIMEOUT)
-          } match {
-            case Success(rpts) =>
-              rpts
-                .map { dsr =>
-                  Try {
-                    Await.result(
-                      sal.getAnalysisJobReport(job.uuid,
-                                               dsr.dataStoreFile.uuid),
-                      TIMEOUT)
-                  } match {
-                    case Success(rpt) => showReportAttributes(rpt)
-                    case Failure(err) =>
-                      errorExit(
-                        s"Couldn't retrieve report ${dsr.dataStoreFile.uuid} for job ${job.uuid}: $err")
-                  }
-                }
-                .reduceLeft(_ max _)
-            case Failure(err) => errorExit(s"Could not retrieve reports: $err")
-          }
+                    showReports: Boolean = false): Future[String] = {
+    for {
+      job <- sal.getJob(jobId)
+      jobInfo <- Future.successful(formatJobInfo(job, asJson, dumpJobSettings))
+      reportFiles <- {
+        if (showReports) sal.getJobReports(job.uuid)
+        else Future.successful(Seq.empty[DataStoreReportFile])
+      }
+      reports <- Future.sequence {
+        reportFiles.map { dsr =>
+          sal.getJobReport(job.uuid, dsr.dataStoreFile.uuid)
         }
-        rc
-      case Failure(err) => errorExit(s"Could not retrieve job record: $err")
-    }
+      }
+      reportInfo <- Future.successful {
+        reports.map(r => formatReportAttributes(r)).mkString("\n")
+      }
+    } yield jobInfo + reportInfo
   }
 
   def jobsSummary(maxItems: Int,
@@ -988,21 +931,20 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
   protected def waitForJob(jobId: IdAble): Int = {
     logger.info(s"waiting for job ${jobId.toIdString} to complete...")
     sal.pollForSuccessfulJob(jobId, Some(maxTime)) match {
-      case Success(msg) => runGetJobInfo(jobId)
+      case Success(msg) =>
+        printMsg(Await.result(runGetJobInfo(jobId), TIMEOUT))
       case Failure(err) => {
-        runGetJobInfo(jobId)
+        printMsg(Await.result(runGetJobInfo(jobId), TIMEOUT))
         errorExit(err.getMessage)
       }
     }
   }
 
-  private def importFasta(
-      path: Path,
-      dsType: FileTypes.DataSetBaseType,
-      runJob: => Future[EngineJob],
-      getDataStore: IdAble => Future[Seq[DataStoreServiceFile]],
-      projectName: Option[String],
-      barcodeMode: Boolean = false): Int = {
+  private def importFasta(path: Path,
+                          dsType: FileTypes.DataSetBaseType,
+                          runJob: => Future[EngineJob],
+                          projectName: Option[String],
+                          barcodeMode: Boolean = false): Int = {
     val projectId = getProjectIdByName(projectName)
     if (projectId < 0)
       return errorExit("Can't continue with an invalid project.")
@@ -1011,7 +953,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(runJob, TIMEOUT) }
       successfulJob <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
       dataStoreFiles <- Try {
-        Await.result(getDataStore(successfulJob.id), TIMEOUT)
+        Await.result(sal.getJobDataStore(successfulJob.id), TIMEOUT)
       }
     } yield dataStoreFiles
 
@@ -1019,7 +961,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       case Success(dataStoreFiles) =>
         dataStoreFiles.find(_.fileTypeId == dsType.fileTypeId) match {
           case Some(ds) =>
-            runGetDataSetInfo(ds.uuid)
+            showDataSetInfo(ds.uuid)
             if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
           case None => errorExit(s"Couldn't find ${dsType.dsName}")
         }
@@ -1037,7 +979,6 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     importFasta(path,
                 FileTypes.DS_REFERENCE,
                 sal.importFasta(path, nameFinal, organism, ploidy),
-                sal.getImportFastaJobDataStore,
                 projectName)
   }
 
@@ -1047,7 +988,6 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     importFasta(path,
                 FileTypes.DS_BARCODE,
                 sal.importFastaBarcodes(path, name),
-                sal.getImportBarcodesJobDataStore,
                 projectName,
                 barcodeMode = true)
 
@@ -1083,7 +1023,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
     def importDs = {
       val rc = runImportDataSet(path, dsMiniMeta.metatype)
       if (rc == 0) {
-        runGetDataSetInfo(dsMiniMeta.uuid)
+        showDataSetInfo(dsMiniMeta.uuid)
         if (projectId > 0) addDataSetToProject(dsMiniMeta.uuid, projectId)
         else 0
       } else rc
@@ -1488,7 +1428,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       job <- Try { Await.result(sal.convertRsMovie(path, finalName), TIMEOUT) }
       job <- sal.pollForSuccessfulJob(job.uuid)
       dataStoreFiles <- Try {
-        Await.result(sal.getConvertRsMovieJobDataStore(job.uuid), TIMEOUT)
+        Await.result(sal.getJobDataStore(job.uuid), TIMEOUT)
       }
     } yield dataStoreFiles
 
@@ -1497,7 +1437,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
         dataStoreFiles.find(
           _.fileTypeId == FileTypes.DS_HDF_SUBREADS.fileTypeId) match {
           case Some(ds) =>
-            runGetDataSetInfo(ds.uuid)
+            showDataSetInfo(ds.uuid)
             if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
           case None => errorExit(s"Couldn't find HdfSubreadSet")
         }
@@ -1734,12 +1674,10 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
   }
 
   protected def getPipelinePresets(
-      presetXml: Option[Path]): PipelineTemplatePreset = {
-    presetXml match {
-      case Some(path) => PipelineTemplatePresetLoader.loadFrom(path)
-      case _ => defaultPresets
-    }
-  }
+      presetXml: Option[Path]): PipelineTemplatePreset =
+    presetXml
+      .map(path => PipelineTemplatePresetLoader.loadFrom(path))
+      .getOrElse(defaultPresets)
 
   private def validateEntryPointIds(
       entryPoints: Seq[BoundServiceEntryPoint],
@@ -1897,7 +1835,7 @@ class PbService(val sal: SmrtLinkServiceAccessLayer,
       }
       _ <- sal.pollForSuccessfulJob(exportJob.uuid, Some(maxTime))
       ds <- Try {
-        Await.result(sal.getExportJobsDataStore(exportJob.id), TIMEOUT)
+        Await.result(sal.getJobDataStore(exportJob.id), TIMEOUT)
       }
     } yield
       ds.filter(_.fileTypeId == FileTypes.ZIP.fileTypeId)
@@ -2067,7 +2005,7 @@ object PbService extends LazyLogging {
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    def toClient = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    def toClient = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
     def toAuthClient(t: String) =
       new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
     def toAuthClientLogin(u: String, p: String) =
@@ -2119,7 +2057,11 @@ object PbService extends LazyLogging {
                          asJson = c.asJson)
         case Modes.SHOW_PIPELINES => ps.runShowPipelines
         case Modes.JOB =>
-          ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
+          executeBlockAndSummary(ps.runGetJobInfo(c.jobId,
+                                                  c.asJson,
+                                                  c.dumpJobSettings,
+                                                  c.showReports),
+                                 c.maxTime)
         case Modes.JOBS =>
           ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
@@ -2127,13 +2069,16 @@ object PbService extends LazyLogging {
         case Modes.EXPORT_JOB =>
           ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.IMPORT_JOB => executeAndSummary(ps.runImportJob(c.path))
-        case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+        case Modes.DATASET =>
+          executeBlockAndSummary(ps.runGetDataSetInfo(c.datasetId, c.asJson),
+                                 c.maxTime)
         case Modes.DATASETS =>
-          ps.runGetDataSets(c.datasetType,
-                            c.maxItems,
-                            c.asJson,
-                            c.searchName,
-                            c.searchPath)
+          executeBlockAndSummary(ps.runGetDataSets(c.datasetType,
+                                                   c.maxItems,
+                                                   c.asJson,
+                                                   c.searchName,
+                                                   c.searchPath),
+                                 c.maxTime)
         case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests

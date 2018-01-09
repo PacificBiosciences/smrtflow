@@ -19,7 +19,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.BOOL
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
@@ -42,12 +42,12 @@ object TechSupportScenarioLoader extends ScenarioLoader {
     // This is quite confusing.
     val testData = PacBioTestResourcesLoader.loadFromConfig()
     val c: Config = config.get
-    val smrtLinkClient = new SmrtLinkServiceAccessLayer(getHost(c), getPort(c))
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
     new TechSupportScenario(smrtLinkClient, testData)
   }
 }
 
-class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
+class TechSupportScenario(client: SmrtLinkServiceClient,
                           testData: PacBioTestResources)
     extends Scenario
     with VarSteps
@@ -105,7 +105,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
       user,
       Var("Sim TS Status support comment")),
     WaitForSuccessfulJob(jobStatusId),
-    dataStore := GetAnalysisJobDataStore(jobStatusId),
+    dataStore := GetJobDataStore(jobStatusId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )
@@ -130,7 +130,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
                                      user,
                                      Var("Sim TS Failed Job support comment")),
     WaitForSuccessfulJob(jobFailedId),
-    dataStore := GetAnalysisJobDataStore(jobFailedId),
+    dataStore := GetJobDataStore(jobFailedId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )

@@ -5,7 +5,7 @@ import akka.actor.ActorSystem
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.tools._
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models.{
   EulaRecord,
   PacBioComponentManifest
@@ -79,7 +79,7 @@ object AcceptUserAgreement
         throw new Exception("Can't determine SMRT Link version")))
   }
 
-  def getOrAcceptEula(sal: SmrtLinkServiceAccessLayer,
+  def getOrAcceptEula(sal: SmrtLinkServiceClient,
                       user: String,
                       smrtLinkVersion: String,
                       enableInstallMetrics: Boolean): Future[EulaRecord] = {
@@ -94,7 +94,7 @@ object AcceptUserAgreement
 
     implicit val actorSystem = ActorSystem("get-status")
 
-    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    val sal = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
 
     val fx = for {
       manifests <- sal.getPacBioComponentManifests

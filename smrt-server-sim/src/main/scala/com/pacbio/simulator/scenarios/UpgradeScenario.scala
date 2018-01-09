@@ -14,7 +14,7 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PbReports
 }
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceAccessLayer,
+  SmrtLinkServiceClient,
   ClientUtils
 }
 import com.pacbio.secondary.smrtlink.models._
@@ -52,7 +52,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   import JobModels._
 
   override val name = "UpgradeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(
@@ -66,18 +66,20 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
   )
   val diagnosticJobTests = Seq(
     jobId := GetLastAnalysisJobId,
-    dataStore := GetAnalysisJobDataStore(jobId),
+    job := GetJob(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail(s"Expected at least one datastore file") IF dataStore
       .mapWith(_.size) ==? 0,
-    jobReports := GetAnalysisJobReports(jobId),
+    jobReports := GetJobReports(jobId),
     fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
-    report := GetReport(jobReports.mapWith(_(0).dataStoreFile.uuid)),
+    report := GetJobReport(job.mapWith(_.id),
+                           jobReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(
       _(0).dataStoreFile.uuid) !=? report.mapWith(_.uuid),
     job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
-    entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
+    entryPoints := GetJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints
       .mapWith(_(0).datasetUUID) !=? subreadsUuid
@@ -88,14 +90,14 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     jobId := RunAnalysisPipeline(satOpts),
     jobStatus := WaitForJob(jobId),
     fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
-    dataStore := GetAnalysisJobDataStore(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail("Expected four datastore files") IF dataStore.mapWith(_.size) !=? 3,
-    jobReports := GetAnalysisJobReports(jobId),
+    jobReports := GetJobReports(jobId),
     fail("Expected four reports") IF jobReports.mapWith(_.size) !=? 4,
     job := GetJob(jobId),
-    jobTasks := GetAnalysisJobTasks(job.mapWith(_.id)),
+    jobTasks := GetJobTasks(job.mapWith(_.id)),
     fail("Expected at least one job task") IF jobTasks.mapWith(_.size) ==? 0,
-    jobEvents := GetAnalysisJobEvents(job.mapWith(_.id)),
+    jobEvents := GetJobEvents(job.mapWith(_.id)),
     fail("Expected at least one job event") IF jobEvents.mapWith(_.size) ==? 0
   )
 
