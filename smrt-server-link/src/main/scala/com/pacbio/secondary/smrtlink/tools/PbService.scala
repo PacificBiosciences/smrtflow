@@ -49,6 +49,7 @@ object Modes {
   case object STATUS extends Mode { val name = "status" }
   case object IMPORT_DS extends Mode { val name = "import-dataset" }
   case object IMPORT_FASTA extends Mode { val name = "import-fasta" }
+  case object IMPORT_FASTA_GMAP extends Mode { val name = "import-fasta-gmap" }
   case object IMPORT_BARCODES extends Mode { val name = "import-barcodes" }
   case object ANALYSIS extends Mode { val name = "run-analysis" }
   case object TEMPLATE extends Mode { val name = "emit-analysis-template" }
@@ -288,16 +289,13 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Name of project associated with this dataset"
     ) text "Import PacBio DataSet(s) into SMRTLink"
 
-    note("\nIMPORT FASTA\n")
-    cmd(Modes.IMPORT_FASTA.name) action { (_, c) =>
-      c.copy(command = (c) => println(c), mode = Modes.IMPORT_FASTA)
-    } children (
+    private def argsImportFasta(dsType: String) = Seq(
       arg[File]("fasta-path") required () action { (p, c) =>
         c.copy(path = p.toPath)
       } text "FASTA path",
       opt[String]("name") action { (name, c) =>
         c.copy(name = name) // do we need to check that this is non-blank?
-      } text "Name of ReferenceSet",
+      } text s"Name of $dsType",
       opt[String]("organism") action { (organism, c) =>
         c.copy(organism = organism)
       } text "Organism",
@@ -310,7 +308,23 @@ object PbServiceParser extends CommandLineToolVersion {
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
       } text "Name of project associated with this reference"
-    ) text "Import Reference FASTA"
+    )
+
+    note("\nIMPORT FASTA\n")
+    cmd(Modes.IMPORT_FASTA.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.IMPORT_FASTA)
+      }
+      .children(argsImportFasta("ReferenceSet"): _*)
+      .text("Import Reference FASTA")
+
+    note("\nIMPORT FASTA GMAP\n")
+    cmd(Modes.IMPORT_FASTA_GMAP.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.IMPORT_FASTA_GMAP)
+      }
+      .children(argsImportFasta("GmapReferenceSet"): _*)
+      .text("Import GMAP Reference FASTA")
 
     note("\nIMPORT BARCODE\n")
     cmd(Modes.IMPORT_BARCODES.name) action { (_, c) =>
@@ -496,8 +510,7 @@ object PbServiceParser extends CommandLineToolVersion {
     cmd(Modes.DATASETS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASETS)
     } children (
-      arg[String]("dataset-type")
-        .required()
+      opt[String]('t', "dataset-type")
         .text(DS_META_TYPE_NAME)
         .validate(t => validateDataSetMetaType(t))
         .action { (t, c) =>
@@ -990,6 +1003,19 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                 sal.importFastaBarcodes(path, name),
                 projectName,
                 barcodeMode = true)
+
+  def runImportFastaGmap(path: Path,
+                         name: String,
+                         organism: String,
+                         ploidy: String,
+                         projectName: Option[String] = None): Int = {
+    // this really shouldn't be optional
+    val nameFinal = if (name.isEmpty) "unknown" else name
+    importFasta(path,
+                FileTypes.DS_GMAP_REF,
+                sal.importFastaGmap(path, nameFinal, organism, ploidy),
+                projectName)
+  }
 
   private def importXmlRecursive(path: Path,
                                  listFilesOfType: File => Array[File],
@@ -2041,6 +2067,12 @@ object PbService extends LazyLogging {
                                  c.maxTime)
         case Modes.IMPORT_FASTA =>
           ps.runImportFasta(c.path, c.name, c.organism, c.ploidy, c.project)
+        case Modes.IMPORT_FASTA_GMAP =>
+          ps.runImportFastaGmap(c.path,
+                                c.name,
+                                c.organism,
+                                c.ploidy,
+                                c.project)
         case Modes.IMPORT_BARCODES =>
           ps.runImportBarcodes(c.path, c.name, c.project)
         case Modes.IMPORT_MOVIE =>

@@ -42,9 +42,9 @@ testOptions in IntegrationTest := {
   (testOptions in IntegrationTest).value
 }
 
-
 val runInt =
-  taskKey[String]("Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
+  taskKey[String](
+    "Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
 
 runInt := {
   val r = smrtLinkServerRunner.value
