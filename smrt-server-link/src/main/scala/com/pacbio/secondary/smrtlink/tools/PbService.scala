@@ -510,8 +510,7 @@ object PbServiceParser extends CommandLineToolVersion {
     cmd(Modes.DATASETS.name) action { (_, c) =>
       c.copy(command = (c) => println(c), mode = Modes.DATASETS)
     } children (
-      arg[String]("dataset-type")
-        .required()
+      opt[String]('t', "dataset-type")
         .text(DS_META_TYPE_NAME)
         .validate(t => validateDataSetMetaType(t))
         .action { (t, c) =>
