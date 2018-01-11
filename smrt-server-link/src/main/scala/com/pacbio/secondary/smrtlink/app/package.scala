@@ -1,8 +1,5 @@
 package com.pacbio.secondary.smrtlink
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
@@ -28,9 +25,6 @@ package object app {
     lazy val systemHost = "0.0.0.0"
     lazy val systemUUID = getSystemUUID(conf)
     lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
-    lazy val swaggerJson = "eventserver_swagger.json"
-    // Note, this must be consistent with the how the server is launched.
-    lazy val eveUrl = new URL(s"https:$systemHost:$systemPort")
   }
 
   trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
