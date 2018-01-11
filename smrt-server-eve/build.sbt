@@ -15,6 +15,7 @@ mainClass in assembly := Some(mainServer)
 
 assemblyMergeStrategy in assembly := {
   case PathList("application.conf") => MergeStrategy.first
+  case PathList("reference.conf") => MergeStrategy.first
   case p if p.endsWith("eclipse.inf") => MergeStrategy.first
   case PathList("org", "slf4j", xs @ _ *) => MergeStrategy.first
   case PathList("org", "eclipse", xs @ _ *) => MergeStrategy.first
@@ -25,6 +26,10 @@ assemblyMergeStrategy in assembly := {
     oldStrategy(x)
 }
 
-packMain := Map("smrt-server-eve" -> mainServer)
+// Including the uploader tool for convenience and testing purposes
+packMain := Map(
+  "smrt-server-eve" -> mainServer,
+  "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp"
+)
 
 packGenerateWindowsBatFile := false
