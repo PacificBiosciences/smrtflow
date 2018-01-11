@@ -388,6 +388,15 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         .map(_.uuid)
   }
 
+  case class ImportFastaGmap(path: Var[Path], dsName: Var[String])
+      extends VarStep[UUID] {
+    override val name = "ImportFastaGmap"
+    override def runWith =
+      smrtLinkClient
+        .importFastaGmap(path.get, dsName.get, "lambda", "haploid")
+        .map(_.uuid)
+  }
+
   case class ImportFastaBarcodes(path: Var[Path], dsName: Var[String])
       extends VarStep[UUID] {
     override val name = "ImportFastaBarcodes"

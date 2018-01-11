@@ -13,8 +13,11 @@ package com.pacbio.simulator.scenarios
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.util.Try
+
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
+import org.apache.commons.io.FileUtils
 
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModelImplicits
@@ -46,11 +49,13 @@ object DataSetScenarioLoader extends ScenarioLoader {
       s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
     val c: Config = config.get
 
-    new DataSetScenario(getHost(c), getPort(c))
+    val gmapAvailable = Try { c.getBoolean("gmapAvailable") }.toOption
+      .getOrElse(false)
+    new DataSetScenario(getHost(c), getPort(c), gmapAvailable)
   }
 }
 
-class DataSetScenario(host: String, port: Int)
+class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -73,6 +78,8 @@ class DataSetScenario(host: String, port: Int)
   val HAVE_SAWRITER = CallSaWriterIndex.isAvailable()
   val N_SUBREAD_REPORTS = if (HAVE_PBREPORTS) 3 else 1
   val N_SUBREAD_MERGE_REPORTS = if (HAVE_PBREPORTS) 5 else 3
+  val FAKE_REF =
+    ">lambda_NEB3011\nGGGCGGCGACCTCGCGGGTTTTCGCTATTTATGAAAATTTTCCGGTTTAAGGCGTTTCCG\nTTCTTCTTCGTCATAACTTAATGTTTTTATTTAAAATACCCTCTGAAAAGAAAGGAAACG"
 
   // various Report model identifiers
   val RPT_NBASES = "raw_data_report.nbases"
@@ -90,6 +97,9 @@ class DataSetScenario(host: String, port: Int)
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
   val referenceSet: Var[ReferenceServiceDataSet] = Var()
   val referenceSetDetails: Var[ReferenceSet] = Var()
+  val gmapReferenceSets: Var[Seq[GmapReferenceServiceDataSet]] = Var()
+  val gmapReferenceSet: Var[GmapReferenceServiceDataSet] = Var()
+  val gmapReferenceSetDetails: Var[GmapReferenceSet] = Var()
   val barcodeSets: Var[Seq[BarcodeServiceDataSet]] = Var()
   val barcodeSetDetails: Var[BarcodeSet] = Var()
   val hdfSubreadSets: Var[Seq[HdfSubreadServiceDataSet]] = Var()
@@ -138,7 +148,6 @@ class DataSetScenario(host: String, port: Int)
   val subreads3 = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid2 = Var(getDataSetMiniMeta(subreads2.get).uuid)
   val reference1 = Var(testdata.getTempDataSet("lambdaNEB"))
-  val refFasta = Var(testdata.getFile("lambda-fasta"))
   val hdfSubreads = Var(testdata.getTempDataSet("hdfsubreads"))
   val barcodes = Var(testdata.getTempDataSet("barcodeset"))
   val bcFasta = Var(testdata.getFile("barcode-fasta"))
@@ -158,6 +167,8 @@ class DataSetScenario(host: String, port: Int)
   val tmpSubreads2 = Var(
     MockDataSetUtils
       .makeTmpDataset(subreads1.get, DataSetMetaTypes.Subread, false))
+  val refFasta = Var(Files.createTempFile("lambda", ".fasta"))
+  FileUtils.writeStringToFile(refFasta.get.toFile, FAKE_REF, "UTF-8")
 
   private def getReportUuid(reports: Var[Seq[DataStoreReportFile]],
                             reportId: String): Var[UUID] = {
@@ -187,7 +198,6 @@ class DataSetScenario(host: String, port: Int)
     subreadSets := GetSubreadSets,
     jobId := ImportDataSet(subreads1, ftSubreads),
     job := WaitForSuccessfulJob(jobId),
-    job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     dsMeta := GetDataSet(subreadsUuid1),
@@ -322,7 +332,6 @@ class DataSetScenario(host: String, port: Int)
             // FASTA import tests (require sawriter)
             jobId := ImportFasta(refFasta, Var("import_fasta")),
             job := WaitForSuccessfulJob(jobId),
-            job := GetJob(jobId),
             fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
               _.smrtlinkVersion) ==? None,
             referenceSets := GetReferenceSets,
@@ -340,11 +349,35 @@ class DataSetScenario(host: String, port: Int)
             fail("Wrong name") IF referenceSet
               .mapWith(_.name) !=? "import_fasta"
           ))
+  // GmapReferenceSet import tests (require gmap_build)
+  val gmapReferenceTests =
+    if (!gmapAvailable) Seq()
+    else {
+      Seq(
+        jobId := ImportFastaGmap(refFasta, Var("import_fasta_gmap")),
+        job := WaitForSuccessfulJob(jobId),
+        fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
+          _.smrtlinkVersion) ==? None,
+        gmapReferenceSets := GetGmapReferenceSets,
+        gmapReferenceSetDetails := GetGmapReferenceSetDetails(
+          gmapReferenceSets.mapWith(_.last.uuid)),
+        fail("Wrong UUID") IF gmapReferenceSetDetails
+          .mapWith(_.getUniqueId) !=? gmapReferenceSets.mapWith(
+          _.last.uuid.toString),
+        gmapReferenceSet := GetGmapReferenceSet(
+          gmapReferenceSets.mapWith(_.last.uuid)),
+        fail("Wrong ploidy") IF gmapReferenceSet
+          .mapWith(_.ploidy) !=? "haploid",
+        fail("Wrong organism") IF gmapReferenceSet
+          .mapWith(_.organism) !=? "lambda",
+        fail("Wrong name") IF gmapReferenceSet
+          .mapWith(_.name) !=? "import_fasta_gmap"
+      )
+    }
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     jobId := ImportDataSet(barcodes, ftBarcodes),
     job := WaitForSuccessfulJob(jobId),
-    job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     barcodeSets := GetBarcodeSets,
@@ -549,5 +582,5 @@ class DataSetScenario(host: String, port: Int)
       ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
-  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
+  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
 }
