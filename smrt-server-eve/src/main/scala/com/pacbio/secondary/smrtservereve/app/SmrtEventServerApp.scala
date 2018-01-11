@@ -12,41 +12,52 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import org.joda.time.format.DateTimeFormat
 import org.apache.commons.io.FileUtils
-import akka.actor.{ActorSystem, Props}
-import akka.io.IO
+import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.pattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.model.{HttpHeader, MediaTypes, Multipart, StatusCodes}
+import akka.http.scaladsl.model.{
+  HttpHeader,
+  MediaTypes,
+  Multipart,
+  StatusCodes
+}
 import akka.http.scaladsl.Http
 import spray.json._
 import DefaultJsonProtocol._
 import akka.http.scaladsl.model.headers.HttpChallenge
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.directives.FileInfo
 import akka.http.scaladsl.settings.RoutingSettings
+import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.file.FileSizeFormatterUtil
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.services.utils.StatusGenerator
-import com.pacbio.secondary.smrtlink.services.PacBioService
+import com.pacbio.secondary.smrtlink.services.{
+  PacBioService,
+  PacBioServiceErrors,
+  StatusService
+}
 import com.pacbio.secondary.smrtlink.time.SystemClock
-import com.pacbio.secondary.smrtlink.client.EventServerClient
-import com.pacbio.secondary.smrtlink.models.{EventTypes, PacBioComponentManifest, SmrtLinkSystemEvent}
+import com.pacbio.secondary.smrtlink.models.{
+  PacBioComponentManifest,
+  SmrtLinkSystemEvent
+}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.TsSystemStatusManifest
 import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.services.StatusService
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.common.logging.LoggerOptions
-import com.pacbio.secondary.smrtlink.app.{ActorSystemCakeProvider, BaseServiceConfigCakeProvider}
+import com.pacbio.secondary.smrtlink.app.{
+  ActorSystemCakeProvider,
+  BaseServiceConfigCakeProvider
+}
 import com.pacbio.secondary.smrtlink.auth.hmac.Signer
-
-import scala.util.control.NonFatal
 
 // Jam All the Event Server Components to create a pure Cake (i.e., not Singleton) app
 // in here for first draft.
-
 
 /**
   * This could be made more configurable, currently keep the
@@ -55,9 +66,8 @@ import scala.util.control.NonFatal
 trait HmacDirectives {
 
   val pattern = """^hmac (\S+):(\S+)$"""
-  val header = "Authentication"
+  val authHeader = "Authentication"
   val regex = pattern.r
-
 
   /**
     * Auth Directive for validating the Hmac Authentication
@@ -68,22 +78,33 @@ trait HmacDirectives {
     * @return
     */
   def validateHmac(hmacSecret: String): Directive0 = Directive[Unit] {
-    inner =>
-      ctx => {
-        ctx.request.headers.find(_.is(header)).map(_.value()) match {
+    inner => ctx =>
+      {
+        ctx.request.headers
+          .find(_.is(authHeader.toLowerCase))
+          .map(_.value()) match {
           case Some(rawHeaderValue) =>
             rawHeaderValue match {
               case regex(_, hash) =>
-                if (Signer.valid(hash, hmacSecret, ctx.request.uri.path.toString())) {
+                if (Signer.valid(hash,
+                                 hmacSecret,
+                                 ctx.request.uri.path.toString())) {
                   inner(Unit)(ctx)
                 } else {
-                  ctx.reject(AuthenticationFailedRejection(CredentialsRejected, HttpChallenge(ctx.request.uri.scheme, realm = None)))
+                  ctx.reject(
+                    AuthenticationFailedRejection(
+                      CredentialsRejected,
+                      HttpChallenge(ctx.request.uri.scheme, realm = None)))
                 }
               case _ =>
-                ctx.reject(MalformedHeaderRejection(header, s"Malformed header $rawHeaderValue"))
+                ctx.reject(
+                  MalformedHeaderRejection(
+                    authHeader,
+                    s"Malformed header $rawHeaderValue"))
             }
             inner(Unit)(ctx)
-          case _ => ctx.reject(MissingHeaderRejection(header))
+          case _ =>
+            ctx.reject(MissingHeaderRejection(s"Missing $authHeader"))
         }
       }
   }
@@ -189,12 +210,13 @@ trait EventServiceBaseMicroService extends PacBioService {
   * @param rootOutputDir root output dir for events
   * @param rootUploadFilesDir root output dir for files
   */
-class EventService(
-    eventProcessor: EventProcessor,
-    rootOutputDir: Path,
-    rootUploadFilesDir: Path,
-    apiSecret: String,
-    swaggerResourceName: String)(implicit actorSystem: ActorSystem)
+class EventService(eventProcessor: EventProcessor,
+                   rootOutputDir: Path,
+                   rootUploadFilesDir: Path,
+                   apiSecret: String,
+                   swaggerResourceName: String)(
+    implicit val actorSystem: ActorSystem,
+    implicit val materializer: ActorMaterializer)
     extends EventServiceBaseMicroService
     with HmacDirectives
     with LazyLogging
@@ -235,19 +257,6 @@ class EventService(
       }
     }
 
-  def filesRoute: Route =
-    pathPrefix(PREFIX_FILES) {
-      pathEndOrSingleSlash {
-        validateHmac(apiSecret) {
-          post {
-            entity(as[Multipart.FormData]) { formData =>
-              complete(StatusCodes.Created -> processUpload(formData))
-            }
-          }
-        }
-      }
-    }
-
   def swaggerFile: Route =
     pathPrefix("swagger") {
       pathEndOrSingleSlash {
@@ -257,7 +266,26 @@ class EventService(
       }
     }
 
-  def routes = eventRoutes ~ filesRoute ~ swaggerFile
+  private def resolveDestination(fileInfo: FileInfo): File = {
+    logger.info(s"File Info $fileInfo")
+    resolveOutputFile(fileInfo.fileName)
+  }
+
+  def uploadFileRoute: Route =
+    pathPrefix(PREFIX_FILES) {
+      pathEndOrSingleSlash {
+        validateHmac(apiSecret) {
+          post {
+            storeUploadedFile("techsupport_tgz", resolveDestination) {
+              case (fileInfo, file) =>
+                complete(StatusCodes.Created -> createImportEvent(file))
+            }
+          }
+        }
+      }
+    }
+
+  def routes = eventRoutes ~ uploadFileRoute ~ swaggerFile
 
   /**
     * Unzip the .tar.gz or .tgz file next to the tar-zipped file. Then extract the TS Bundle manifest from the
@@ -274,7 +302,7 @@ class EventService(
     * @param file Path to the TS manifest JSON file
     * @return
     */
-  def createImportEvent(file: File) = {
+  def createImportEvent(file: File): SmrtLinkSystemEvent = {
 
     val parent: Path = file.toPath.toAbsolutePath.getParent
 
@@ -317,38 +345,6 @@ class EventService(
                         manifest.dnsName)
   }
 
-  /**
-    * Extract the filename to download from the headers
-    *
-    * Assumes only one file is upload
-    *
-    * This NEEDS to be clarified to tightened up. Only load the first
-    * name="techsupport_tgz"; filename="junk.tgz"
-    *
-    * @param headers
-    * @return
-    */
-  def processHeaders(headers: Seq[HttpHeader]): Option[String] = {
-    logger.debug(s"Headers $headers")
-
-    // this is pretty sloppy. The raw header has the form
-    // Content-Disposition: form-data; filename=example.tgz; name=techsupport_tgz
-    def extractFileName(sx: String): Option[String] = {
-      sx.split(";")
-        .map(f => f.trim)
-        .find(_.startsWith("filename="))
-        .flatMap(_.split("filename=").lastOption)
-    }
-
-    headers
-      .find(h => h.is("content-disposition"))
-      .flatMap(x => extractFileName(x.value))
-      .map { fileName =>
-        logger.info(s"Found Filename '$fileName' from headers.")
-        fileName
-      }
-  }
-
   def isSupportedFileExt(exts: Seq[String], fileName: String): Boolean =
     exts.map(ext => fileName.endsWith(ext)).reduce(_ || _)
 
@@ -357,7 +353,7 @@ class EventService(
     val errorMessage =
       s"Invalid file '$fileName'. Supported types ${supportedExts.reduce(_ + ", " + _)}"
     if (isSupportedFileExt(supportedExts, fileName)) Future(fileName)
-    else Future.failed(throw new UnprocessableEntityError(errorMessage))
+    else Future.failed(UnprocessableEntityError(errorMessage))
   }
 
   /**
@@ -386,102 +382,6 @@ class EventService(
     logger.info(s"Resolved $fileName to local output $f")
     f
   }
-
-  def processBodyPart(
-      m: Multipart.BodyPart,
-      saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
-    for {
-      fileName <- failIfNone("Unable to find filename in headers")(
-        processHeaders(m.headers))
-      validFileName <- onlyAllowTarGz(fileName)
-      ex <- m.entity.toStrict(5.seconds)
-      file <- Future.fromTry(
-        saver(resolveOutputFile(validFileName),
-              new ByteArrayInputStream(ex.)
-    } yield file
-  }
-
-
-  def processForm(
-      formData: Multipart.FormData,
-      saver: (File, ByteArrayInputStream) => Try[File]): Future[File] = {
-    val bodyPart: Option[Multipart.BodyPart] = formData.parts.flatMap {
-      case m: Multipart.BodyPart if processHeaders(m.headers).isDefined =>
-        Some(m)
-      case _ => None
-    }.lastOption
-
-    for {
-      body <- failIfNone("Body malformed")(bodyPart)
-      file <- processBodyPart(body, saver)
-    } yield file
-
-  }
-
-  /**
-    * Core Function used within the Route to process the file upload.
-    *
-    * 1. validate filename
-    * 2. save file locally
-    * 3. Create an event for the SL import
-    * 4. Call Event processor
-    *
-    * Consumers of the file upload service should *ONLY* use the companion event as the fundamental interface.
-    *
-    * @param formData
-    * @return
-    */
-  def processUpload(
-      formData: Multipart.FormData): Future[SmrtLinkSystemEvent] = {
-    for {
-      file <- processForm(formData, saveAttachmentByteArray)
-      event <- Future { createImportEvent(file) }
-      processedEvent <- eventProcessor.process(event)
-    } yield processedEvent
-  }
-
-  private def saveAttachmentByteArray(
-      outputFile: File,
-      content: ByteArrayInputStream): Try[File] = {
-    saveAttachment[ByteArrayInputStream](
-      outputFile,
-      content, { (is, os) =>
-        val buffer = new Array[Byte](16384)
-        Iterator
-          .continually(is.read(buffer))
-          .takeWhile(_ != -1)
-          .foreach(read => os.write(buffer, 0, read))
-        outputFile
-      }
-    )
-  }
-
-  private def saveAttachment[T](
-      outputFile: File,
-      content: T,
-      writeFile: (T, OutputStream) => File): Try[File] = {
-
-    logger.info(s"Writing to output: $outputFile")
-    val fos = new java.io.FileOutputStream(outputFile)
-
-    val startedAt = JodaDateTime.now()
-
-    Try {
-      writeFile(content, fos)
-      val runTime = computeTimeDeltaFromNow(startedAt)
-      logger.info(s"Successfully saved content ${humanReadableByteSize(
-        outputFile.length())} in $runTime sec to $outputFile")
-      fos.close()
-      outputFile
-    } match {
-      case Success(f) => Success(f)
-      case Failure(ex) =>
-        fos.close()
-        Failure(ex)
-    }
-
-  }
-
 }
 
 trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
@@ -492,6 +392,7 @@ trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
     Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
   // Make this independently configurable
   lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
+  lazy val swaggerJson = "eventserver_swagger.json"
 }
 
 trait EventServicesCakeProvider {
@@ -509,7 +410,7 @@ trait EventServicesCakeProvider {
                      eventMessageDir,
                      eventUploadFilesDir,
                      apiSecret,
-                     swaggerJson)(actorSystem),
+                     swaggerJson)(actorSystem, materializer),
     new StatusService(statusGenerator)
   )
 }
@@ -524,19 +425,22 @@ trait RootEventServerCakeProvider extends RouteConcatenation {
 trait EventServerCakeProvider
     extends LazyLogging
     with timeUtils
-    with EveFileUtils {
+    with EveFileUtils
+    with PacBioServiceErrors {
   this: RootEventServerCakeProvider
     with EventServiceConfigCakeProvider
     with ActorSystemCakeProvider =>
 
   implicit val timeout = Timeout(30.seconds)
 
+  implicit val customExceptionHandler = pacbioExceptionHandler
+  implicit val customRejectionHandler = pacBioRejectionHandler
+
   lazy val startupTimeOut = 30.seconds
-  lazy val eventServiceClient = new EventServerClient(eveUrl, apiSecret)
 
   // Mocked out. Fail the future if any invalid option is detected
   def validateOption(): Future[String] =
-    Future { "Successfully validated System options." }
+    Future.successful(s"Successfully validated System options.")
 
   /**
     * Pre System Startup
@@ -563,60 +467,11 @@ trait EventServerCakeProvider
   }
 
   /**
-    * See comments in postStartUpHook
-    *
+    * Post Services Startup Hook
     * @return
     */
-  def attemptSendSelfEvent(e: SmrtLinkSystemEvent): Future[String] = {
-    eventServiceClient
-      .sendSmrtLinkSystemEvent(e)
-      .map(e => s"Self Client successfully created startup event $e")
-      .recover {
-        case NonFatal(ex) =>
-          s"WARNING Unable to create self start up message from client. ${ex.getMessage}"
-      }
-  }
-
-  def attemptSelfStatus: Future[String] = {
-    eventServiceClient.getStatus
-      .map(status =>
-        s"Self Client Successfully got Status ${status.version} ${status.message}")
-      .recover {
-        case NonFatal(ex) =>
-          s"WARNING Unable to create self start up message from client. ${ex.getMessage}"
-      }
-  }
-
-  /**
-    * Run a Sanity Check from out Client to make sure the client lib
-    * and Server can successfully communicate.
-    *
-    * (mpkocher)(5-23-2017) From feedback from Chris, this will only raise warnings on startup
-    * and not fail the startup. Not clear why this is failing on startup in his env.
-    *
-    * @return
-    */
-  private def postStartUpHook(): Future[String] = {
-
-    def toMessage(m: String): Map[String, JsValue] =
-      Map("eveSystemStartup" -> JsString(m))
-
-    def toEvent(m: String) =
-      SmrtLinkSystemEvent(
-        systemUUID,
-        EventTypes.SERVER_STARTUP,
-        1,
-        UUID.randomUUID(),
-        JodaDateTime.now,
-        JsObject(toMessage(m)),
-        Some(java.net.InetAddress.getLocalHost.getCanonicalHostName)
-      )
-
-    for {
-      statusMsg <- attemptSelfStatus
-      sentEventMsg <- attemptSendSelfEvent(toEvent(statusMsg))
-    } yield s"$statusMsg\n$sentEventMsg\nSuccessfully ran PostStartup Hook"
-  }
+  private def postStartUpHook(): Future[String] =
+    Future.successful("Successfully ran PostStartup Hook")
 
   /**
     * Public method for starting the Entire System
@@ -628,7 +483,7 @@ trait EventServerCakeProvider
     * Wrapped in a Try and will shutdown if the system has a failure on startup.
     *
     */
-  def startSystem() = {
+  def startSystem(): Unit = {
     val startedAt = JodaDateTime.now()
     val fx = for {
       preMessage <- preStartUpHook()
@@ -642,18 +497,20 @@ trait EventServerCakeProvider
         s"Successfully Started System in ${computeTimeDeltaFromNow(startedAt)} sec")
         .reduce(_ + "\n" + _)
 
-    val result = Try { Await.result(fx, startupTimeOut) }
+    val result = Try(Await.result(fx, startupTimeOut))
 
     result match {
       case Success(msg) =>
         logger.info(msg)
-        println("Successfully started up System")
+        println(s"Successfully started up System")
       case Failure(ex) =>
         // This should call unbind?
         // flatMap(_.unbind()) // trigger unbinding from the port
-        //IO(Http)(actorSystem) ! Http.CloseAll
+        val msg = s"Failed to start ${ex.getMessage}"
+        logger.error(msg)
         actorSystem.terminate()
-        //throw new StartupFailedException(ex)
+        System.err.println(msg)
+        System.exit(1)
     }
 
   }
