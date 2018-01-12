@@ -33,7 +33,7 @@ class ImportFastaGmapJob(opts: ImportFastaGmapJobOptions)
                                ContigSetMetadataType,
                                GmapReferenceSetIO](opts) {
   override val PIPELINE_ID =
-    "pbsmrtpipe.pipelines.sa3_ds_fasta_to_gmapreference"
+    "pbsmrtpipe.pipelines.sa3_fasta_to_gmap_reference"
   override val DS_METATYPE = DataSetMetaTypes.GmapReference
   override val CONVERTER = GmapReferenceConverter
 }
