@@ -10,7 +10,7 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.12.0-SNAPSHOT"
+version in ThisBuild := "0.12.1-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
@@ -127,7 +127,6 @@ lazy val baseSettings = Seq(
   "org.ini4j" % "ini4j" % "0.5.4",
   "org.joda" % "joda-convert" % "1.6",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
-  "org.scalaj" %% "scalaj-http" % "2.3.0",
   "org.scalaz" %% "scalaz-core" % "7.2.17", // We should get rid of this in favor of cats
   "org.specs2" %% "specs2-core" % specs2V % "test,it", // this is the new group for specs2
   "org.specs2" %% "specs2-mock" % specs2V % "test,it",
