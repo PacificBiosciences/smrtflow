@@ -44,6 +44,15 @@ tools-tarball:
 	sbt smrt-server-link/{compile,pack}
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
+tools-sim-tarball:
+	$(eval SHA := "`git rev-parse --short HEAD`")
+	@echo SHA is ${SHA}
+	rm -f smrtflow-sim*.tar.gz
+	rm -rf smrt-*/target/pack/*
+	sbt smrt-server-sim/{compile,pack}
+	cd smrt-server-sim && tar cvfz ../smrtflow-sim-packed-${SHA}.tar.gz target/pack
+
+
 repl:
 	sbt smrtflow/test:console
 
