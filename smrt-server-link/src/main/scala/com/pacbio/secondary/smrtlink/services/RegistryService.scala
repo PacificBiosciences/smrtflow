@@ -39,12 +39,26 @@ class RegistryService(dao: RegistryDao,
     sx
   }
 
+  private def toRequest(originalRequest: HttpRequest,
+                        host: String,
+                        port: Int,
+                        path: Uri.Path): HttpRequest = {
+    val ux = originalRequest.uri
+    val uri = Uri.from(scheme = "http", host = host, port = port)
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
+    originalRequest.copy(uri = uri.copy(path = px))
+  }
+
   def getResourceAndHandleProxy(uuid: UUID,
-                                request: HttpRequest): Future[HttpResponse] = {
+                                request: HttpRequest,
+                                path: Uri.Path): Future[HttpResponse] = {
     for {
       resource <- Future.successful(dao.getResource(uuid))
-      _ <- andLog(s"Sending request to Resource:$resource request:$request")
-      httpResponse <- handleProxy(resource.host, resource.port, request)
+      updatedRequest <- Future.successful(
+        toRequest(request, resource.host, resource.port, path))
+      _ <- andLog(
+        s"Sending request to Resource:$resource request:$updatedRequest")
+      httpResponse <- handleProxy(resource.host, resource.port, updatedRequest)
     } yield httpResponse
   }
 
@@ -130,12 +144,12 @@ class RegistryService(dao: RegistryDao,
               extractRequestContext { ctx =>
                 path(RemainingPath) { path =>
                   complete {
-                    getResourceAndHandleProxy(uuid, ctx.request) //FIXME. These need to use path
+                    getResourceAndHandleProxy(uuid, ctx.request, path)
                   }
                 } ~
                   pathEndOrSingleSlash {
                     complete {
-                      getResourceAndHandleProxy(uuid, ctx.request) //FIXME. These need to use /
+                      getResourceAndHandleProxy(uuid, ctx.request, Uri.Path./)
                     }
                   }
               }
