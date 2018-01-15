@@ -1,7 +1,5 @@
 package com.pacbio.secondary.smrtlink.services
 
-import java.util.UUID
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import com.pacbio.secondary.smrtlink.dependency.Singleton
@@ -34,39 +32,25 @@ class RegistryService(dao: RegistryDao,
                                          COMPONENT_VERSION,
                                          "Subsystem Resource Registry Service")
 
-  def andLog(sx: String): Future[String] = Future {
-    logger.info(sx)
-    sx
-  }
-
+  /**
+    * Translate the original request to the input for the proxy'ed
+    * request.
+    *
+    * The Host and Timeout-Access headers need to be removed. See
+    * {{{HttpRequest}}} for details.
+    *
+    */
   private def toRequest(originalRequest: HttpRequest,
                         host: String,
                         port: Int,
                         path: Uri.Path): HttpRequest = {
-    val ux = originalRequest.uri
     val uri = Uri.from(scheme = "http", host = host, port = port)
     val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
-    originalRequest.copy(uri = uri.copy(path = px))
-  }
-
-  def getResourceAndHandleProxy(uuid: UUID,
-                                request: HttpRequest,
-                                path: Uri.Path): Future[HttpResponse] = {
-    for {
-      resource <- Future.successful(dao.getResource(uuid))
-      updatedRequest <- Future.successful(
-        toRequest(request, resource.host, resource.port, path))
-      _ <- andLog(
-        s"Sending request to Resource:$resource request:$updatedRequest")
-      httpResponse <- handleProxy(resource.host, resource.port, updatedRequest)
-    } yield httpResponse
-  }
-
-  def handleProxy(host: String,
-                  port: Int,
-                  request: HttpRequest): Future[HttpResponse] = {
-    val flow = Http(actorSystem).outgoingConnection(host, port)
-    Source.single(request).via(flow).runWith(Sink.head)(materializer)
+    val headers =
+      originalRequest.headers
+        .filter(_.isNot("Timeout-Access".toLowerCase))
+        .filter(_.isNot("Host".toLowerCase))
+    originalRequest.copy(uri = uri.copy(path = px), headers = headers)
   }
 
   val routes =
@@ -140,18 +124,19 @@ class RegistryService(dao: RegistryDao,
                 }
               }
             } ~
-            pathPrefix("proxy") {
+            pathPrefix("proxy" / RemainingPath) { path =>
               extractRequestContext { ctx =>
-                path(RemainingPath) { path =>
-                  complete {
-                    getResourceAndHandleProxy(uuid, ctx.request, path)
-                  }
-                } ~
-                  pathEndOrSingleSlash {
-                    complete {
-                      getResourceAndHandleProxy(uuid, ctx.request, Uri.Path./)
+                complete {
+                  Future.successful(dao.getResource(uuid)).flatMap { r =>
+                    Future {
+                      Source
+                        .single(toRequest(ctx.request, r.host, r.port, path))
+                        .via(Http(actorSystem)
+                          .outgoingConnection(r.host, port = r.port))
+                        .runWith(Sink.head)(materializer)
                     }
                   }
+                }
               }
             }
         }
