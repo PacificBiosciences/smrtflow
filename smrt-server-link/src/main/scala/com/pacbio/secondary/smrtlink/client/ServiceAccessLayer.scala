@@ -7,8 +7,6 @@ import java.util.UUID
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import scalaj.http.Base64
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -16,7 +14,6 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -28,6 +25,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.auth.JwtUtilsImpl
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
@@ -46,12 +44,14 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       request: HttpRequest): Future[MessageResponse] =
     getObject[MessageResponse](request)
 
-  val headers = authUser
-    .map(u =>
-      "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
-    .map(c =>
-      Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
-    .map(j => RawHeader(JWT_HEADER, j))
+  // To reuse the current models, we need an email address of the user.
+  private val userRecord: Option[UserRecord] =
+    authUser.map(u => UserRecord(u, Some(s"$u/domain.com")))
+
+  private val jwtUtils = new JwtUtilsImpl
+
+  val headers = userRecord
+    .map(u => RawHeader(JWT_HEADER, jwtUtils.userRecordToJwt(u)))
     .toSeq
 
   def this(host: String, port: Int, authUser: Option[String] = None)(

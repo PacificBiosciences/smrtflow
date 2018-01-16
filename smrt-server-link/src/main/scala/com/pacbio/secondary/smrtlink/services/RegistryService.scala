@@ -1,61 +1,67 @@
 package com.pacbio.secondary.smrtlink.services
 
-import java.util.UUID
-
-import akka.actor.ActorRef
-import akka.pattern.ask
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.actors.{
-  ActorRefFactoryProvider,
-  ActorSystemProvider,
-  RegistryServiceActor,
-  RegistryServiceActorRefProvider
-}
+import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{
-  HttpEntity,
-  HttpHeader,
-  HttpMethod,
-  StatusCodes,
-  Uri,
-  HttpResponse => SprayHttpResponse
-}
-import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Sink, Source}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-//MK. Why are we using this data model?
-import scalaj.http.HttpResponse
-
-class RegistryService(registryActor: ActorRef, materializer: ActorMaterializer)
+class RegistryService(dao: RegistryDao,
+                      actorSystem: ActorSystem,
+                      materializer: ActorMaterializer)
     extends SmrtLinkBaseMicroService
-    with SmrtLinkJsonProtocols {
-
-  import RegistryServiceActor._
+    with SmrtLinkJsonProtocols
+    with LazyLogging {
 
   val COMPONENT_ID = toServiceId("registry")
-  val COMPONENT_VERSION = "0.1.1"
+  val COMPONENT_VERSION = "0.2.0"
 
   val manifest = PacBioComponentManifest(COMPONENT_ID,
                                          "Subsystem Resource Registry Service",
                                          COMPONENT_VERSION,
                                          "Subsystem Resource Registry Service")
 
+  /**
+    * Translate the original request to the input for the proxy'ed
+    * request.
+    *
+    * The Host and Timeout-Access headers need to be removed. See
+    * {{{HttpRequest}}} for details.
+    *
+    */
+  private def toRequest(originalRequest: HttpRequest,
+                        host: String,
+                        port: Int,
+                        path: Uri.Path): HttpRequest = {
+    val uri = Uri.from(scheme = "http", host = host, port = port)
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
+    val headers =
+      originalRequest.headers
+        .filter(_.isNot("Timeout-Access".toLowerCase))
+        .filter(_.isNot("Host".toLowerCase))
+    originalRequest.copy(uri = uri.copy(path = px), headers = headers)
+  }
+
   val routes =
-    //authenticate(authenticator.wso2Auth) { user =>
     pathPrefix("registry-service" / "resources") {
-      pathEnd {
+      pathEndOrSingleSlash {
         get {
           parameter('resourceId.?) { id =>
             complete {
-              (registryActor ? GetResources(id)).mapTo[Set[RegistryResource]]
+              Future {
+                dao.getResources(id)
+              }
             }
           }
         } ~
@@ -63,72 +69,71 @@ class RegistryService(registryActor: ActorRef, materializer: ActorMaterializer)
             entity(as[RegistryResourceCreate]) { create =>
               complete {
                 StatusCodes.Created -> {
-                  (registryActor ? CreateResource(create))
-                    .mapTo[RegistryResource]
+                  Future {
+                    dao.createResource(create)
+                  }
                 }
               }
             }
           }
       } ~
         pathPrefix(JavaUUID) { uuid =>
-          pathEnd {
+          pathEndOrSingleSlash {
             get {
               complete {
-                (registryActor ? GetResource(uuid)).mapTo[RegistryResource]
+                Future {
+                  dao.getResource(uuid)
+                }
               }
             } ~
               delete {
                 complete {
-                  (registryActor ? DeleteResource(uuid))
-                    .mapTo[MessageResponse]
+                  Future {
+                    dao.deleteResource(uuid)
+                  }
                 }
               }
           } ~
             path("update-status") {
-              post {
-                complete {
-                  (registryActor ? UpdateResource(
-                    uuid,
-                    RegistryResourceUpdate(None, None)))
-                    .mapTo[RegistryResource]
-                }
-              }
-            } ~
-            path("update") {
-              post {
-                entity(as[RegistryResourceUpdate]) { update =>
+              pathEndOrSingleSlash {
+                post {
                   complete {
-                    (registryActor ? UpdateResource(uuid, update))
-                      .mapTo[RegistryResource]
+                    Future {
+                      dao.updateResource(uuid,
+                                         RegistryResourceUpdate(None, None))
+                    }
                   }
                 }
               }
             } ~
-            pathPrefix("proxy") {
-              extract[HttpMethod](_.request.method) { method =>
-                extract[HttpEntity](_.request.entity) { ent =>
-                  extract[Seq[HttpHeader]](_.request.headers) { headers =>
-                    parameterMap { params =>
-                      path(RemainingPath) { path =>
-                        complete {
-                          handleProxy(uuid,
-                                      path,
-                                      method,
-                                      ent,
-                                      headers.toList,
-                                      params)
-                        }
-                      } ~
-                        pathEnd {
-                          complete {
-                            handleProxy(uuid,
-                                        Uri.Path("/"),
-                                        method,
-                                        ent,
-                                        headers.toList,
-                                        params)
-                          }
-                        }
+            path("update") {
+              pathEndOrSingleSlash {
+                post {
+                  entity(as[RegistryResourceUpdate]) { update =>
+                    complete {
+                      for {
+                        serverResource <- Future.successful(
+                          dao.getResource(uuid))
+                        rx <- Future.successful(
+                          dao.updateResource(
+                            uuid,
+                            RegistryResourceUpdate(update.host, update.port)))
+                      } yield rx
+                    }
+                  }
+                }
+              }
+            } ~
+            pathPrefix("proxy" / RemainingPath) { path =>
+              extractRequestContext { ctx =>
+                complete {
+                  Future.successful(dao.getResource(uuid)).flatMap { r =>
+                    Future {
+                      Source
+                        .single(toRequest(ctx.request, r.host, r.port, path))
+                        .via(Http(actorSystem)
+                          .outgoingConnection(r.host, port = r.port))
+                        .runWith(Sink.head)(materializer)
                     }
                   }
                 }
@@ -136,62 +141,14 @@ class RegistryService(registryActor: ActorRef, materializer: ActorMaterializer)
             }
         }
     }
-  //}
-
-  // TODO(smcclellan): Do we need to handle cookies?
-  def handleProxy(uuid: UUID,
-                  pth: Uri.Path,
-                  meth: HttpMethod,
-                  ent: HttpEntity,
-                  head: List[HttpHeader],
-                  par: Map[String, String]): Future[SprayHttpResponse] = {
-
-    // FIXME. This should consistently use the Uri.Path type
-    val path: String =
-      if (pth.toString() startsWith "/") pth.toString()
-      else "/" + pth.toString()
-
-    val headers: Option[Map[String, String]] =
-      if (head isEmpty) None else Some(head.map(h => h.name -> h.value).toMap)
-    val params: Option[Map[String, String]] =
-      if (par isEmpty) None else Some(par)
-
-    //val data: Option[Array[Byte]] = ent.toOption.map(_.data.toByteArray)
-    //val req = RegistryProxyRequest(path, method, data, headers, params)
-
-    for {
-      dx <- ent.toStrict(1.second)(materializer).map(_.data)
-      req <- Future.successful(
-        RegistryProxyRequest(path,
-                             meth.value,
-                             Option(dx.toArray),
-                             headers,
-                             params))
-      r <- (registryActor ? ProxyRequest(uuid, req))
-        .mapTo[HttpResponse[Array[Byte]]]
-      hx <- Future.successful(
-        r.headers
-          .map { case (n, vs) => vs.map(v => RawHeader(n, v)).toList }
-          .toList
-          .flatten)
-    } yield
-      SprayHttpResponse(
-        status = StatusCodes.getForKey(r.code).get,
-        entity = HttpEntity.apply(r.body),
-        headers = hx
-      )
-
-  }
 }
 
 trait RegistryServiceProvider {
-  this: RegistryServiceActorRefProvider
-    with ActorSystemProvider
-    with ServiceComposer =>
+  this: RegistryDaoProvider with ActorSystemProvider with ServiceComposer =>
 
   val registryService: Singleton[RegistryService] =
     Singleton(() =>
-      new RegistryService(registryServiceActorRef(), actorMaterializer()))
+      new RegistryService(registryDao(), actorSystem(), actorMaterializer()))
 
   addService(registryService)
 }
