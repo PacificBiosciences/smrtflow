@@ -40,10 +40,10 @@ public class ObjectFactory {
     private final static QName _KeyValueMap_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "KeyValueMap");
     private final static QName _DataEntity_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataEntity");
     private final static QName _ExtensionElement_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "ExtensionElement");
-    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
     private final static QName _SupplyKitControlCustomSequence_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "CustomSequence");
     private final static QName _DefaultsTypeFilters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "Filters");
     private final static QName _DefaultsTypeAutomationParameters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "AutomationParameters");
+    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: com.pacificbiosciences.pacbiobasedatamodel
@@ -61,14 +61,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link IndexedDataType }
-     * 
-     */
-    public IndexedDataType createIndexedDataType() {
-        return new IndexedDataType();
-    }
-
-    /**
      * Create an instance of {@link AnalogType }
      * 
      */
@@ -77,11 +69,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link AutomationConstraintType }
+     * Create an instance of {@link IndexedDataType }
      * 
      */
-    public AutomationConstraintType createAutomationConstraintType() {
-        return new AutomationConstraintType();
+    public IndexedDataType createIndexedDataType() {
+        return new IndexedDataType();
     }
 
     /**
@@ -141,6 +133,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link AutomationConstraintType }
+     * 
+     */
+    public AutomationConstraintType createAutomationConstraintType() {
+        return new AutomationConstraintType();
+    }
+
+    /**
      * Create an instance of {@link StatsTimeSeriesType }
      * 
      */
@@ -173,6 +173,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link SequencingChemistryConfig.ReferenceSpectrum }
+     * 
+     */
+    public SequencingChemistryConfig.ReferenceSpectrum createSequencingChemistryConfigReferenceSpectrum() {
+        return new SequencingChemistryConfig.ReferenceSpectrum();
+    }
+
+    /**
      * Create an instance of {@link AnalogType.Spectrum }
      * 
      */
@@ -181,11 +189,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link StrictEntityType }
+     * Create an instance of {@link DyeSetAnalog }
      * 
      */
-    public StrictEntityType createStrictEntityType() {
-        return new StrictEntityType();
+    public DyeSetAnalog createDyeSetAnalog() {
+        return new DyeSetAnalog();
     }
 
     /**
@@ -194,14 +202,6 @@ public class ObjectFactory {
      */
     public BaseEntityType.Extensions createBaseEntityTypeExtensions() {
         return new BaseEntityType.Extensions();
-    }
-
-    /**
-     * Create an instance of {@link ExternalResources }
-     * 
-     */
-    public ExternalResources createExternalResources() {
-        return new ExternalResources();
     }
 
     /**
@@ -221,6 +221,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link StrictEntityType }
+     * 
+     */
+    public StrictEntityType createStrictEntityType() {
+        return new StrictEntityType();
+    }
+
+    /**
      * Create an instance of {@link IndexedDataType.FileIndices }
      * 
      */
@@ -229,11 +237,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link DyeSetAnalog }
+     * Create an instance of {@link ExternalResources }
      * 
      */
-    public DyeSetAnalog createDyeSetAnalog() {
-        return new DyeSetAnalog();
+    public ExternalResources createExternalResources() {
+        return new ExternalResources();
     }
 
     /**
@@ -357,14 +365,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link AutomationConstraintType.Automations }
-     * 
-     */
-    public AutomationConstraintType.Automations createAutomationConstraintTypeAutomations() {
-        return new AutomationConstraintType.Automations();
-    }
-
-    /**
      * Create an instance of {@link SequencingChemistry.DyeSet.Analogs }
      * 
      */
@@ -413,6 +413,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link AutomationConstraintType.Automations }
+     * 
+     */
+    public AutomationConstraintType.Automations createAutomationConstraintTypeAutomations() {
+        return new AutomationConstraintType.Automations();
+    }
+
+    /**
      * Create an instance of {@link StatsTimeSeriesType.Values }
      * 
      */
@@ -458,6 +466,14 @@ public class ObjectFactory {
      */
     public SequencingChemistryConfig.TargetSNR createSequencingChemistryConfigTargetSNR() {
         return new SequencingChemistryConfig.TargetSNR();
+    }
+
+    /**
+     * Create an instance of {@link SequencingChemistryConfig.ReferenceSpectrum.Values }
+     * 
+     */
+    public SequencingChemistryConfig.ReferenceSpectrum.Values createSequencingChemistryConfigReferenceSpectrumValues() {
+        return new SequencingChemistryConfig.ReferenceSpectrum.Values();
     }
 
     /**
@@ -541,16 +557,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
-     * 
-     */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
-    @XmlIDREF
-    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
-        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
-    }
-
-    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
      * 
      */
@@ -575,6 +581,16 @@ public class ObjectFactory {
     @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "AutomationParameters", scope = DefaultsType.class)
     public JAXBElement<DefaultsType.AutomationParameters> createDefaultsTypeAutomationParameters(DefaultsType.AutomationParameters value) {
         return new JAXBElement<DefaultsType.AutomationParameters>(_DefaultsTypeAutomationParameters_QNAME, DefaultsType.AutomationParameters.class, DefaultsType.class, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
+    @XmlIDREF
+    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
+        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
     }
 
 }
