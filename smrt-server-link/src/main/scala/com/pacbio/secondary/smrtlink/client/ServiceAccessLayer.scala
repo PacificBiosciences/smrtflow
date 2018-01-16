@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
 import com.typesafe.scalalogging.LazyLogging
@@ -717,6 +717,30 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def getAlarms(): Future[Seq[AlarmStatus]] =
     getObject[Seq[AlarmStatus]](Get(toUrl(ROOT_ALARMS)))
+
+  def addRegistryService(host: String,
+                         port: Int,
+                         resourceId: String): Future[RegistryResource] = {
+    getObject[RegistryResource](
+      Post(toUrl(s"/$ROOT_SL_PREFIX/registry-service/resources"),
+           RegistryResourceCreate(host, port, resourceId))
+    )
+  }
+
+  /**
+    * Simple access of only GET
+    *
+    * @param resource UUID of the registry Proxy Resource
+    * @param path Segment to get from Proxy Service
+    * @return
+    */
+  def getRegistryProxy(resource: UUID, path: Uri.Path): Future[HttpResponse] = {
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
+    getObject[HttpResponse](
+      Get(toUrl(
+        s"/$ROOT_SL_PREFIX/registry-service/resources/${resource.toString}/proxy${px.toString}"))
+    )
+  }
 
   /**
     * FIXME(mpkocher)(2016-8-22)

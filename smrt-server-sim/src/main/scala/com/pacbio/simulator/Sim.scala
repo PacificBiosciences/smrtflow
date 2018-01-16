@@ -38,7 +38,8 @@ object Sim extends App with LazyLogging {
     "TechSupportScenario" -> TechSupportScenarioLoader,
     "DbBackUpScenario" -> DbBackUpScenarioLoader,
     "MultiAnalysisScenario" -> MultiAnalysisScenarioLoader,
-    "SampleNamesScenario" -> SampleNamesScenarioLoader
+    "SampleNamesScenario" -> SampleNamesScenarioLoader,
+    "RegistryScenario" -> RegistryScenarioLoader
   )
 
   final val DESCRIPTION =
