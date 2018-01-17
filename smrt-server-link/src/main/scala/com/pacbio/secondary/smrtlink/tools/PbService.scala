@@ -8,7 +8,7 @@ import java.util.UUID
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.io.Source
 import scala.language.postfixOps
 import scala.math._
@@ -601,7 +601,6 @@ object PbServiceParser extends CommandLineToolVersion {
   }
 }
 
-// TODO consolidate Try behavior
 class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     extends LazyLogging
     with ClientUtils
@@ -623,22 +622,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   private def matchRsMovieName(file: File): Boolean =
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
-  protected def logMsg(msg: String) = {
-    logger.info(msg)
-    0
-  }
-
-  protected def showNumRecords(label: String,
-                               numPad: Int,
-                               fn: () => Future[Int]): Unit = {
-    Try { Await.result(fn(), TIMEOUT) } match {
-      case Success(nrecords) =>
-        println(s"${label.padTo(numPad, ' ')} $nrecords")
-      case Failure(err) => println(s"ERROR: couldn't retrieve $label")
-    }
-  }
-
-  def statusSummary(status: ServiceStatus): String = {
+  protected def statusSummary(status: ServiceStatus): String = {
     val headers = Seq("ID", "UUID", "Version", "Message")
     val table = Seq(
       Seq(status.id.toString,
@@ -649,7 +633,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     ""
   }
 
-  def systemDataSetSummary(): Future[String] = {
+  protected def systemDataSetSummary(): Future[String] = {
     for {
       numSubreadSets <- sal.getSubreadSets.map(_.length)
       numHdfSubreadSets <- sal.getHdfSubreadSets.map(_.length)
@@ -675,7 +659,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       """.stripMargin
   }
 
-  def systemJobSummary(): Future[String] = {
+  protected def systemJobSummary(): Future[String] = {
     for {
       numImportJobs <- sal.getImportJobs.map(_.length)
       numMergeJobs <- sal.getMergeJobs.map(_.length)
@@ -702,7 +686,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param status Remote SMRT Link Server status
     * @return
     */
-  def compatibilitySummary(status: ServiceStatus): Future[String] = {
+  protected def compatibilitySummary(status: ServiceStatus): Future[String] = {
     def msg(sx: String) =
       s"Pbservice ${Constants.SMRTFLOW_VERSION} $sx compatible with Server ${status.version}"
 
@@ -743,10 +727,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     sal.getStatus.flatMap(summary)
   }
 
-  def getDataSet(datasetId: IdAble): Try[DataSetMetaDataSet] = Try {
-    Await.result(sal.getDataSet(datasetId), TIMEOUT)
-  }
-
   def runGetDataSetInfo(datasetId: IdAble,
                         asJson: Boolean = false): Future[String] = {
     for {
@@ -757,9 +737,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       }
     } yield summary
   }
-
-  def showDataSetInfo(datasetId: IdAble) =
-    println(Await.result(runGetDataSetInfo(datasetId), TIMEOUT))
 
   def runGetDataSets(dsType: DataSetMetaTypes.DataSetMetaType,
                      maxItems: Int,
@@ -829,10 +806,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } yield jobInfo + reportInfo
   }
 
-  def jobsSummary(maxItems: Int,
-                  asJson: Boolean,
-                  engineJobs: Seq[EngineJob],
-                  jobState: Option[String] = None): String = {
+  protected def jobsSummary(maxItems: Int,
+                            asJson: Boolean,
+                            engineJobs: Seq[EngineJob],
+                            jobState: Option[String] = None): String = {
     if (asJson) {
       engineJobs.take(maxItems).toJson.prettyPrint
     } else {
@@ -1013,7 +990,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param maxTimeOut If provided, the job will be polled for maxTime until a completed state
     * @return
     */
-  def runSingleNonLocalDataSetImport(
+  protected def runSingleNonLocalDataSetImport(
       path: Path,
       metatype: DataSetMetaTypes.DataSetMetaType,
       asJson: Boolean,
@@ -1034,7 +1011,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param maxTimeOut If provided, the job will be polled for maxTime until a completed state
     * @return
     */
-  def getDataSetJobOrImport(
+  protected def getDataSetJobOrImport(
       uuid: UUID,
       metatype: DataSetMetaTypes.DataSetMetaType,
       path: Path,
@@ -1077,7 +1054,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param maxTimeOut Max time to Poll for blocking job
     * @return
     */
-  def runSingleLocalDataSetImport(
+  protected def runSingleLocalDataSetImport(
       path: Path,
       asJson: Boolean,
       maxTimeOut: Option[FiniteDuration]): Future[EngineJob] = {
@@ -1166,8 +1143,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     if (files.isEmpty) {
       // Not sure if this should raise
       Future.failed(
-        throw new UnprocessableEntityError(
-          s"No valid XML files found to process"))
+        new UnprocessableEntityError(s"No valid XML files found to process"))
     } else {
       // Note, these futures will be run in parallel. This needs a better error communication model.
       val fx = for {
@@ -1211,7 +1187,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         logger.error(summary)
         System.err.println(summary)
       }
-      Future.failed(throw new RuntimeException(
+      Future.failed(new RuntimeException(
         s"${failedJobs.length} out of ${jobs.length} import-dataset jobs failed."))
     }
 
@@ -1375,9 +1351,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } yield msg
   }
 
-  def addDataSetToProject(dsId: IdAble,
-                          projectId: Int,
-                          verbose: Boolean = false): Future[String] = {
+  protected def addDataSetToProject(
+      dsId: IdAble,
+      projectId: Int,
+      verbose: Boolean = false): Future[String] = {
     for {
       project <- sal.getProject(projectId)
       ds <- sal.getDataSet(dsId)
@@ -1556,11 +1533,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } else if (epFields.length == 1) {
       val xmlPath = Paths.get(epFields(0))
       val dsMeta = getDataSetMiniMeta(xmlPath)
-      val eid = PbsmrtpipeConstants
+      PbsmrtpipeConstants
         .metaTypeToEntryId(dsMeta.metatype.toString)
-        .getOrElse(throw new RuntimeException(
-          s"Can't determine entryId for ${dsMeta.metatype.toString}"))
-      importEntryPoint(eid, xmlPath)
+        .map(eid => importEntryPoint(eid, xmlPath))
+        .getOrElse(Future.failed(new RuntimeException(
+          s"Can't determine entryId for ${dsMeta.metatype.toString}")))
     } else {
       Future.failed(
         new RuntimeException(s"Can't interpret argument ${entryPoint}"))
@@ -1680,24 +1657,31 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         s"WARNING: job output was used by $nChildren active jobs - deleting it may have unintended side effects"
       val ERR_CHILDREN =
         s"Can't delete job ${job.id} because ${nChildren} active jobs used its results as input; add --force if you are absolutely certain the job is okay to delete"
-      if (!job.isComplete) {
+      def terminateJob() = runTerminateAnalysisJob(jobId).recover {
+        case e: Exception => println(WARN_TERM_FAILED)
+      }
+      val fx: Future[Any] = if (!job.isComplete) {
         if (force) {
           println("WARNING: job did not complete - attempting to terminate")
-          if (Await.result(runTerminateAnalysisJob(jobId), TIMEOUT) != 0) {
-            println(WARN_TERM_FAILED)
-          }
+          terminateJob()
         } else {
-          return Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
+          Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
         }
       } else if (nChildren > 0) {
         if (force) {
           println(WARN_CHILDREN)
           Thread.sleep(5000)
+          Future.successful(None)
         } else {
-          return Future.failed(new RuntimeException(ERR_CHILDREN))
+          Future.failed(new RuntimeException(ERR_CHILDREN))
         }
+      } else {
+        Future.successful(None)
       }
-      sal.deleteJob(job.uuid, force = force)
+      for {
+        _ <- fx
+        deleteJob <- sal.deleteJob(job.uuid, force = force)
+      } yield deleteJob
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
     for {
@@ -1792,7 +1776,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runGetPacBioManifestById(ix: String): Future[String] =
     getManifestById(ix).map(manifestSummary)
 
-  def pacBioDataBundlesSummary(bundles: Seq[PacBioDataBundle]): String = {
+  protected def pacBioDataBundlesSummary(
+      bundles: Seq[PacBioDataBundle]): String = {
     val headers: Seq[String] =
       Seq("Bundle Id", "Version", "Imported At", "Is Active")
     val table = bundles.map(b =>
@@ -1826,7 +1811,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } yield toSummary(failedJob)
   }
 
-  def alarmsSummary(alarms: Seq[AlarmStatus]): String = {
+  protected def alarmsSummary(alarms: Seq[AlarmStatus]): String = {
     val headers: Seq[String] =
       Seq("Id", "Severity", "Updated At", "Value", "Message")
     val table = alarms.map(
@@ -1843,33 +1828,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
 }
 
-object PbService extends LazyLogging {
-
-  // Introducing a new pattern to remove duplication. Each Subparser
-  // should return a Future[String] where the string is the terse summary of the output
-  // and use recoverWith or recover to handle any handle-able exceptions
-  // and add local context to the error. The Future Should encapsulate all the necessary
-  // steps.
-
-  // These are the ONLY place that should have a blocking call
-  // and explicit case match to Success/Failure handing for Try
-
-  def executeBlockAndSummary(fx: Future[String],
-                             timeout: FiniteDuration): Int = {
-    executeAndSummary(Try(Await.result(fx, timeout)))
-  }
-
-  def executeAndSummary(tx: Try[String]): Int = {
-    tx match {
-      case Success(sx) =>
-        println(sx)
-        0
-      case Failure(ex) =>
-        logger.error(s"${ex.getMessage}")
-        System.err.println(s"${ex.getMessage} $ex")
-        1
-    }
-  }
+object PbService extends ClientAppUtils with LazyLogging {
 
   protected def getPass = "foo"
 

@@ -3,13 +3,14 @@ package com.pacbio.secondary.smrtlink.client
 import java.io.File
 
 import scala.math._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json._
-
 import scala.util.{Try, Failure, Success}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import spray.json._
+import com.typesafe.scalalogging.LazyLogging
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
@@ -192,4 +193,25 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   def isVersionGteSystemVersion(status: ServiceStatus): Future[SemVersion] =
     isVersionGte(status, SemVersion.fromString(Constants.SMRTFLOW_VERSION))
 
+}
+
+trait ClientAppUtils extends LazyLogging {
+  // These are the ONLY place that should have a blocking call
+  // and explicit case match to Success/Failure handing for Try
+  def executeBlockAndSummary(fx: Future[String],
+                             timeout: FiniteDuration): Int = {
+    executeAndSummary(Try(Await.result(fx, timeout)))
+  }
+
+  def executeAndSummary(tx: Try[String]): Int = {
+    tx match {
+      case Success(sx) =>
+        println(sx)
+        0
+      case Failure(ex) =>
+        logger.error(s"${ex.getMessage}")
+        System.err.println(s"${ex.getMessage} $ex")
+        1
+    }
+  }
 }
