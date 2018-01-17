@@ -114,16 +114,16 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   }
 
   def formatProjectInfo(project: FullProject): String = {
-    Seq(
-      "PROJECT SUMMARY:",
-      s"  id: ${project.id}",
-      s"  name: ${project.name}",
-      s"  description: ${project.description}",
-      s"  createdAt: ${project.createdAt}",
-      s"  updatedAt: ${project.updatedAt}",
-      s"  datasets: ${project.datasets.size}",
-      s"  members: ${project.members.size}"
-    ).mkString("\n")
+     s"""
+      |PROJECT SUMMARY:
+      |  id: ${project.id}
+      |  name: ${project.name}
+      |  description: ${project.description}
+      |  createdAt: ${project.createdAt}
+      |  updatedAt: ${project.updatedAt}
+      |  datasets: ${project.datasets.size}
+      |  members: ${project.members.size}
+     """.stripMargin
   }
 
   def printProjectInfo(project: FullProject): Int = {
