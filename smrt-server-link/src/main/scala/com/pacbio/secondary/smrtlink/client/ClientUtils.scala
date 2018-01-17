@@ -6,7 +6,9 @@ import scala.math._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 
-import scala.concurrent.Future
+import scala.util.{Try, Failure, Success}
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
@@ -111,15 +113,21 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     0
   }
 
+  def formatProjectInfo(project: FullProject): String = {
+    Seq(
+      "PROJECT SUMMARY:",
+      s"  id: ${project.id}",
+      s"  name: ${project.name}",
+      s"  description: ${project.description}",
+      s"  createdAt: ${project.createdAt}",
+      s"  updatedAt: ${project.updatedAt}",
+      s"  datasets: ${project.datasets.size}",
+      s"  members: ${project.members.size}"
+    ).mkString("\n")
+  }
+
   def printProjectInfo(project: FullProject): Int = {
-    println("PROJECT SUMMARY:")
-    println(s"  id: ${project.id}")
-    println(s"  name: ${project.name}")
-    println(s"  description: ${project.description}")
-    println(s"  createdAt: ${project.createdAt}")
-    println(s"  updatedAt: ${project.updatedAt}")
-    println(s"  datasets: ${project.datasets.size}")
-    println(s"  members: ${project.members.size}")
+    println(formatProjectInfo(project))
     0
   }
 
@@ -184,4 +192,33 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   def isVersionGteSystemVersion(status: ServiceStatus): Future[SemVersion] =
     isVersionGte(status, SemVersion.fromString(Constants.SMRTFLOW_VERSION))
 
+}
+
+// FIXME this is a pattern we should move away from in the core client, but
+// it is difficult to avoid blocking calls entirely
+trait ClientRuntimeUtils {
+  private def printAndExit(msg: String, exitCode: Int): Int = {
+    println(msg)
+    exitCode
+  }
+
+  protected def errorExit(msg: String, exitCode: Int = 1) = {
+    System.err.println(msg)
+    exitCode
+  }
+
+  protected def printMsg(msg: String) = printAndExit(msg, 0)
+
+  private def runAndSummary[T](fx: Try[T], summary: (T => String)): Int = {
+    fx match {
+      case Success(result) => printMsg(summary(result))
+      case Failure(ex) => errorExit(ex.getMessage, 1)
+    }
+  }
+
+  protected def runAndBlock[T](fx: => Future[T],
+                               summary: (T => String),
+                               timeout: FiniteDuration): Int = {
+    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
+  }
 }

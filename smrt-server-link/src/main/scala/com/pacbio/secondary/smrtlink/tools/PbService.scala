@@ -605,6 +605,7 @@ object PbServiceParser extends CommandLineToolVersion {
 class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     extends LazyLogging
     with ClientUtils
+    with ClientRuntimeUtils
     with DaoFutureUtils {
   import CommonModelImplicits._
   import CommonModels._
@@ -623,19 +624,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   private def matchRsMovieName(file: File): Boolean =
     rsMovieName.findPrefixMatchOf(file.getName).isDefined
 
-  // FIXME this is crude
-  private def printAndExit(msg: String, exitCode: Int): Int = {
-    println(msg)
-    exitCode
-  }
-
-  protected def errorExit(msg: String, exitCode: Int = 1) = {
-    System.err.println(msg)
-    exitCode
-  }
-
-  protected def printMsg(msg: String) = printAndExit(msg, 0)
-
   protected def logMsg(msg: String) = {
     logger.info(msg)
     0
@@ -651,19 +639,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
-  protected def runAndSummary[T](fx: Try[T], summary: (T => String)): Int = {
-    fx match {
-      case Success(result) => printMsg(summary(result))
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
-  }
-
-  protected def runAndBlock[T](fx: => Future[T],
-                               summary: (T => String),
-                               timeout: FiniteDuration): Int = {
-    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
-  }
-
   def statusSummary(status: ServiceStatus): String = {
     val headers = Seq("ID", "UUID", "Version", "Message")
     val table = Seq(
@@ -673,15 +648,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           status.message))
     printTable(table, headers)
     ""
-  }
-
-  protected def isCompatibleVersion(): Boolean = {
-    val fx = for {
-      status <- sal.getStatus
-      _ <- isVersionGteSystemVersion(status)
-    } yield true
-
-    Try(Await.result(fx, TIMEOUT)).getOrElse(false)
   }
 
   def systemDataSetSummary(): Future[String] = {
@@ -731,40 +697,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       """.stripMargin
   }
 
-  protected def printStatus(status: ServiceStatus,
-                            asJson: Boolean = false): Int = {
-    if (asJson) {
-      println(status.toJson.prettyPrint)
-    } else {
-      statusSummary(status)
-      println("")
-      println("DataSet Summary:")
-      // To have the clear summary of the output
-      val numPad = 30
-      val showRecords = showNumRecords(_: String, numPad, _: () => Future[Int])
-
-      showRecords("SubreadSets", () => sal.getSubreadSets.map(_.length))
-      showRecords("HdfSubreadSets", () => sal.getHdfSubreadSets.map(_.length))
-      showRecords("ReferenceSets", () => sal.getReferenceSets.map(_.length))
-      showRecords("BarcodeSets", () => sal.getBarcodeSets.map(_.length))
-      showRecords("AlignmentSets", () => sal.getAlignmentSets.map(_.length))
-      showRecords("ConsensusReadSets",
-                  () => sal.getConsensusReadSets.map(_.length))
-      showRecords("ConsensusAlignmentSets",
-                  () => sal.getConsensusAlignmentSets.map(_.length))
-      showRecords("ContigSets", () => sal.getContigSets.map(_.length))
-      showRecords("GmapReferenceSets",
-                  () => sal.getGmapReferenceSets.map(_.length))
-      println("\nSMRT Link Job Summary:")
-      showRecords("import-dataset Jobs", () => sal.getImportJobs.map(_.length))
-      showRecords("merge-dataset Jobs", () => sal.getMergeJobs.map(_.length))
-      showRecords("convert-fasta-reference Jobs",
-                  () => sal.getFastaConvertJobs.map(_.length))
-      showRecords("pbsmrtpipe Jobs", () => sal.getAnalysisJobs.map(_.length))
-    }
-    0
-  }
-
   /**
     * Util to get the Pbservice Client and Server compatibility status
     *
@@ -810,14 +742,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     val summary: (ServiceStatus => Future[String]) =
       if (asJson) statusJsonSummary else statusFullSummary
     sal.getStatus.flatMap(summary)
-  }
-
-  def runStatus(asJson: Boolean = false): Int = {
-    def printer(sx: ServiceStatus): String = {
-      printStatus(sx, asJson)
-      ""
-    }
-    runAndBlock[ServiceStatus](sal.getStatus, printer, TIMEOUT)
   }
 
   def getDataSet(datasetId: IdAble): Try[DataSetMetaDataSet] = Try {
@@ -911,8 +835,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                   engineJobs: Seq[EngineJob],
                   jobState: Option[String] = None): String = {
     if (asJson) {
-      println(engineJobs.take(maxItems).toJson.prettyPrint)
-      ""
+      engineJobs.take(maxItems).toJson.prettyPrint
     } else {
       val table = engineJobs
         .sortBy(_.id)
@@ -926,19 +849,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                 job.name,
                 job.uuid.toString,
                 job.createdBy.getOrElse("")))
-      printTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
-      ""
+      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
     }
   }
 
   def runGetJobs(maxItems: Int,
                  asJson: Boolean = false,
                  jobType: String = "pbsmrtpipe",
-                 jobState: Option[String] = None): Int = {
-    def printer(jobs: Seq[EngineJob]) =
-      jobsSummary(maxItems, asJson, jobs, jobState)
-
-    runAndBlock[Seq[EngineJob]](sal.getJobsByType(jobType), printer, TIMEOUT)
+                 jobState: Option[String] = None): Future[String] = {
+    sal
+      .getJobsByType(jobType)
+      .map(jobs => jobsSummary(maxItems, asJson, jobs, jobState))
   }
 
   protected def waitForJob(jobId: IdAble): Int = {
@@ -953,40 +874,46 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
+  private def getDataSetResult(
+      jobId: IdAble,
+      dsType: FileTypes.DataSetBaseType): Future[(UUID, String)] = {
+    val errMsg = s"Can't find datastore file of type ${dsType.fileTypeId}"
+    for {
+      datastore <- sal.getJobDataStore(jobId)
+      dsId <- {
+        datastore
+          .find(_.fileTypeId == dsType.fileTypeId)
+          .map(f => Future.successful(f.uuid))
+          .getOrElse(Future.failed(new Exception(errMsg)))
+      }
+      dsInfo <- runGetDataSetInfo(dsId)
+    } yield (dsId, dsInfo)
+  }
+
   private def importFasta(path: Path,
                           dsType: FileTypes.DataSetBaseType,
                           runJob: => Future[EngineJob],
                           projectName: Option[String],
-                          barcodeMode: Boolean = false): Int = {
-    val projectId = getProjectIdByName(projectName)
-    if (projectId < 0)
-      return errorExit("Can't continue with an invalid project.")
-    val tx = for {
-      contigs <- Try { PacBioFastaValidator.validate(path, barcodeMode) }
-      job <- Try { Await.result(runJob, TIMEOUT) }
-      successfulJob <- sal.pollForSuccessfulJob(job.id, Some(maxTime))
-      dataStoreFiles <- Try {
-        Await.result(sal.getJobDataStore(successfulJob.id), TIMEOUT)
+                          barcodeMode: Boolean = false): Future[String] = {
+    for {
+      projectId <- getProjectIdByName(projectName)
+      contigs <- Future.successful(
+        PacBioFastaValidator.validate(path, barcodeMode))
+      job <- runJob
+      successfulJob <- engineDriver(job, Some(maxTime))
+      (dsId, dsInfo) <- getDataSetResult(job.id, dsType)
+      _ <- {
+        if (projectId > 0) addDataSetToProject(dsId, projectId)
+        else Future.successful("Using general project ID")
       }
-    } yield dataStoreFiles
-
-    tx match {
-      case Success(dataStoreFiles) =>
-        dataStoreFiles.find(_.fileTypeId == dsType.fileTypeId) match {
-          case Some(ds) =>
-            showDataSetInfo(ds.uuid)
-            if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
-          case None => errorExit(s"Couldn't find ${dsType.dsName}")
-        }
-      case Failure(err) => errorExit(s"Import job error: ${err.getMessage}")
-    }
+    } yield dsInfo
   }
 
   def runImportFasta(path: Path,
                      name: String,
                      organism: String,
                      ploidy: String,
-                     projectName: Option[String] = None): Int = {
+                     projectName: Option[String] = None): Future[String] = {
     // this really shouldn't be optional
     val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
@@ -997,18 +924,19 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runImportBarcodes(path: Path,
                         name: String,
-                        projectName: Option[String] = None): Int =
+                        projectName: Option[String] = None): Future[String] =
     importFasta(path,
                 FileTypes.DS_BARCODE,
                 sal.importFastaBarcodes(path, name),
                 projectName,
                 barcodeMode = true)
 
-  def runImportFastaGmap(path: Path,
-                         name: String,
-                         organism: String,
-                         ploidy: String,
-                         projectName: Option[String] = None): Int = {
+  def runImportFastaGmap(
+      path: Path,
+      name: String,
+      organism: String,
+      ploidy: String,
+      projectName: Option[String] = None): Future[String] = {
     // this really shouldn't be optional
     val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
@@ -1017,85 +945,38 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                 projectName)
   }
 
-  private def importXmlRecursive(path: Path,
-                                 listFilesOfType: File => Array[File],
-                                 doImportOne: Path => Int,
-                                 doImportMany: Path => Int): Int = {
+  private def importXmlRecursive(
+      path: Path,
+      listFilesOfType: File => Array[File],
+      doImportOne: Path => Try[String],
+      doImportMany: Path => Try[String]): Try[String] = {
     val f = path.toFile
     if (f.isDirectory) {
       val xmlFiles = listFilesOfType(f)
       if (xmlFiles.isEmpty) {
-        errorExit(s"No valid XML files found in ${f.getAbsolutePath}")
+        Failure(
+          new Exception(s"No valid XML files found in ${f.getAbsolutePath}"))
       } else {
         println(s"Found ${xmlFiles.length} matching XML files")
-        val failed: ListBuffer[String] = ListBuffer()
-        xmlFiles.foreach { xmlFile =>
+        val results = xmlFiles.map { xmlFile =>
           println(s"Importing ${xmlFile.getAbsolutePath}...")
-          val rc = doImportMany(xmlFile.toPath)
-          if (rc != 0) failed.append(xmlFile.getAbsolutePath.toString)
+          (xmlFile, doImportMany(xmlFile.toPath))
         }
+        val failed = results.filter(!_._2.isSuccess)
+        val successMsg = results
+          .filter(_._2.isSuccess)
+          .map(_._2.toOption.get)
+          .mkString("\n")
         if (failed.nonEmpty) {
-          println(s"${failed.size} import(s) failed:")
-          failed.foreach { println }
-          1
-        } else 0
+          val failedJobs = failed.map(_._1).mkString("\n")
+          Failure(
+            new Exception(s"${failed.size} import(s) failed:\n$failedJobs"))
+        } else Success(successMsg)
       }
-    } else if (f.isFile) doImportOne(f.toPath)
-    else errorExit(s"${f.getAbsolutePath} is not readable")
-  }
-
-  def runImportDataSetSafe(path: Path, projectId: Int = 0): Int = {
-    val dsMiniMeta = getDataSetMiniMeta(path)
-    def importDs = {
-      val rc = runImportDataSet(path, dsMiniMeta.metatype)
-      if (rc == 0) {
-        showDataSetInfo(dsMiniMeta.uuid)
-        if (projectId > 0) addDataSetToProject(dsMiniMeta.uuid, projectId)
-        else 0
-      } else rc
-    }
-    logger.info(s"UUID: ${dsMiniMeta.uuid.toString}")
-    def errorIfNewPath(dsInfo: DataSetMetaDataSet) =
-      println(s"ERROR: The dataset UUID (${dsInfo.uuid.toString}) is already " +
-        "present in the database but associated with a different path; if you " +
-        "want to re-import with the new path, run this command:\n\n  dataset " +
-        s"newuuid ${path.toString}\n\nthen run the pbservice command again to " +
-        "import the modified dataset.\n")
-    def warnIfNewPath(dsInfo: DataSetMetaDataSet) = {
-      println(
-        s"WARNING: The dataset UUID (${dsInfo.uuid.toString}) is already " +
-          "present in the database but associated with a different path; will " +
-          "re-import with a different path, but this will overwrite the " +
-          "existing record.")
-      Thread.sleep(5000)
-    }
-    getDataSet(dsMiniMeta.uuid) match {
-      case Success(dsInfo) => {
-        if (Paths.get(dsInfo.path) != path) {
-          if (isCompatibleVersion()) {
-            warnIfNewPath(dsInfo)
-            importDs
-          } else errorIfNewPath(dsInfo)
-        } else
-          logger.info(s"Dataset ${dsMiniMeta.uuid.toString} already imported.")
-        // printDataSetInfo(dsInfo)
-        logger.info(toDataSetInfoSummary(dsInfo))
-        0
-      }
-      case Failure(err) => {
-        println(s"No existing dataset record found")
-        importDs
-      }
-    }
-  }
-
-  def runImportDataSet(path: Path,
-                       dsType: DataSetMetaTypes.DataSetMetaType,
-                       asJson: Boolean = false): Int = {
-    logger.info(s"DataSet Metatype $dsType")
-    Try { Await.result(sal.importDataSet(path, dsType), TIMEOUT) } match {
-      case Success(jobInfo: EngineJob) => waitForJob(jobInfo.uuid)
-      case Failure(err) => errorExit(s"Dataset import failed: $err")
+    } else if (f.isFile) {
+      doImportOne(f.toPath)
+    } else {
+      Failure(new Exception(s"${f.getAbsolutePath} is not readable"))
     }
   }
 
@@ -1126,7 +1007,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param name Project Name
     * @return
     */
-  def getProjectByName(name: String): Future[Project] = {
+  protected def getProjectByName(name: String): Future[Project] = {
     sal.getProjects.flatMap(
       projects =>
         failIfNone(s"Unable to find project $name")(
@@ -1140,7 +1021,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param asJson Convert summary to JSON
     * @return
     */
-  def jobSummary(job: EngineJob, asJson: Boolean): String = {
+  protected def jobSummary(job: EngineJob, asJson: Boolean): String = {
     def jobJsonSummary(job: EngineJob) = job.toJson.prettyPrint.toString
 
     if (asJson) jobJsonSummary(job)
@@ -1153,7 +1034,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       new RuntimeException(s"Error running job: ${job.errorMessage}"))
   }
 
-  def jobSummaryOrFailure(job: EngineJob, asJson: Boolean): Future[String] = {
+  protected def jobSummaryOrFailure(job: EngineJob,
+                                    asJson: Boolean): Future[String] = {
     if (!job.isSuccessful) {
       jobFailure(job)
     } else {
@@ -1161,8 +1043,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
-  def engineDriver(job: EngineJob,
-                   maxTime: Option[FiniteDuration]): Future[EngineJob] = {
+  protected def engineDriver(
+      job: EngineJob,
+      maxTime: Option[FiniteDuration]): Future[EngineJob] = {
     // This is blocking polling call is wrapped in a Future
     maxTime
       .map(t => Future.fromTry(sal.pollForCompletedJob(job.id, Some(t))))
@@ -1444,32 +1327,24 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
-  def runImportRsMovie(path: Path, name: String, projectId: Int = 0): Int = {
+  protected def runImportRsMovieImpl(path: Path,
+                                     name: String,
+                                     projectId: Int = 0): Future[String] = {
     val fileName = path.toAbsolutePath
-    if (fileName.endsWith(".fofn") && (name == "")) {
-      return errorExit(s"--name argument is required when an FOFN is input")
-    }
-    val tx = for {
-      finalName <- Try { if (name == "") dsNameFromRsMetadata(path) else name }
-      job <- Try { Await.result(sal.convertRsMovie(path, finalName), TIMEOUT) }
-      job <- sal.pollForSuccessfulJob(job.uuid)
-      dataStoreFiles <- Try {
-        Await.result(sal.getJobDataStore(job.uuid), TIMEOUT)
+    val errMsg = s"--name argument is required when an FOFN is input"
+    val finalName = if (name == "") dsNameFromRsMetadata(path) else name
+    for {
+      _ <- if (fileName.endsWith(".fofn") && (name == "")) {
+        Future.failed(new Exception(errMsg))
+      } else Future.successful("")
+      job <- sal.convertRsMovie(path, finalName)
+      job <- engineDriver(job, Some(maxTime))
+      (dsId, dsInfo) <- getDataSetResult(job.id, FileTypes.DS_HDF_SUBREADS)
+      _ <- {
+        if (projectId > 0) addDataSetToProject(dsId, projectId)
+        else Future.successful("Using general project ID")
       }
-    } yield dataStoreFiles
-
-    tx match {
-      case Success(dataStoreFiles) =>
-        dataStoreFiles.find(
-          _.fileTypeId == FileTypes.DS_HDF_SUBREADS.fileTypeId) match {
-          case Some(ds) =>
-            showDataSetInfo(ds.uuid)
-            if (projectId > 0) addDataSetToProject(ds.uuid, projectId) else 0
-          case None => errorExit(s"Couldn't find HdfSubreadSet")
-        }
-      case Failure(err) =>
-        errorExit(s"RSII movie import failed: ${err.getMessage}")
-    }
+    } yield dsInfo
   }
 
   private def listMovieMetadataFiles(f: File): Array[File] = {
@@ -1481,15 +1356,20 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .flatMap(listMovieMetadataFiles)
   }
 
+  private def runImportRsMovie(path: Path,
+                               name: String,
+                               projectId: Int = 0): Try[String] = Try {
+    Await.result(runImportRsMovieImpl(path, name, projectId), maxTime)
+  }
+
   def runImportRsMovies(path: Path,
                         name: String,
-                        projectName: Option[String] = None): Int = {
-    val projectId = getProjectIdByName(projectName)
-    if (projectId < 0)
-      return errorExit("Can't continue with an invalid project.")
-    def doImportMany(p: Path): Int = {
+                        projectName: Option[String] = None): Try[String] = {
+    val projectId = Await.result(getProjectIdByName(projectName), TIMEOUT)
+    def doImportMany(p: Path): Try[String] = {
       if (name != "")
-        errorExit("--name option not allowed when path is a directory")
+        Failure(
+          new Exception("--name option not allowed when path is a directory"))
       else runImportRsMovie(p, name, projectId)
     }
     importXmlRecursive(path,
@@ -1500,53 +1380,46 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def addDataSetToProject(dsId: IdAble,
                           projectId: Int,
-                          verbose: Boolean = false): Int = {
-    val tx = for {
-      project <- Try { Await.result(sal.getProject(projectId), TIMEOUT) }
-      ds <- getDataSet(dsId)
-      request <- Try { project.asRequest.appendDataSet(ds.id) }
-      projectWithDataSet <- Try {
-        Await.result(sal.updateProject(projectId, request), TIMEOUT)
+                          verbose: Boolean = false): Future[String] = {
+    for {
+      project <- sal.getProject(projectId)
+      ds <- sal.getDataSet(dsId)
+      request <- Future.successful(project.asRequest.appendDataSet(ds.id))
+      projectWithDs <- sal.updateProject(projectId, request)
+      _ <- Future.successful { if (verbose) printProjectInfo(projectWithDs) }
+    } yield s"Added dataset to project ${projectWithDs.name}"
+  }
+
+  def runDeleteDataSet(datasetId: IdAble): Future[String] = {
+    sal
+      .deleteDataSet(datasetId)
+      .map(response => response.message)
+  }
+
+  protected def getProjectIdByName(projectName: Option[String]): Future[Int] = {
+    projectName
+      .map { name =>
+        for {
+          projects <- sal.getProjects
+          projectsById <- Future.successful(
+            projects.map(p => (p.name, p.id)).toMap)
+          projectId <- projectsById
+            .get(name)
+            .map { id =>
+              Future.successful(id)
+            }
+            .getOrElse {
+              Future.failed(new Exception(s"Can't find project named $name"))
+            }
+        } yield projectId
       }
-    } yield projectWithDataSet
-
-    tx match {
-      case Success(p) =>
-        if (verbose) printProjectInfo(p)
-        else printMsg(s"Added dataset to project ${p.name}")
-      case Failure(err) =>
-        errorExit(s"Couldn't add dataset to project: ${err.getMessage}")
-    }
+      .getOrElse(Future.successful(0))
   }
 
-  def runDeleteDataSet(datasetId: IdAble): Int = {
-    Try { Await.result(sal.deleteDataSet(datasetId), TIMEOUT) } match {
-      case Success(response) => printMsg(s"${response.message}")
-      case Failure(err) =>
-        errorExit(s"Couldn't delete dataset: ${err.getMessage}")
-    }
-  }
-
-  protected def getProjectIdByName(projectName: Option[String]): Int = {
-    if (!projectName.isDefined) return 0
-    Try { Await.result(sal.getProjects, TIMEOUT) } match {
-      case Success(projects) =>
-        projects.map(p => (p.name, p.id)).toMap.get(projectName.get) match {
-          case Some(projectId) => projectId
-          case None =>
-            errorExit(s"Can't find project named '${projectName.get}'", -1)
-        }
-      case Failure(err) =>
-        errorExit(s"Couldn't retrieve projects: ${err.getMessage}", -1)
-    }
-  }
-
-  def runCreateProject(name: String, description: String): Int = {
-    Try { Await.result(sal.createProject(name, description), TIMEOUT) } match {
-      case Success(project) => printProjectInfo(project)
-      case Failure(err) =>
-        errorExit(s"Couldn't create project: ${err.getMessage}")
-    }
+  def runCreateProject(name: String, description: String): Future[String] = {
+    sal
+      .createProject(name, description)
+      .map(project => formatProjectInfo(project))
   }
 
   /**
@@ -1557,7 +1430,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     *
     * @return
     */
-  def runEmitAnalysisTemplate: Int = {
+  def runEmitAnalysisTemplate: Future[String] = {
 
     val analysisOpts = {
 
@@ -1589,19 +1462,13 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     val comment = JsObject("_comment" -> JsString(msg))
 
     val result = JsObject(comment.fields ++ jx.fields)
-
-    println(result.prettyPrint)
-    0
+    Future.successful(result.prettyPrint)
   }
 
-  def runShowPipelines: Int = {
-    Await
-      .result(sal.getPipelineTemplates, TIMEOUT)
-      .sortWith(_.id > _.id)
-      .foreach { pt =>
-        println(s"${pt.id}: ${pt.name}")
-      }
-    0
+  def runShowPipelines: Future[String] = {
+    sal.getPipelineTemplates
+      .map(pts => pts.sortWith(_.id > _.id))
+      .map(_.map(pt => s"${pt.id}: ${pt.name}").mkString("\n"))
   }
 
   def runAnalysisPipeline(jsonPath: Path, block: Boolean): Int = {
@@ -1667,6 +1534,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       case Failure(err) => errorExit(err.getMessage)
     }
   }
+
+  protected def runImportDataSetSafe(xmlPath: Path): Int =
+    runAndBlock(runSingleLocalDataSetImportWithSummary(xmlPath, false, None),
+                (s: String) => s,
+                TIMEOUT)
 
   protected def importEntryPoint(eid: String,
                                  xmlPath: Path): BoundServiceEntryPoint = {
@@ -1793,22 +1665,21 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
-  def runTerminateAnalysisJob(jobId: IdAble): Int = {
+  def runTerminateAnalysisJob(jobId: IdAble): Future[String] = {
     def toSummary(m: MessageResponse) = m.message
     println(s"Attempting to terminate Analysis Job ${jobId.toIdString}")
-    val fx = for {
+    for {
       job <- sal.getJob(jobId)
       messageResponse <- sal.terminatePbsmrtpipeJob(job.id)
-    } yield messageResponse
-    runAndBlock(fx, toSummary, TIMEOUT)
+    } yield toSummary(messageResponse)
   }
 
-  def runDeleteJob(jobId: IdAble, force: Boolean = true): Int = {
+  def runDeleteJob(jobId: IdAble, force: Boolean = true): Try[String] = {
     def deleteJob(job: EngineJob, nChildren: Int): Future[EngineJob] = {
       if (!job.isComplete) {
         if (force) {
           println("WARNING: job did not complete - attempting to terminate")
-          if (runTerminateAnalysisJob(jobId) != 0) {
+          if (Await.result(runTerminateAnalysisJob(jobId), TIMEOUT) != 0) {
             println(
               "Job termination failed; will delete anyway, but this may have unpredictable side effects")
           }
@@ -1829,17 +1700,12 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       sal.deleteJob(job.uuid, force = force)
     }
     println(s"Attempting to delete job ${jobId.toIdString}")
-    val fx = for {
+    for {
       job <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       children <- Try { Await.result(sal.getJobChildren(job.uuid), TIMEOUT) }
       deleteJob <- Try { Await.result(deleteJob(job, children.size), TIMEOUT) }
       _ <- sal.pollForSuccessfulJob(deleteJob.uuid, Some(maxTime))
-    } yield deleteJob
-
-    fx match {
-      case Success(j) => println(s"Job ${jobId.toIdString} deleted."); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    } yield s"Job ${jobId.toIdString} deleted."
   }
 
   /**
@@ -1874,7 +1740,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runExportJob(jobId: IdAble,
                    destPath: Path,
-                   includeEntryPoints: Boolean): Int = {
+                   includeEntryPoints: Boolean): Try[String] = {
     val actualDestPath = Option(destPath).getOrElse {
       val defaultPath = Paths.get("").toAbsolutePath
       val msg =
@@ -1883,10 +1749,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       println(msg)
       defaultPath
     }
-    runExportJobImpl(jobId, actualDestPath, includeEntryPoints) match {
-      case Success(p) => println(s"Job exported to ${p.toString}"); 0
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
+    for {
+      p <- runExportJobImpl(jobId, actualDestPath, includeEntryPoints)
+    } yield s"Job exported to ${p.toString}"
   }
 
   def runImportJob(path: Path): Try[String] = {
@@ -1909,15 +1774,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def manifestsSummary(manifests: Seq[PacBioComponentManifest]): String = {
     val headers = Seq("id", "version", "name")
     val table = manifests.map(m => Seq(m.id, m.version, m.name))
-    printTable(table, headers)
-    ""
+    toTable(table, headers)
   }
 
-  def runGetPacBioManifests(): Int = {
-    runAndBlock[Seq[PacBioComponentManifest]](sal.getPacBioComponentManifests,
-                                              manifestsSummary,
-                                              TIMEOUT)
-  }
+  def runGetPacBioManifests(): Future[String] =
+    sal.getPacBioComponentManifests.map(manifestsSummary)
 
   // This is to make it backward compatiblity. Remove this when the other systems are updated
   private def getManifestById(
@@ -1932,51 +1793,45 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
   }
 
-  def runGetPacBioManifestById(ix: String): Int =
-    runAndBlock[PacBioComponentManifest](getManifestById(ix),
-                                         manifestSummary,
-                                         TIMEOUT)
+  def runGetPacBioManifestById(ix: String): Future[String] =
+    getManifestById(ix).map(manifestSummary)
 
   def pacBioDataBundlesSummary(bundles: Seq[PacBioDataBundle]): String = {
     val headers: Seq[String] =
       Seq("Bundle Id", "Version", "Imported At", "Is Active")
     val table = bundles.map(b =>
       Seq(b.typeId, b.version, b.importedAt.toString(), b.isActive.toString))
-    printTable(table, headers)
-    // The printTable func should probalby return a string, not an Int
-    ""
+    toTable(table, headers)
   }
 
-  def runGetPacBioDataBundles(timeOut: FiniteDuration): Int =
-    runAndBlock[Seq[PacBioDataBundle]](sal.getPacBioDataBundles(),
-                                       pacBioDataBundlesSummary,
-                                       timeOut)
+  def runGetPacBioDataBundles: Future[String] =
+    sal.getPacBioDataBundles().map(pacBioDataBundlesSummary)
 
-  def runTsSystemStatus(user: String, comment: String): Int = {
+  def runTsSystemStatus(user: String, comment: String): Try[String] = {
     def toSummary(job: EngineJob) =
       s"Tech support bundle sent.\nUser = $user\nComments: $comment"
     println(s"Attempting to send tech support status bundle")
-    val fx = for {
+    for {
       job <- Try {
         Await.result(sal.runTsSystemStatus(user, comment), TIMEOUT)
       }
       _ <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
-    } yield job
-    runAndSummary(fx, toSummary)
+    } yield toSummary(job)
   }
 
-  def runTsJobBundle(jobId: IdAble, user: String, comment: String): Int = {
+  def runTsJobBundle(jobId: IdAble,
+                     user: String,
+                     comment: String): Try[String] = {
     def toSummary(job: EngineJob) =
       s"Tech support job bundle sent.\nJob = ${job.id}; name = ${job.name}\nUser = $user\nComments: $comment"
     println(s"Attempting to send tech support failed job bundle")
-    val fx = for {
+    for {
       failedJob <- Try { Await.result(sal.getJob(jobId), TIMEOUT) }
       job <- Try {
         Await.result(sal.runTsJobBundle(failedJob.id, user, comment), TIMEOUT)
       }
       _ <- sal.pollForSuccessfulJob(job.uuid, Some(maxTime))
-    } yield failedJob
-    runAndSummary(fx, toSummary)
+    } yield toSummary(failedJob)
   }
 
   def alarmsSummary(alarms: Seq[AlarmStatus]): String = {
@@ -1989,12 +1844,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
             a.updatedAt.toString(),
             a.value.toString,
             a.message.getOrElse("")))
-    printTable(table, headers)
-    ""
+    toTable(table, headers)
   }
 
-  def runGetAlarms(timeOut: FiniteDuration) =
-    runAndBlock[Seq[AlarmStatus]](sal.getAlarms(), alarmsSummary, timeOut)
+  def runGetAlarms: Future[String] = sal.getAlarms().map(alarmsSummary)
 
 }
 
@@ -2054,31 +1907,33 @@ object PbService extends LazyLogging {
         }
     }
     val ps = new PbService(sal, c.maxTime)
-
+    def exeBlocking(fx: Future[String]) = executeBlockAndSummary(fx, c.maxTime)
     try {
       c.mode match {
         case Modes.STATUS =>
-          executeBlockAndSummary(ps.exeStatus(c.asJson), c.maxTime)
+          exeBlocking(ps.exeStatus(c.asJson))
         case Modes.IMPORT_DS =>
-          executeBlockAndSummary(ps.execImportDataSets(c.path,
-                                                       c.nonLocal,
-                                                       c.asJson,
-                                                       c.blockImportDataSet),
-                                 c.maxTime)
+          exeBlocking(
+            ps.execImportDataSets(c.path,
+                                  c.nonLocal,
+                                  c.asJson,
+                                  c.blockImportDataSet))
         case Modes.IMPORT_FASTA =>
-          ps.runImportFasta(c.path, c.name, c.organism, c.ploidy, c.project)
+          exeBlocking(
+            ps.runImportFasta(c.path, c.name, c.organism, c.ploidy, c.project))
         case Modes.IMPORT_FASTA_GMAP =>
-          ps.runImportFastaGmap(c.path,
-                                c.name,
-                                c.organism,
-                                c.ploidy,
-                                c.project)
+          exeBlocking(
+            ps.runImportFastaGmap(c.path,
+                                  c.name,
+                                  c.organism,
+                                  c.ploidy,
+                                  c.project))
         case Modes.IMPORT_BARCODES =>
-          ps.runImportBarcodes(c.path, c.name, c.project)
+          exeBlocking(ps.runImportBarcodes(c.path, c.name, c.project))
         case Modes.IMPORT_MOVIE =>
-          ps.runImportRsMovies(c.path, c.name, c.project)
+          executeAndSummary(ps.runImportRsMovies(c.path, c.name, c.project))
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
-        case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+        case Modes.TEMPLATE => exeBlocking(ps.runEmitAnalysisTemplate)
         case Modes.PIPELINE =>
           ps.runPipeline(c.pipelineId,
                          c.entryPoints,
@@ -2087,42 +1942,51 @@ object PbService extends LazyLogging {
                          c.block,
                          taskOptions = c.taskOptions,
                          asJson = c.asJson)
-        case Modes.SHOW_PIPELINES => ps.runShowPipelines
+        case Modes.SHOW_PIPELINES =>
+          exeBlocking(ps.runShowPipelines)
         case Modes.JOB =>
-          executeBlockAndSummary(ps.runGetJobInfo(c.jobId,
-                                                  c.asJson,
-                                                  c.dumpJobSettings,
-                                                  c.showReports),
-                                 c.maxTime)
+          exeBlocking(
+            ps.runGetJobInfo(c.jobId,
+                             c.asJson,
+                             c.dumpJobSettings,
+                             c.showReports))
         case Modes.JOBS =>
-          ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
-        case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
+          exeBlocking(
+            ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState))
+        case Modes.TERMINATE_JOB =>
+          exeBlocking(ps.runTerminateAnalysisJob(c.jobId))
+        case Modes.DELETE_JOB =>
+          executeAndSummary(ps.runDeleteJob(c.jobId, c.force))
         case Modes.EXPORT_JOB =>
-          ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
+          executeAndSummary(
+            ps.runExportJob(c.jobId, c.path, c.includeEntryPoints))
         case Modes.IMPORT_JOB => executeAndSummary(ps.runImportJob(c.path))
         case Modes.DATASET =>
-          executeBlockAndSummary(ps.runGetDataSetInfo(c.datasetId, c.asJson),
-                                 c.maxTime)
+          exeBlocking(ps.runGetDataSetInfo(c.datasetId, c.asJson))
         case Modes.DATASETS =>
-          executeBlockAndSummary(ps.runGetDataSets(c.datasetType,
-                                                   c.maxItems,
-                                                   c.asJson,
-                                                   c.searchName,
-                                                   c.searchPath),
-                                 c.maxTime)
-        case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
-        case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
-        case Modes.MANIFESTS => ps.runGetPacBioManifests
-        case Modes.BUNDLES => ps.runGetPacBioDataBundles(20.seconds)
-        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
-        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
-        case Modes.ALARMS => ps.runGetAlarms(c.maxTime)
-        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)
-        case x => {
-          System.err.println(s"Unsupported action '$x'")
-          1
-        }
+          exeBlocking(
+            ps.runGetDataSets(c.datasetType,
+                              c.maxItems,
+                              c.asJson,
+                              c.searchName,
+                              c.searchPath))
+        case Modes.DELETE_DATASET =>
+          exeBlocking(ps.runDeleteDataSet(c.datasetId))
+        case Modes.MANIFEST =>
+          exeBlocking(ps.runGetPacBioManifestById(c.manifestId))
+        case Modes.MANIFESTS =>
+          exeBlocking(ps.runGetPacBioManifests)
+        case Modes.BUNDLES =>
+          exeBlocking(ps.runGetPacBioDataBundles)
+        case Modes.TS_STATUS =>
+          executeAndSummary(ps.runTsSystemStatus(c.user, c.comment))
+        case Modes.TS_JOB =>
+          executeAndSummary(ps.runTsJobBundle(c.jobId, c.user, c.comment))
+        case Modes.ALARMS => exeBlocking(ps.runGetAlarms)
+        case Modes.CREATE_PROJECT =>
+          exeBlocking(ps.runCreateProject(c.name, c.description))
+        case x =>
+          exeBlocking(Future.failed(new Exception(s"Unsupported action '$x'")))
       }
     } finally {
       actorSystem.terminate()

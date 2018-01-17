@@ -99,7 +99,7 @@ trait ClientBase extends Retrying {
     *
     * @return
     */
-  def getStatus(): Future[ServiceStatus] =
+  def getStatus: Future[ServiceStatus] =
     getObject[ServiceStatus](Get(statusUrl))
 
   def getStatusWithRetry(
