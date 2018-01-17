@@ -114,7 +114,7 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   }
 
   def formatProjectInfo(project: FullProject): String = {
-     s"""
+    s"""
       |PROJECT SUMMARY:
       |  id: ${project.id}
       |  name: ${project.name}
@@ -192,33 +192,4 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   def isVersionGteSystemVersion(status: ServiceStatus): Future[SemVersion] =
     isVersionGte(status, SemVersion.fromString(Constants.SMRTFLOW_VERSION))
 
-}
-
-// FIXME this is a pattern we should move away from in the core client, but
-// it is difficult to avoid blocking calls entirely
-trait ClientRuntimeUtils {
-  private def printAndExit(msg: String, exitCode: Int): Int = {
-    println(msg)
-    exitCode
-  }
-
-  protected def errorExit(msg: String, exitCode: Int = 1) = {
-    System.err.println(msg)
-    exitCode
-  }
-
-  protected def printMsg(msg: String) = printAndExit(msg, 0)
-
-  private def runAndSummary[T](fx: Try[T], summary: (T => String)): Int = {
-    fx match {
-      case Success(result) => printMsg(summary(result))
-      case Failure(ex) => errorExit(ex.getMessage, 1)
-    }
-  }
-
-  protected def runAndBlock[T](fx: => Future[T],
-                               summary: (T => String),
-                               timeout: FiniteDuration): Int = {
-    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
-  }
 }
