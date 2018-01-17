@@ -399,16 +399,6 @@ case class UpdateJobTaskRecord(uuid: UUID,
 case class JobCompletedMessage(job: EngineJob)
 case class MultiJobSubmitted(jobId: Int)
 
-// "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
-// These are also used by the mock-pbsmrtpipe job options
-case class PbSmrtPipeServiceOptions(
-    name: String,
-    pipelineId: String,
-    entryPoints: Seq[BoundServiceEntryPoint],
-    taskOptions: Seq[ServiceTaskOptionBase],
-    workflowOptions: Seq[ServiceTaskOptionBase],
-    projectId: Int = JobConstants.GENERAL_PROJECT_ID)
-
 // New DataSet Service Models
 trait UniqueIdAble {
   val id: Int

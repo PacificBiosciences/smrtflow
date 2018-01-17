@@ -40,6 +40,7 @@ import com.pacbio.secondary.smrtlink.analysis.pipelines._
 import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 
 object Modes {
@@ -1423,11 +1424,12 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                                "example-string")
         )
 
-      PbSmrtPipeServiceOptions("My-job-name",
-                               "pbsmrtpipe.pipelines.dev_diagnostic",
-                               Seq(ep),
-                               taskOptions,
-                               Nil)
+      PbsmrtpipeJobOptions(Some("My-job-name"),
+                           Some("pbservice emit-analysis-template"),
+                           "pbsmrtpipe.pipelines.dev_diagnostic",
+                           Seq(ep),
+                           taskOptions,
+                           Nil)
     }
 
     val jx = analysisOpts.toJson.asJsObject
@@ -1449,7 +1451,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runAnalysisPipeline(jsonPath: Path, block: Boolean): Future[String] = {
     val jsonSrc = Source.fromFile(jsonPath.toFile).getLines.mkString
     val jsonAst = jsonSrc.parseJson
-    val analysisOptions = jsonAst.convertTo[PbSmrtPipeServiceOptions]
+    val analysisOptions = jsonAst.convertTo[PbsmrtpipeJobOptions]
     runAnalysisPipelineImpl(analysisOptions, block)
   }
 
@@ -1475,7 +1477,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   }
 
   protected def runAnalysisPipelineImpl(
-      analysisOptions: PbSmrtPipeServiceOptions,
+      analysisOptions: PbsmrtpipeJobOptions,
       block: Boolean = true,
       validate: Boolean = true,
       asJson: Boolean = false): Future[String] = {
@@ -1576,7 +1578,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       entryPoints: Seq[BoundServiceEntryPoint],
       presets: PipelineTemplatePreset,
       userTaskOptions: Option[Map[String, String]] = None)
-    : Future[PbSmrtPipeServiceOptions] = {
+    : Future[PbsmrtpipeJobOptions] = {
     val workflowOptions = Seq[ServiceTaskOptionBase]()
     val userOptions: Seq[ServiceTaskOptionBase] = presets.taskOptions ++
       userTaskOptions
@@ -1593,11 +1595,12 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         PipelineUtils.getPresetTaskOptions(pipeline, userOptions)
       }
     } yield
-      PbSmrtPipeServiceOptions(jobTitle,
-                               pipelineId,
-                               entryPoints,
-                               taskOptions,
-                               workflowOptions)
+      PbsmrtpipeJobOptions(Some(jobTitle),
+                           Some("from pbservice"),
+                           pipelineId,
+                           entryPoints,
+                           taskOptions,
+                           workflowOptions)
   }
 
   def runPipeline(pipelineId: String,

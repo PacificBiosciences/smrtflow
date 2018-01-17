@@ -23,6 +23,7 @@ import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -71,9 +72,10 @@ class StressTestScenario(host: String,
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Reference)
   val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
-  val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
-    PbSmrtPipeServiceOptions(
-      "stress-test",
+  val pipelineOpts: Var[PbsmrtpipeJobOptions] = Var(
+    PbsmrtpipeJobOptions(
+      Some("stress-test"),
+      Some("scenario-runner StressTestScenario"),
       "pbsmrtpipe.pipelines.dev_diagnostic_stress",
       Seq(
         BoundServiceEntryPoint("eid_ref_dataset",

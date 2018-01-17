@@ -544,8 +544,9 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       path: Path,
       dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-           ImportDataSetOptions(path.toAbsolutePath, dsMetaType)))
+      Post(
+        toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
+        ImportDataSetJobOptions(path.toAbsolutePath, dsMetaType, None, None)))
 
   def importFasta(path: Path,
                   name: String,
@@ -558,8 +559,9 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
-           ConvertImportFastaBarcodesOptions(toP(path), name)))
+      Post(
+        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
+        ImportBarcodeFastaJobOptions(path.toAbsolutePath, Some(name), None)))
 
   def importFastaGmap(path: Path,
                       name: String,
@@ -580,7 +582,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
   def convertRsMovie(path: Path, name: String) =
     getObject[EngineJob](
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
-           MovieMetadataToHdfSubreadOptions(toP(path), name)))
+           RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
@@ -621,7 +623,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       Get(toUrl(ROOT_DS_RULES + s"/$pipelineId")))
 
   def runAnalysisPipeline(
-      pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] =
+      pipelineOptions: PbsmrtpipeJobOptions): Future[EngineJob] =
     getObject[EngineJob](
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions))
 

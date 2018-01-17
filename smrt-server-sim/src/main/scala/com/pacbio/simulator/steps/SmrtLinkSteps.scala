@@ -3,23 +3,25 @@ package com.pacbio.simulator.steps
 import java.util.UUID
 import java.nio.file.Path
 
-import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+
+import com.typesafe.scalalogging.LazyLogging
+
+import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
-import com.typesafe.scalalogging.LazyLogging
 
 trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
 
@@ -468,8 +470,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         .map(_.uuid)
   }
 
-  case class RunAnalysisPipeline(
-      pipelineOptions: Var[PbSmrtPipeServiceOptions])
+  case class RunAnalysisPipeline(pipelineOptions: Var[PbsmrtpipeJobOptions])
       extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
     override def runWith =

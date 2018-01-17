@@ -22,6 +22,7 @@ import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -69,10 +70,11 @@ class ChemistryBundleScenario(host: String, port: Int)
   val jobId: Var[UUID] = Var()
   val jobStatus: Var[Int] = Var()
 
-  def getPipelineOpts(version: String): PbSmrtPipeServiceOptions = {
+  def getPipelineOpts(version: String): PbsmrtpipeJobOptions = {
     println(s"Chemistry bundle version is ${version}")
-    PbSmrtPipeServiceOptions(
-      "chemistry-bundle-test",
+    PbsmrtpipeJobOptions(
+      Some("chemistry-bundle-test"),
+      Some("scenario-runner ChemistryBundleScenario"),
       "pbsmrtpipe.pipelines.dev_verify_chemistry",
       Seq(
         BoundServiceEntryPoint("eid_subread",
