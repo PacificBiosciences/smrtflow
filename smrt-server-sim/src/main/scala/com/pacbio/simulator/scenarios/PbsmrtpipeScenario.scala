@@ -30,6 +30,7 @@ import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -92,7 +93,7 @@ trait PbsmrtpipeScenarioCore
                           triggerFailure: Boolean = false,
                           name: String = "diagnostic-test",
                           projectId: Int = JobConstants.GENERAL_PROJECT_ID)
-    : PbSmrtPipeServiceOptions = {
+    : PbsmrtpipeJobOptions = {
     val pipelineId = "pbsmrtpipe.pipelines.dev_diagnostic_subreads"
     val ep = BoundServiceEntryPoint("eid_subread",
                                     FileTypes.DS_SUBREADS.fileTypeId,
@@ -117,18 +118,19 @@ trait PbsmrtpipeScenarioCore
 
     val workflowOptions = Seq.empty[ServiceTaskOptionBase]
 
-    PbSmrtPipeServiceOptions(name,
-                             pipelineId,
-                             Seq(ep),
-                             taskOptions,
-                             workflowOptions,
-                             projectId)
+    PbsmrtpipeJobOptions(Some(name),
+                         Some("scenario-runner PbsmrtpipeScenario"),
+                         pipelineId,
+                         Seq(ep),
+                         taskOptions,
+                         workflowOptions,
+                         Some(projectId))
   }
 
   protected val diagnosticOptsCore = toDiagnosticOptions(subreadsUuid.get)
-  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] =
+  protected val diagnosticOpts: Var[PbsmrtpipeJobOptions] =
     projectId.mapWith { pid =>
-      diagnosticOptsCore.copy(projectId = pid)
+      diagnosticOptsCore.copy(projectId = Some(pid))
     }
   protected val failOpts = diagnosticOpts.mapWith(
     _.copy(
@@ -136,9 +138,10 @@ trait PbsmrtpipeScenarioCore
         ServiceTaskBooleanOption(toI("raise_exception"),
                                  true,
                                  BOOL.optionTypeId))))
-  protected val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
-    PbSmrtPipeServiceOptions(
-      "site-acceptance-test",
+  protected val satOpts: Var[PbsmrtpipeJobOptions] = Var(
+    PbsmrtpipeJobOptions(
+      Some("site-acceptance-test"),
+      Some("scenario-runner PbsmrtpipeScenario"),
       "pbsmrtpipe.pipelines.sa3_sat",
       Seq(
         BoundServiceEntryPoint("eid_ref_dataset",
@@ -159,8 +162,9 @@ trait PbsmrtpipeScenarioCore
       )
     ))
   protected val chunkOpts = Var(
-    PbSmrtPipeServiceOptions(
-      "subreads-chunk-test",
+    PbsmrtpipeJobOptions(
+      Some("subreads-chunk-test"),
+      Some("scenario-runner PbsmrtpipeScenario"),
       "pbsmrtpipe.pipelines.dev_subreads_chunk",
       Seq(
         BoundServiceEntryPoint("eid_subread",

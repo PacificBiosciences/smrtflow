@@ -29,7 +29,6 @@ packMain := Map(
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
-  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtlink.testkit.TestkitRunnerApp",
   "smrt-db-tool" -> "com.pacbio.secondary.smrtlink.tools.DatabaseToolApp",
   "amclient" -> "com.pacbio.secondary.smrtlink.tools.AmClientApp",
   "bundler-validate-config" -> "com.pacbio.secondary.smrtlink.tools.BundlerConfigApp",

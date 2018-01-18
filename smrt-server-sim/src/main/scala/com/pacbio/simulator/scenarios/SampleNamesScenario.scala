@@ -19,6 +19,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   OptionTypes
 }
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -79,11 +80,14 @@ class SampleNamesScenario(host: String, port: Int)
                          ServiceTaskStrOption(toI("well_sample_name"),
                                               wellName,
                                               STR.optionTypeId))
-      PbSmrtPipeServiceOptions(s"Test sample name propagation with $dsName",
-                               PIPELINE_ID,
-                               Seq(ep),
-                               taskOpts,
-                               Seq.empty[ServiceTaskOptionBase])
+      PbsmrtpipeJobOptions(
+        Some(s"Test sample name propagation with $dsName"),
+        Some("scenario-runner SampleNamesScenario"),
+        PIPELINE_ID,
+        Seq(ep),
+        taskOpts,
+        Seq.empty[ServiceTaskOptionBase]
+      )
     }
   }
 

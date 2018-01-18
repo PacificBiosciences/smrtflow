@@ -23,9 +23,9 @@ import com.pacbio.secondary.smrtlink.client.{
 }
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
-  DataStoreServiceFile,
-  PbSmrtPipeServiceOptions
+  DataStoreServiceFile
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.Config
@@ -78,7 +78,7 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
 
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
 
-  def failedDevDiagnosticOpts(uuid: UUID): Var[PbSmrtPipeServiceOptions] = {
+  def failedDevDiagnosticOpts(uuid: UUID): Var[PbsmrtpipeJobOptions] = {
 
     //MK I don't understand why this has issue with dsUUID.get This will yield a NPE
     val ep = BoundServiceEntryPoint("eid_ref_dataset",
@@ -92,11 +92,14 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
       BOOL.optionTypeId)
 
     Var(
-      PbSmrtPipeServiceOptions("dev-triggered-failed",
-                               "pbsmrtpipe.pipelines.dev_diagnostic",
-                               Seq(ep),
-                               Seq(taskOption),
-                               workflowOptions))
+      PbsmrtpipeJobOptions(
+        Some("dev-triggered-failed"),
+        Some("scenario-runner TechSupportScenario"),
+        "pbsmrtpipe.pipelines.dev_diagnostic",
+        Seq(ep),
+        Seq(taskOption),
+        workflowOptions
+      ))
   }
 
   // Sanity Test for creating an SL System status TS bundle

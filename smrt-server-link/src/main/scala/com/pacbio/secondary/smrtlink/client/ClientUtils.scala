@@ -3,13 +3,14 @@ package com.pacbio.secondary.smrtlink.client
 import java.io.File
 
 import scala.math._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json._
-
 import scala.util.{Try, Failure, Success}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import spray.json._
+import com.typesafe.scalalogging.LazyLogging
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
@@ -114,7 +115,7 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   }
 
   def formatProjectInfo(project: FullProject): String = {
-     s"""
+    s"""
       |PROJECT SUMMARY:
       |  id: ${project.id}
       |  name: ${project.name}
@@ -194,31 +195,23 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
 
 }
 
-// FIXME this is a pattern we should move away from in the core client, but
-// it is difficult to avoid blocking calls entirely
-trait ClientRuntimeUtils {
-  private def printAndExit(msg: String, exitCode: Int): Int = {
-    println(msg)
-    exitCode
+trait ClientAppUtils extends LazyLogging {
+  // These are the ONLY place that should have a blocking call
+  // and explicit case match to Success/Failure handing for Try
+  def executeBlockAndSummary(fx: Future[String],
+                             timeout: FiniteDuration): Int = {
+    executeAndSummary(Try(Await.result(fx, timeout)))
   }
 
-  protected def errorExit(msg: String, exitCode: Int = 1) = {
-    System.err.println(msg)
-    exitCode
-  }
-
-  protected def printMsg(msg: String) = printAndExit(msg, 0)
-
-  private def runAndSummary[T](fx: Try[T], summary: (T => String)): Int = {
-    fx match {
-      case Success(result) => printMsg(summary(result))
-      case Failure(ex) => errorExit(ex.getMessage, 1)
+  def executeAndSummary(tx: Try[String]): Int = {
+    tx match {
+      case Success(sx) =>
+        println(sx)
+        0
+      case Failure(ex) =>
+        logger.error(s"${ex.getMessage}")
+        System.err.println(s"${ex.getMessage} $ex")
+        1
     }
-  }
-
-  protected def runAndBlock[T](fx: => Future[T],
-                               summary: (T => String),
-                               timeout: FiniteDuration): Int = {
-    runAndSummary(Try(Await.result[T](fx, timeout)), summary)
   }
 }

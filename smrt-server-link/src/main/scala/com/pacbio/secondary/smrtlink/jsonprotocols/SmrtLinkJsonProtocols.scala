@@ -91,56 +91,6 @@ trait BoundServiceEntryPointJsonProtocol
     BoundServiceEntryPoint)
 }
 
-trait PbSmrtPipeServiceOptionsProtocol
-    extends DefaultJsonProtocol
-    with PipelineTemplateOptionProtocol
-    with BoundServiceEntryPointJsonProtocol {
-  import JobModels._
-
-  //implicit val idAbleFormat = IdAbleJsonProtocol.IdAbleFormat
-
-  implicit object PbSmrtPipeServiceOptionsFormat
-      extends RootJsonFormat[PbSmrtPipeServiceOptions] {
-    def write(o: PbSmrtPipeServiceOptions): JsValue = JsObject(
-      "name" -> o.name.toJson,
-      "pipelineId" -> o.pipelineId.toJson,
-      "entryPoints" -> o.entryPoints.toJson,
-      "taskOptions" -> o.taskOptions.toJson,
-      "workflowOptions" -> o.workflowOptions.toJson,
-      "projectId" -> o.projectId.toJson
-    )
-
-    def read(v: JsValue): PbSmrtPipeServiceOptions = {
-      val jsObj = v.asJsObject
-      jsObj.getFields("name",
-                      "pipelineId",
-                      "entryPoints",
-                      "taskOptions",
-                      "workflowOptions") match {
-        case Seq(JsString(name),
-                 JsString(pipelineId),
-                 JsArray(entryPoints),
-                 JsArray(taskOptions),
-                 JsArray(workflowOptions)) =>
-          val projectId = jsObj.getFields("projectId") match {
-            case Seq(JsNumber(pid)) => pid.toInt
-            case _ => JobConstants.GENERAL_PROJECT_ID
-          }
-          PbSmrtPipeServiceOptions(
-            name,
-            pipelineId,
-            entryPoints.map(_.convertTo[BoundServiceEntryPoint]),
-            taskOptions.map(_.convertTo[ServiceTaskOptionBase]),
-            workflowOptions.map(_.convertTo[ServiceTaskOptionBase]),
-            projectId
-          )
-        case x =>
-          deserializationError(s"Expected PbSmrtPipeServiceOptions, got $x")
-      }
-    }
-  }
-}
-
 trait ReportViewRuleProtocol extends DefaultJsonProtocol {
   implicit object reportViewRuleFormat extends RootJsonFormat[ReportViewRule] {
     def write(r: ReportViewRule) = r.rules
@@ -245,7 +195,6 @@ trait SmrtLinkJsonProtocols
     with ProjectEnumProtocols
     with LogLevelProtocol
     with DataSetMetaTypesProtocol
-    with PbSmrtPipeServiceOptionsProtocol
     with BoundServiceEntryPointJsonProtocol
     with ReportViewRuleProtocol
     with ReportJsonProtocol
@@ -361,14 +310,6 @@ trait SmrtLinkJsonProtocols
     SecondaryJobProtocols.PipelineTemplateFormat
   implicit val pipelineTemplateViewRule =
     SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val movieMetadataToHdfSubreadOptionsFormat =
-    SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
-  implicit val mergeDataSetOptionsFormat =
-    SecondaryJobProtocols.MergeDataSetOptionsFormat
-  implicit val importConvertFastaBarcodeOptionsFormat =
-    SecondaryJobProtocols.ConvertImportFastaBarcodesOptionsFormat
-  implicit val importDataSetOptionsFormat =
-    SecondaryJobProtocols.ImportDataSetOptionsFormat
 
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
