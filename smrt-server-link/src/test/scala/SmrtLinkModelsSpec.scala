@@ -35,7 +35,7 @@ class SmrtLinkModelsSpec extends Specification {
       val j = opts.toJson
       val o = j.convertTo[PbsmrtpipeJobOptions]
       o.projectId must beEqualTo(Some(JobConstants.GENERAL_PROJECT_ID))
-      o.name must beEqualTo("test_job")
+      o.name must beEqualTo(Some("test_job"))
       val opts2 = PbsmrtpipeJobOptions(Some("test_job2"),
                                        Some("description"),
                                        "pbsmrtpipe.pipelines.mock_dev01",

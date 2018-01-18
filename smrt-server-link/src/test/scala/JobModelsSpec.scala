@@ -354,53 +354,5 @@ class JobModelsSpec extends Specification with timeUtils {
         getJson("import_dataset_options.json").convertTo[ImportDataSetOptions]
       opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
     }
-    "MovieMetadataToHdfSubreadOptions" in {
-      val o = MovieMetadataToHdfSubreadOptions("/path/to/movie.metadata.xml",
-                                               "RSII dataset",
-                                               666)
-      val oj = o.toJson.convertTo[MovieMetadataToHdfSubreadOptions]
-      oj.projectId must beEqualTo(666)
-      val opts = getJson("convert_rs_movie_options.json")
-        .convertTo[MovieMetadataToHdfSubreadOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
-    "MergeDataSetOptions" in {
-      val o = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                  Seq("/path/to/subreads1.xml",
-                                      "/path/to/subreads2.xml").map(p =>
-                                    Paths.get(p)),
-                                  "Merged dataset",
-                                  666)
-      val oj = o.toJson.convertTo[MergeDataSetOptions]
-      oj.projectId must beEqualTo(666)
-      val opts =
-        getJson("merge_dataset_options.json").convertTo[MergeDataSetOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
-    "ConvertImportFastaBarcodesOptions" in {
-      val o =
-        ConvertImportFastaBarcodesOptions("/path/to/bc.fasta", "Barcodes", 666)
-      val oj = o.toJson.convertTo[ConvertImportFastaBarcodesOptions]
-      oj.projectId must beEqualTo(666)
-      val opts = getJson("import_barcode_options.json")
-        .convertTo[ConvertImportFastaBarcodesOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
-    "ConvertImportFastaOptions" in {
-      val o = ImportFastaJobOptions("/path/to/genome.fasta",
-                                    "My Genome",
-                                    "haploid",
-                                    Some("Homo sapiens"),
-                                    None,
-                                    Some(666))
-      val oj = o.toJson.convertTo[ImportFastaJobOptions]
-      // Check the raw value
-      oj.projectId must beSome(666)
-
-      val opts = getJson("import_fasta_options.json")
-        .convertTo[ImportFastaJobOptions]
-      // Check the resolved value
-      opts.getProjectId() === JobConstants.GENERAL_PROJECT_ID
-    }
   }
 }
