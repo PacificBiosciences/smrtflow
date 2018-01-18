@@ -340,19 +340,4 @@ class JobModelsSpec extends Specification with timeUtils {
 
   private def getJson(name: String) =
     Source.fromFile(getPath(name).toFile).getLines.mkString.parseJson
-
-  "Test job type options serialization" should {
-    import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-    "ImportDataSetOptions" in {
-      val o = ImportDataSetOptions(Paths.get("/path/to/subreads.xml"),
-                                   DataSetMetaTypes.Subread,
-                                   666)
-      val oj = o.toJson.convertTo[ImportDataSetOptions]
-      oj.projectId must beEqualTo(666)
-      oj.datasetType must beEqualTo(DataSetMetaTypes.Subread)
-      val opts =
-        getJson("import_dataset_options.json").convertTo[ImportDataSetOptions]
-      opts.projectId must beEqualTo(JobConstants.GENERAL_PROJECT_ID)
-    }
-  }
 }

@@ -46,15 +46,6 @@ class SmrtLinkModelsSpec extends Specification {
       val j2 = opts2.toJson
       val o2 = j2.convertTo[PbsmrtpipeJobOptions]
       o2.projectId must beEqualTo(Some(3))
-      val path = Paths.get(
-        getClass.getResource(s"job-requests/pbsmrtpipe_01.json").toURI)
-      val o3 = Source
-        .fromFile(path.toFile)
-        .getLines
-        .mkString
-        .parseJson
-        .convertTo[PbsmrtpipeJobOptions]
-      o3.projectId must beEqualTo(Some(JobConstants.GENERAL_PROJECT_ID))
     }
   }
 }
