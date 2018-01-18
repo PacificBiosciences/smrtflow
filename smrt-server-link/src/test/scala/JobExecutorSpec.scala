@@ -171,7 +171,7 @@ class JobExecutorSpec
         projectId = responseAs[FullProject].id
       }
 
-      Post(url, mockOpts.copy(projectId = projectId)) ~> totalRoutes ~> check {
+      Post(url, mockOpts.copy(projectId = Some(projectId))) ~> totalRoutes ~> check {
         newJob = Some(responseAs[EngineJob])
         logger.info(s"Response to $url -> $newJob")
         // Hack to poll
