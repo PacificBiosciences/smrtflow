@@ -19,9 +19,9 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
-  PbSmrtPipeServiceOptions,
   UserRecord
 }
 import com.pacbio.secondary.smrtlink.services.{
@@ -95,11 +95,12 @@ abstract class SmrtLinkAnalysisJobExecutorSpecBase
     val eps = Seq(ep)
     val taskOptions = Seq[ServiceTaskOptionBase]()
     val workflowOptions = Seq[ServiceTaskOptionBase]()
-    PbSmrtPipeServiceOptions("My-smrt-server-analysis-job-name",
-                             "pbsmrtpipe.pipelines.mock_dev01",
-                             eps,
-                             taskOptions,
-                             workflowOptions)
+    PbsmrtpipeJobOptions(Some("My-smrt-server-analysis-job-name"),
+                         None,
+                         "pbsmrtpipe.pipelines.mock_dev01",
+                         eps,
+                         taskOptions,
+                         workflowOptions)
   }
 
   lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir
