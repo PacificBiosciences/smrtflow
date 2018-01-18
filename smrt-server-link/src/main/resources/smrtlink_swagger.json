@@ -179,21 +179,6 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/files-download/*": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "x-auth-type": "Application & Application User"
-      }
-    },
     "/smrt-base/disk-space": {
       "get": {
         "description": "Retrieve information about available disk space",
