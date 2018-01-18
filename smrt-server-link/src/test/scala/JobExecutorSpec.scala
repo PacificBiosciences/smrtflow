@@ -37,7 +37,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.jobtypes.{
   DeleteSmrtLinkJobOptions,
-  ExportSmrtLinkJobOptions
+  ExportSmrtLinkJobOptions,
+  PbsmrtpipeJobOptions
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{
@@ -119,13 +120,14 @@ class JobExecutorSpec
   val rx = scala.util.Random
   val jobName = s"my-job-name-${rx.nextInt(1000)}"
 
-  val mockOpts = PbSmrtPipeServiceOptions(
-    jobName,
+  val mockOpts = PbsmrtpipeJobOptions(
+    Some(jobName),
+    None,
     "pbsmrtpipe.pipelines.mock_dev01",
     Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
     Nil,
     Nil,
-    projectId = -1)
+    projectId = Some(-1))
 
   val jobId = 1
   val taskUUID = UUID.randomUUID()
