@@ -201,7 +201,7 @@ validate-swagger-smrtlink:
 	swagger-tools validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
 validate-swagger-eve:
-	swagger-tools validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+	swagger-tools validate ./smrt-server-eve/src/main/resources/eventserver_swagger.json
 validate-swagger-bundle:
 	swagger-tools validate ./smrt-server-bundle/src/main/resources/bundleserver_swagger.json
 
