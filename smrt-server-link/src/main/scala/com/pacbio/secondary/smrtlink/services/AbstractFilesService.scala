@@ -82,13 +82,6 @@ abstract class AbstractFilesService(mimeTypes: MimeTypes,
             }
           }
         }
-      } ~
-      pathPrefix(s"$serviceBaseId-download") {
-        path(RemainingPath) { path =>
-          onSuccess(resolve(path).map(fileSystemUtil.getFile)) { file =>
-            getFromFile(file)
-          }
-        }
       }
 
   private def getDirectoryResource(path: Path): DirectoryResource = {
