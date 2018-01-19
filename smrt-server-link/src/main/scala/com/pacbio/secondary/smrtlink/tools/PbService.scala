@@ -691,7 +691,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def msg(sx: String) =
       s"Pbservice ${Constants.SMRTFLOW_VERSION} $sx compatible with Server ${status.version}"
 
-    val fx = isVersionGteSystemVersion(status).map(_ => msg("IS"))
+    def fx = isVersionGteSystemVersion(status).map(_ => msg("IS"))
 
     fx.recover { case NonFatal(_) => msg("IS NOT") }
   }
@@ -1030,7 +1030,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
     // The dataset has already been imported. Skip the entire job creation process.
     // This assumes that the Job was successful (because the datastore was imported)
-    val fx = for {
+    def fx = for {
       ds <- sal.getDataSet(uuid)
       _ <- Future.successful(logIfPathIsDifferent(ds))
       job <- sal.getJob(ds.jobId)
@@ -1038,7 +1038,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } yield completedJob
 
     // Default to creating new Job if the dataset wasn't already imported into the system
-    val orCreate = for {
+    def orCreate = for {
       job <- sal.importDataSet(path, metatype)
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
@@ -1144,7 +1144,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     if (files.isEmpty) {
       // Not sure if this should raise
       Future.failed(
-        new UnprocessableEntityError(s"No valid XML files found to process"))
+        UnprocessableEntityError(s"No valid XML files found to process"))
     } else {
       // Note, these futures will be run in parallel. This needs a better error communication model.
       val fx = for {
@@ -1663,7 +1663,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       def terminateJob() = runTerminateAnalysisJob(jobId).recover {
         case e: Exception => println(WARN_TERM_FAILED)
       }
-      val fx: Future[Any] = if (!job.isComplete) {
+      def fx: Future[Any] = if (!job.isComplete) {
         if (force) {
           println("WARNING: job did not complete - attempting to terminate")
           terminateJob()
