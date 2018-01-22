@@ -1669,14 +1669,14 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       def fx: Future[Any] =
         if (!job.isComplete) {
           if (force) {
-            println("WARNING: job did not complete - attempting to terminate")
+            System.err.println("WARNING: job did not complete - attempting to terminate")
             terminateJob()
           } else {
             Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
           }
         } else if (nChildren > 0) {
           if (force) {
-            println(WARN_CHILDREN)
+            System.err.println(WARN_CHILDREN)
             Thread.sleep(5000)
             Future.successful(None)
           } else {
