@@ -1030,18 +1030,20 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
     // The dataset has already been imported. Skip the entire job creation process.
     // This assumes that the Job was successful (because the datastore was imported)
-    def fx = for {
-      ds <- sal.getDataSet(uuid)
-      _ <- Future.successful(logIfPathIsDifferent(ds))
-      job <- sal.getJob(ds.jobId)
-      completedJob <- engineDriver(job, maxTimeOut)
-    } yield completedJob
+    def fx =
+      for {
+        ds <- sal.getDataSet(uuid)
+        _ <- Future.successful(logIfPathIsDifferent(ds))
+        job <- sal.getJob(ds.jobId)
+        completedJob <- engineDriver(job, maxTimeOut)
+      } yield completedJob
 
     // Default to creating new Job if the dataset wasn't already imported into the system
-    def orCreate = for {
-      job <- sal.importDataSet(path, metatype)
-      completedJob <- engineDriver(job, maxTimeOut)
-    } yield completedJob
+    def orCreate =
+      for {
+        job <- sal.importDataSet(path, metatype)
+        completedJob <- engineDriver(job, maxTimeOut)
+      } yield completedJob
 
     // This should have a tighter exception case
     fx.recoverWith { case NonFatal(_) => orCreate }
@@ -1522,6 +1524,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       xmlPath: Path): Future[BoundServiceEntryPoint] = {
     for {
       dsMeta <- Future.successful(getDataSetMiniMeta(xmlPath))
+      _ <- execImportDataSets(xmlPath, Some(dsMeta.metatype))
       ds <- sal.getDataSet(dsMeta.uuid)
     } yield BoundServiceEntryPoint(eid, dsMeta.metatype.toString, ds.id)
   }
@@ -1663,24 +1666,25 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       def terminateJob() = runTerminateAnalysisJob(jobId).recover {
         case e: Exception => println(WARN_TERM_FAILED)
       }
-      def fx: Future[Any] = if (!job.isComplete) {
-        if (force) {
-          println("WARNING: job did not complete - attempting to terminate")
-          terminateJob()
+      def fx: Future[Any] =
+        if (!job.isComplete) {
+          if (force) {
+            println("WARNING: job did not complete - attempting to terminate")
+            terminateJob()
+          } else {
+            Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
+          }
+        } else if (nChildren > 0) {
+          if (force) {
+            println(WARN_CHILDREN)
+            Thread.sleep(5000)
+            Future.successful(None)
+          } else {
+            Future.failed(new RuntimeException(ERR_CHILDREN))
+          }
         } else {
-          Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
-        }
-      } else if (nChildren > 0) {
-        if (force) {
-          println(WARN_CHILDREN)
-          Thread.sleep(5000)
           Future.successful(None)
-        } else {
-          Future.failed(new RuntimeException(ERR_CHILDREN))
         }
-      } else {
-        Future.successful(None)
-      }
       for {
         _ <- fx
         deleteJob <- sal.deleteJob(job.uuid, force = force)
