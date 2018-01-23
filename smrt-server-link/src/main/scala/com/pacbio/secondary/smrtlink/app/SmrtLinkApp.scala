@@ -38,6 +38,7 @@ import com.pacbio.common.utils.OSUtils
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.GetEngineManagerStatus
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
+import com.pacbio.secondary.smrtlink.actors.DbBackupActor.SubmitDbBackUpJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineManagerStatus
 import com.pacbio.secondary.smrtlink.auth.JwtUtilsImplProvider
 import com.pacbio.secondary.smrtlink.file.JavaFileSystemUtilProvider
@@ -162,7 +163,8 @@ trait SmrtLinkProviders
     with ReportViewRulesServiceProvider
     with JobsServiceProvider
     with EngineCoreJobManagerActorProvider
-    with EngineMultiJobManagerActorProvider {
+    with EngineMultiJobManagerActorProvider
+    with DbBackupActorProvider {
 
   override val baseServiceId: Singleton[String] = Singleton(
     "smrtlink_analysis")
@@ -196,6 +198,7 @@ trait SmrtLinkApi
   lazy val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
   lazy val engineManagerActor = providers.engineManagerActor()
   lazy val engineMultiJobManagerActor = providers.engineMultiJobManagerActor()
+  lazy val dbBackupActor = providers.dbBackupActor()
 
   lazy val eventManagerActor = providers.eventManagerActor()
 
@@ -295,9 +298,13 @@ trait SmrtLinkApi
       case Some(rootBackUpDir) =>
         val dbBackupKey =
           providers.conf.getString("pacBioSystem.dbBackUpSchedule")
-      //val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
-      //logger.info(s"Scheduling '$dbBackupKey' db backup $m")
-      //scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+        val desc =
+          s"System created Database backup $dbBackupKey to $rootBackUpDir"
+        val m = SubmitDbBackUpJob(System.getProperty("user.name"),
+                                  s"System Scheduled backup",
+                                  desc)
+        logger.info(s"Scheduling '$dbBackupKey' db backup $m")
+        scheduler.schedule(dbBackupKey, dbBackupActor, m)
       case _ =>
         logger.warn(
           "System is not configured with a root database directory. Skipping scheduling Automated backups.")
