@@ -137,7 +137,34 @@ trait DalComponent extends LazyLogging {
 trait DaoFutureUtils {
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
     case Some(value) => Future.successful(value)
-    case _ => Future.failed(new ResourceNotFoundError(message))
+    case _ => Future.failed(ResourceNotFoundError(message))
+  }
+
+  /**
+    * Run futures in Batches.
+    *
+    * This needs to be configurable with an explicit ExectionContext.
+    *
+    * @param maxItems Max number of items in block to be run
+    * @param items    Items to process
+    * @param f        Function to compute
+    * @param results  Results of Future
+    * @return
+    */
+  def runBatch[A, B](maxItems: Int,
+                     items: Seq[A],
+                     f: A => Future[B],
+                     results: Seq[B] = Seq.empty[B]): Future[Seq[B]] = {
+    items match {
+      case Nil => Future.successful(results)
+      case values if values.size > maxItems =>
+        for {
+          r1 <- Future.traverse(items.take(maxItems))(f)
+          r2 <- runBatch(maxItems, items.drop(maxItems), f, results ++ r1)
+        } yield r2
+      case values =>
+        Future.traverse(items)(f).map(r => results ++ r)
+    }
   }
 
   def runFuturesSequentially[T, U](items: TraversableOnce[T])(
