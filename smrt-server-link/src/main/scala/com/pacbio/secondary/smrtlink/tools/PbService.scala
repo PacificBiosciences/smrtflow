@@ -156,7 +156,8 @@ object PbServiceParser extends CommandLineToolVersion {
       usePassword: Boolean = false,
       comment: String = "Sent via pbservice",
       includeEntryPoints: Boolean = false,
-      blockImportDataSet: Boolean = true // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
+      blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
+      numMaxConcurrentImport: Int = 10 // This number should be tuned.
   ) extends LoggerConfig
 
   lazy val defaultHost: String =
@@ -281,6 +282,10 @@ object PbServiceParser extends CommandLineToolVersion {
         .text(
           s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --no-block")
         .action((t, c) => c.copy(blockImportDataSet = true)),
+      opt[Int]('m', "max-concurrent")
+        .text(
+          s"If in blocking mode, the max number of concurrent dataset imports allowed (Default ${defaults.numMaxConcurrentImport})")
+        .action((t, c) => c.copy(numMaxConcurrentImport = t)),
       opt[Unit]("non-block")
         .text(
           s"Disable blocking mode to poll for job to completion. Import Job will only be submitted. (Default ${!defaults.blockImportDataSet}). Mutually exclusive with --block")
@@ -1133,7 +1138,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   private def runMultiImportXml(
       files: Seq[File],
       runImport: Path => Future[EngineJob],
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      numMaxConcurrentImport: Int): Future[String] = {
 
     // If maxTimeOut is provided, we poll the job to completion and expect the Job to be in a successful state
     // If not provided, we only expect the job is not in a failure state (e.g, CREATED, RUNNING)
@@ -1149,22 +1155,22 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         UnprocessableEntityError(s"No valid XML files found to process"))
     } else {
       // Note, these futures will be run in parallel. This needs a better error communication model.
-      val fx = for {
-        jobs <- Future.sequence(
-          files.map(f => runImport(f.toPath.toAbsolutePath)))
+      for {
+        jobs <- runBatch(numMaxConcurrentImport,
+                         files.map(_.toPath.toAbsolutePath),
+                         runImport)
         summary <- multiJobSummary(jobs, jobFilter)
       } yield summary
-
-      fx
     }
   }
 
   protected def runMultiImportDataSet(
       files: Seq[File],
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      numMaxConcurrentImport: Int): Future[String] = {
     def toJob(p: Path) =
       runSingleLocalDataSetImport(p, asJson = false, maxTimeOut)
-    runMultiImportXml(files, toJob, maxTimeOut)
+    runMultiImportXml(files, toJob, maxTimeOut, numMaxConcurrentImport)
   }
 
   /**
@@ -1272,13 +1278,14 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def execImportDataSets(path: Path,
                          datasetType: Option[DataSetMetaTypes.DataSetMetaType],
                          asJson: Boolean = false,
-                         blockingMode: Boolean = true): Future[String] = {
+                         blockingMode: Boolean = true,
+                         numMaxConcurrentImport: Int = 5): Future[String] = {
 
     // In blocking model, set the default timeout to None
     val maxTimeOut = if (blockingMode) Some(maxTime) else None
 
     def doImportMany(files: Seq[File]) =
-      runMultiImportDataSet(files, maxTimeOut)
+      runMultiImportDataSet(files, maxTimeOut, numMaxConcurrentImport)
     def doImportOne(path: Path) =
       runSingleDataSetImport(path, datasetType, asJson, maxTimeOut)
     def filterFile(p: Path) = Try { getDataSetMiniMeta(p) }.isSuccess
@@ -1329,7 +1336,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                         name: String,
                         asJson: Boolean = false,
                         blockingMode: Boolean = false,
-                        projectName: Option[String] = None): Future[String] = {
+                        projectName: Option[String] = None,
+                        numMaxConcurrentImport: Int = 5): Future[String] = {
     val maxTimeOut = if (blockingMode) Some(maxTime) else None
 
     def doImportOne(p: Path) = runImportRsMovie(p, name, asJson, maxTimeOut)
@@ -1340,7 +1348,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           new RuntimeException(
             "--name option not allowed when path is a directory"))
       } else {
-        runMultiImportXml(files, (p) => convertRsMovie(p, name), maxTimeOut)
+        runMultiImportXml(files,
+                          (p) => convertRsMovie(p, name),
+                          maxTimeOut,
+                          numMaxConcurrentImport)
       }
     }
 
@@ -1669,7 +1680,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       def fx: Future[Any] =
         if (!job.isComplete) {
           if (force) {
-            System.err.println("WARNING: job did not complete - attempting to terminate")
+            System.err.println(
+              "WARNING: job did not complete - attempting to terminate")
             terminateJob()
           } else {
             Future.failed(new RuntimeException(ERR_NOT_COMPLETE))
@@ -1872,7 +1884,8 @@ object PbService extends ClientAppUtils with LazyLogging {
           ps.execImportDataSets(c.path,
                                 c.nonLocal,
                                 c.asJson,
-                                c.blockImportDataSet)
+                                c.blockImportDataSet,
+                                c.numMaxConcurrentImport)
         case Modes.IMPORT_FASTA =>
           ps.runImportFasta(c.path, c.name, c.organism, c.ploidy, c.project)
         case Modes.IMPORT_FASTA_GMAP =>
@@ -1884,7 +1897,12 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.IMPORT_BARCODES =>
           ps.runImportBarcodes(c.path, c.name, c.project)
         case Modes.IMPORT_MOVIE =>
-          ps.runImportRsMovies(c.path, c.name, c.asJson, c.block, c.project)
+          ps.runImportRsMovies(c.path,
+                               c.name,
+                               c.asJson,
+                               c.block,
+                               c.project,
+                               c.numMaxConcurrentImport)
         case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
         case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
         case Modes.PIPELINE =>
