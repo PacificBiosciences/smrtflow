@@ -166,17 +166,6 @@ trait DaoFutureUtils {
         Future.traverse(items)(f).map(r => results ++ r)
     }
   }
-
-  def runFuturesSequentially[T, U](items: TraversableOnce[T])(
-      fx: T => Future[U])(implicit ec: ExecutionContext): Future[List[U]] = {
-    items
-      .foldLeft(Future.successful[List[U]](Nil)) { (f, item) =>
-        f.flatMap { x =>
-          fx(item).map(_ :: x)(ec)
-        }(ec)
-      }
-      .map(_.reverse)(ec)
-  }
 }
 
 trait EventComponent {
