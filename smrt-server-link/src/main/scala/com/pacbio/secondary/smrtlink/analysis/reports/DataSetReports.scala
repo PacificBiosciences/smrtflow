@@ -36,6 +36,18 @@ object DataSetReports
   val simple = "simple_dataset_report"
   val reportPrefix = "dataset-reports"
 
+  /**
+    *
+    * @param inPath    Path to DataSet
+    * @param dst       DataSet type
+    * @param rptParent Root Report Directory
+    */
+  case class DataSetReportOptions(inPath: Path,
+                                  dst: DataSetMetaTypes.DataSetMetaType,
+                                  rptParent: Path,
+                                  log: JobResultsWriter,
+                                  jobTypeId: JobTypeIds.JobType)
+
   // all of the current reports will only work if at least one sts.xml file
   // is present as an ExternalResource of a SubreadSet BAM file
   def hasStatsXml(inPath: Path,
@@ -66,7 +78,7 @@ object DataSetReports
     case _ => false
   }
 
-  def toDataStoreFile(path: Path, taskId: String): DataStoreFile = {
+  private def toDataStoreFile(path: Path, taskId: String): DataStoreFile = {
     val now = JodaDateTime.now()
 
     val (reportId, uuid) = Try { ReportUtils.loadReport(path) }
@@ -88,40 +100,17 @@ object DataSetReports
     )
   }
 
-  def run(srcPath: Path,
-          rpt: CallPbReport,
-          parentDir: Path,
-          log: JobResultsWriter): Option[DataStoreFile] = {
-
-    val reportDir = parentDir.resolve(rpt.reportModule)
-    reportDir.toFile.mkdir()
-    val reportFile = reportDir.resolve(s"${rpt.reportModule}.json")
-
-    log.writeLine(s"running report ${rpt.reportModule}")
-
-    rpt.run(srcPath, reportFile) match {
-      case Left(failure) => {
-        log.writeLine("failed to generate report:")
-        log.writeLine(failure.msg)
-        None
-      }
-      case Right(report) =>
-        Some(toDataStoreFile(report.outputJson, report.taskId))
-    }
-  }
-
-  def runCombined(srcPath: Path,
-                  parentDir: Path,
-                  log: JobResultsWriter): Seq[DataStoreFile] = {
-    val dsFile = parentDir.resolve("datastore.json")
+  private def runSubreadSetReports(
+      opts: DataSetReportOptions): Seq[DataStoreFile] = {
+    val dsFile = opts.rptParent.resolve("datastore.json")
     val rpt = PbReports.SubreadReports
-    log.writeLine(s"running report ${rpt.reportModule}")
-    rpt.run(srcPath, dsFile) match {
+    opts.log.writeLine(s"running report ${rpt.reportModule}")
+    rpt.run(opts.inPath, dsFile) match {
       case Left(failure) => {
-        log.writeLine("failed to generate report:")
-        log.writeLine(failure.msg)
-        println(failure.msg)
-        Seq.empty[DataStoreFile]
+        opts.log.writeLine(
+          s"Failed to generate report SubreadSet. Using simple report for $dsFile")
+        opts.log.writeLine(failure.msg)
+        generateSimpleReports(opts)
       }
       case Right(result) => {
         val ds = FileUtils
@@ -133,6 +122,43 @@ object DataSetReports
     }
   }
 
+  private def generateSimpleReports(
+      opts: DataSetReportOptions): Seq[DataStoreFile] =
+    List(simpleReport(opts))
+
+  private def generateSubreadSetReports(
+      opts: DataSetReportOptions): Seq[DataStoreFile] = {
+    if (PbReports.SubreadReports.canProcess(
+          opts.dst,
+          hasStatsXml(opts.inPath, opts.dst))) {
+      runSubreadSetReports(opts)
+    } else {
+      val msg =
+        s"Can't process detailed Reports for SubreadSet. Defaulting to simple report for ${opts.inPath}"
+      opts.log.writeLine(msg)
+      generateSimpleReports(opts)
+    }
+  }
+
+  private def generateReports(opts: DataSetReportOptions): Seq[DataStoreFile] = {
+    opts.dst match {
+      case DataSetMetaTypes.Subread =>
+        generateSubreadSetReports(opts)
+      case _ =>
+        generateSimpleReports(opts)
+    }
+  }
+
+  /**
+    * Run DataSet Reports for any dataset type.
+    *
+    * @param inPath    Path to DataSet XML
+    * @param dst       DataSet type for inPath
+    * @param jobPath   Root job directory
+    * @param jobTypeId JobType (this will/can be used in the dataset file as the source id)
+    * @param log       Logger
+    * @return
+    */
   def runAll(inPath: Path,
              dst: DataSetMetaTypes.DataSetMetaType,
              jobPath: Path,
@@ -142,29 +168,18 @@ object DataSetReports
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
 
-    val reportFiles: Seq[DataStoreFile] = if (PbReports.isAvailable()) {
-      if (PbReports.SubreadReports.canProcess(dst, hasStatsXml(inPath, dst))) {
-        runCombined(inPath, rptParent, log)
-      } else {
-        log.writeLine(s"Can't process dataset $inPath")
-        Seq.empty[DataStoreFile]
-      }
+    val opts = DataSetReportOptions(inPath, dst, rptParent, log, jobTypeId)
+    if (PbReports.isAvailable()) {
+      generateReports(opts)
     } else {
-      log.writeLine("pbreports is unavailable")
-      Seq.empty[DataStoreFile]
-    }
-
-    if (reportFiles.nonEmpty) {
-      reportFiles
-    } else {
-      List(simpleReport(inPath, dst, rptParent, jobTypeId))
+      generateSimpleReports(opts)
     }
   }
 
-  def simpleReport(inPath: Path,
-                   dst: DataSetMetaTypes.DataSetMetaType,
-                   jobPath: Path,
-                   jobTypeId: JobTypeIds.JobType): DataStoreFile = {
+  private def simpleReport(opts: DataSetReportOptions): DataStoreFile = {
+
+    val inPath = opts.inPath
+    val dst = opts.dst
 
     def attribs(md: DataSetMetadataType) =
       List(
@@ -207,7 +222,7 @@ object DataSetReports
                      Nil,
                      UUID.randomUUID())
 
-    val reportPath = jobPath.resolve(simple + ".json")
+    val reportPath = opts.rptParent.resolve(simple + ".json")
     ReportUtils.writeReport(rpt, reportPath)
     toDataStoreFile(reportPath, s"pbscala::dataset_report")
   }
