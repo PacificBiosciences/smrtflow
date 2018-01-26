@@ -1160,27 +1160,6 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
-  class DataSetTypesT(tag: Tag)
-      extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
-
-    def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
-
-    def idx = index("index_id", id, unique = true)
-
-    def name: Rep[String] = column[String]("name")
-
-    def description: Rep[String] = column[String]("description")
-
-    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
-
-    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
-
-    def shortName: Rep[String] = column[String]("short_name")
-
-    def * =
-      (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
-  }
-
   /*
   Table to capture the DataSet Entry points of a EngineJob
 
@@ -1685,9 +1664,6 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   lazy val jobEvents = TableQuery[JobEventsT]
   lazy val jobTasks = TableQuery[JobTasks]
 
-  // DataSet types
-  lazy val datasetMetaTypes = TableQuery[DataSetTypesT]
-
   // Runs
   lazy val runSummaries = TableQuery[RunSummariesT]
   lazy val dataModels = TableQuery[DataModelsT]
@@ -1703,7 +1679,6 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   lazy val serviceTables: Set[SlickTable] = Set(
     engineJobs,
-    datasetMetaTypes,
     engineJobsDataSets,
     jobEvents,
     jobTasks,
@@ -1744,60 +1719,5 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   // This is "admin" from the wso2 model
   val projectUser =
     ProjectUser(generalProject.id, "admin", ProjectUserRole.OWNER)
-
-  // Is this even used?
-  private val datasetTypeDatum = List(
-    ("PacBio.DataSet.ReferenceSet",
-     "Display name for PacBio.DataSet.ReferenceSet",
-     "Description for PacBio.DataSet.ReferenceSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "references"),
-    ("PacBio.DataSet.ConsensusReadSet",
-     "Display name for PacBio.DataSet.ConsensusReadSet",
-     "Description for PacBio.DataSet.ConsensusReadSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "ccsreads"),
-    ("PacBio.DataSet.ContigSet",
-     "Display name for PacBio.DataSet.ContigSet",
-     "Description for PacBio.DataSet.ContigSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "contigs"),
-    ("PacBio.DataSet.SubreadSet",
-     "Display name for PacBio.DataSet.SubreadSet",
-     "Description for PacBio.DataSet.SubreadSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "subreads"),
-    ("PacBio.DataSet.BarcodeSet",
-     "Display name for PacBio.DataSet.BarcodeSet",
-     "Description for PacBio.DataSet.BarcodeSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "barcodes"),
-    ("PacBio.DataSet.ConsensusAlignmentSet",
-     "Display name for PacBio.DataSet.ConsensusAlignmentSet",
-     "Description for PacBio.DataSet.ConsensusAlignmentSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "ccsalignments"),
-    ("PacBio.DataSet.HdfSubreadSet",
-     "Display name for PacBio.DataSet.HdfSubreadSet",
-     "Description for PacBio.DataSet.HdfSubreadSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "hdfsubreads"),
-    ("PacBio.DataSet.AlignmentSet",
-     "Display name for PacBio.DataSet.AlignmentSet",
-     "Description for PacBio.DataSet.AlignmentSet",
-     JodaDateTime.now(),
-     JodaDateTime.now(),
-     "alignments")
-  )
-
-  val coreDataSetMetaTypes =
-    datasetTypeDatum.map(ServiceDataSetMetaType.tupled)
 
 }
