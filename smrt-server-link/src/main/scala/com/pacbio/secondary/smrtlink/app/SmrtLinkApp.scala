@@ -15,6 +15,7 @@ import com.pacbio.secondary.smrtlink.services._
 import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.actors.AlarmManagerRunnerActor.RunAlarms
 import com.pacbio.secondary.smrtlink.actors.DataIntegrityManagerActor.RunIntegrityChecks
+import com.pacbio.secondary.smrtlink.actors.DbBackupActor.SubmitDbBackUpJob
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
@@ -64,7 +65,8 @@ trait SmrtLinkProviders
     with ReportViewRulesServiceProvider
     with JobsServiceProvider
     with EngineCoreJobManagerActorProvider
-    with EngineMultiJobManagerActorProvider {
+    with EngineMultiJobManagerActorProvider
+    with DbBackupActorProvider {
 
   override val baseServiceId: Singleton[String] = Singleton(
     "smrtlink_analysis")
@@ -90,6 +92,7 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
     val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
     val engineManagerActor = providers.engineManagerActor()
     val engineMultiJobManagerActor = providers.engineMultiJobManagerActor()
+    lazy val dbBackupActor = providers.dbBackupActor()
 
     val eventManagerActor = providers.eventManagerActor()
 
@@ -109,9 +112,13 @@ trait SmrtLinkApi extends BaseApi with LazyLogging with DatabaseUtils {
       case Some(rootBackUpDir) =>
         val dbBackupKey =
           providers.conf.getString("pacBioSystem.dbBackUpSchedule")
-        //val m = SubmitDbBackUpJob(System.getProperty("user.name"), providers.dbConfig, rootBackUpDir)
-        //logger.info(s"Scheduling '$dbBackupKey' db backup $m")
-        // scheduler.schedule(dbBackupKey, providers.jobsDaoActor(), m)
+        val desc =
+          s"System created Database backup $dbBackupKey to $rootBackUpDir"
+        val m = SubmitDbBackUpJob(System.getProperty("user.name"),
+                                  s"System Scheduled backup",
+                                  desc)
+        logger.info(s"Scheduling '$dbBackupKey' db backup $m")
+        scheduler.schedule(dbBackupKey, dbBackupActor, m)
 
         val alarmSchedule =
           providers.conf.getString("pacBioSystem.alarmSchedule")
