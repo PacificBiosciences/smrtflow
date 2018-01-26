@@ -25,7 +25,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   PrinterJobResultsWriter,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   DataSetMergerOptions,
   DataSetMergerTool,
