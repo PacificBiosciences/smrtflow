@@ -271,10 +271,6 @@ class DatabaseSpec
         testdb.run(projects.filter(_.name === projectName).result.head),
         1.second)
       val pu = Await.result(testdb.run(projectsUsers.result.head), 1.second)
-      val rt = Await.result(
-        testdb.run(
-          datasetMetaTypes.filter(_.shortName === "references").result.head),
-        1.second)
       val ds = Await.result(
         testdb.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head),
         1.second)
