@@ -59,18 +59,65 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   }
 }
 
+trait ImportFastaUtils extends MockJobUtils {
+  val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
+  val SOURCE_ID: String
+
+  protected def dsTypeName = DS_METATYPE.fileType.dsName
+
+  private def toDataStoreFile(uuid: UUID, name: String, path: Path) = {
+    val importedAt = JodaDateTime.now()
+    DataStoreFile(
+      uuid,
+      SOURCE_ID,
+      DS_METATYPE.toString,
+      path.toFile.length(),
+      importedAt,
+      importedAt,
+      path.toAbsolutePath.toString,
+      isChunked = false,
+      s"${dsTypeName} $name",
+      s"Converted Fasta and Imported ${dsTypeName} $name"
+    )
+  }
+
+  private def writeDatastoreToJobDir(dsFiles: Seq[DataStoreFile],
+                                     jobDir: Path) = {
+    // Keep the pbsmrtpipe jobOptions directory structure for now. But this needs to change
+    val resources = setupJobResourcesAndCreateDirs(jobDir)
+    val ds = toDatastore(resources, dsFiles)
+    writeDataStore(ds, resources.datastoreJson)
+    ds
+  }
+
+  protected def writeFiles(rio: DataSetIO,
+                           logFile: DataStoreFile,
+                           job: JobResourceBase,
+                           log: String => Unit): PacBioDataStore = {
+    log(
+      s"Successfully wrote DataSet uuid:${rio.dataset.getUniqueId} name:${rio.dataset.getName} to path:${rio.path}")
+    val dsFile =
+      toDataStoreFile(UUID.fromString(rio.dataset.getUniqueId),
+                      rio.dataset.getName,
+                      rio.path)
+    val datastore =
+      writeDatastoreToJobDir(Seq(dsFile, logFile), job.path)
+    log(
+      s"successfully generated datastore with ${datastore.files.length} files")
+    datastore
+  }
+}
+
 abstract class ImportFastaBaseJob[T <: DataSetType, U <: DataSetMetadataType,
 V <: DataSetIO](opts: ImportFastaBaseJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with ImportFastaUtils
     with timeUtils {
   type Out = PacBioDataStore
 
   val PIPELINE_ID: String
-  val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
   val CONVERTER: ReferenceConverterBase[T, U, V]
-
-  private def dsTypeName = DS_METATYPE.fileType.dsName
+  val SOURCE_ID = s"pbscala::${jobTypeId.id}"
 
   // Max size for a fasta file to converted locally, versus being converted to a pbsmrtpipe cluster task
   // This value probably needs to be tweaked a bit
@@ -119,31 +166,6 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
 
   }
 
-  private def toDataStoreFile(uuid: UUID, name: String, path: Path) = {
-    val importedAt = JodaDateTime.now()
-    DataStoreFile(
-      uuid,
-      s"pbscala::${jobTypeId.id}",
-      DS_METATYPE.toString,
-      path.toFile.length(),
-      importedAt,
-      importedAt,
-      path.toAbsolutePath.toString,
-      isChunked = false,
-      s"${dsTypeName} $name",
-      s"Converted Fasta and Imported ${dsTypeName} $name"
-    )
-  }
-
-  private def writeDatastoreToJobDir(dsFiles: Seq[DataStoreFile],
-                                     jobDir: Path) = {
-    // Keep the pbsmrtpipe jobOptions directory structure for now. But this needs to change
-    val resources = setupJobResourcesAndCreateDirs(jobDir)
-    val ds = toDatastore(resources, dsFiles)
-    writeDataStore(ds, resources.datastoreJson)
-    ds
-  }
-
   /**
     * Run locally (don't submit to the cluster resources)
     */
@@ -162,18 +184,6 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
       resultsWriter.writeLine(sx)
     }
 
-    def writeFiles(rio: DataSetIO): PacBioDataStore = {
-      w(s"Successfully wrote DataSet uuid:${rio.dataset.getUniqueId} name:${rio.dataset.getName} to path:${rio.path}")
-      val dsFile =
-        toDataStoreFile(UUID.fromString(rio.dataset.getUniqueId),
-                        rio.dataset.getName,
-                        rio.path)
-      val datastore =
-        writeDatastoreToJobDir(Seq(dsFile, logFile), job.path)
-      w(s"successfully generated datastore with ${datastore.files.length} files")
-      datastore
-    }
-
     w(s"Attempting to converting Fasta to ${dsTypeName} ${opts.path}")
     w(s"Job Options $opts")
 
@@ -190,7 +200,7 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
                            Paths.get(opts.path),
                            outputDir,
                            mkdir = true)
-      results <- Try(writeFiles(r))
+      results <- Try(writeFiles(r, logFile, job, w))
     } yield results
   }
 
