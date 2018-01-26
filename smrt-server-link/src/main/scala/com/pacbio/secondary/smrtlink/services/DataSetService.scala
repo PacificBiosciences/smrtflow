@@ -349,11 +349,7 @@ class DataSetService(dao: JobsDao)
         path(shortNameRx) { shortName =>
           get {
             complete {
-              DataSetMetaTypes
-                .fromShortName(shortName)
-                .map(t => dao.getDataSetTypeById(t.dsId))
-                .getOrElse(throw new ResourceNotFoundError(
-                  s"Unable to find dataset type Id '$shortName"))
+              dao.getDataSetTypeById(shortName)
             }
           }
         }

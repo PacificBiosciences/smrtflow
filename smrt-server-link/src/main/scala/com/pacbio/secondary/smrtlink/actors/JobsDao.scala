@@ -960,6 +960,27 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 }
 
+trait DataSetTypesDao extends DaoFutureUtils {
+  private def toServiceMetaType(t: DataSetMetaTypes.DataSetMetaType) = {
+    val now = JodaDateTime.now()
+    ServiceDataSetMetaType(t.fileType.fileTypeId,
+                           s"Display name for ${t.shortName}",
+                           s"Description for ${t.fileType.fileTypeId}",
+                           now,
+                           now,
+                           t.shortName)
+  }
+
+  def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =
+    Future
+      .successful(DataSetMetaTypes.fromAnyName(typeId))
+      .flatMap(failIfNone(s"Can't find dataset type $typeId"))
+      .map(toServiceMetaType)
+
+  def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] =
+    Future.successful(DataSetMetaTypes.ALL.toSeq.map(toServiceMetaType))
+}
+
 /**
   * Model extend DataSet Component to have 'extended' importing of datastore files by file type
   * (e.g., DataSet, Report)
@@ -1663,13 +1684,6 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         MessageResponse(
           s"Successfully imported ${file.uniqueId} ${file.fileTypeId}"))
   }
-
-  def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =
-    db.run(datasetMetaTypes.filter(_.id === typeId).result.headOption)
-      .flatMap(failIfNone(s"Unable to find dataSet type `$typeId`"))
-
-  def getDataSetTypes: Future[Seq[ServiceDataSetMetaType]] =
-    db.run(datasetMetaTypes.result)
 
   def getDataSetById(id: IdAble): Future[DataSetMetaDataSet] =
     db.run(qDsMetaDataById(id).result.headOption)
@@ -2414,7 +2428,8 @@ class JobsDao(val db: Database,
     with EventComponent
     with ProjectDataStore
     with JobDataStore
-    with DataSetStore {
+    with DataSetStore
+    with DataSetTypesDao {
 
   import JobModels._
 
