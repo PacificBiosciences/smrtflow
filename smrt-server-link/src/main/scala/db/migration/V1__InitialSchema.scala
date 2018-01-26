@@ -23,6 +23,7 @@ class V1__InitialSchema
     db.run(
       DBIO.seq(
         BaseLine.schema.create,
+        BaseLine.datasetMetaTypes ++= BaseLine.coreDataSetMetaTypes,
         BaseLine.projects += BaseLine.generalProject,
         BaseLine.projectsUsers += BaseLine.projectUser
       ))
