@@ -98,17 +98,8 @@ object PbServiceParser extends CommandLineToolVersion {
 
   // is there a cleaner way to do this?
   private def entityIdOrUuid(entityId: String): IdAble = {
-    try {
-      IntIdAble(entityId.toInt)
-    } catch {
-      case e: Exception => {
-        try {
-          UUIDIdAble(UUID.fromString(entityId))
-        } catch {
-          case e: Exception => 0
-        }
-      }
-    }
+    // This is not really a good model.
+    IdAble.fromString(entityId).getOrElse(IntIdAble(0))
   }
 
   private def getToken(token: String): String = {
@@ -173,13 +164,11 @@ object PbServiceParser extends CommandLineToolVersion {
 
     private def validateId(entityId: String,
                            entityType: String): Either[String, Unit] = {
-      entityIdOrUuid(entityId) match {
-        case IntIdAble(x) =>
-          if (x > 0) success
-          else
-            failure(
-              s"${entityType} ID must be a positive integer or a UUID string")
-        case UUIDIdAble(x) => success
+      IdAble.fromString(entityId) match {
+        case Success(_) => success
+        case Failure(_) =>
+          failure(
+            s"$entityType ID '$entityId' must be a positive integer or a UUID string")
       }
     }
 

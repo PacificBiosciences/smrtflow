@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.http.scaladsl.server.{Directives, PathMatcher1}
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 /**
   * Created by mkocher on 8/9/16.
@@ -26,6 +27,13 @@ object CommonModels {
     override def map[T](fInt: Int => _ <: T, fUUID: UUID => _ <: T): T =
       fUUID(n)
   }
+  object IdAble {
+    def fromString(ix: String): Try[IdAble] = {
+      Try(IntIdAble(ix.toInt))
+        .recoverWith { case _ => Try(UUIDIdAble(UUID.fromString(ix))) }
+    }
+  }
+
 }
 
 object CommonModelImplicits {
