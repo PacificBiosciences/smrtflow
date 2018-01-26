@@ -311,6 +311,27 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def uuid: Rep[UUID] = column[UUID]("uuid")
   }
 
+  class DataSetTypesT(tag: Tag)
+      extends Table[ServiceDataSetMetaType](tag, "pacbio_dataset_metatypes") {
+
+    def id: Rep[String] = column[String]("dataset_type_id", O.PrimaryKey)
+
+    def idx = index("index_id", id, unique = true)
+
+    def name: Rep[String] = column[String]("name")
+
+    def description: Rep[String] = column[String]("description")
+
+    def createdAt: Rep[JodaDateTime] = column[JodaDateTime]("created_at")
+
+    def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
+
+    def shortName: Rep[String] = column[String]("short_name")
+
+    def * =
+      (id, name, description, createdAt, updatedAt, shortName) <> (ServiceDataSetMetaType.tupled, ServiceDataSetMetaType.unapply)
+  }
+
   /*
   Table to capture the DataSet Entry points of a EngineJob
 
@@ -843,6 +864,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val jobEvents = TableQuery[JobEventsT]
   lazy val jobTasks = TableQuery[JobTasks]
 
+  // DataSet types
+  lazy val datasetMetaTypes = TableQuery[DataSetTypesT]
+
   // Runs
   lazy val runSummaries = TableQuery[RunSummariesT]
   lazy val dataModels = TableQuery[DataModelsT]
@@ -858,6 +882,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   lazy val serviceTables: Set[SlickTable] = Set(
     engineJobs,
+    datasetMetaTypes,
     engineJobsDataSets,
     jobEvents,
     jobTasks,
