@@ -984,7 +984,7 @@ trait DataSetTypesDao extends DaoFutureUtils {
 
   def getDataSetTypeById(typeId: String): Future[ServiceDataSetMetaType] =
     Future
-      .successful(DataSetMetaTypes.fromShortName(typeId))
+      .successful(DataSetMetaTypes.fromAnyName(typeId))
       .flatMap(failIfNone(s"Can't find dataset type $typeId"))
       .map(toServiceMetaType)
 
