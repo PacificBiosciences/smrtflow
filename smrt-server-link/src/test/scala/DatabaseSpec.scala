@@ -349,7 +349,6 @@ class DatabaseSpec
       //gp.description === "General Project"
       //pr === project.copy(id = projectId)
       //pu === projectUser.copy(projectId = projectId)
-      rt.id === "PacBio.DataSet.ReferenceSet"
       ds === dataset.copy(jobId = jobId)
       md === metadata.copy(id = metadataId,
                            jobId = jobId,
