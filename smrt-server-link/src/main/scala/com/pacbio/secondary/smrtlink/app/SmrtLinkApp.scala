@@ -7,9 +7,18 @@ import java.nio.file.{Files, Path}
 import akka.pattern._
 import akka.util.Timeout
 import akka.actor.ActorRefFactory
+import akka.event.Logging.LogLevel
+import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.server.{Route, RouteResult}
+import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
+import akka.http.scaladsl.server.directives.{
+  DebuggingDirectives,
+  LogEntry,
+  LoggingMagnet
+}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.dependency.{
@@ -264,11 +273,40 @@ trait SmrtLinkApi
            .summary()}""".stripMargin
   }
 
+  def akkaResponseTimeLoggingFunction(loggingAdapter: LoggingAdapter,
+                                      requestTimestamp: Long,
+                                      level: LogLevel = Logging.InfoLevel)(
+      req: HttpRequest)(res: RouteResult): Unit = {
+    val entry = res match {
+      case Complete(resp) =>
+        val responseTimestamp: Long = System.nanoTime
+        val elapsedTime
+          : Long = (responseTimestamp - requestTimestamp) / 1000000
+        val loggingString =
+          s"""Logged Request:${req.method}:${req.uri}:${resp.status}:$elapsedTime ms"""
+        LogEntry(loggingString, level)
+      case Rejected(reason) =>
+        LogEntry(s"Rejected Reason: ${reason.mkString(",")}", level)
+    }
+    entry.logTo(loggingAdapter)
+  }
+
+  def logResponseTime(log: LoggingAdapter) = {
+    val requestTimestamp = System.nanoTime
+    akkaResponseTimeLoggingFunction(log, requestTimestamp)(_)
+  }
+
+  val logResponseTimeRoutes =
+    DebuggingDirectives.logRequestResult(LoggingMagnet(logResponseTime))(
+      routes)
+
+  //val routesLogged = DebuggingDirectives.logRequestResult("System", Logging.InfoLevel)(routes)
+
   /**
     * Fundamental Starting up of the WebServices
     */
   private def start(host: String, port: Int): Future[ServerBinding] =
-    Http().bindAndHandle(routes, host, port)
+    Http().bindAndHandle(logResponseTimeRoutes, host, port)
 
   /**
     * Fundamental Post Startup hook
