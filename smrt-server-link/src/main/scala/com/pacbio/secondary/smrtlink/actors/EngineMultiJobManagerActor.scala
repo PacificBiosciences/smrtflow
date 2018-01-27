@@ -132,8 +132,7 @@ class EngineMultiJobManagerActor(dao: JobsDao,
         worker ! CheckWorkerMultiJobStatus
       }
 
-    case x =>
-      log.warning(s"Unsupported message $x to $self")
+    //case x => log.warning(s"Unsupported message $x to $self")
   }
 }
 
