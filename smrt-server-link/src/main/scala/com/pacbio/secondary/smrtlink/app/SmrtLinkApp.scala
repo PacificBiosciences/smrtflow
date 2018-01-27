@@ -283,7 +283,7 @@ trait SmrtLinkApi
         val elapsedTime
           : Long = (responseTimestamp - requestTimestamp) / 1000000
         val loggingString =
-          s"""Logged Request:${req.method}:${req.uri}:${resp.status}:$elapsedTime ms"""
+          s"""Logged Request:${req.method.value}:${req.uri}:${resp.status}:$elapsedTime ms"""
         LogEntry(loggingString, level)
       case Rejected(reason) =>
         LogEntry(s"Rejected Reason: ${reason.mkString(",")}", level)
