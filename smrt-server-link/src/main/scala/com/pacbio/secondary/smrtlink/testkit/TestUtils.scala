@@ -32,8 +32,8 @@ trait TestUtils extends DatabaseUtils with LazyLogging {
     */
   def setupDb(config: SmrtLinkDatabaseConfig): Unit = {
     logger.info(s"Attempting setting up db $config with URI ${config.jdbcURI}")
-    val db = config.toDatabase
-    val ds = config.toDataSource
+    lazy val db = config.toDatabase
+    lazy val ds = config.toDataSource
     val defaultTimeOut = 10.seconds
 
     def ignoreWithMessage(
@@ -41,20 +41,28 @@ trait TestUtils extends DatabaseUtils with LazyLogging {
       case ex: SQLException => Future.successful(s"$msg ${ex.getMessage}")
     }
 
-    val runner = for {
-      m0 <- Future { TestConnection(ds) }
-      m1 <- dropTables(db).recoverWith(
-        ignoreWithMessage("Warning unable to drop smrtlink tables "))
-      m2 <- dropFlywayTable(db).recoverWith(
-        ignoreWithMessage("Warning unable to delete flyway table "))
-      m3 <- Future { Migrator(ds) }.map(n =>
-        s"Successfully ran $n migration(s)")
-    } yield
-      Seq(m0, m1, m2, m3).reduce { (acc, v) =>
-        s"$acc.\n$v"
-      }
+    def runner =
+      for {
+        m0 <- Future { TestConnection(ds) }
+        m1 <- dropTables(db).recoverWith(
+          ignoreWithMessage("Warning unable to drop smrtlink tables "))
+        m2 <- dropFlywayTable(db).recoverWith(
+          ignoreWithMessage("Warning unable to delete flyway table "))
+        m3 <- Future { Migrator(ds) }.map(n =>
+          s"Successfully ran $n migration(s)")
+      } yield
+        Seq(m0, m1, m2, m3).reduce { (acc, v) =>
+          s"$acc.\n$v"
+        }
 
-    val fx = runner andThen { case _ => db.close() }
+    def fx =
+      runner andThen {
+        case _ =>
+          db.close()
+      } andThen {
+        case _ =>
+          ds.getConnection.close()
+      }
 
     val results = Await.result(fx, defaultTimeOut)
     println(results)
