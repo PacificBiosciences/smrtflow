@@ -7,19 +7,24 @@ import collection.JavaConverters._
 import org.joda.time.{DateTime => JodaDateTime}
 import org.apache.commons.io.FileUtils
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-
 import com.pacificbiosciences.pacbiodatasets.{
   DataSetMetadataType,
-  SubreadSet,
-  DataSetType
+  DataSetType,
+  SubreadSet
 }
 import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetMetadataUtils
+}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetJsonUtils,
+  DataSetLoader
+}
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   CallPbReport,
   PbReport,
@@ -54,26 +59,9 @@ object DataSetReports
                   dst: DataSetMetaTypes.DataSetMetaType): Boolean = dst match {
     case DataSetMetaTypes.Subread => {
       val ds = DataSetLoader.loadSubreadSet(inPath)
-      val extRes = ds.getExternalResources
-      if (extRes == null) false
-      else {
-        (extRes.getExternalResource.asScala
-          .filter(_ != null)
-          .map { x =>
-            val extRes2 = x.getExternalResources
-            if (extRes2 == null) false
-            else {
-              extRes2.getExternalResource.asScala
-                .filter(_ != null)
-                .map { x2 =>
-                  x2.getMetaType == FileTypes.STS_XML.fileTypeId
-                }
-                .exists(_ == true)
-            }
-          })
-          .toList
-          .exists(_ == true)
-      }
+      DataSetMetadataUtils
+        .getAllExternalResources(ds.getExternalResources)
+        .exists(_.getMetaType == FileTypes.STS_XML.fileTypeId)
     }
     case _ => false
   }
