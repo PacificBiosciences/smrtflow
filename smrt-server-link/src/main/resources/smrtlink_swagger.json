@@ -68,8 +68,9 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/user": {
+    "/smrt-link/user": {
       "get": {
+        "description": "From the header JWT, convert to a UserRecord",
         "produces": [
           "application/json"
         ],
@@ -88,7 +89,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/services/manifests": {
+    "/smrt-link/manifests": {
       "get": {
         "description": "Returns a list of all installed components with version information",
         "produces": [
@@ -109,7 +110,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/services/manifests/{resourceId}": {
+    "/smrt-link/manifests/{resourceId}": {
       "get": {
         "description": "Returns an object describing a specific installed component",
         "produces": [
@@ -139,7 +140,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/files/*": {
+    "/smrt-link/files/*": {
       "get": {
         "description": "Return a list of files in specified server path",
         "x-scope": "data-management",
@@ -161,7 +162,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/files-diskspace/*": {
+    "/smrt-link/files-diskspace/*": {
       "get": {
         "x-scope": "data-management",
         "produces": [
@@ -179,7 +180,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/disk-space": {
+    "/smrt-link/disk-space": {
       "get": {
         "description": "Retrieve information about available disk space",
         "produces": [
@@ -200,7 +201,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/disk-space/{resourceId}": {
+    "/smrt-link/disk-space/{resourceId}": {
       "get": {
         "description": "Retrieve information about available disk space for specified resource",
         "produces": [
@@ -229,7 +230,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/eula": {
+    "/smrt-link/eula": {
       "post": {
         "description": "Record user acceptance of tech support agreement",
         "responses": {
@@ -285,7 +286,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/eula/{version}": {
+    "/smrt-link/eula/{version}": {
       "get": {
         "description": "Retrieve user agreement acceptance record for specified version",
         "x-scope": "analysis",
@@ -1229,7 +1230,7 @@
       }
     },
 
-    "/secondary-analysis/dataset-types": {
+    "/smrt-link/dataset-types": {
       "get": {
         "description": "Get a Summary of each DataSet MetaType. Each model will have the 'short' name of the DataSet MetaType that is accessible at datasets/{ds-metatype}",
         "x-scope": "data-management",
@@ -1251,7 +1252,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/datasets/{typeOrId}": {
+    "/smrt-link/datasets/{typeOrId}": {
       "get": {
         "description": "Either the DataSet Metatype (e.g, subreads to return a list of Datasets by metadata type) or Int or UUID for DataSet to get a DataSet Service MetaData for the requested dataset.",
         "responses": {
@@ -1320,7 +1321,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/dataset-types/{type}": {
+    "/smrt-link/dataset-types/{type}": {
       "get": {
         "description": "Get DataSet Meta Type",
         "responses": {
@@ -1350,7 +1351,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
+    "/smrt-link/datasets/{type}/{dataset-id}/details": {
       "get": {
         "description": "Returns JSON converted from the DataSet XML. See the PacBio DataSet XSDs for details",
         "responses": {
@@ -1383,7 +1384,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/alignments/{dataset-id}": {
+    "/smrt-link/datasets/alignments/{dataset-id}": {
       "get": {
         "description": "Get the Service AlignmentSet Metadata",
         "responses": {
@@ -1413,7 +1414,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
+    "/smrt-link/datasets/hdfsubreads/{dataset-id}": {
       "get": {
         "description": "Get the Service HdfSubreadSet Metadata",
         "responses": {
@@ -1443,7 +1444,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/subreads/{dataset-id}": {
+    "/smrt-link/datasets/subreads/{dataset-id}": {
       "get": {
         "description": "Get the Service SubreadSet Metadata",
         "responses": {
@@ -1473,7 +1474,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
+    "/smrt-link/datasets/barcodes/{dataset-id}": {
       "get": {
         "description": "Get the Service BarcodeSet Metadata",
         "responses": {
@@ -1503,7 +1504,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/barcodes/{dataset-id}/record-names": {
+    "/smrt-link/datasets/barcodes/{dataset-id}/record-names": {
       "get": {
         "description": "Get a list of Barcode Id/Names from the BarcodeSet external resources",
         "responses": {
@@ -1536,7 +1537,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
+    "/smrt-link/datasets/ccsalignments/{dataset-id}": {
       "get": {
         "description": "Get the Service ConsensusAlignmentSet Metadata",
         "responses": {
@@ -1566,7 +1567,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/contigs/{dataset-id}": {
+    "/smrt-link/datasets/contigs/{dataset-id}": {
       "get": {
         "description": "Get the Service ContigSet Metadata",
         "responses": {
@@ -1596,7 +1597,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
+    "/smrt-link/datasets/ccsreads/{dataset-id}": {
       "get": {
         "description": "Get the Service CCS ReadSet Metadata",
         "responses": {
@@ -1626,7 +1627,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/references/{dataset-id}": {
+    "/smrt-link/datasets/references/{dataset-id}": {
       "get": {
         "description": "Get the Service ReferenceSet Metadata",
         "responses": {
@@ -1656,7 +1657,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
+    "/smrt-link/datasets/gmapreferences/{dataset-id}": {
       "get": {
         "description": "Get the Service GmapReferenceSet Metadata",
         "responses": {
@@ -1686,7 +1687,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
+    "/smrt-link/datasets/{type}/{dataset-id}/reports": {
       "get": {
         "description": "Get the reports associated with a PacBio DataSet. These will often contain num records, total length and filter stats. The reports generated are dependent on the DataSet MetaType (e.g., SubreadSet)",
         "responses": {
@@ -1722,7 +1723,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/projects": {
+    "/smrt-link/projects": {
       "post": {
         "description": "Create a Project",
         "parameters": [
@@ -1777,7 +1778,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/projects/{id}": {
+    "/smrt-link/projects/{id}": {
       "put": {
         "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
         "responses": {
@@ -1871,7 +1872,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates": {
+    "/smrt-link/resolved-pipeline-templates": {
       "get": {
         "description": "Get a list of Resolved Pipeline Templates registered to SMRT Link",
         "x-scope": "data-management",
@@ -1893,7 +1894,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
+    "/smrt-link/resolved-pipeline-templates/{template-id}": {
       "get": {
         "description": "Get a Resolved Pipeline Template by Ids",
         "responses": {
@@ -1923,7 +1924,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
+    "/smrt-link/resolved-pipeline-templates/{template-id}/presets": {
       "get": {
         "description": "Get a List of Presets for a specific Resolved Pipeline Template",
         "responses": {
@@ -1950,7 +1951,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/pipeline-template-view-rules": {
+    "/smrt-link/pipeline-template-view-rules": {
       "get": {
         "description": "Return a list of analysis option view rules specifications for individual pipelines",
         "x-scope": "data-management",
@@ -1972,7 +1973,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
+    "/smrt-link/pipeline-template-view-rules/{rule-id}": {
       "get": {
         "description": "Get a Pipeline Template View Rule by id",
         "responses": {
@@ -2002,7 +2003,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/report-view-rules": {
+    "/smrt-link/report-view-rules": {
       "get": {
         "description": "Report View Rules that override the default view rule for report by type id",
         "x-scope": "data-management",
@@ -2021,7 +2022,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/report-view-rules/{rule-id}": {
+    "/smrt-link/report-view-rules/{rule-id}": {
       "get": {
         "description": "Retrieve report view rules for a specific report ID",
         "responses": {
@@ -2048,7 +2049,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/pipeline-datastore-view-rules": {
+    "/smrt-link/pipeline-datastore-view-rules": {
       "get": {
         "description": "Get a list of pipeline datastore view rule definitions",
         "x-scope": "data-management",
@@ -2070,7 +2071,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/pipeline-datastore-view-rules/{pipelineId}": {
+    "/smrt-link/pipeline-datastore-view-rules/{pipelineId}": {
       "get": {
         "description": "Get a datastore view rule definitions for a specific pipeline (with optional version)",
         "x-scope": "data-management",
@@ -2108,7 +2109,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/job-types": {
+    "/smrt-link/job-manager/job-types": {
       "get": {
         "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
         "x-scope": "data-management",
@@ -2130,7 +2131,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/pbsmrtpipe": {
+    "/smrt-link/job-manager/jobs/pbsmrtpipe": {
       "post": {
         "description": "Start a pbsmrtpipe job using one or more dataset entry points",
         "responses": {
@@ -2166,7 +2167,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-dataset": {
+    "/smrt-link/job-manager/jobs/import-dataset": {
       "post": {
         "description": "Import a PacBio DataSet XML and generate associated reports",
         "responses": {
@@ -2202,7 +2203,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-fasta-reference": {
+    "/smrt-link/job-manager/jobs/convert-fasta-reference": {
       "post": {
         "description": "Generate a PacBio ReferenceSet XML (including required index files) from a FASTA file",
         "responses": {
@@ -2238,7 +2239,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-fasta-gmapreference": {
+    "/smrt-link/job-manager/jobs/convert-fasta-gmapreference": {
       "post": {
         "description": "Generate a PacBio GmapReferenceSet XML (including required index files) from a FASTA file",
         "responses": {
@@ -2274,7 +2275,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-fasta-barcodes": {
+    "/smrt-link/job-manager/jobs/convert-fasta-barcodes": {
       "post": {
         "description": "Generate a PacBio BarcodeSet XML from a FASTA file",
         "responses": {
@@ -2310,7 +2311,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-rs-movie": {
+    "/smrt-link/job-manager/jobs/convert-rs-movie": {
       "post": {
         "description": "Convert RS II movie metadata XML to an HdfSubreadSet suitable for pbsmrtpipe input",
         "responses": {
@@ -2346,7 +2347,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/merge-datasets": {
+    "/smrt-link/job-manager/jobs/merge-datasets": {
       "post": {
         "description": "Combine two or more SubreadSets (or HdfSubreadSets) into a single dataset",
         "responses": {
@@ -2382,7 +2383,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/export-datasets": {
+    "/smrt-link/job-manager/jobs/export-datasets": {
       "post": {
         "description": "Create a ZIP file containing the contents of one or more datasets, including external resource files",
         "responses": {
@@ -2418,7 +2419,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/export-jobs": {
+    "/smrt-link/job-manager/jobs/export-jobs": {
       "post": {
         "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs.  These will be listed individually in the job datastore with sourceId 'pbscala::export-jobs' and fileTypeId 'PacBio.FileTypes.zip'.",
         "responses": {
@@ -2454,7 +2455,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-job": {
+    "/smrt-link/job-manager/jobs/import-job": {
       "post": {
         "description": "Import a SMRT Link job from a ZIP file previously generated by the export-jobs service",
         "responses": {
@@ -2490,7 +2491,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/delete-datasets": {
+    "/smrt-link/job-manager/jobs/delete-datasets": {
       "post": {
         "description": "Remove a dataset from the database and delete external resource files",
         "responses": {
@@ -2526,7 +2527,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/delete-job": {
+    "/smrt-link/job-manager/jobs/delete-job": {
       "post": {
         "description": "Remove a job from the database and delete output directory contents",
         "responses": {
@@ -2562,7 +2563,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-datastore": {
+    "/smrt-link/job-manager/jobs/import-datastore": {
       "post": {
         "description": "Import all files in a datastore JSON",
         "responses": {
@@ -2598,7 +2599,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/tech-support-job": {
+    "/smrt-link/job-manager/jobs/tech-support-job": {
       "post": {
         "description": "Send a request to PacBio Tech Support for assistance with a failed job (request will include job details and log files)",
         "responses": {
@@ -2634,7 +2635,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/tech-support-status": {
+    "/smrt-link/job-manager/jobs/tech-support-status": {
       "post": {
         "description": "Send a summary of SMRT Link system status to PacBio Tech Support",
         "responses": {
@@ -2670,7 +2671,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/db-backup": {
+    "/smrt-link/job-manager/jobs/db-backup": {
       "post": {
         "description": "Save a local backup copy of the SMRT Link Postgres database",
         "responses": {
@@ -2706,7 +2707,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}": {
+    "/smrt-link/job-manager/jobs/{type}": {
       "get": {
         "description": "Return a list of jobs of the specified type",
         "responses": {
@@ -2749,7 +2750,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
       "get": {
         "description": "Download the job datastore file with the given UUID",
         "x-scope": "data-management",
@@ -2785,7 +2786,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore": {
       "get": {
         "description": "Get the PacBio DataStore associated with a specific Job by Job Id or UUID",
         "responses": {
@@ -2822,7 +2823,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
       "get": {
         "description": "Get a Service DataStore File by DataStoreFile UUID",
         "responses": {
@@ -2864,7 +2865,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/events": {
       "get": {
         "description": "Get a list of Events associated with a specific Job",
         "responses": {
@@ -2900,7 +2901,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/tasks": {
       "post": {
         "description": "Add a task for the specified job",
         "parameters": [
@@ -2983,7 +2984,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
       "put": {
         "description": "Update the state of Job subtask",
         "responses": {
@@ -3080,7 +3081,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/options": {
       "get": {
         "description": "Get the options used to created the Job. The returned model will depend on job-type",
         "responses": {
@@ -3113,7 +3114,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/children": {
       "get": {
         "description": "Get a list of Children jobs of this parent job",
         "x-scope": "data-management",
@@ -3152,7 +3153,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports": {
       "get": {
         "description": "Get a list of ServiceReport files generated from a job",
         "responses": {
@@ -3188,7 +3189,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
       "get": {
         "description": "Get a PacBio Report by UUID from a SMRT Link Job. If the Job type or job id doesn't exist, a 404 will be returned",
         "responses": {
@@ -3227,7 +3228,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}/resources": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports/{uuid}/resources": {
       "get": {
         "description": "Get a Report resource (png) using the (relative path) file name of the resource",
         "responses": {
@@ -3272,7 +3273,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}": {
       "get": {
         "description": "Get a job by Integer ID or UUID",
         "responses": {
@@ -3318,7 +3319,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
+    "/smrt-link/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
       "post": {
         "description": "Terminate a running pbsmrtpipe analysis job",
         "responses": {
@@ -3349,7 +3350,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/entry-points": {
       "get": {
         "description": "Get the DataSet Entry Points used as inputs to the Job (if any were provided)",
         "responses": {
@@ -3385,7 +3386,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis": {
       "get": {
         "description": "Returns a list of EngineMultiJobs for the `multi-analysis` Multi-Job type.",
         "x-scope": "data-management",
@@ -3441,7 +3442,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis/{job-id}": {
       "get": {
         "description": "Get a EngineMultiJob for the `multi-analysis` Multi-Job type by job Id",
         "x-scope": "data-management",
@@ -3527,7 +3528,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
       "get": {
         "description": "Get the Child Core Jobs that are generated from the Multi-Job",
         "x-scope": "data-management",
@@ -3559,7 +3560,7 @@
     },
 
 
-    "/secondary-analysis/datastore-files/{uuid}/download": {
+    "/smrt-link/datastore-files/{uuid}/download": {
       "get": {
         "description": "Download the datastore file with the specified UUID",
         "x-scope": "data-management",
@@ -3583,7 +3584,7 @@
         "x-auth-type": "None"
       }
     },
-    "/secondary-analysis/datastore-files/{uuid}/resources": {
+    "/smrt-link/datastore-files/{uuid}/resources": {
       "get": {
         "description": "Retrieve a resource associated with a datastore file (e.g. images accompanying reports) by relative path",
         "x-scope": "data-management",
