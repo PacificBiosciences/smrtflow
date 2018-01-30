@@ -16,7 +16,6 @@ trait ServiceJobTypeJsonProtocols
   // put these here for now
   implicit val helloWorldJobOptionJsonFormat = jsonFormat4(
     HelloWorldJobOptions)
-  implicit val dbBackUpJobOptionJsonFormat = jsonFormat5(DbBackUpJobOptions)
   implicit val deleteDataSetobOptionJsonFormat = jsonFormat6(
     DeleteDataSetJobOptions)
 
@@ -61,6 +60,7 @@ trait ServiceJobTypeJsonProtocols
   implicit val multiAnalysisJobOptionsFormat = jsonFormat5(
     MultiAnalysisJobOptions)
 
+  implicit val dbBackUpJobOptionsFormat = jsonFormat5(DbBackUpJobOptions)
 }
 
 object ServiceJobTypeJsonProtocols extends ServiceJobTypeJsonProtocols
