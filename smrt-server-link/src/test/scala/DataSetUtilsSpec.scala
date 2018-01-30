@@ -2,13 +2,16 @@ import java.nio.file.{Files, Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetadataUtils,
   DataSetUpdateUtils
+}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  ExternalResource,
+  ExternalResources
 }
 //import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
@@ -27,6 +30,9 @@ class DataSetUtilsSpec
       getWellSample(ds).toOption.get.getName === "Well Sample 1"
       ds = getSubreads("/dataset-subreads/merged.dataset.xml")
       getWellSample(ds).failed.get.getMessage === "multiple well sample records are present"
+      val exs =
+        DataSetUpdateUtils.getAllExternalResources(ds.getExternalResources)
+      exs.length === 2
     }
     "Get and set biological sample names" in {
       val updateMsg = Some("Set 1 BioSample tag name(s) to foo")
@@ -158,6 +164,23 @@ class DataSetUtilsSpec
                                          Some("bar"),
                                          resolvePaths = false) === Some(
         "Error(s) occurred applying metadata updates: Multiple unique BioSample names already present")
+    }
+  }
+
+  "DataSet Utils Spec" should {
+    "Get All External Resources from empty resources" in {
+      val e1 = new ExternalResources()
+      DataSetUpdateUtils.getAllExternalResources(e1).isEmpty must beTrue
+    }
+    "Get External resources from null" in {
+      val e1: ExternalResources = null
+      DataSetUpdateUtils.getAllExternalResources(e1).isEmpty must beTrue
+    }
+    "Get External Resources from 1 ex" in {
+      val e1 = new ExternalResource()
+      val ex = new ExternalResources()
+      ex.getExternalResource.add(e1)
+      DataSetUpdateUtils.getAllExternalResources(ex).length === 1
     }
   }
 }

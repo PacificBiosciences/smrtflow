@@ -2,22 +2,27 @@ package com.pacbio.secondary.smrtlink.analysis.datasets
 
 import java.nio.file.Path
 
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
-
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
-import com.pacificbiosciences.pacbiocollectionmetadata.{
-  CollectionMetadata => XsdMetadata,
-  WellSample
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  BaseEntityType,
+  DNABarcode,
+  ExternalResource,
+  ExternalResources
 }
-import com.pacificbiosciences.pacbiosampleinfo.{BioSamples, BioSampleType}
+import com.pacificbiosciences.pacbiocollectionmetadata.{
+  WellSample,
+  CollectionMetadata => XsdMetadata
+}
+import com.pacificbiosciences.pacbiosampleinfo.{BioSampleType, BioSamples}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,
   DataSetWriter
 }
+
+import collection.JavaConverters._
 
 /**
   * Utilities for accessing and manipulating dataset metadata items,
@@ -27,6 +32,25 @@ trait DataSetMetadataUtils extends LazyLogging {
 
   val UNKNOWN = "unknown"
   val MULTIPLE_SAMPLES_NAME = "[multiple]"
+
+  /**
+    * Recurrsively return a flattened list of ExternalResource instances
+    *
+    * This will also handle null of ExternalResource entities.
+    *
+    * @param exs ExternalResources (can be Null)
+    */
+  def getAllExternalResources(exs: ExternalResources): Seq[ExternalResource] = {
+    Option(exs) match {
+      case Some(xs) =>
+        xs.getExternalResource.asScala.toList.flatMap { e =>
+          Option(e)
+            .map(i => Seq(i))
+            .getOrElse(Nil) ++ getAllExternalResources(e.getExternalResources)
+        }
+      case _ => Nil
+    }
+  }
 
   protected def getCollectionsMetadata(ds: ReadSetType): Seq[XsdMetadata] =
     Try {
@@ -203,6 +227,8 @@ trait DataSetMetadataUtils extends LazyLogging {
     }
   }
 }
+
+object DataSetMetadataUtils extends DataSetMetadataUtils
 
 /**
   * Convenience methods for applying metadata fields from the SMRT Link
