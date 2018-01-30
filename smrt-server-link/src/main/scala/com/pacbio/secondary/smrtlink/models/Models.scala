@@ -1103,11 +1103,6 @@ case class JobEventRecord(state: String, message: String)
 
 case class ReportViewRule(id: String, rules: JsObject)
 
-case class DataSetExportServiceOptions(datasetType: String,
-                                       ids: Seq[Int],
-                                       outputPath: String,
-                                       deleteAfterExport: Option[Boolean] =
-                                         Some(false))
 case class DataSetDeleteServiceOptions(datasetType: String,
                                        ids: Seq[Int],
                                        removeFiles: Boolean = true)

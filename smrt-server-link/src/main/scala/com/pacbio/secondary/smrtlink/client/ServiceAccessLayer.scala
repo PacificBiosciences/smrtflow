@@ -585,15 +585,15 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
            RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
-                     ids: Seq[Int],
+                     ids: Seq[IdAble],
                      outputPath: Path,
                      deleteAfterExport: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
       Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-           DataSetExportServiceOptions(datasetType.toString,
-                                       ids,
-                                       toP(outputPath),
-                                       Some(deleteAfterExport))))
+           ExportDataSetsJobOptions(datasetType,
+                                    ids,
+                                    outputPath.toAbsolutePath,
+                                    Some(deleteAfterExport))))
 
   def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
