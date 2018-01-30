@@ -20,6 +20,7 @@ import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.common.models.CommonModels
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -67,6 +68,7 @@ class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
   override val requirements = Seq("SL-1303")
   override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
+  import CommonModels._
   import CommonModelImplicits._
 
   val MSG_DS_ERR = "DataSet database should be initially empty"

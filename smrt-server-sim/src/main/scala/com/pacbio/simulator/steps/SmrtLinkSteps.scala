@@ -446,7 +446,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     override def runWith =
       smrtLinkClient
         .exportDataSets(dsType.get,
-                        ids.get,
+                        ids.get.map(IntIdAble),
                         outputPath.get,
                         deleteAfterExport.get)
         .map(_.uuid)

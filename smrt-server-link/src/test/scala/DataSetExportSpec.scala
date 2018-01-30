@@ -15,7 +15,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateSubreadSet
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
@@ -132,20 +131,6 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val dsType = DataSetMetaTypes.Reference
       val n = ExportDataSets(datasets, dsType, zipPath)
       n must beGreaterThan(0L)
-    }
-    "Run via jobs API" in {
-      val url = getClass.getResource(ds)
-      val datasets = Seq(Paths.get(url.getPath))
-      val zipPath = Files.createTempFile("referencesets", ".zip")
-      val outputDir = Files.createTempDirectory("export-job-test")
-      val dsType = DataSetMetaTypes.Reference
-      val opts = ExportDataSetsOptions(dsType, datasets, zipPath)
-      val job = JobResource(UUID.randomUUID, outputDir)
-      val j = opts.toJob
-      val jobResult = j.run(job, writer)
-      jobResult.isRight must beTrue
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      datastore.files(0).fileTypeId must beEqualTo(FileTypes.ZIP.fileTypeId)
     }
     "Failure mode: resource does not exist" in {
       val startPath = Paths.get(getClass.getResource(ds).getPath)
