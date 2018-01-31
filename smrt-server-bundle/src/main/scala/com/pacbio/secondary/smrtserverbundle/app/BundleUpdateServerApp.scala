@@ -15,17 +15,33 @@ import com.pacbio.secondary.smrtlink.time.SystemClock
 import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
-import com.pacbio.secondary.smrtlink.actors.{DaoFutureUtils, EventManagerActor, PacBioBundleDaoActor, PacBioDataBundlePollExternalActor, PacBioBundleDao => LegacyPacBioBundleDao}
+import com.pacbio.secondary.smrtlink.actors.{
+  DaoFutureUtils,
+  EventManagerActor,
+  PacBioBundleDaoActor,
+  PacBioDataBundlePollExternalActor,
+  PacBioBundleDao => LegacyPacBioBundleDao
+}
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.app.{ActorSystemCakeProvider, BaseServiceConfigCakeProvider}
+import com.pacbio.secondary.smrtlink.app.{
+  ActorSystemCakeProvider,
+  BaseServiceConfigCakeProvider,
+  ServiceLoggingUtils
+}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
-import com.pacbio.secondary.smrtlink.models.{PacBioComponentManifest, PacBioDataBundleIO}
+import com.pacbio.secondary.smrtlink.models.{
+  PacBioComponentManifest,
+  PacBioDataBundleIO
+}
 import com.pacbio.secondary.smrtserverbundle.dao.BundleUpdateDao
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.HttpHeader
-import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.settings.RoutingSettings
@@ -161,7 +177,7 @@ class BundleUpdateService(dao: BundleUpdateDao)(
                 val params: Map[String, String] = Map("filename" -> fileName)
                 val customHeader: HttpHeader =
                   `Content-Disposition`(ContentDispositionTypes.attachment,
-                    params)
+                                        params)
 
                 respondWithHeader(customHeader) {
                   getFromFile(b.tarGzPath.toFile)
@@ -303,7 +319,10 @@ trait RootPacBioDataBundleServerCakeProvider extends RouteConcatenation {
   lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
 }
 
-trait PacBioDataBundleServerCakeProvider extends LazyLogging with timeUtils {
+trait PacBioDataBundleServerCakeProvider
+    extends LazyLogging
+    with timeUtils
+    with ServiceLoggingUtils {
   this: RootPacBioDataBundleServerCakeProvider
     with PacBioDataBundleConfigCakeProvider
     with ActorSystemCakeProvider =>
@@ -312,8 +331,9 @@ trait PacBioDataBundleServerCakeProvider extends LazyLogging with timeUtils {
 
   //FIXME(mpkocher)(2017-4-11) Add validation on startup. Add explicit unbind call
   def startServices(): Future[String] =
-    Http().bindAndHandle(allRoutes, systemHost, systemPort)
-      .map(_  => "Successfully Started Services")
+    Http()
+      .bindAndHandle(logResponseTimeRoutes(allRoutes), systemHost, systemPort)
+      .map(_ => "Successfully Started Services")
 
 }
 
