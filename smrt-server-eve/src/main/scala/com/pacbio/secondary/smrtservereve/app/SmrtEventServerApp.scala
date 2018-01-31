@@ -52,7 +52,8 @@ import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.app.{
   ActorSystemCakeProvider,
-  BaseServiceConfigCakeProvider
+  BaseServiceConfigCakeProvider,
+  ServiceLoggingUtils
 }
 import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
@@ -426,7 +427,8 @@ trait EventServerCakeProvider
     extends LazyLogging
     with timeUtils
     with EveFileUtils
-    with PacBioServiceErrors {
+    with PacBioServiceErrors
+    with ServiceLoggingUtils {
   this: RootEventServerCakeProvider
     with EventServiceConfigCakeProvider
     with ActorSystemCakeProvider =>
@@ -462,7 +464,9 @@ trait EventServerCakeProvider
 
   private def startServices(): Future[String] = {
     Http()
-      .bindAndHandle(allRoutes, systemHost, port = systemPort)
+      .bindAndHandle(logResponseTimeRoutes(allRoutes),
+                     systemHost,
+                     port = systemPort)
       .map(_ => s"Successfully started up on $systemHost:$systemPort")
   }
 
