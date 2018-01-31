@@ -193,7 +193,11 @@ class EventFileWriterProcessor(rootDir: Path)
     e
   }
 
-  def process(event: SmrtLinkSystemEvent) = Future { writeEvent(event) }
+  def process(event: SmrtLinkSystemEvent) = Future {
+    blocking {
+      writeEvent(event)
+    }
+  }
 }
 
 trait EventServiceBaseMicroService extends PacBioService {
@@ -241,7 +245,7 @@ class EventService(eventProcessor: EventProcessor,
   logger.info(s"Creating Service with Event Processor ${eventProcessor.name}")
 
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
-    case Some(value) => Future { value }
+    case Some(value) => Future.successful(value)
     case _ => Future.failed(UnprocessableEntityError(message))
   }
 
