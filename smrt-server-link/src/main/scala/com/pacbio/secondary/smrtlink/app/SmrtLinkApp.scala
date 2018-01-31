@@ -186,7 +186,8 @@ trait SmrtLinkApi
     extends OSUtils
     with PacBioServiceErrors
     with LazyLogging
-    with DatabaseUtils {
+    with DatabaseUtils
+    with ServiceLoggingUtils {
 
   lazy val providers = new SmrtLinkProviders {}
 
@@ -273,40 +274,13 @@ trait SmrtLinkApi
            .summary()}""".stripMargin
   }
 
-  def akkaResponseTimeLoggingFunction(loggingAdapter: LoggingAdapter,
-                                      requestTimestamp: Long,
-                                      level: LogLevel = Logging.InfoLevel)(
-      req: HttpRequest)(res: RouteResult): Unit = {
-    val entry = res match {
-      case Complete(resp) =>
-        val responseTimestamp: Long = System.nanoTime
-        val elapsedTime
-          : Long = (responseTimestamp - requestTimestamp) / 1000000
-        val loggingString =
-          s"""Logged Request:${req.method.value}:${req.uri}:${resp.status}:$elapsedTime ms"""
-        LogEntry(loggingString, level)
-      case Rejected(reason) =>
-        LogEntry(s"Rejected Reason: ${reason.mkString(",")}", level)
-    }
-    entry.logTo(loggingAdapter)
-  }
-
-  def logResponseTime(log: LoggingAdapter) = {
-    val requestTimestamp = System.nanoTime
-    akkaResponseTimeLoggingFunction(log, requestTimestamp)(_)
-  }
-
-  val logResponseTimeRoutes =
-    DebuggingDirectives.logRequestResult(LoggingMagnet(logResponseTime))(
-      routes)
-
   //val routesLogged = DebuggingDirectives.logRequestResult("System", Logging.InfoLevel)(routes)
 
   /**
     * Fundamental Starting up of the WebServices
     */
   private def start(host: String, port: Int): Future[ServerBinding] =
-    Http().bindAndHandle(logResponseTimeRoutes, host, port)
+    Http().bindAndHandle(logResponseTimeRoutes(routes), host, port)
 
   /**
     * Fundamental Post Startup hook

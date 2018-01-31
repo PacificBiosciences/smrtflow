@@ -1,6 +1,16 @@
 package com.pacbio.secondary.smrtlink
 
 import akka.actor.ActorSystem
+import akka.event.{Logging, LoggingAdapter}
+import akka.event.Logging.LogLevel
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.server.{Route, RouteResult}
+import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
+import akka.http.scaladsl.server.directives.{
+  DebuggingDirectives,
+  LogEntry,
+  LoggingMagnet
+}
 import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
@@ -30,6 +40,42 @@ package object app {
   trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
     implicit lazy val actorSystem = ActorSystem(systemName)
     implicit lazy val materializer = ActorMaterializer()
+  }
+
+  trait ServiceLoggingUtils {
+    private def akkaResponseTimeLoggingFunction(
+        loggingAdapter: LoggingAdapter,
+        requestTimestamp: Long,
+        level: LogLevel = Logging.InfoLevel)(req: HttpRequest)(
+        res: RouteResult): Unit = {
+      val entry = res match {
+        case Complete(resp) =>
+          val responseTimestamp: Long = System.nanoTime
+          val elapsedTime
+            : Long = (responseTimestamp - requestTimestamp) / 1000000
+          val loggingString =
+            s"""Logged Request:${req.method.value}:${req.uri}:${resp.status}:$elapsedTime ms"""
+          LogEntry(loggingString, level)
+        case Rejected(reason) =>
+          LogEntry(s"Rejected Reason: ${reason.mkString(",")}", level)
+      }
+      entry.logTo(loggingAdapter)
+    }
+
+    private def logResponseTime(log: LoggingAdapter) = {
+      val requestTimestamp = System.nanoTime
+      akkaResponseTimeLoggingFunction(log, requestTimestamp)(_)
+    }
+
+    /**
+      * Wrap the routes with the logging of the Response Time
+      *
+      * @param routes original routes
+      * @return
+      */
+    def logResponseTimeRoutes(routes: Route) =
+      DebuggingDirectives.logRequestResult(LoggingMagnet(logResponseTime))(
+        routes)
   }
 
 }

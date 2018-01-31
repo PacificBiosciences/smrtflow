@@ -52,7 +52,8 @@ import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.common.logging.LoggerOptions
 import com.pacbio.secondary.smrtlink.app.{
   ActorSystemCakeProvider,
-  BaseServiceConfigCakeProvider
+  BaseServiceConfigCakeProvider,
+  ServiceLoggingUtils
 }
 import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
@@ -192,7 +193,11 @@ class EventFileWriterProcessor(rootDir: Path)
     e
   }
 
-  def process(event: SmrtLinkSystemEvent) = Future { writeEvent(event) }
+  def process(event: SmrtLinkSystemEvent) = Future {
+    blocking {
+      writeEvent(event)
+    }
+  }
 }
 
 trait EventServiceBaseMicroService extends PacBioService {
@@ -240,7 +245,7 @@ class EventService(eventProcessor: EventProcessor,
   logger.info(s"Creating Service with Event Processor ${eventProcessor.name}")
 
   def failIfNone[T](message: String): (Option[T] => Future[T]) = {
-    case Some(value) => Future { value }
+    case Some(value) => Future.successful(value)
     case _ => Future.failed(UnprocessableEntityError(message))
   }
 
@@ -426,7 +431,8 @@ trait EventServerCakeProvider
     extends LazyLogging
     with timeUtils
     with EveFileUtils
-    with PacBioServiceErrors {
+    with PacBioServiceErrors
+    with ServiceLoggingUtils {
   this: RootEventServerCakeProvider
     with EventServiceConfigCakeProvider
     with ActorSystemCakeProvider =>
@@ -462,7 +468,9 @@ trait EventServerCakeProvider
 
   private def startServices(): Future[String] = {
     Http()
-      .bindAndHandle(allRoutes, systemHost, port = systemPort)
+      .bindAndHandle(logResponseTimeRoutes(allRoutes),
+                     systemHost,
+                     port = systemPort)
       .map(_ => s"Successfully started up on $systemHost:$systemPort")
   }
 
