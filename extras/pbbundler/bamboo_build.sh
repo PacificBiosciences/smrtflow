@@ -55,7 +55,9 @@ source /mnt/software/Modules/current/init/bash
 
 module load jdk/1.8.0_144
 module load sbt
-module load nodejs/4.1.2
+
+# Load the correct Node version for this build
+source "${UI_ROOT}/apps/smrt-link/build/include_modules.sh"
 
 echo "Running java version $(java -version)"
 echo "Running sbt $(which sbt)"
