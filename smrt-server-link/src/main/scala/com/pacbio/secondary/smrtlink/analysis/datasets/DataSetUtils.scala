@@ -4,13 +4,17 @@ import java.nio.file.Path
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
+import scala.collection.immutable.TreeSet
 import com.typesafe.scalalogging.LazyLogging
+
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacificbiosciences.pacbiodatasets.{DataSetType => XsdDataSetType}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   BaseEntityType,
   DNABarcode,
   ExternalResource,
-  ExternalResources
+  ExternalResources,
+  FilterType
 }
 import com.pacificbiosciences.pacbiocollectionmetadata.{
   WellSample,
@@ -318,4 +322,99 @@ object DataSetUpdateUtils extends DataSetMetadataUtils {
     val ds = DataSetLoader.loadSubreadSet(dsFile)
     applyMetadataUpdates(ds, bioSampleName, wellSampleName)
   }
+}
+
+trait DataSetFilterUtils {
+  // extracted from pbcore
+  private val VALID_OPS = TreeSet("==",
+                                  "=",
+                                  "eq",
+                                  "!=",
+                                  "ne",
+                                  ">=",
+                                  "&gt;=",
+                                  "gte",
+                                  "<=",
+                                  "&lt;=",
+                                  "lte",
+                                  ">",
+                                  "&gt;",
+                                  "gt",
+                                  "<",
+                                  "&lt;",
+                                  "lt",
+                                  "in",
+                                  "not_in",
+                                  "&",
+                                  "~")
+
+  private val VALID_NAMES = TreeSet(
+    "rname",
+    "length",
+    "qstart",
+    "qend",
+    "qname",
+    "qid",
+    "movie",
+    "zm",
+    "bc",
+    "bcr",
+    "bcf",
+    "bcq",
+    "bq",
+    "qs",
+    "rq",
+    "pos",
+    "tstart",
+    "tend",
+    "accuracy",
+    "readstart",
+    "cx",
+    "n_subreads",
+    "mapqv"
+  )
+
+  private def toOpsList = "'" ++ VALID_OPS.mkString("', '") ++ "'"
+  private def toNamesList = "'" ++ VALID_NAMES.mkString("', '") ++ "'"
+
+  def clearFilters(ds: XsdDataSetType): XsdDataSetType.Filters = {
+    val f = new XsdDataSetType.Filters()
+    ds.setFilters(f)
+    f
+  }
+
+  def addFilter(ds: XsdDataSetType,
+                name: String,
+                operator: String,
+                value: String) = {
+    if (!VALID_NAMES.contains(name)) {
+      throw new IllegalArgumentException(
+        s"'$name' is not a valid dataset filter criterion (allowed names: ${toNamesList})")
+    }
+    if (!VALID_OPS.contains(operator)) {
+      throw new IllegalArgumentException(
+        s"The operator '$operator' is not recognized (valid operators: ${toOpsList})")
+    }
+    val newFilter = new FilterType()
+    val newProps = new FilterType.Properties()
+    val prop = new FilterType.Properties.Property()
+    prop.setName(name)
+    prop.setOperator(operator)
+    prop.setValue(value)
+    newProps.getProperty.add(prop)
+    newFilter.setProperties(newProps)
+    Option(ds.getFilters)
+      .getOrElse(clearFilters(ds))
+      .getFilter
+      .add(newFilter)
+  }
+
+  def addFilter(ds: XsdDataSetType, rule: DataSetFilterRule): Unit =
+    addFilter(ds, rule.name, rule.operator, rule.value)
+
+  def addLengthFilter(ds: XsdDataSetType,
+                      value: Int,
+                      operator: String = ">=") =
+    addFilter(ds, "length", operator, value.toString)
+
 }

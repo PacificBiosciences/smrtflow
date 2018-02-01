@@ -1,13 +1,18 @@
 import java.nio.file.{Files, Path, Paths}
 
-import com.typesafe.scalalogging.LazyLogging
+import scala.util.Try
+
 import org.specs2.mutable.Specification
+import com.typesafe.scalalogging.LazyLogging
+
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetadataUtils,
-  DataSetUpdateUtils
+  DataSetUpdateUtils,
+  DataSetFilterUtils,
+  DataSetFilterRule
 }
 import com.pacificbiosciences.pacbiobasedatamodel.{
   ExternalResource,
@@ -18,6 +23,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 class DataSetUtilsSpec
     extends Specification
     with DataSetMetadataUtils
+    with DataSetFilterUtils
     with LazyLogging
     with PacBioTestUtils {
 
@@ -181,6 +187,24 @@ class DataSetUtilsSpec
       val ex = new ExternalResources()
       ex.getExternalResource.add(e1)
       DataSetUpdateUtils.getAllExternalResources(ex).length === 1
+    }
+  }
+
+  "DataSet Filter Spec" should {
+    "Add filters to dataset" in {
+      val dsFile =
+        getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      Option(ds.getFilters) must beNone
+      addFilter(ds, "bq", ">=", "0.26")
+      val rule = DataSetFilterRule("rq", ">=", "0.7")
+      addFilter(ds, rule)
+      addLengthFilter(ds, 1000)
+      Try { addFilter(ds, "bq", "!!!", "0.8") }.toOption must beNone
+      Try { addFilter(ds, "asdf", "==", "0.8") }.toOption must beNone
+      ds.getFilters.getFilter.size must beEqualTo(3)
+      clearFilters(ds)
+      ds.getFilters.getFilter.size must beEqualTo(0)
     }
   }
 }

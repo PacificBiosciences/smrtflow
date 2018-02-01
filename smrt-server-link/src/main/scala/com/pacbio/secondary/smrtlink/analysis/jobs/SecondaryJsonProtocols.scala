@@ -4,7 +4,10 @@ import java.net.{URI, URL}
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetFilterRule
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.common.models.{
@@ -477,6 +480,8 @@ trait JobTypeSettingProtocol
     TsSystemStatusManifest.apply)
   implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
   implicit val exportJobManifestFormat = jsonFormat3(ExportJobManifest)
+
+  implicit val dsFilterFormat = jsonFormat3(DataSetFilterRule)
 }
 
 trait SecondaryJobJsonProtocol extends JobTypeSettingProtocol

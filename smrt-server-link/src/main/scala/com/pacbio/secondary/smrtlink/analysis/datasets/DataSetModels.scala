@@ -156,6 +156,8 @@ case class DataSetMetaData(uuid: java.util.UUID,
 
 case class DatasetIndexFile(indexType: String, url: String)
 
+case class DataSetFilterRule(name: String, operator: String, value: String)
+
 trait DataSetMetaDataProtocol
     extends DefaultJsonProtocol
     with UUIDJsonProtocol {
