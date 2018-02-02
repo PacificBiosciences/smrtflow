@@ -191,10 +191,25 @@ class DataSetUtilsSpec
     }
   }
 
-  "DataSet Filter Spec" should {
-    "Add simple filters to dataset" in {
+  "DataSet Parent Spec" should {
+    "Set the parent dataset" in {
       val dsFile =
         getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      val ds2 = DataSetLoader.loadSubreadSet(dsFile)
+      setParent(ds2, ds)
+      val parent = ds2.getDataSetMetadata.getProvenance.getParentDataSet
+      parent.getUniqueId === ds.getUniqueId
+    }
+  }
+
+  "DataSet Filter Spec" should {
+    val dsFile =
+      getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
+    val filters = Seq(Seq(DataSetFilterProperty("bq", ">=", "0.26"),
+                          DataSetFilterProperty("rq", ">=", "0.7")),
+                      Seq(DataSetFilterProperty("length", ">=", "1000")))
+    "Add simple filters to dataset" in {
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       Option(ds.getFilters) must beNone
       addSimpleFilter(ds, "bq", ">=", "0.26")
@@ -208,13 +223,9 @@ class DataSetUtilsSpec
       ds.getFilters.getFilter.size must beEqualTo(0)
     }
     "Add multiple filters" in {
-      val dsFile =
-        getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
+      validateFilters(filters) must beSuccessfulTry
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       Option(ds.getFilters) must beNone
-      val filters = Seq(Seq(DataSetFilterProperty("bq", ">=", "0.26"),
-                            DataSetFilterProperty("rq", ">=", "0.7")),
-                        Seq(DataSetFilterProperty("length", ">=", "1000")))
       addFilters(ds, filters)
       val xsdFilters = ds.getFilters.getFilter.asScala.toList
       xsdFilters.size must beEqualTo(2)
@@ -226,6 +237,23 @@ class DataSetUtilsSpec
       ds.getFilters.getFilter.size must beEqualTo(2)
       clearFilters(ds)
       ds.getFilters.getFilter.size must beEqualTo(0)
+    }
+    "Write an updated XML file" in {
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      val dsOut = Files.createTempFile("updated", ".subreadset.xml")
+      var tx =
+        applyFilters(dsFile, dsOut, filters, Some("My filtered dataset"))
+      tx.toOption must beSome
+      val ds2 = DataSetLoader.loadSubreadSet(dsOut)
+      ds2.getName must beEqualTo("My filtered dataset")
+      ds2.getUniqueId !== ds.getUniqueId
+      ds2.getUniqueId === tx.toOption.get.getUniqueId
+      val parent = ds2.getDataSetMetadata.getProvenance.getParentDataSet
+      parent.getUniqueId === ds.getUniqueId
+      ds2.getFilters.getFilter.size must beEqualTo(2)
+      val badFilters = Seq(Seq(DataSetFilterProperty("bq", "!!!", "0.8")))
+      tx = applyFilters(dsFile, dsOut, badFilters, Some("My filtered dataset"))
+      tx.toOption must beNone
     }
   }
 }

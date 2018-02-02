@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
 import java.nio.file.Path
+import java.util.UUID
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
@@ -8,13 +9,18 @@ import scala.collection.immutable.TreeSet
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiodatasets.{DataSetType => XsdDataSetType}
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetType => XsdDataSetType,
+  DataSetMetadataType,
+  SubreadSet
+}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   BaseEntityType,
   DNABarcode,
   ExternalResource,
   ExternalResources,
-  FilterType
+  FilterType,
+  StrictEntityType
 }
 import com.pacificbiosciences.pacbiocollectionmetadata.{
   WellSample,
@@ -324,7 +330,21 @@ object DataSetUpdateUtils extends DataSetMetadataUtils {
   }
 }
 
-trait DataSetFilterUtils {
+// This doesn't really need to be its own trait but it is potentially useful
+// in other contexts than filter manipulation
+trait DataSetParentUtils {
+  protected def setParent(ds: ReadSetType, parent: ReadSetType) = {
+    val provenance = new DataSetMetadataType.Provenance()
+    val pds = new StrictEntityType()
+    pds.setMetaType(parent.getMetaType)
+    pds.setUniqueId(parent.getUniqueId)
+    pds.setTimeStampedName(parent.getTimeStampedName)
+    provenance.setParentDataSet(pds)
+    ds.getDataSetMetadata.setProvenance(provenance)
+  }
+}
+
+trait DataSetFilterUtils extends DataSetParentUtils {
   // extracted from pbcore
   private val VALID_OPS = TreeSet("==",
                                   "=",
@@ -463,4 +483,21 @@ trait DataSetFilterUtils {
                       operator: String = ">=") =
     addSimpleFilter(ds, "length", operator, value.toString)
 
+  /**
+    * Write a new SubreadSet XML file with filters applied
+    */
+  def applyFilters(dsFile: Path,
+                   outputFile: Path,
+                   filters: Seq[Seq[DataSetFilterProperty]],
+                   dsName: Option[String] = None): Try[SubreadSet] = {
+    validateFilters(filters).map { _ =>
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      addFilters(ds, filters)
+      ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
+      setParent(ds, ds) // the original dataset becomes the parent
+      ds.setUniqueId(UUID.randomUUID().toString)
+      DataSetWriter.writeSubreadSet(ds, outputFile)
+      ds
+    }
+  }
 }
