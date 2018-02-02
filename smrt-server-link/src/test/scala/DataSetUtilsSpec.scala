@@ -1,6 +1,7 @@
 import java.nio.file.{Files, Path, Paths}
 
 import scala.util.Try
+import scala.collection.JavaConverters._
 
 import org.specs2.mutable.Specification
 import com.typesafe.scalalogging.LazyLogging
@@ -12,7 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetadataUtils,
   DataSetUpdateUtils,
   DataSetFilterUtils,
-  DataSetFilterRule
+  DataSetFilterProperty
 }
 import com.pacificbiosciences.pacbiobasedatamodel.{
   ExternalResource,
@@ -191,18 +192,38 @@ class DataSetUtilsSpec
   }
 
   "DataSet Filter Spec" should {
-    "Add filters to dataset" in {
+    "Add simple filters to dataset" in {
       val dsFile =
         getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       Option(ds.getFilters) must beNone
-      addFilter(ds, "bq", ">=", "0.26")
-      val rule = DataSetFilterRule("rq", ">=", "0.7")
-      addFilter(ds, rule)
+      addSimpleFilter(ds, "bq", ">=", "0.26")
+      val rule = DataSetFilterProperty("rq", ">=", "0.7")
+      addSimpleFilter(ds, rule)
       addLengthFilter(ds, 1000)
-      Try { addFilter(ds, "bq", "!!!", "0.8") }.toOption must beNone
-      Try { addFilter(ds, "asdf", "==", "0.8") }.toOption must beNone
+      Try { addSimpleFilter(ds, "bq", "!!!", "0.8") }.toOption must beNone
+      Try { addSimpleFilter(ds, "asdf", "==", "0.8") }.toOption must beNone
       ds.getFilters.getFilter.size must beEqualTo(3)
+      clearFilters(ds)
+      ds.getFilters.getFilter.size must beEqualTo(0)
+    }
+    "Add multiple filters" in {
+      val dsFile =
+        getResourcePath("dataset-subreads/pooled_sample.subreadset.xml")
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      Option(ds.getFilters) must beNone
+      val filters = Seq(Seq(DataSetFilterProperty("bq", ">=", "0.26"),
+                            DataSetFilterProperty("rq", ">=", "0.7")),
+                        Seq(DataSetFilterProperty("length", ">=", "1000")))
+      addFilters(ds, filters)
+      val xsdFilters = ds.getFilters.getFilter.asScala.toList
+      xsdFilters.size must beEqualTo(2)
+      xsdFilters(0).getProperties.getProperty.size must beEqualTo(2)
+      xsdFilters(1).getProperties.getProperty.size must beEqualTo(1)
+      val badFilters = Seq(Seq(DataSetFilterProperty("bq", "!!!", "0.8")))
+      validateFilters(badFilters).toOption must beNone
+      Try { addFilters(ds, badFilters) }.toOption must beNone
+      ds.getFilters.getFilter.size must beEqualTo(2)
       clearFilters(ds)
       ds.getFilters.getFilter.size must beEqualTo(0)
     }

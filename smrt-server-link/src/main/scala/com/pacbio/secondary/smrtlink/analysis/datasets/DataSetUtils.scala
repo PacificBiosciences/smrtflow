@@ -383,10 +383,7 @@ trait DataSetFilterUtils {
     f
   }
 
-  def addFilter(ds: XsdDataSetType,
-                name: String,
-                operator: String,
-                value: String) = {
+  private def validateRule(name: String, operator: String) = {
     if (!VALID_NAMES.contains(name)) {
       throw new IllegalArgumentException(
         s"'$name' is not a valid dataset filter criterion (allowed names: ${toNamesList})")
@@ -395,26 +392,75 @@ trait DataSetFilterUtils {
       throw new IllegalArgumentException(
         s"The operator '$operator' is not recognized (valid operators: ${toOpsList})")
     }
-    val newFilter = new FilterType()
-    val newProps = new FilterType.Properties()
+  }
+
+  private def toProperty(name: String, operator: String, value: String) = {
+    validateRule(name, operator)
     val prop = new FilterType.Properties.Property()
     prop.setName(name)
     prop.setOperator(operator)
     prop.setValue(value)
-    newProps.getProperty.add(prop)
-    newFilter.setProperties(newProps)
+    prop
+  }
+
+  private def appendFilter(ds: XsdDataSetType, f: FilterType) =
     Option(ds.getFilters)
       .getOrElse(clearFilters(ds))
       .getFilter
-      .add(newFilter)
+      .add(f)
+
+  private def toFilter(props: Seq[FilterType.Properties.Property]) = {
+    val xsdFilter = new FilterType()
+    val xsdProps = new FilterType.Properties()
+    props.foreach(xsdProps.getProperty.add)
+    xsdFilter.setProperties(xsdProps)
+    xsdFilter
   }
 
-  def addFilter(ds: XsdDataSetType, rule: DataSetFilterRule): Unit =
-    addFilter(ds, rule.name, rule.operator, rule.value)
+  def addSimpleFilter(ds: XsdDataSetType,
+                      name: String,
+                      operator: String,
+                      value: String) = {
+    val prop = toProperty(name, operator, value)
+    appendFilter(ds, toFilter(Seq(prop)))
+  }
+
+  def addSimpleFilter(ds: XsdDataSetType, req: DataSetFilterProperty): Unit =
+    addSimpleFilter(ds, req.name, req.operator, req.value)
+
+  /**
+    * Add a single filter with one or more AND'ed properties
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param reqs: list of filter reqs to be AND'ed together
+    */
+  def addFilter(ds: XsdDataSetType, reqs: Seq[DataSetFilterProperty]): Unit = {
+    val props = reqs.map(r => toProperty(r.name, r.operator, r.value))
+    appendFilter(ds, toFilter(props))
+  }
+
+  /**
+    * Add multiple filters (OR'ed together), each with one or more properties
+    * (AND'ed together)
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param filters: list of filters to be OR'ed together
+    */
+  def addFilters(ds: XsdDataSetType,
+                 filters: Seq[Seq[DataSetFilterProperty]]): Unit = {
+    filters.foreach(reqs => addFilter(ds, reqs))
+  }
+
+  /**
+    * Check that all filter requirements conform to the allowed vocabulary
+    */
+  def validateFilters(filters: Seq[Seq[DataSetFilterProperty]]) = Try {
+    filters.foreach(f => f.foreach(r => validateRule(r.name, r.operator)))
+  }
 
   def addLengthFilter(ds: XsdDataSetType,
                       value: Int,
                       operator: String = ">=") =
-    addFilter(ds, "length", operator, value.toString)
+    addSimpleFilter(ds, "length", operator, value.toString)
 
 }

@@ -6,7 +6,7 @@ import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
-  DataSetFilterRule
+  DataSetFilterProperty
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
@@ -481,7 +481,7 @@ trait JobTypeSettingProtocol
   implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
   implicit val exportJobManifestFormat = jsonFormat3(ExportJobManifest)
 
-  implicit val dsFilterFormat = jsonFormat3(DataSetFilterRule)
+  implicit val dsFilterFormat = jsonFormat3(DataSetFilterProperty)
 }
 
 trait SecondaryJobJsonProtocol extends JobTypeSettingProtocol
