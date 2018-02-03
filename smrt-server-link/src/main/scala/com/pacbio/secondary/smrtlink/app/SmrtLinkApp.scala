@@ -173,7 +173,8 @@ trait SmrtLinkProviders
     with JobsServiceProvider
     with EngineCoreJobManagerActorProvider
     with EngineMultiJobManagerActorProvider
-    with DbBackupActorProvider {
+    with DbBackupActorProvider
+    with SmrtLinkEveMetricsProcessActor {
 
   override val baseServiceId: Singleton[String] = Singleton(
     "smrtlink_analysis")
@@ -211,6 +212,8 @@ trait SmrtLinkApi
   lazy val dbBackupActor = providers.dbBackupActor()
 
   lazy val eventManagerActor = providers.eventManagerActor()
+  lazy val smrtLinkEveMetricsProcessActor =
+    providers.smrtLinkEvenMetricsProcessorActor()
 
   import EventManagerActor._
 
@@ -254,6 +257,7 @@ trait SmrtLinkApi
     lazy val jobsDao = providers.jobsDao()
     jobsDao.addListener(eventManagerActor)
     jobsDao.addListener(engineMultiJobManagerActor)
+    jobsDao.addListener(smrtLinkEveMetricsProcessActor)
 
     // Start Up validation
     for {

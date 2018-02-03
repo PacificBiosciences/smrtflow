@@ -14,6 +14,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import spray.json.JsObject
 
 import scala.concurrent.duration._
@@ -1080,6 +1081,7 @@ object EventTypes {
   val SERVER_STARTUP = "sl_smrt_server_startup"
   val IMPORT_BUNDLE = "sl_ts_import_bundle"
   val CHEMISTRY_ACTIVATE_BUNDLE = "sl_chemistry_activate_bundle"
+  val JOB_METRICS = "sl_job_metrics"
   // A Test Event. This should be used by any testing related code.
   val TEST = "sl_test_event"
 }
@@ -1133,3 +1135,18 @@ case class DeferredJob(entryPoints: Seq[DeferredEntryPoint],
                        name: Option[String],
                        description: Option[String],
                        projectId: Option[Int])
+
+// If this model/schema changes, the event type schema version needs
+// to be incremented
+case class EngineJobMetrics(id: Int,
+                            uuid: UUID,
+                            createdAt: JodaDateTime,
+                            updatedAt: JodaDateTime,
+                            state: AnalysisJobStates.JobStates,
+                            jobTypeId: String,
+                            pipelineId: Option[String],
+                            smrtlinkVersion: Option[String],
+                            movieIds: Set[String],
+                            isActive: Boolean = true,
+                            isMultiJob: Boolean = false,
+                            importedAt: Option[JodaDateTime] = None)
