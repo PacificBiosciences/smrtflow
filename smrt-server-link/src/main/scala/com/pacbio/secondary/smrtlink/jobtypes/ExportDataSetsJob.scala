@@ -158,12 +158,11 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
     val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
-    val paths: Seq[Path] = resolvePathsAndWriteEntryPoints(dao,
-                                                           resources.path,
-                                                           timeout,
-                                                           opts.datasetType,
-                                                           opts.ids)
-
+    val fx = resolvePathsAndWriteEntryPoints(dao,
+                                             resources.path,
+                                             opts.datasetType,
+                                             opts.ids)
+    val paths: Seq[Path] = Await.result(fx, timeout)
     val startedAt = JodaDateTime.now()
 
     resultsWriter.writeLine(

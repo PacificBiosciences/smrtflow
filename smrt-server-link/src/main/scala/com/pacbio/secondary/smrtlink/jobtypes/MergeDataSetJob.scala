@@ -72,25 +72,7 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
 
   import CommonModelImplicits._
 
-  def toDataStoreFile[T <: DataSetType](ds: T,
-                                        output: Path,
-                                        description: String): DataStoreFile = {
-    val uuid = UUID.fromString(ds.getUniqueId)
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    DataStoreFile(
-      uuid,
-      s"pbscala::merge_dataset",
-      ds.getMetaType,
-      output.toFile.length,
-      createdAt,
-      modifiedAt,
-      output.toAbsolutePath.toString,
-      isChunked = false,
-      Option(ds.getName).getOrElse("PacBio DataSet"),
-      description
-    )
-  }
+  val SOURCE_ID = s"pbscala::merge_dataset"
 
   // There's a bit of duplication here. I can't get the types to work correctly.
   def mergeDataSets[T <: DataSetType](
@@ -108,7 +90,10 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
             DataSetMerger
               .mergeSubreadSetPathsTo(paths, name, outputDataSetPath))
           dsFile <- Success(
-            toDataStoreFile(dataset, outputDataSetPath, description))
+            toDataStoreFile(dataset,
+                            outputDataSetPath,
+                            description,
+                            SOURCE_ID))
           reportFiles <- Try(
             DataSetReports.runAll(outputDataSetPath,
                                   DataSetMetaTypes.Subread,
@@ -122,7 +107,10 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
             DataSetMerger
               .mergeHdfSubreadSetPathsTo(paths, name, outputDataSetPath))
           dsFile <- Success(
-            toDataStoreFile(dataset, outputDataSetPath, description))
+            toDataStoreFile(dataset,
+                            outputDataSetPath,
+                            description,
+                            SOURCE_ID))
           reportFiles <- Try(
             DataSetReports.runAll(outputDataSetPath,
                                   DataSetMetaTypes.HdfSubread,
@@ -171,12 +159,11 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
       _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
                        opts.DEFAULT_TIMEOUT)
       _ <- Success(writeInitSummary())
-      paths <- Try(
-        resolvePathsAndWriteEntryPoints(dao,
-                                        job.path,
-                                        timeout,
-                                        opts.datasetType,
-                                        opts.ids))
+      paths <- runAndBlock(resolvePathsAndWriteEntryPoints(dao,
+                                                           job.path,
+                                                           opts.datasetType,
+                                                           opts.ids),
+                           opts.DEFAULT_TIMEOUT)
       _ <- Success(writer(s"Successfully resolved ${opts.ids.length} files"))
       dsFiles <- mergeDataSets(job.path,
                                resultsWriter,
