@@ -717,13 +717,13 @@ class TsSystemStatusBundleJobsService(override val dao: JobsDao,
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
 }
 
-class FilterDataSetJobService(override val dao: JobsDao,
-                              override val config: SystemJobConfig)(
-    implicit val um: FromRequestUnmarshaller[FilterDataSetJobOptions],
-    implicit val sm: ToEntityMarshaller[FilterDataSetJobOptions],
-    implicit val jwriter: JsonWriter[FilterDataSetJobOptions])
-    extends CommonJobsRoutes[FilterDataSetJobOptions] {
-  override def jobTypeId = JobTypeIds.DS_FILTER
+class CopyDataSetJobService(override val dao: JobsDao,
+                            override val config: SystemJobConfig)(
+    implicit val um: FromRequestUnmarshaller[CopyDataSetJobOptions],
+    implicit val sm: ToEntityMarshaller[CopyDataSetJobOptions],
+    implicit val jwriter: JsonWriter[CopyDataSetJobOptions])
+    extends CommonJobsRoutes[CopyDataSetJobOptions] {
+  override def jobTypeId = JobTypeIds.DS_COPY
 }
 
 // This is the used for the "Naked" untyped job route service <smrt-link>/<job-manager>/jobs

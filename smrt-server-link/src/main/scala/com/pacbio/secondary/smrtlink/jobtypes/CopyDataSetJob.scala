@@ -29,18 +29,18 @@ import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
-case class FilterDataSetJobOptions(datasetId: IdAble,
-                                   filters: Seq[Seq[DataSetFilterProperty]],
-                                   dsName: Option[String],
-                                   name: Option[String],
-                                   description: Option[String],
-                                   projectId: Option[Int] = Some(
-                                     JobConstants.GENERAL_PROJECT_ID))
+case class CopyDataSetJobOptions(datasetId: IdAble,
+                                 filters: Seq[Seq[DataSetFilterProperty]],
+                                 dsName: Option[String],
+                                 name: Option[String],
+                                 description: Option[String],
+                                 projectId: Option[Int] = Some(
+                                   JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions {
   import CommonModelImplicits._
 
-  override def jobTypeId = JobTypeIds.DS_FILTER
-  override def toJob() = new FilterDataSetJob(this)
+  override def jobTypeId = JobTypeIds.DS_COPY
+  override def toJob() = new CopyDataSetJob(this)
 
   override def validate(
       dao: JobsDao,
@@ -58,7 +58,7 @@ case class FilterDataSetJobOptions(datasetId: IdAble,
                                   Seq(datasetId))
 }
 
-class FilterDataSetJob(opts: FilterDataSetJobOptions)
+class CopyDataSetJob(opts: CopyDataSetJobOptions)
     extends ServiceCoreJob(opts)
     with MockJobUtils
     with DataSetFilterUtils

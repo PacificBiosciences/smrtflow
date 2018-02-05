@@ -726,8 +726,8 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                     filters: Seq[Seq[DataSetFilterProperty]],
                     dsName: Option[String] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.DS_FILTER.id)),
-           FilterDataSetJobOptions(dsId, filters, dsName, None, None, None)))
+      Post(toUrl(jobRoot(JobTypeIds.DS_COPY.id)),
+           CopyDataSetJobOptions(dsId, filters, dsName, None, None, None)))
 
   def getAlarms(): Future[Seq[AlarmStatus]] =
     getObject[Seq[AlarmStatus]](Get(toUrl(ROOT_ALARMS)))
