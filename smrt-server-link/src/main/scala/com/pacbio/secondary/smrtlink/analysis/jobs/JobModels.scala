@@ -268,6 +268,13 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object DS_FILTER extends JobType {
+      val id = "filter-dataset"
+      val name = "DataSet filtering"
+      val description = "Apply filters to an XML dataset"
+      override def isQuick: Boolean = true
+    }
+
     case object MJOB_MULTI_ANALYSIS extends JobType {
       val id = "multi-analysis"
       val name = "Run Multi-Analysis Jobs"
@@ -296,6 +303,7 @@ object JobModels {
       TS_JOB,
       TS_SYSTEM_STATUS,
       DB_BACKUP,
+      DS_FILTER,
       MJOB_MULTI_ANALYSIS
     )
 

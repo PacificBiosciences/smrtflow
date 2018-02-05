@@ -480,8 +480,6 @@ trait JobTypeSettingProtocol
     TsSystemStatusManifest.apply)
   implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
   implicit val exportJobManifestFormat = jsonFormat3(ExportJobManifest)
-
-  implicit val dsFilterFormat = jsonFormat3(DataSetFilterProperty)
 }
 
 trait SecondaryJobJsonProtocol extends JobTypeSettingProtocol
