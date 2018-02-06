@@ -13,7 +13,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
@@ -79,12 +78,25 @@ trait SmrtLinkEveMetricsProcessor {
         .getOrElse(orEmpty(sset.metadataContextId))
   }
 
-  def extractPipelineId(sx: String): Option[String] =
-    Try(sx.parseJson.convertTo[PbsmrtpipeJobOptions]).toOption
-      .map(_.pipelineId)
+  /**
+    * Minimal parsing of JSON to extract the raw
+    * pipelineId. This is done to have maximal
+    * backwards compatibility.
+    *
+    */
+  def extractPipelineIdFromJsonSettings(sx: String): Option[String] =
+    sx.parseJson.asJsObject.getFields("pipelineId") match {
+      case Seq(JsString(value)) => Some(value)
+      case _ => None
+    }
 
-  private def extractFromEntryPoints(dao: JobsDao,
-                                     epoints: Seq[EngineJobEntryPoint])(
+  /**
+    * Extract all movie context values from all Entry points that are
+    * of type SubreadSet.
+    */
+  private def extractMovieContextFromEntryPoints(
+      dao: JobsDao,
+      epoints: Seq[EngineJobEntryPoint])(
       implicit ec: ExecutionContext): Future[Set[String]] = {
     for {
       uuids <- Future.successful(
@@ -102,7 +114,7 @@ trait SmrtLinkEveMetricsProcessor {
     for {
       job <- dao.getJobById(jobIx)
       entryPoints <- dao.getJobEntryPoints(job.id)
-      movieContexts <- extractFromEntryPoints(dao, entryPoints)
+      movieContexts <- extractMovieContextFromEntryPoints(dao, entryPoints)
     } yield
       EngineJobMetrics(
         job.id,
@@ -111,7 +123,8 @@ trait SmrtLinkEveMetricsProcessor {
         job.updatedAt,
         job.state,
         job.jobTypeId,
-        extractPipelineId(job.jsonSettings),
+        Try(extractPipelineIdFromJsonSettings(job.jsonSettings))
+          .getOrElse(None),
         job.smrtlinkVersion,
         movieContexts,
         job.isActive,
@@ -133,7 +146,7 @@ trait SmrtLinkEveMetricsProcessor {
 }
 
 /**
-  * List for comopleted Analysis jobs and process the output to convert to
+  * List for completed Analysis jobs and process the output to convert to
   * SmrtLink Events that are sent to Event Manager. These events will
   * sent to Eve (if the system is configured to do so).
   *
@@ -156,7 +169,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
 
   override def receive: Receive = {
     case JobCompletedMessage(job) =>
-      if (sendEveJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id)) {
+      if (sendEveJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id) && job.state.isCompleted) {
         convertToEngineMetrics(dao, job.id)
           .map(em => convertToEvent(em)) onComplete {
           case Success(event) =>
@@ -165,7 +178,8 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
               s"Successfully converted Job ${job.id} to EngineJobMetric with SmrtLinkEvent ${event.uuid}")
             eventManagerActor ! CreateEvent(event)
           case Failure(ex) =>
-            logger.error(s"Failed to convert Job ${job.id} to EngineJobMetrics/SmrtLinkEvent Error:${ex.getMessage}")
+            logger.error(
+              s"Failed to convert Job ${job.id} to EngineJobMetrics/SmrtLinkEvent Error:${ex.getMessage}")
         }
       }
     // case x => logger.warn(s"Unhandled message $x")
