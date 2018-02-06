@@ -7,6 +7,10 @@ import org.specs2.mutable.Specification
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedFilterNames,
+  SupportedFilterOperators
+}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
@@ -209,6 +213,15 @@ class DataSetUtilsSpec
     val filters = Seq(Seq(DataSetFilterProperty("bq", ">=", "0.26"),
                           DataSetFilterProperty("rq", ">=", "0.7")),
                       Seq(DataSetFilterProperty("length", ">=", "1000")))
+    "Test data models" in {
+      val p1 = DataSetFilterProperty("rq", "gte", "0.7")
+      p1.name must beEqualTo(SupportedFilterNames.RQ)
+      p1.operator must beEqualTo(SupportedFilterOperators.GTE)
+      val p2 = DataSetFilterProperty("rq", ">=", "0.7")
+      Try {
+        DataSetFilterProperty("bq", "!!!", "0.8")
+      }.toOption must beNone
+    }
     "Add simple filters to dataset" in {
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       Option(ds.getFilters) must beNone
@@ -223,7 +236,6 @@ class DataSetUtilsSpec
       ds.getFilters.getFilter.size must beEqualTo(0)
     }
     "Add multiple filters" in {
-      validateFilters(filters) must beSuccessfulTry
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       Option(ds.getFilters) must beNone
       addFilters(ds, filters)
@@ -231,12 +243,6 @@ class DataSetUtilsSpec
       xsdFilters.size must beEqualTo(2)
       xsdFilters(0).getProperties.getProperty.size must beEqualTo(2)
       xsdFilters(1).getProperties.getProperty.size must beEqualTo(1)
-      val badFilters = Seq(Seq(DataSetFilterProperty("bq", "!!!", "0.8")))
-      validateFilters(badFilters).toOption must beNone
-      Try { addFilters(ds, badFilters) }.toOption must beNone
-      ds.getFilters.getFilter.size must beEqualTo(2)
-      clearFilters(ds)
-      ds.getFilters.getFilter.size must beEqualTo(0)
     }
     "Write an updated XML file" in {
       val ds = DataSetLoader.loadSubreadSet(dsFile)
@@ -251,9 +257,6 @@ class DataSetUtilsSpec
       val parent = ds2.getDataSetMetadata.getProvenance.getParentDataSet
       parent.getUniqueId === ds.getUniqueId
       ds2.getFilters.getFilter.size must beEqualTo(2)
-      val badFilters = Seq(Seq(DataSetFilterProperty("bq", "!!!", "0.8")))
-      tx = applyFilters(dsFile, dsOut, badFilters, Some("My filtered dataset"))
-      tx.toOption must beNone
     }
   }
 }

@@ -63,7 +63,6 @@ trait ServiceJobTypeJsonProtocols
     MultiAnalysisJobOptions)
 
   implicit val dbBackUpJobOptionsFormat = jsonFormat5(DbBackUpJobOptions)
-  implicit val dsFilterFormat = jsonFormat3(DataSetFilterProperty)
   implicit val copyDataSetJobOptionsFormat = jsonFormat6(CopyDataSetJobOptions)
 }
 

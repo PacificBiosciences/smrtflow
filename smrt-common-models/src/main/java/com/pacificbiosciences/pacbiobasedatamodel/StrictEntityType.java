@@ -60,8 +60,8 @@ import com.pacificbiosciences.pacbiorightsandroles.UserIdentityType;
     AuditableEventType.class,
     AccessRightType.class,
     RoleType.class,
-    DataSetType.class,
     CollectionMetadata.class,
+    DataSetType.class,
     InputOutputDataType.class
 })
 public class StrictEntityType

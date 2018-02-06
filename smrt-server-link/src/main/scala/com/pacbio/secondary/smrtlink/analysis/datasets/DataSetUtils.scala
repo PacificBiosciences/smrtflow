@@ -20,7 +20,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
   ExternalResource,
   ExternalResources,
   FilterType,
-  StrictEntityType
+  StrictEntityType,
+  SupportedFilterNames
 }
 import com.pacificbiosciences.pacbiocollectionmetadata.{
   WellSample,
@@ -345,81 +346,17 @@ trait DataSetParentUtils {
 }
 
 trait DataSetFilterUtils extends DataSetParentUtils {
-  // extracted from pbcore
-  private val VALID_OPS = TreeSet("==",
-                                  "=",
-                                  "eq",
-                                  "!=",
-                                  "ne",
-                                  ">=",
-                                  "&gt;=",
-                                  "gte",
-                                  "<=",
-                                  "&lt;=",
-                                  "lte",
-                                  ">",
-                                  "&gt;",
-                                  "gt",
-                                  "<",
-                                  "&lt;",
-                                  "lt",
-                                  "in",
-                                  "not_in",
-                                  "&",
-                                  "~")
-
-  private val VALID_NAMES = TreeSet(
-    "rname",
-    "length",
-    "qstart",
-    "qend",
-    "qname",
-    "qid",
-    "movie",
-    "zm",
-    "bc",
-    "bcr",
-    "bcf",
-    "bcq",
-    "bq",
-    "qs",
-    "rq",
-    "pos",
-    "tstart",
-    "tend",
-    "accuracy",
-    "readstart",
-    "cx",
-    "n_subreads",
-    "mapqv"
-  )
-
-  private def toOpsList = "'" ++ VALID_OPS.mkString("', '") ++ "'"
-  private def toNamesList = "'" ++ VALID_NAMES.mkString("', '") ++ "'"
-
   def clearFilters(ds: XsdDataSetType): XsdDataSetType.Filters = {
     val f = new XsdDataSetType.Filters()
     ds.setFilters(f)
     f
   }
 
-  private def validateRule(name: String, operator: String) = {
-    if (!VALID_NAMES.contains(name)) {
-      throw new IllegalArgumentException(
-        s"'$name' is not a valid dataset filter criterion (allowed names: ${toNamesList})")
-    }
-    if (!VALID_OPS.contains(operator)) {
-      throw new IllegalArgumentException(
-        s"The operator '$operator' is not recognized (valid operators: ${toOpsList})")
-    }
-  }
-
-  private def toProperty(name: String, operator: String, value: String) = {
-    validateRule(name, operator)
+  private def toProperty(req: DataSetFilterProperty) = {
     val prop = new FilterType.Properties.Property()
-    prop.setName(name)
-    prop.setOperator(operator)
-    prop.setValue(value)
+    prop.setName(req.name)
+    prop.setOperator(req.operator)
+    prop.setValue(req.value)
     prop
   }
 
@@ -437,16 +374,14 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     xsdFilter
   }
 
+  def addSimpleFilter(ds: XsdDataSetType, req: DataSetFilterProperty): Unit =
+    appendFilter(ds, toFilter(Seq(toProperty(req))))
+
   def addSimpleFilter(ds: XsdDataSetType,
                       name: String,
                       operator: String,
-                      value: String) = {
-    val prop = toProperty(name, operator, value)
-    appendFilter(ds, toFilter(Seq(prop)))
-  }
-
-  def addSimpleFilter(ds: XsdDataSetType, req: DataSetFilterProperty): Unit =
-    addSimpleFilter(ds, req.name, req.operator, req.value)
+                      value: String): Unit =
+    addSimpleFilter(ds, DataSetFilterProperty(name, operator, value))
 
   /**
     * Add a single filter with one or more AND'ed properties
@@ -454,10 +389,8 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     * @param ds: DataSet model loaded from XML
     * @param reqs: list of filter reqs to be AND'ed together
     */
-  def addFilter(ds: XsdDataSetType, reqs: Seq[DataSetFilterProperty]): Unit = {
-    val props = reqs.map(r => toProperty(r.name, r.operator, r.value))
-    appendFilter(ds, toFilter(props))
-  }
+  def addFilter(ds: XsdDataSetType, reqs: Seq[DataSetFilterProperty]): Unit =
+    appendFilter(ds, toFilter(reqs.map(toProperty)))
 
   /**
     * Add multiple filters (OR'ed together), each with one or more properties
@@ -467,16 +400,8 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     * @param filters: list of filters to be OR'ed together
     */
   def addFilters(ds: XsdDataSetType,
-                 filters: Seq[Seq[DataSetFilterProperty]]): Unit = {
+                 filters: Seq[Seq[DataSetFilterProperty]]): Unit =
     filters.foreach(reqs => addFilter(ds, reqs))
-  }
-
-  /**
-    * Check that all filter requirements conform to the allowed vocabulary
-    */
-  def validateFilters(filters: Seq[Seq[DataSetFilterProperty]]) = Try {
-    filters.foreach(f => f.foreach(r => validateRule(r.name, r.operator)))
-  }
 
   def addLengthFilter(ds: XsdDataSetType,
                       value: Int,
@@ -489,15 +414,13 @@ trait DataSetFilterUtils extends DataSetParentUtils {
   def applyFilters(dsFile: Path,
                    outputFile: Path,
                    filters: Seq[Seq[DataSetFilterProperty]],
-                   dsName: Option[String] = None): Try[SubreadSet] = {
-    validateFilters(filters).map { _ =>
-      val ds = DataSetLoader.loadSubreadSet(dsFile)
-      addFilters(ds, filters)
-      ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
-      setParent(ds, ds) // the original dataset becomes the parent
-      ds.setUniqueId(UUID.randomUUID().toString)
-      DataSetWriter.writeSubreadSet(ds, outputFile)
-      ds
-    }
+                   dsName: Option[String] = None): SubreadSet = {
+    val ds = DataSetLoader.loadSubreadSet(dsFile)
+    addFilters(ds, filters)
+    ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
+    setParent(ds, ds) // the original dataset becomes the parent
+    ds.setUniqueId(UUID.randomUUID().toString)
+    DataSetWriter.writeSubreadSet(ds, outputFile)
+    ds
   }
 }

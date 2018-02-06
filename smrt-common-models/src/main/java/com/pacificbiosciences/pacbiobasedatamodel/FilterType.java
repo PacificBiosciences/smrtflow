@@ -36,9 +36,9 @@ import javax.xml.bind.annotation.XmlType;
  *                     &lt;complexType>
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *                           &lt;attribute name="Name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+ *                           &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
  *                           &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
- *                           &lt;attribute name="Operator" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+ *                           &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
  *                           &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                           &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                         &lt;/restriction>
@@ -106,9 +106,9 @@ public class FilterType {
      *           &lt;complexType>
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-     *                 &lt;attribute name="Name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+     *                 &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
      *                 &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-     *                 &lt;attribute name="Operator" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+     *                 &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
      *                 &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
      *                 &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
      *               &lt;/restriction>
@@ -171,9 +171,9 @@ public class FilterType {
          * &lt;complexType>
          *   &lt;complexContent>
          *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-         *       &lt;attribute name="Name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+         *       &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
          *       &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-         *       &lt;attribute name="Operator" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+         *       &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
          *       &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
          *       &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
          *     &lt;/restriction>
@@ -188,11 +188,11 @@ public class FilterType {
         public static class Property {
 
             @XmlAttribute(name = "Name", required = true)
-            protected String name;
+            protected SupportedFilterNames name;
             @XmlAttribute(name = "Value", required = true)
             protected String value;
             @XmlAttribute(name = "Operator", required = true)
-            protected String operator;
+            protected SupportedFilterOperators operator;
             @XmlAttribute(name = "Feature")
             protected String feature;
             @XmlAttribute(name = "Assignment")
@@ -203,10 +203,10 @@ public class FilterType {
              * 
              * @return
              *     possible object is
-             *     {@link String }
+             *     {@link SupportedFilterNames }
              *     
              */
-            public String getName() {
+            public SupportedFilterNames getName() {
                 return name;
             }
 
@@ -215,10 +215,10 @@ public class FilterType {
              * 
              * @param value
              *     allowed object is
-             *     {@link String }
+             *     {@link SupportedFilterNames }
              *     
              */
-            public void setName(String value) {
+            public void setName(SupportedFilterNames value) {
                 this.name = value;
             }
 
@@ -251,10 +251,10 @@ public class FilterType {
              * 
              * @return
              *     possible object is
-             *     {@link String }
+             *     {@link SupportedFilterOperators }
              *     
              */
-            public String getOperator() {
+            public SupportedFilterOperators getOperator() {
                 return operator;
             }
 
@@ -263,10 +263,10 @@ public class FilterType {
              * 
              * @param value
              *     allowed object is
-             *     {@link String }
+             *     {@link SupportedFilterOperators }
              *     
              */
-            public void setOperator(String value) {
+            public void setOperator(SupportedFilterOperators value) {
                 this.operator = value;
             }
 

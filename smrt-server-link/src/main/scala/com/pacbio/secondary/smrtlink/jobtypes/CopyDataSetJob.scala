@@ -93,7 +93,7 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
                                                DataSetMetaTypes.Subread,
                                                Seq(opts.datasetId))
       _ <- writer(s"Successfully resolved dataset ${opts.datasetId.toString}")
-      ds <- Future.fromTry(
+      ds <- Future.successful(
         applyFilters(paths.head, outputFile, opts.filters, opts.dsName))
       dsFile <- Future.successful(
         toDataStoreFile(ds, outputFile, "Filtered dataset", SOURCE_ID))

@@ -13,6 +13,11 @@ import org.eclipse.persistence.jaxb.{
 import spray.json._
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedFilterNames,
+  SupportedFilterOperators
+}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFilterProperty
 
 /**
   *
@@ -153,7 +158,34 @@ object DataSetJsonUtils {
 
 }
 
-trait DataSetJsonProtocols extends DefaultJsonProtocol {
+trait SupportedFilterNamesProtocols extends DefaultJsonProtocol {
+  implicit object SupportedFilterNamesFormat
+      extends RootJsonFormat[SupportedFilterNames] {
+    def write(s: SupportedFilterNames): JsValue = JsString(s.value())
+    def read(v: JsValue): SupportedFilterNames = v match {
+      case JsString(s) => SupportedFilterNames.fromValue(s)
+      case _ =>
+        deserializationError("Expected SupportedFilterNames as JsString")
+    }
+  }
+}
+
+trait SupportedFilterOperatorsProtocols extends DefaultJsonProtocol {
+  implicit object SupportedFilterOperatorsFormat
+      extends RootJsonFormat[SupportedFilterOperators] {
+    def write(s: SupportedFilterOperators): JsValue = JsString(s.value())
+    def read(v: JsValue): SupportedFilterOperators = v match {
+      case JsString(s) => SupportedFilterOperators.fromValue(s)
+      case _ =>
+        deserializationError("Expected SupportedFilterOperators as JsString")
+    }
+  }
+}
+
+trait DataSetJsonProtocols
+    extends DefaultJsonProtocol
+    with SupportedFilterNamesProtocols
+    with SupportedFilterOperatorsProtocols {
 
   implicit object SubreadSetJsonFormat extends RootJsonFormat[SubreadSet] {
     def write(obj: SubreadSet): JsObject =
@@ -222,6 +254,9 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
       DataSetJsonUtils.gmapReferenceSetFromJson(json.toString)
   }
 
+  implicit val dataSetFilterPropertyFormat
+    : RootJsonFormat[DataSetFilterProperty] = jsonFormat3(
+    DataSetFilterProperty)
 }
 
 object DataSetJsonProtocol extends DataSetJsonProtocols
