@@ -414,8 +414,13 @@ trait DataSetFilterUtils extends DataSetParentUtils {
   def applyFilters(dsFile: Path,
                    outputFile: Path,
                    filters: Seq[Seq[DataSetFilterProperty]],
-                   dsName: Option[String] = None): SubreadSet = {
-    val ds = DataSetLoader.loadSubreadSet(dsFile)
+                   dsName: Option[String] = None,
+                   resolvePaths: Boolean = true): SubreadSet = {
+    val ds = if (resolvePaths) {
+      DataSetLoader.loadAndResolveSubreadSet(dsFile)
+    } else {
+      DataSetLoader.loadSubreadSet(dsFile)
+    }
     addFilters(ds, filters)
     ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
     setParent(ds, ds) // the original dataset becomes the parent

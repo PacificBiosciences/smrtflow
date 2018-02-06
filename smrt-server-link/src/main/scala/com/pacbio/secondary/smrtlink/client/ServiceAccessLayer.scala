@@ -722,9 +722,9 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       Post(toUrl(jobRoot(JobTypeIds.IMPORT_JOB.id)),
            ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId))))
 
-  def filterDataSet(dsId: IdAble,
-                    filters: Seq[Seq[DataSetFilterProperty]],
-                    dsName: Option[String] = None): Future[EngineJob] =
+  def copyDataSet(dsId: IdAble,
+                  filters: Seq[Seq[DataSetFilterProperty]],
+                  dsName: Option[String] = None): Future[EngineJob] =
     getObject[EngineJob](
       Post(toUrl(jobRoot(JobTypeIds.DS_COPY.id)),
            CopyDataSetJobOptions(dsId, filters, dsName, None, None, None)))

@@ -248,7 +248,7 @@ class DataSetUtilsSpec
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       val dsOut = Files.createTempFile("updated", ".subreadset.xml")
       var tx =
-        applyFilters(dsFile, dsOut, filters, Some("My filtered dataset"))
+        applyFilters(dsFile, dsOut, filters, Some("My filtered dataset"), false)
       tx.toOption must beSome
       val ds2 = DataSetLoader.loadSubreadSet(dsOut)
       ds2.getName must beEqualTo("My filtered dataset")
