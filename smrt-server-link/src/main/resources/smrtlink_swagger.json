@@ -2527,6 +2527,42 @@
         ]
       }
     },
+    "/smrt-link/job-manager/jobs/copy-dataset": {
+      "post": {
+        "description": "Copy a dataset and apply optional filters",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset delete job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CopyDataSetJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/job-manager/jobs/delete-job": {
       "post": {
         "description": "Remove a job from the database and delete output directory contents",
@@ -6528,6 +6564,54 @@
           "default": true,
           "title": "Remove files",
           "description": "Remove dataset XML and external resource files"
+        }
+      }
+    },
+    "DataSetFilterProperty": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Property name"
+        },
+        "operator": {
+          "type": "string",
+          "title": "Operator",
+          "description": "Comparison operator"
+        },
+        "value": {
+          "type": "string",
+          "title": "Value",
+          "description": "Comparison value"
+        }
+      }
+    },
+    "DataSetFilter": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DataSetFilterProperty"
+      }
+    },
+    "CopyDataSetJobOptions": {
+      "type": "object",
+      "properties": {
+        "datasetId": {
+          "type": ["integer", "string"],
+          "title": "Dataset ID",
+          "description": "Dataset ID"
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DataSetFilter"
+          },
+          "description": "List of dataset filters"
+        },
+        "dsName": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Output dataset name",
+          "description": "Output dataset name"
         }
       }
     },
