@@ -2,6 +2,8 @@ package com.pacbio.secondary.smrtlink.jsonprotocols
 
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models.{DeferredEntryPoint, DeferredJob}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFilterProperty
+
 import fommil.sjs.FamilyFormats
 import spray.json.DefaultJsonProtocol
 
@@ -61,6 +63,7 @@ trait ServiceJobTypeJsonProtocols
     MultiAnalysisJobOptions)
 
   implicit val dbBackUpJobOptionsFormat = jsonFormat5(DbBackUpJobOptions)
+  implicit val copyDataSetJobOptionsFormat = jsonFormat6(CopyDataSetJobOptions)
 }
 
 object ServiceJobTypeJsonProtocols extends ServiceJobTypeJsonProtocols

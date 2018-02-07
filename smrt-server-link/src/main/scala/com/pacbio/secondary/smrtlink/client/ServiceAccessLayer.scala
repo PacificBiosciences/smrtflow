@@ -17,11 +17,15 @@ import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetFilterProperty
+}
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.jsonprotocols._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -37,8 +41,8 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   import CommonModelImplicits._
   import CommonModels._
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
+  import SmrtLinkJsonProtocols._
 
   protected def getMessageResponse(
       request: HttpRequest): Future[MessageResponse] =
@@ -103,10 +107,10 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def serviceStatusEndpoints: Vector[String] =
     Vector(
-      ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id,
-      ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id,
-      ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id,
-      ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE,
+      jobRoot(JobTypeIds.IMPORT_DATASET.id),
+      jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id),
+      jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id),
+      jobRoot(JobTypeIds.PBSMRTPIPE.id),
       ROOT_DS + "/" + DataSetMetaTypes.Subread.shortName,
       ROOT_DS + "/" + DataSetMetaTypes.HdfSubread.shortName,
       ROOT_DS + "/" + DataSetMetaTypes.Reference.shortName,
@@ -451,7 +455,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                     showAll: Boolean = false,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
-      Get(toUrl(ROOT_JOBS + "/" + jobType + toJobQuery(showAll, projectId))))
+      Get(toUrl(jobRoot(jobType) + toJobQuery(showAll, projectId))))
 
   def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](Get(toUrl(ROOT_JOBS + s"?projectId=$projectId")))
@@ -508,13 +512,15 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                 dryRun: Boolean = false,
                 force: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/delete-job"),
-           DeleteSmrtLinkJobOptions(jobId,
-                                    Some(s"Delete job $jobId name"),
-                                    None,
-                                    removeFiles,
-                                    dryRun = Some(dryRun),
-                                    force = Some(force))))
+      Post(
+        toUrl(jobRoot(JobTypeIds.DELETE_JOB.id)),
+        DeleteSmrtLinkJobOptions(jobId,
+                                 Some(s"Delete job $jobId name"),
+                                 None,
+                                 removeFiles,
+                                 dryRun = Some(dryRun),
+                                 force = Some(force))
+      ))
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
@@ -545,7 +551,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
+        toUrl(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
         ImportDataSetJobOptions(path.toAbsolutePath, dsMetaType, None, None)))
 
   def importFasta(path: Path,
@@ -554,13 +560,13 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                   ploidy: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
+        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
+        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
         ImportBarcodeFastaJobOptions(path.toAbsolutePath, Some(name), None)))
 
   def importFastaGmap(path: Path,
@@ -569,19 +575,19 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                       ploidy: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id),
+        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
                     name: String) =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
+      Post(toUrl(jobRoot(JobTypeIds.MERGE_DATASETS.id)),
            MergeDataSetJobOptions(datasetType, ids, Some(name), None)))
 
   def convertRsMovie(path: Path, name: String) =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
+      Post(toUrl(jobRoot(JobTypeIds.CONVERT_RS_MOVIE.id)),
            RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
@@ -589,7 +595,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      outputPath: Path,
                      deleteAfterExport: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
+      Post(toUrl(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
            ExportDataSetsJobOptions(datasetType,
                                     ids,
                                     outputPath.toAbsolutePath,
@@ -600,7 +606,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      removeFiles: Boolean = true): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
+        toUrl(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles)))
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] =
@@ -625,7 +631,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
   def runAnalysisPipeline(
       pipelineOptions: PbsmrtpipeJobOptions): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions))
+      Post(toUrl(jobRoot(JobTypeIds.PBSMRTPIPE.id)), pipelineOptions))
 
   def createMultiAnalysisJob(
       multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] =
@@ -656,7 +662,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def runTsSystemStatus(user: String, comment: String): Future[EngineJob] = {
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
+      Post(toUrl(jobRoot(JobTypeIds.TS_SYSTEM_STATUS.id)),
            TsSystemStatusServiceOptions(user, comment)))
   }
 
@@ -672,7 +678,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      user: String,
                      comment: String): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
+      Post(toUrl(jobRoot(JobTypeIds.TS_JOB.id)),
            TsJobBundleJobServiceOptions(jobId, user, comment)))
 
   /**
@@ -686,7 +692,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     */
   def runDbBackUpJob(user: String, comment: String): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id),
+      Post(toUrl(jobRoot(JobTypeIds.DB_BACKUP.id)),
            DbBackUpServiceJobOptions(user, comment)))
 
   /**
@@ -698,7 +704,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                  name: Option[String] = None,
                  description: Option[String] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
+      Post(toUrl(jobRoot(JobTypeIds.EXPORT_JOBS.id)),
            ExportSmrtLinkJobOptions(jobIds,
                                     outputPath,
                                     includeEntryPoints,
@@ -714,8 +720,15 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     */
   def importJob(zipPath: Path, mockJobId: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_JOB.id),
+      Post(toUrl(jobRoot(JobTypeIds.IMPORT_JOB.id)),
            ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId))))
+
+  def copyDataSet(dsId: IdAble,
+                  filters: Seq[Seq[DataSetFilterProperty]],
+                  dsName: Option[String] = None): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUrl(jobRoot(JobTypeIds.DS_COPY.id)),
+           CopyDataSetJobOptions(dsId, filters, dsName, None, None, None)))
 
   def getAlarms(): Future[Seq[AlarmStatus]] =
     getObject[Seq[AlarmStatus]](Get(toUrl(ROOT_ALARMS)))

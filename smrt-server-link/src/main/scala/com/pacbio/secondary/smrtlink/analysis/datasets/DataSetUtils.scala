@@ -1,16 +1,27 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
 import java.nio.file.Path
+import java.util.UUID
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
+import scala.collection.immutable.TreeSet
 import com.typesafe.scalalogging.LazyLogging
+
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetType => XsdDataSetType,
+  DataSetMetadataType,
+  SubreadSet
+}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   BaseEntityType,
   DNABarcode,
   ExternalResource,
-  ExternalResources
+  ExternalResources,
+  FilterType,
+  StrictEntityType,
+  SupportedFilterNames
 }
 import com.pacificbiosciences.pacbiocollectionmetadata.{
   WellSample,
@@ -317,5 +328,104 @@ object DataSetUpdateUtils extends DataSetMetadataUtils {
                      wellSampleName: Option[String] = None): Option[String] = {
     val ds = DataSetLoader.loadSubreadSet(dsFile)
     applyMetadataUpdates(ds, bioSampleName, wellSampleName)
+  }
+}
+
+// This doesn't really need to be its own trait but it is potentially useful
+// in other contexts than filter manipulation
+trait DataSetParentUtils {
+  protected def setParent(ds: ReadSetType, parent: ReadSetType) = {
+    val provenance = new DataSetMetadataType.Provenance()
+    val pds = new StrictEntityType()
+    pds.setMetaType(parent.getMetaType)
+    pds.setUniqueId(parent.getUniqueId)
+    pds.setTimeStampedName(parent.getTimeStampedName)
+    provenance.setParentDataSet(pds)
+    ds.getDataSetMetadata.setProvenance(provenance)
+  }
+}
+
+trait DataSetFilterUtils extends DataSetParentUtils {
+  def clearFilters(ds: XsdDataSetType): XsdDataSetType.Filters = {
+    val f = new XsdDataSetType.Filters()
+    ds.setFilters(f)
+    f
+  }
+
+  private def toProperty(req: DataSetFilterProperty) = {
+    val prop = new FilterType.Properties.Property()
+    prop.setName(req.name)
+    prop.setOperator(req.operator)
+    prop.setValue(req.value)
+    prop
+  }
+
+  private def appendFilter(ds: XsdDataSetType, f: FilterType) =
+    Option(ds.getFilters)
+      .getOrElse(clearFilters(ds))
+      .getFilter
+      .add(f)
+
+  private def toFilter(props: Seq[FilterType.Properties.Property]) = {
+    val xsdFilter = new FilterType()
+    val xsdProps = new FilterType.Properties()
+    props.foreach(xsdProps.getProperty.add)
+    xsdFilter.setProperties(xsdProps)
+    xsdFilter
+  }
+
+  def addSimpleFilter(ds: XsdDataSetType, req: DataSetFilterProperty): Unit =
+    appendFilter(ds, toFilter(Seq(toProperty(req))))
+
+  def addSimpleFilter(ds: XsdDataSetType,
+                      name: String,
+                      operator: String,
+                      value: String): Unit =
+    addSimpleFilter(ds, DataSetFilterProperty(name, operator, value))
+
+  /**
+    * Add a single filter with one or more AND'ed properties
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param reqs: list of filter reqs to be AND'ed together
+    */
+  def addFilter(ds: XsdDataSetType, reqs: Seq[DataSetFilterProperty]): Unit =
+    appendFilter(ds, toFilter(reqs.map(toProperty)))
+
+  /**
+    * Add multiple filters (OR'ed together), each with one or more properties
+    * (AND'ed together)
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param filters: list of filters to be OR'ed together
+    */
+  def addFilters(ds: XsdDataSetType,
+                 filters: Seq[Seq[DataSetFilterProperty]]): Unit =
+    filters.foreach(reqs => addFilter(ds, reqs))
+
+  def addLengthFilter(ds: XsdDataSetType,
+                      value: Int,
+                      operator: String = ">=") =
+    addSimpleFilter(ds, "length", operator, value.toString)
+
+  /**
+    * Write a new SubreadSet XML file with filters applied
+    */
+  def applyFilters(dsFile: Path,
+                   outputFile: Path,
+                   filters: Seq[Seq[DataSetFilterProperty]],
+                   dsName: Option[String] = None,
+                   resolvePaths: Boolean = true): SubreadSet = {
+    val ds = if (resolvePaths) {
+      DataSetLoader.loadAndResolveSubreadSet(dsFile)
+    } else {
+      DataSetLoader.loadSubreadSet(dsFile)
+    }
+    addFilters(ds, filters)
+    ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
+    setParent(ds, ds) // the original dataset becomes the parent
+    ds.setUniqueId(UUID.randomUUID().toString)
+    DataSetWriter.writeSubreadSet(ds, outputFile)
+    ds
   }
 }

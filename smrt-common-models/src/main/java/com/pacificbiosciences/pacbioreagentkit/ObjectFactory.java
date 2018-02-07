@@ -53,6 +53,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link SupplyKitSequencing }
+     * 
+     */
+    public SupplyKitSequencing createSupplyKitSequencing() {
+        return new SupplyKitSequencing();
+    }
+
+    /**
      * Create an instance of {@link ReagentTubeType }
      * 
      */
@@ -82,14 +90,6 @@ public class ObjectFactory {
      */
     public ReagentPlateRowType createReagentPlateRowType() {
         return new ReagentPlateRowType();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitSequencing }
-     * 
-     */
-    public SupplyKitSequencing createSupplyKitSequencing() {
-        return new SupplyKitSequencing();
     }
 
     /**

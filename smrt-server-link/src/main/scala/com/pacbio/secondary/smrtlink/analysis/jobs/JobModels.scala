@@ -268,6 +268,13 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object DS_COPY extends JobType {
+      val id = "copy-dataset"
+      val name = "DataSet copying and filtering"
+      val description = "Copy an XML dataset, with optional filters"
+      override def isQuick: Boolean = true
+    }
+
     case object MJOB_MULTI_ANALYSIS extends JobType {
       val id = "multi-analysis"
       val name = "Run Multi-Analysis Jobs"
@@ -296,6 +303,7 @@ object JobModels {
       TS_JOB,
       TS_SYSTEM_STATUS,
       DB_BACKUP,
+      DS_COPY,
       MJOB_MULTI_ANALYSIS
     )
 

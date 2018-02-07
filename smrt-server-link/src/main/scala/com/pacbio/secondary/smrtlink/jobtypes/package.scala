@@ -198,10 +198,9 @@ package object jobtypes {
     def resolvePathsAndWriteEntryPoints(
         dao: JobsDao,
         jobRoot: Path,
-        timeout: FiniteDuration,
         datasetType: DataSetMetaTypes.DataSetMetaType,
-        datasetIds: Seq[IdAble]): Seq[Path] = {
-      val fx: Future[Seq[Path]] = for {
+        datasetIds: Seq[IdAble]): Future[Seq[Path]] = {
+      for {
         datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
                                                               datasetIds,
                                                               dao)
@@ -210,8 +209,6 @@ package object jobtypes {
           updateDataSetandWriteToEntryPointsDir(Paths.get(p), jobRoot, dao)
         })
       } yield updatedPaths
-
-      Await.result(blocking(fx), timeout)
     }
   }
 
@@ -443,6 +440,7 @@ package object jobtypes {
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS =>
           jx.convertTo[TsSystemStatusBundleJobOptions]
+        case JobTypeIds.DS_COPY => jx.convertTo[CopyDataSetJobOptions]
         // These really need to be separated out into there own class
         case JobTypeIds.MJOB_MULTI_ANALYSIS =>
           jx.convertTo[MultiAnalysisJobOptions]

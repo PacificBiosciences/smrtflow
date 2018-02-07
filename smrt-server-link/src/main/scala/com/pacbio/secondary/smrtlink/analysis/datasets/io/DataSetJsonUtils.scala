@@ -13,6 +13,7 @@ import org.eclipse.persistence.jaxb.{
 import spray.json._
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFilterProperty
 
 /**
   *
@@ -222,6 +223,21 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
       DataSetJsonUtils.gmapReferenceSetFromJson(json.toString)
   }
 
+  implicit object DataSetFilterPropertyFormat
+      extends RootJsonFormat[DataSetFilterProperty] {
+    def write(p: DataSetFilterProperty): JsObject =
+      JsObject("name" -> JsString(p.name.value()),
+               "operator" -> JsString(p.operator.value()),
+               "value" -> JsString(p.value))
+    def read(value: JsValue): DataSetFilterProperty = {
+      value.asJsObject.getFields("name", "operator", "value") match {
+        case Seq(JsString(name), JsString(operator), JsString(value)) =>
+          DataSetFilterProperty(name, operator, value)
+        case x =>
+          deserializationError(s"Expected DataSetFilterProperty, got $x")
+      }
+    }
+  }
 }
 
 object DataSetJsonProtocol extends DataSetJsonProtocols

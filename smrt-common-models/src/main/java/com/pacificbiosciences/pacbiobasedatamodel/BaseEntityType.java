@@ -84,7 +84,6 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType;
 @XmlSeeAlso({
     StatsTimeSeriesType.class,
     DNABarcode.class,
-    AutomationConstraintType.class,
     IncompatiblePairType.class,
     StatsDiscreteDistType.class,
     StatsContinuousDistType.class,
@@ -98,6 +97,7 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType;
     BioSampleType.class,
     ExperimentContainerType.class,
     Contigs.Contig.class,
+    AutomationConstraintType.class,
     Contigs.class,
     WellSample.class,
     DataEntityType.class,

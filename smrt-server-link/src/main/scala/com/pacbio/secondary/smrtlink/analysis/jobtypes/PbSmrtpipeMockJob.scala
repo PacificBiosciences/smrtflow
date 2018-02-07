@@ -5,12 +5,14 @@ import java.net.URL
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
+import com.pacificbiosciences.pacbiodatasets.DataSetType
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
+
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
@@ -138,6 +140,27 @@ trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
   def writeDataStore(ds: PacBioDataStore, path: Path): Path = {
     FileUtils.writeStringToFile(path.toFile, ds.toJson.prettyPrint.toString)
     path
+  }
+
+  def toDataStoreFile[T <: DataSetType](ds: T,
+                                        output: Path,
+                                        description: String,
+                                        sourceId: String): DataStoreFile = {
+    val uuid = UUID.fromString(ds.getUniqueId)
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    DataStoreFile(
+      uuid,
+      sourceId,
+      ds.getMetaType,
+      output.toFile.length,
+      createdAt,
+      modifiedAt,
+      output.toAbsolutePath.toString,
+      isChunked = false,
+      Option(ds.getName).getOrElse("PacBio DataSet"),
+      description
+    )
   }
 
   /**

@@ -9,6 +9,10 @@ import scala.util.{Try, Success, Failure}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.DataSetBaseType
 import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedFilterNames,
+  SupportedFilterOperators
+}
 import com.pacificbiosciences.pacbiodatasets.{
   SubreadSet,
   HdfSubreadSet,
@@ -155,6 +159,19 @@ case class DataSetMetaData(uuid: java.util.UUID,
                            totalLength: Int)
 
 case class DatasetIndexFile(indexType: String, url: String)
+
+case class DataSetFilterProperty(name: SupportedFilterNames,
+                                 operator: SupportedFilterOperators,
+                                 value: String)
+object DataSetFilterProperty
+    extends ((String, String, String) => DataSetFilterProperty) {
+  def apply(name: String,
+            operator: String,
+            value: String): DataSetFilterProperty =
+    DataSetFilterProperty(SupportedFilterNames.fromValue(name),
+                          SupportedFilterOperators.fromValue(operator),
+                          value)
+}
 
 trait DataSetMetaDataProtocol
     extends DefaultJsonProtocol
