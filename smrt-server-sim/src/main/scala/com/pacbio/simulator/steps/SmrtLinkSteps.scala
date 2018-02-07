@@ -680,14 +680,4 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.runDbBackUpJob(user, comment).map(_.uuid)
 
   }
-
-  case class CopyDataSetJob(dsId: IdAble,
-                            filters: Seq[Seq[DataSetFilterProperty]],
-                            dsName: Option[String])
-      extends VarStep[UUID] {
-    override val name = "CopyDataSetJob"
-    override def runWith =
-      smrtLinkClient.copyDataSet(dsId, filters, dsName).map(_.uuid)
-  }
-
 }

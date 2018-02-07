@@ -2,6 +2,8 @@ package com.pacbio.simulator.scenarios
 
 import java.util.UUID
 
+import scala.concurrent.Future
+
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 
@@ -58,8 +60,6 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   override val requirements = Seq("SL-49")
   override val smrtLinkClient = client
 
-  private val EXIT_SUCCESS: Var[Int] = Var(0)
-  private val EXIT_FAILURE: Var[Int] = Var(1)
   private val PIPELINE_ID = "pbsmrtpipe.pipelines.dev_verify_dataset_filters"
   private val FT_SUBREADS: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Subread)
@@ -72,7 +72,6 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   private val NUM_RECORDS_EXPECTED_2 = 13
 
   private val subreadsXml = testdata.getTempDataSet(TEST_FILE_ID)
-  private val subreadsId = getDataSetMiniMeta(subreadsXml).uuid
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
 
@@ -102,59 +101,70 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   private def getSubreadsId(files: Seq[DataStoreServiceFile]) =
     files.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
 
-  private val jobId: Var[UUID] = Var()
-  private val jobStatus: Var[Int] = Var()
-  private val job: Var[EngineJob] = Var()
-  private val msg: Var[String] = Var()
-  private val subreads: Var[SubreadServiceDataSet] = Var()
-  private val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
-  private val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
+  private def failIf(condition: Boolean, msg: String) = {
+    if (!condition) {
+      Future.successful("Condition false")
+    } else {
+      Future.failed(new RuntimeException(msg))
+    }
+  }
 
-  private def failIfWrongName(name: String) =
-    fail("Wrong datset name") IF subreads.mapWith(_.name) !=? name
-  private def failIfWrongNumRecords(numRecords: Int) =
-    fail("Wrong number of records") IF subreads.mapWith(_.numRecords) !=? numRecords
-  private def failIfWrongTotalLength(totalLength: Int) =
-    fail("Wrong total length") IF subreads.mapWith(_.totalLength) !=? totalLength
-  private def toOpts(name: String, numRecords: Int, totalLength: Int) =
-    subreads.mapWith(s =>
-      toPbsmrtpipeOpts(name, s.uuid, numRecords, totalLength))
+  private def runCopySubreadsAndVerify(jobId: UUID,
+                                       name: String,
+                                       numRecords: Int,
+                                       totalLength: Int) = {
+    for {
+      copyJob <- Future.fromTry(client.pollForSuccessfulJob(jobId))
+      dataStore <- client.getJobDataStore(copyJob.id)
+      dsId <- Future.successful(getSubreadsId(dataStore))
+      subreads <- client.getSubreadSet(dsId)
+      // FIXME these will be incorrect w.r.t. filters!
+      //_ <- failIf(subreads.numRecords != numRecords, "Wrong numRecords")
+      //_ <- failIf(subreads.totalLength != totalLength, "Wrong totalLength")
+      _ <- failIf(subreads.name != name, "Wrong dataset name")
+      analysisJob <- client.runAnalysisPipeline(
+        toPbsmrtpipeOpts(name, dsId, numRecords, totalLength))
+      analysisJob <- Future.fromTry(
+        client.pollForSuccessfulJob(analysisJob.id))
+    } yield subreads
+  }
 
-  private val subreadSteps = Seq(
-    jobStatus := GetStatus,
-    fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(Var(subreadsXml), FT_SUBREADS),
-    WaitForSuccessfulJob(jobId),
-    subreads := GetSubreadSet(Var(subreadsId)),
-    failIfWrongNumRecords(NUM_RECORDS_EXPECTED_1),
-    failIfWrongTotalLength(TOTAL_LENGTH_EXPECTED_1),
-    // no filters
-    jobId := CopyDataSetJob(subreadsId, Seq(), Some(DS_NAME_1)),
-    WaitForSuccessfulJob(jobId),
-    dataStore := GetJobDataStore(jobId),
-    fail("Expected new UUID") IF dataStore
-      .mapWith(getSubreadsId) ==? subreadsId,
-    subreads := GetSubreadSet(dataStore.mapWith(getSubreadsId)),
-    failIfWrongName(DS_NAME_1),
-    jobId := RunAnalysisPipeline(
-      toOpts(DS_NAME_1, NUM_RECORDS_EXPECTED_1, TOTAL_LENGTH_EXPECTED_1)),
-    WaitForSuccessfulJob(jobId),
-    // with filters
-    jobId := CopyDataSetJob(subreadsId, filters1, Some(DS_NAME_2)),
-    WaitForSuccessfulJob(jobId),
-    dataStore := GetJobDataStore(jobId),
-    fail("Expected new UUID") IF dataStore
-      .mapWith(getSubreadsId) ==? subreadsId,
-    subreads := GetSubreadSet(dataStore.mapWith(getSubreadsId)),
-    failIfWrongName(DS_NAME_2),
-    /*
-    failIfWrongNumRecords(subreads, N_RECORDS_EXPECTED_2),
-    failIfWrongTotalLength(subreads, TOTAL_LENGTH_EXPECTED_2)
-     */
-    jobId := RunAnalysisPipeline(
-      toOpts(DS_NAME_2, NUM_RECORDS_EXPECTED_2, TOTAL_LENGTH_EXPECTED_2)),
-    WaitForSuccessfulJob(jobId)
-  )
+  private def runTests = {
+    for {
+      _ <- andLog(s"Starting to run CopyDataSetScenario")
+      status <- client.getStatus
+      _ <- andLog(
+        s"Successfully connected to SMRT Link Server: ${client.baseUrl}")
+      dsMeta <- Future.successful(getDataSetMiniMeta(subreadsXml))
+      importJob <- client.importDataSet(subreadsXml, dsMeta.metatype)
+      importJob <- Future.fromTry(client.pollForSuccessfulJob(importJob.id))
+      _ <- andLog(s"Successfully imported dataset ${dsMeta.uuid}")
+      subreads <- client.getSubreadSet(dsMeta.uuid)
+      _ <- failIf(subreads.numRecords != NUM_RECORDS_EXPECTED_1,
+                  "Wrong numRecords")
+      _ <- failIf(subreads.totalLength != TOTAL_LENGTH_EXPECTED_1,
+                  "Wrong totalLength")
+      // copy with no filters
+      copyJob <- client.copyDataSet(dsMeta.uuid, Seq(), Some(DS_NAME_1))
+      subreads <- runCopySubreadsAndVerify(copyJob.uuid,
+                                           DS_NAME_1,
+                                           NUM_RECORDS_EXPECTED_1,
+                                           TOTAL_LENGTH_EXPECTED_1)
+      _ <- failIf(subreads.uuid == dsMeta.uuid, "UUID should have changed")
+      // with filters
+      copyJob <- client.copyDataSet(dsMeta.uuid, filters1, Some(DS_NAME_2))
+      subreads <- runCopySubreadsAndVerify(copyJob.uuid,
+                                           DS_NAME_2,
+                                           NUM_RECORDS_EXPECTED_2,
+                                           TOTAL_LENGTH_EXPECTED_2)
+      _ <- failIf(subreads.uuid == dsMeta.uuid, "UUID should have changed")
+    } yield subreads
+  }
 
-  override val steps = subreadSteps
+  case object RunCopyDataSetsTestsStep extends VarStep[SubreadServiceDataSet] {
+    override val name: String = "RunCopyDataSetsTestsStep"
+    override def runWith = runTests
+  }
+
+  override val steps = Seq(RunCopyDataSetsTestsStep)
 }
