@@ -34,11 +34,14 @@ object CopyDataSetScenarioLoader extends ScenarioLoader {
             "PacBioTestData must be configured for CopyDataSetScenario")
     val c: Config = config.get
 
-    new CopyDataSetScenario(getHost(c), getPort(c))
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
+    val testdata = PacBioTestData()
+    new CopyDataSetScenario(smrtLinkClient, testdata)
   }
 }
 
-class CopyDataSetScenario(host: String, port: Int)
+class CopyDataSetScenario(client: SmrtLinkServiceClient,
+                          testdata: PacBioTestData)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -52,8 +55,8 @@ class CopyDataSetScenario(host: String, port: Int)
   import CommonModelImplicits._
 
   override val name = "CopyDataSetScenario"
-  override val requirements = Seq.empty[String]
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val requirements = Seq("SL-49")
+  override val smrtLinkClient = client
 
   private val EXIT_SUCCESS: Var[Int] = Var(0)
   private val EXIT_FAILURE: Var[Int] = Var(1)
@@ -68,7 +71,6 @@ class CopyDataSetScenario(host: String, port: Int)
   private val TOTAL_LENGTH_EXPECTED_2 = 17601
   private val NUM_RECORDS_EXPECTED_2 = 13
 
-  private val testdata = PacBioTestData()
   private val subreadsXml = testdata.getTempDataSet(TEST_FILE_ID)
   private val subreadsId = getDataSetMiniMeta(subreadsXml).uuid
 
