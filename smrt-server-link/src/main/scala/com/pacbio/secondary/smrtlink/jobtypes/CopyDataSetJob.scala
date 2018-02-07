@@ -31,7 +31,6 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 case class CopyDataSetJobOptions(datasetId: IdAble,
                                  filters: Seq[Seq[DataSetFilterProperty]],
-                                 dsName: Option[String],
                                  name: Option[String],
                                  description: Option[String],
                                  projectId: Option[Int] = Some(
@@ -94,7 +93,7 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
                                                Seq(opts.datasetId))
       _ <- writer(s"Successfully resolved dataset ${opts.datasetId.toString}")
       ds <- Future.successful(
-        applyFilters(paths.head, outputFile, opts.filters, opts.dsName))
+        applyFilters(paths.head, outputFile, opts.filters, opts.name))
       dsFile <- Future.successful(
         toDataStoreFile(ds, outputFile, "Filtered dataset", SOURCE_ID))
       dataStore <- Future.successful(

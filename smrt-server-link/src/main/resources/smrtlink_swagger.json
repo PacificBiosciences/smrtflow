@@ -6572,17 +6572,20 @@
       "properties": {
         "name": {
           "type": "string",
-          "title": "Property name"
+          "title": "Property name",
+          "example": "length"
         },
         "operator": {
           "type": "string",
           "title": "Operator",
-          "description": "Comparison operator"
+          "description": "Comparison operator",
+          "example": ">="
         },
         "value": {
           "type": "string",
           "title": "Value",
-          "description": "Comparison value"
+          "description": "Comparison value",
+          "example": "1000"
         }
       }
     },
@@ -6607,11 +6610,23 @@
           },
           "description": "List of dataset filters"
         },
-        "dsName": {
+        "name": {
           "type": ["string", "null"],
           "default": null,
           "title": "Output dataset name",
           "description": "Output dataset name"
+        },
+        "description": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Output description (unused)",
+          "description": "Output dataset description (unused)"
+        },
+        "projectId": {
+          "type": ["integer", "null"],
+          "default": 1,
+          "title": "Project ID",
+          "description": "Project ID"
         }
       }
     },
