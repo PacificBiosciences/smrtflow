@@ -13,10 +13,6 @@ import org.eclipse.persistence.jaxb.{
 import spray.json._
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{
-  SupportedFilterNames,
-  SupportedFilterOperators
-}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFilterProperty
 
 /**
@@ -158,34 +154,7 @@ object DataSetJsonUtils {
 
 }
 
-trait SupportedFilterNamesProtocols extends DefaultJsonProtocol {
-  implicit object SupportedFilterNamesFormat
-      extends RootJsonFormat[SupportedFilterNames] {
-    def write(s: SupportedFilterNames): JsValue = JsString(s.value())
-    def read(v: JsValue): SupportedFilterNames = v match {
-      case JsString(s) => SupportedFilterNames.fromValue(s)
-      case _ =>
-        deserializationError("Expected SupportedFilterNames as JsString")
-    }
-  }
-}
-
-trait SupportedFilterOperatorsProtocols extends DefaultJsonProtocol {
-  implicit object SupportedFilterOperatorsFormat
-      extends RootJsonFormat[SupportedFilterOperators] {
-    def write(s: SupportedFilterOperators): JsValue = JsString(s.value())
-    def read(v: JsValue): SupportedFilterOperators = v match {
-      case JsString(s) => SupportedFilterOperators.fromValue(s)
-      case _ =>
-        deserializationError("Expected SupportedFilterOperators as JsString")
-    }
-  }
-}
-
-trait DataSetJsonProtocols
-    extends DefaultJsonProtocol
-    with SupportedFilterNamesProtocols
-    with SupportedFilterOperatorsProtocols {
+trait DataSetJsonProtocols extends DefaultJsonProtocol {
 
   implicit object SubreadSetJsonFormat extends RootJsonFormat[SubreadSet] {
     def write(obj: SubreadSet): JsObject =
@@ -254,9 +223,21 @@ trait DataSetJsonProtocols
       DataSetJsonUtils.gmapReferenceSetFromJson(json.toString)
   }
 
-  implicit val dataSetFilterPropertyFormat
-    : RootJsonFormat[DataSetFilterProperty] = jsonFormat3(
-    DataSetFilterProperty)
+  implicit object DataSetFilterPropertyFormat
+      extends RootJsonFormat[DataSetFilterProperty] {
+    def write(p: DataSetFilterProperty): JsObject =
+      JsObject("name" -> JsString(p.name.value()),
+               "operator" -> JsString(p.operator.value()),
+               "value" -> JsString(p.value))
+    def read(value: JsValue): DataSetFilterProperty = {
+      value.asJsObject.getFields("name", "operator", "value") match {
+        case Seq(JsString(name), JsString(operator), JsString(value)) =>
+          DataSetFilterProperty(name, operator, value)
+        case x =>
+          deserializationError(s"Expected DataSetFilterProperty, got $x")
+      }
+    }
+  }
 }
 
 object DataSetJsonProtocol extends DataSetJsonProtocols

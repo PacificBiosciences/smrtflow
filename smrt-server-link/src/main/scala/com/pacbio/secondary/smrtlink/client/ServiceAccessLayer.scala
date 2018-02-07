@@ -25,6 +25,7 @@ import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.jsonprotocols._
 import com.pacbio.secondary.smrtlink.analysis.reports._
 import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
@@ -40,8 +41,8 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   import CommonModelImplicits._
   import CommonModels._
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
+  import SmrtLinkJsonProtocols._
 
   protected def getMessageResponse(
       request: HttpRequest): Future[MessageResponse] =

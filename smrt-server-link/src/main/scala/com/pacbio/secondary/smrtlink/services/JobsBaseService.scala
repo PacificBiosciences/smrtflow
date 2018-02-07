@@ -948,7 +948,8 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     new RsConvertMovieToDataSetJobsService(dao, config),
     new SimpleJobsService(dao, config),
     new TsJobBundleJobsService(dao, config),
-    new TsSystemStatusBundleJobsService(dao, config)
+    new TsSystemStatusBundleJobsService(dao, config),
+    new CopyDataSetJobService(dao, config)
   )
 
   // Note these is duplicated within a Job
