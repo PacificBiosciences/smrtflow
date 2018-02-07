@@ -36,6 +36,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,
   DataSetWriter
 }
+import com.pacbio.secondary.smrtlink.analysis.externaltools.CallDataset
 
 import collection.JavaConverters._
 
@@ -419,12 +420,15 @@ trait DataSetFilterUtils extends DataSetParentUtils {
                    outputFile: Path,
                    filters: Seq[Seq[DataSetFilterProperty]],
                    dsName: Option[String] = None,
-                   resolvePaths: Boolean = true): SubreadSet = {
-    val ds = if (resolvePaths) {
-      DataSetLoader.loadAndResolveSubreadSet(dsFile)
-    } else {
-      DataSetLoader.loadSubreadSet(dsFile)
-    }
+                   resolvePaths: Boolean = true,
+                   updateCounts: Boolean = true): SubreadSet = {
+    def getDataSet(f: Path) =
+      if (resolvePaths) {
+        DataSetLoader.loadAndResolveSubreadSet(f)
+      } else {
+        DataSetLoader.loadSubreadSet(f)
+      }
+    val ds = getDataSet(dsFile)
     addFilters(ds, filters)
     val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss")
       .format(Calendar.getInstance().getTime)
@@ -444,6 +448,11 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     } else Seq("copied")
     ds.setTags(tags.toList.mkString(","))
     DataSetWriter.writeSubreadSet(ds, outputFile)
-    ds
+    if (updateCounts) {
+      CallDataset.runAbsolutize(outputFile)
+      getDataSet(outputFile)
+    } else {
+      ds
+    }
   }
 }

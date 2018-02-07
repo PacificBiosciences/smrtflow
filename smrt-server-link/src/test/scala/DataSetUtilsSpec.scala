@@ -252,6 +252,7 @@ class DataSetUtilsSpec
                      dsOut,
                      filters,
                      Some("My filtered dataset"),
+                     false,
                      false)
       tx.toOption must beSome
       val ds2 = DataSetLoader.loadSubreadSet(dsOut)

@@ -118,9 +118,8 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
       dataStore <- client.getJobDataStore(copyJob.id)
       dsId <- Future.successful(getSubreadsId(dataStore))
       subreads <- client.getSubreadSet(dsId)
-      // FIXME these will be incorrect w.r.t. filters!
-      //_ <- failIf(subreads.numRecords != numRecords, "Wrong numRecords")
-      //_ <- failIf(subreads.totalLength != totalLength, "Wrong totalLength")
+      _ <- failIf(subreads.numRecords != numRecords, "Wrong numRecords")
+      _ <- failIf(subreads.totalLength != totalLength, "Wrong totalLength")
       _ <- failIf(subreads.name != name, "Wrong dataset name")
       analysisJob <- client.runAnalysisPipeline(
         toPbsmrtpipeOpts(name, dsId, numRecords, totalLength))

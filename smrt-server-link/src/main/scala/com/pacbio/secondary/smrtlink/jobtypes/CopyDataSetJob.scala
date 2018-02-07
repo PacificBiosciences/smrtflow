@@ -26,6 +26,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
@@ -96,8 +97,17 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
         applyFilters(paths.head, outputFile, opts.filters, opts.name))
       dsFile <- Future.successful(
         toDataStoreFile(ds, outputFile, "Filtered dataset", SOURCE_ID))
+      rptFiles <- Future.successful(
+        DataSetReports.runAll(outputFile,
+                              DataSetMetaTypes.Subread,
+                              job.path,
+                              opts.jobTypeId,
+                              resultsWriter,
+                              forceSimpleReports = true))
       dataStore <- Future.successful(
         PacBioDataStore.fromFiles(Seq(logFile, dsFile)))
+      dataStore <- Future.successful(
+        dataStore.copy(files = dataStore.files ++ rptFiles))
       _ <- Future.successful(writeDataStore(dataStore, datastoreJson))
       _ <- writer(
         s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
