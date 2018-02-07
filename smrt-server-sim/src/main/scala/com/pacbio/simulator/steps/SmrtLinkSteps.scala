@@ -12,7 +12,10 @@ import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetFilterProperty
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -677,5 +680,4 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.runDbBackUpJob(user, comment).map(_.uuid)
 
   }
-
 }

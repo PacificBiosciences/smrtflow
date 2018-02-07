@@ -1,11 +1,15 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
 import java.nio.file.Path
-import java.util.UUID
+import java.text.SimpleDateFormat
+import javax.xml.datatype.DatatypeFactory
+import java.util.{UUID, Calendar}
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeSet
+
+import org.joda.time.{DateTime => JodaDateTime}
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
@@ -32,6 +36,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,
   DataSetWriter
 }
+import com.pacbio.secondary.smrtlink.analysis.externaltools.CallDataset
 
 import collection.JavaConverters._
 
@@ -415,17 +420,39 @@ trait DataSetFilterUtils extends DataSetParentUtils {
                    outputFile: Path,
                    filters: Seq[Seq[DataSetFilterProperty]],
                    dsName: Option[String] = None,
-                   resolvePaths: Boolean = true): SubreadSet = {
-    val ds = if (resolvePaths) {
-      DataSetLoader.loadAndResolveSubreadSet(dsFile)
-    } else {
-      DataSetLoader.loadSubreadSet(dsFile)
-    }
+                   resolvePaths: Boolean = true,
+                   updateCounts: Boolean = true): SubreadSet = {
+    def getDataSet(f: Path) =
+      if (resolvePaths) {
+        DataSetLoader.loadAndResolveSubreadSet(f)
+      } else {
+        DataSetLoader.loadSubreadSet(f)
+      }
+    val ds = getDataSet(dsFile)
     addFilters(ds, filters)
-    ds.setName(dsName.getOrElse(s"${ds.getName} (filtered)"))
+    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss")
+      .format(Calendar.getInstance().getTime)
+    def toTimeStampName(n: String) = s"${n}_$timeStamp"
+    val createdAt = DatatypeFactory
+      .newInstance()
+      .newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
     setParent(ds, ds) // the original dataset becomes the parent
+    val name = dsName.getOrElse(s"${ds.getName} (filtered)")
+    val timeStampName = toTimeStampName(name.toLowerCase)
+    ds.setCreatedAt(createdAt)
+    ds.setName(name)
+    ds.setTimeStampedName(timeStampName)
     ds.setUniqueId(UUID.randomUUID().toString)
+    val tags = if (ds.getTags != "") {
+      TreeSet((ds.getTags.split(',') ++ Seq("copied")): _*)
+    } else Seq("copied")
+    ds.setTags(tags.toList.mkString(","))
     DataSetWriter.writeSubreadSet(ds, outputFile)
-    ds
+    if (updateCounts) {
+      CallDataset.runAbsolutize(outputFile)
+      getDataSet(outputFile)
+    } else {
+      ds
+    }
   }
 }

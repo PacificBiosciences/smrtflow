@@ -248,7 +248,12 @@ class DataSetUtilsSpec
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       val dsOut = Files.createTempFile("updated", ".subreadset.xml")
       var tx =
-        applyFilters(dsFile, dsOut, filters, Some("My filtered dataset"), false)
+        applyFilters(dsFile,
+                     dsOut,
+                     filters,
+                     Some("My filtered dataset"),
+                     false,
+                     false)
       tx.toOption must beSome
       val ds2 = DataSetLoader.loadSubreadSet(dsOut)
       ds2.getName must beEqualTo("My filtered dataset")
@@ -257,6 +262,9 @@ class DataSetUtilsSpec
       val parent = ds2.getDataSetMetadata.getProvenance.getParentDataSet
       parent.getUniqueId === ds.getUniqueId
       ds2.getFilters.getFilter.size must beEqualTo(2)
+      ds2.getTimeStampedName !== ds.getTimeStampedName
+      ds2.getCreatedAt !== ds.getCreatedAt
+      (ds2.getTags.split(',').toSet contains "copied") must beTrue
     }
   }
 }

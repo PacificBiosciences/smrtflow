@@ -151,13 +151,14 @@ object DataSetReports
              dst: DataSetMetaTypes.DataSetMetaType,
              jobPath: Path,
              jobTypeId: JobTypeIds.JobType,
-             log: JobResultsWriter): Seq[DataStoreFile] = {
+             log: JobResultsWriter,
+             forceSimpleReports: Boolean = false): Seq[DataStoreFile] = {
 
     val rptParent = jobPath.resolve(reportPrefix)
     rptParent.toFile.mkdir()
 
     val opts = DataSetReportOptions(inPath, dst, rptParent, log, jobTypeId)
-    if (PbReports.isAvailable()) {
+    if ((PbReports.isAvailable()) || (forceSimpleReports)) {
       generateReports(opts)
     } else {
       generateSimpleReports(opts)
