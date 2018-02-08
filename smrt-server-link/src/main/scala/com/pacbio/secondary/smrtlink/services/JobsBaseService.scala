@@ -248,7 +248,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           parameters('showAll.?, 'projectId ? DEFAULT_PROJECT) {
             (showAll, projectId) =>
               complete {
-                dao.getJobsByTypeId(jobTypeId.id, showAll.isDefined, projectId)
+                dao.getJobsByTypeId(jobTypeId, showAll.isDefined, projectId)
               }
           }
         }
