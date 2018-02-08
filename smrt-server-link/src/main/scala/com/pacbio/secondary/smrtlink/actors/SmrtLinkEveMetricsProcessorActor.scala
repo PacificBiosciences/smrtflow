@@ -5,7 +5,7 @@ import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
-import com.pacbio.common.models.CommonModels.IdAble
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.common.models.CommonModelImplicits._
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.CreateEvent
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -27,7 +27,7 @@ import spray.json._
   * Processes Completed Analysis Jobs and converts them to SmrtLink Events that
   * can be sent to Eve.
   */
-trait SmrtLinkEveMetricsProcessor {
+trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils {
 
   import SmrtLinkJsonProtocols._
 
@@ -143,6 +143,25 @@ trait SmrtLinkEveMetricsProcessor {
                   JodaDateTime.now(),
                   engineJobMetrics.toJson.asJsObject)
   }
+
+  def harvestAnalysisJobs(dao: JobsDao, maxConcurrent: Int = 10)(
+      implicit ec: ExecutionContext): Future[Seq[EngineJobMetrics]] = {
+    def getIds(): Future[Seq[Int]] =
+      dao
+        .getJobsByTypeId(JobTypeIds.PBSMRTPIPE, includeInactive = true)
+        .map(items => items.map(job => job.id))
+
+    def getConvertToEngineMetrics(i: Int): Future[EngineJobMetrics] =
+      convertToEngineMetrics(dao, IntIdAble(i))
+
+    for {
+      ids <- getIds()
+      engineJobMetrics <- runBatch(maxConcurrent,
+                                   ids,
+                                   getConvertToEngineMetrics)
+    } yield engineJobMetrics
+  }
+
 }
 
 /**
