@@ -874,6 +874,10 @@ object JobModels {
                                 success: Boolean,
                                 error: Option[String] = None)
 
+  case class ExportJobManifest(job: EngineJob,
+                               entryPoints: Seq[BoundEntryPoint],
+                               datastore: Option[PacBioDataStore])
+
   // Tech Support Related Models. These really belong on "common"
 
   object BundleTypes {
@@ -882,6 +886,9 @@ object JobModels {
     // the SL System Event eventTypeId convention (for ElasticSearch motivations)
     val FAILED_INSTALL = "sl_ts_bundle_failed_install"
     val SYSTEM_STATUS = "sl_ts_bundle_system_status"
+    // Historical Job metrics bundle
+    val JOB_HIST = "sl_ts_bundle_job_metrics_history"
+    // Failed Job Bundle
     val JOB = "sl_ts_bundle_job"
     // Should only be used in unittests
     val TEST = "sl_ts_test_bundle"
@@ -941,8 +948,21 @@ object JobModels {
                            jobId: Int)
       extends TsManifest
 
-  case class ExportJobManifest(job: EngineJob,
-                               entryPoints: Seq[BoundEntryPoint],
-                               datastore: Option[PacBioDataStore])
+  /**
+    *
+    * @param jobsJson Relative Path to the EngineJobMetrics within the
+    *                 TS Bundle
+    */
+  case class TsJobMetricHistory(id: UUID,
+                                bundleTypeId: String,
+                                bundleTypeVersion: Int,
+                                createdAt: JodaDateTime,
+                                smrtLinkSystemId: UUID,
+                                dnsName: Option[String],
+                                smrtLinkSystemVersion: Option[String],
+                                user: String,
+                                comment: Option[String],
+                                jobsJson: Path)
+      extends TsManifest
 
 }
