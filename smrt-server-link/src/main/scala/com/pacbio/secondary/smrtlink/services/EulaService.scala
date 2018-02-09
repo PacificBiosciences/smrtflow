@@ -37,27 +37,29 @@ class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao)
 
   implicit val timeout = Timeout(30.seconds)
 
+  lazy val osVersion = getOsVersion()
+
   def toEulaRecord(user: String,
                    enableInstallMetrics: Boolean,
+                   enableJobMetrics: Boolean,
                    systemVersion: String): EulaRecord = {
-    val osVersion = getOsVersion()
-    val acceptedAt = JodaDateTime.now()
     EulaRecord(user,
-               acceptedAt,
+               JodaDateTime.now(),
                systemVersion,
                osVersion,
                enableInstallMetrics,
-               enableJobMetrics = false)
+               enableJobMetrics = enableJobMetrics)
   }
 
-  def convertToEulaRecord(
-      user: String,
-      enableInstallMetrics: Boolean): Future[EulaRecord] = {
+  def convertToEulaRecord(user: String,
+                          enableInstallMetrics: Boolean,
+                          enableJobMetrics: Boolean): Future[EulaRecord] = {
     smrtLinkSystemVersion match {
       case Some(version) =>
-        Future.successful(toEulaRecord(user, enableInstallMetrics, version))
+        Future.successful(
+          toEulaRecord(user, enableInstallMetrics, enableJobMetrics, version))
       case _ =>
-        Future.failed(throw new ResourceNotFoundError(
+        Future.failed(ResourceNotFoundError(
           "System was not configured with SMRT Link System version. Unable to accept Eula"))
     }
   }
@@ -95,8 +97,10 @@ class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao)
             entity(as[EulaAcceptance]) { sopts =>
               complete(StatusCodes.Created -> {
                 for {
-                  eulaRecord <- convertToEulaRecord(sopts.user,
-                                                    sopts.enableInstallMetrics)
+                  eulaRecord <- convertToEulaRecord(
+                    sopts.user,
+                    sopts.enableInstallMetrics,
+                    sopts.enableJobMetrics.getOrElse(false))
                   acceptedRecord <- dao.addEulaRecord(eulaRecord)
                 } yield acceptedRecord
               })

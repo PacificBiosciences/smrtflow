@@ -997,7 +997,10 @@ case class EulaRecord(user: String,
                       enableInstallMetrics: Boolean,
                       enableJobMetrics: Boolean)
 
-case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
+// Making this backward compatible, but this should be removed
+case class EulaAcceptance(user: String,
+                          enableInstallMetrics: Boolean,
+                          enableJobMetrics: Option[Boolean])
 
 case class DataSetUpdateRequest(isActive: Option[Boolean] = None,
                                 bioSampleName: Option[String] = None,

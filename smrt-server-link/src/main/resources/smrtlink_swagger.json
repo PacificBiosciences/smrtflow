@@ -7213,7 +7213,7 @@
         "enableJobMetrics": {
           "type": "boolean",
           "title": "Enable Job Metrics",
-          "description": "If true, permits collection of non-proprietary information about analysis jobs"
+          "description": "If true, permits collection of non-proprietary information about all new and previously run analysis jobs"
         }
       }
     },
@@ -7236,7 +7236,12 @@
         "enableInstallMetrics": {
           "type": "boolean",
           "title": "Enable Install Metrics",
-          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation"
+          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation. This enables users to trigger Tech Support system status and failed jobs to PacBio."
+        },
+        "enableJobMetrics": {
+          "type": "boolean",
+          "title": "Enable Job Metrics",
+          "description": "If true, permits collection of non-proprietary information about previously run analysis jobs and newly created analysis jobs to automatically be sent to PacBio upon job completion."
         }
       }
     },

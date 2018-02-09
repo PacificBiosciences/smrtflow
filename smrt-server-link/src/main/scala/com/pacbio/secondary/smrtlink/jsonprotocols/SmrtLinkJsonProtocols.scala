@@ -275,7 +275,7 @@ trait SmrtLinkJsonProtocols
     cachedImplicit
 
   implicit val eulaFormat = jsonFormat6(EulaRecord)
-  implicit val eulaAcceptanceFormat = jsonFormat2(EulaAcceptance)
+  implicit val eulaAcceptanceFormat = jsonFormat3(EulaAcceptance)
 
   implicit val datasetUpdateFormat = jsonFormat3(DataSetUpdateRequest)
   implicit val datastoreUpdateFormat = jsonFormat3(DataStoreFileUpdateRequest)

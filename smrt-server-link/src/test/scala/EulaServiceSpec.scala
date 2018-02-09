@@ -96,33 +96,35 @@ class EulaServiceSpec
 
   "EULA service" should {
     "return an empty list of EULAs" in {
-      Get("/smrt-base/eula") ~> totalRoutes ~> check {
+      Get("/smrt-link/eula") ~> totalRoutes ~> check {
         val eulas = responseAs[Seq[EulaRecord]]
         //eulas must beEmpty
         status.isSuccess must beTrue
       }
     }
     "accept the EULA" in {
-      val params = EulaAcceptance("smrtlinktest", enableInstallMetrics = true)
-      Post("/smrt-base/eula", params) ~> totalRoutes ~> check {
+      val params = EulaAcceptance("smrtlinktest",
+                                  enableInstallMetrics = true,
+                                  enableJobMetrics = Some(true))
+      Post("/smrt-link/eula", params) ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
         eula.user must beEqualTo("smrtlinktest")
         eula.smrtlinkVersion must beEqualTo(testSmrtLinkVersion)
       }
     }
     "retrieve the list of EULAs again" in {
-      Get("/smrt-base/eula") ~> totalRoutes ~> check {
+      Get("/smrt-link/eula") ~> totalRoutes ~> check {
         val eulas = responseAs[Seq[EulaRecord]]
         eulas.size must beEqualTo(1)
       }
     }
     "retrieve the new EULA directly" in {
-      Get(s"/smrt-base/eula/$testSmrtLinkVersion") ~> totalRoutes ~> check {
+      Get(s"/smrt-link/eula/$testSmrtLinkVersion") ~> totalRoutes ~> check {
         val eula = responseAs[EulaRecord]
         eula.smrtlinkVersion must beEqualTo(testSmrtLinkVersion)
         eula.user must beEqualTo("smrtlinktest")
         eula.enableInstallMetrics must beTrue
-        eula.enableJobMetrics must beFalse
+        eula.enableJobMetrics must beTrue
       }
     }
   }
