@@ -1,18 +1,15 @@
 package com.pacbio.secondary.smrtlink.analysis.techsupport
 
 import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.common.models.Constants
 import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.analysis.converters.Utils
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  BundleTypes,
-  TsJobManifest,
-  TsSystemStatusManifest
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
+import com.pacbio.secondary.smrtlink.models.EngineJobMetrics
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.input.ReversedLinesFileReader
@@ -21,7 +18,16 @@ import resource.managed
 import spray.json._
 
 trait TechSupportConstants {
+
+  /**
+    * In the root level of every TGZ file, there is a
+    * manifest that communicates the "type" of bundle.
+    */
   val DEFAULT_TS_MANIFEST_JSON = "tech-support-manifest.json"
+
+  /**
+    * The default name of the TS TGZ bundle
+    */
   val DEFAULT_TS_BUNDLE_TGZ = "tech-support-bundle.tgz"
 }
 
@@ -32,6 +38,27 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging {
   // White listed files
   final val JOB_EXTS =
     Set("sh", "stderr", "stdout", "log", "json", "html", "css", "png", "dot")
+
+  private def writeTechSupportTgz[T <: TsManifest](
+      manifest: T,
+      outputTgz: Path,
+      writer: (Path => Unit))(implicit m: JsonFormat[T]): Path = {
+    val tempDir = Files.createTempDirectory("ts-manifest")
+
+    val manifestPath =
+      tempDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
+
+    FileUtils.writeStringToFile(manifestPath.toFile,
+                                manifest.toJson.prettyPrint)
+
+    writer(tempDir)
+
+    TarGzUtils.createTarGzip(tempDir, outputTgz.toFile)
+
+    FileUtils.deleteQuietly(tempDir.toFile)
+
+    outputTgz
+  }
 
   def byExt(f: File, extensions: Set[String]): Boolean =
     extensions
@@ -83,25 +110,21 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging {
     totalSize
   }
 
+  /**
+    * Write the output of a Failed Job to TS TGZ bundle
+    *
+    * @param jobRoot Path to Failed Job
+    * @return
+    */
   def writeJobBundleTgz(jobRoot: Path,
                         manifest: TsJobManifest,
                         outputTgz: Path): Path = {
 
-    val tempDir = Files.createTempDirectory("ts-manifest")
+    def writer(path: Path): Unit = {
+      TechSupportUtils.copyFilesTo(jobRoot, path, TechSupportUtils.JOB_EXTS)
+    }
 
-    val manifestPath =
-      tempDir.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)
-
-    FileUtils.writeStringToFile(manifestPath.toFile,
-                                manifest.toJson.prettyPrint)
-
-    TechSupportUtils.copyFilesTo(jobRoot, tempDir, TechSupportUtils.JOB_EXTS)
-
-    TarGzUtils.createTarGzip(tempDir, outputTgz.toFile)
-
-    FileUtils.deleteQuietly(tempDir.toFile)
-
-    outputTgz
+    writeTechSupportTgz(manifest, outputTgz, writer)
   }
 
   /**
@@ -218,19 +241,20 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging {
     dest
   }
 
+  /**
+    *
+    * Write the SL System Status TS TGZ bundle
+    *
+    * @param smrtLinkUserDataRoot Path to the SL user data root
+    */
   def writeSmrtLinkSystemStatusTgz(smrtLinkSystemId: UUID,
                                    smrtLinkUserDataRoot: Path,
-                                   dest: Path,
+                                   outputTgz: Path,
                                    user: String,
                                    smrtLinkVersion: Option[String],
                                    dnsName: Option[String],
                                    comment: Option[String]): Path = {
     val techSupportBundleId = UUID.randomUUID()
-
-    val tmpDir = Files.createTempDirectory(s"sl-status-$techSupportBundleId")
-
-    TechSupportUtils.copySmrtLinkSystemStatus(smrtLinkUserDataRoot, tmpDir)
-
     val manifest = TsSystemStatusManifest(techSupportBundleId,
                                           BundleTypes.SYSTEM_STATUS,
                                           1,
@@ -241,16 +265,49 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging {
                                           user,
                                           comment)
 
-    val manifestPath = tmpDir.resolve(DEFAULT_TS_MANIFEST_JSON)
+    def writer(path: Path): Unit = {
+      TechSupportUtils.copySmrtLinkSystemStatus(smrtLinkUserDataRoot, path)
+    }
 
-    FileUtils.writeStringToFile(manifestPath.toFile,
-                                manifest.toJson.prettyPrint)
+    writeTechSupportTgz(manifest, outputTgz, writer)
+  }
 
-    TarGzUtils.createTarGzip(tmpDir, dest.toFile)
+  /**
+    * Create a TS TGZ bundle that contains all jobs
+    *
+    * @param jobs List of EngineJob Metrics to send
+    * @return
+    */
+  def writeSmrtLinkEveHistoryMetrics(smrtLinkSystemId: UUID,
+                                     user: String,
+                                     smrtLinkVersion: Option[String],
+                                     dnsName: Option[String],
+                                     comment: Option[String],
+                                     outputTgz: Path,
+                                     jobs: Seq[EngineJobMetrics]): Path = {
 
-    FileUtils.deleteQuietly(tmpDir.toFile)
+    val jobsJsonName = Paths.get("engine-jobs.json")
 
-    dest
+    val techSupportBundleId = UUID.randomUUID()
+    val manifest = TsJobMetricHistory(techSupportBundleId,
+                                      BundleTypes.JOB_HIST,
+                                      1,
+                                      JodaDateTime.now(),
+                                      smrtLinkSystemId,
+                                      dnsName,
+                                      smrtLinkVersion,
+                                      user,
+                                      comment,
+                                      jobsJsonName)
+
+    def writer(path: Path): Unit = {
+      val engineJobMetricsJson = path.resolve(jobsJsonName)
+      FileUtils.writeStringToFile(engineJobMetricsJson.toFile,
+                                  jobs.toJson.toString())
+    }
+
+    writeTechSupportTgz(manifest, outputTgz, writer)
+
   }
 
 }
