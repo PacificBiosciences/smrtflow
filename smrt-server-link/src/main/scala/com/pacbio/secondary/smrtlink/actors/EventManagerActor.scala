@@ -31,6 +31,7 @@ object EventManagerActor {
   case object CheckExternalServerStatus
   case class CreateEvent(event: SmrtLinkEvent)
   case class EnableExternalMessages(enable: Boolean)
+  case class UploadTechSupportTgz(path: Path)
 }
 
 class EventManagerActor(smrtLinkId: UUID,
@@ -103,6 +104,15 @@ class EventManagerActor(smrtLinkId: UUID,
     c.upload(tgz)
   }
 
+  def uploadIfConfigured(path: Path): Unit = {
+    client match {
+      case Some(c) =>
+        upload(c, path)
+      case _ =>
+        logger.info("System is not configured to upload files")
+    }
+  }
+
   override def receive: Receive = {
 
     case CheckExternalServerStatus =>
@@ -144,6 +154,9 @@ class EventManagerActor(smrtLinkId: UUID,
         // the message isn't sent. Should clarify this interface
         sender ! systemEvent
       }
+
+    case UploadTechSupportTgz(path) =>
+      uploadIfConfigured(path)
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }

@@ -1,16 +1,20 @@
 package com.pacbio.secondary.smrtlink.actors
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.common.models.CommonModelImplicits._
-import com.pacbio.secondary.smrtlink.actors.EventManagerActor.CreateEvent
+import com.pacbio.secondary.smrtlink.actors.EventManagerActor.{
+  CreateEvent,
+  UploadTechSupportTgz
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
+import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
@@ -27,7 +31,7 @@ import spray.json._
   * Processes Completed Analysis Jobs and converts them to SmrtLink Events that
   * can be sent to Eve.
   */
-trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils {
+trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
 
   import SmrtLinkJsonProtocols._
 
@@ -144,12 +148,17 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils {
                   engineJobMetrics.toJson.asJsObject)
   }
 
+  /**
+    *
+    * Harvest all analysis jobs that are in a terminal state
+    *
+    */
   def harvestAnalysisJobs(dao: JobsDao, maxConcurrent: Int = 10)(
       implicit ec: ExecutionContext): Future[Seq[EngineJobMetrics]] = {
     def getIds(): Future[Seq[Int]] =
       dao
         .getJobsByTypeId(JobTypeIds.PBSMRTPIPE, includeInactive = true)
-        .map(items => items.map(job => job.id))
+        .map(items => items.filter(_.state.isCompleted).map(job => job.id))
 
     def getConvertToEngineMetrics(i: Int): Future[EngineJobMetrics] =
       convertToEngineMetrics(dao, IntIdAble(i))
@@ -162,6 +171,41 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils {
     } yield engineJobMetrics
   }
 
+  /**
+    * Harvest all old jobs and write TS TGZ bundle **if non-empty job list**.
+    *
+    * This can be removed post 5.2
+    */
+  def harvestAnalysisJobsToTechSupportTgz(smrtLinkSystemId: UUID,
+                                          user: String,
+                                          smrtLinkVersion: Option[String],
+                                          dnsName: Option[String],
+                                          dao: JobsDao,
+                                          maxConcurrent: Int = 10,
+                                          outputTgz: Path)(
+      implicit ec: ExecutionContext): Future[Seq[EngineJobMetrics]] = {
+    harvestAnalysisJobs(dao, maxConcurrent).map { jobs =>
+      if (jobs.isEmpty) {
+        jobs
+      } else {
+        val comment = s"Auto Harvest Completed ${jobs.length} Analysis jobs"
+        TechSupportUtils.writeSmrtLinkEveHistoryMetrics(smrtLinkSystemId,
+                                                        user,
+                                                        smrtLinkVersion,
+                                                        dnsName,
+                                                        Some(comment),
+                                                        outputTgz,
+                                                        jobs)
+        jobs
+      }
+    }
+  }
+
+}
+
+object SmrtLinkEveMetricsProcessActor {
+  // This can be deleted after 5.2
+  case class HarvestAnalysisJobs(user: String, smrtlinkVersion: String)
 }
 
 /**
@@ -169,26 +213,34 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils {
   * SmrtLink Events that are sent to Event Manager. These events will
   * sent to Eve (if the system is configured to do so).
   *
-  * @param dao  Jobs Dao
-  * @param sendEveJobMetrics Enable or disable processing/converting of Completed Jobs
+  * @param dao               Jobs Dao
+  * @param sendEveJobMetrics Initial configuration of enable or disable processing/converting of Completed Jobs
+  * @param smrtLinkSystemId  SL System UUID (this can be removed post 5.2)
+  * @param dnsName           DNS name of the system (this can be removed post 5.2)
   * @param eventManagerActor Event Manager to send processed Events to
   */
 class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
                                        sendEveJobMetrics: Boolean,
+                                       smrtLinkSystemId: UUID,
+                                       dnsName: Option[String],
                                        eventManagerActor: ActorRef)
     extends Actor
     with SmrtLinkEveMetricsProcessor
     with LazyLogging {
 
+  // This local state will be updated when the Eula changes
+  private var sendJobMetrics = sendEveJobMetrics
+
+  import SmrtLinkEveMetricsProcessActor._
   implicit val executionContext = context.dispatcher
 
   override def preStart() = {
-    logger.info(s"Starting $self with sendEveJobMetrics=$sendEveJobMetrics")
+    logger.info(s"Starting $self with sendJobMetrics=$sendJobMetrics")
   }
 
   override def receive: Receive = {
     case JobCompletedMessage(job) =>
-      if (sendEveJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id) && job.state.isCompleted) {
+      if (sendJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id) && job.state.isCompleted) {
         convertToEngineMetrics(dao, job.id)
           .map(em => convertToEvent(em)) onComplete {
           case Success(event) =>
@@ -200,6 +252,38 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
             logger.error(
               s"Failed to convert Job ${job.id} to EngineJobMetrics/SmrtLinkEvent Error:${ex.getMessage}")
         }
+      }
+
+    case HarvestAnalysisJobs(user, smrtLinkVersion) =>
+      // This can be deleted after 5.2 release
+      val tmpTgz = Files.createTempFile("harvested-jobs", "tgz")
+      harvestAnalysisJobsToTechSupportTgz(smrtLinkSystemId,
+                                          user,
+                                          Some(smrtLinkVersion),
+                                          dnsName,
+                                          dao,
+                                          10,
+                                          tmpTgz) onComplete {
+        case Success(engineJobMetrics) =>
+          if (engineJobMetrics.isEmpty) {
+            logger.info("No 'old' jobs to harvest. Skipping sending to Eve")
+          } else {
+            logger.info(
+              s"Harvested ${engineJobMetrics.length} jobs to be sent to Eve")
+            eventManagerActor ! UploadTechSupportTgz(tmpTgz)
+          }
+        case Failure(ex) =>
+          logger.error(
+            s"Failed to create Harvested Job History for ${ex.getMessage}")
+          Files.deleteIfExists(tmpTgz)
+      }
+
+    case e: EulaRecord =>
+      sendJobMetrics = e.enableJobMetrics
+      logger.info(s"Updated sendJobMetrics=$sendJobMetrics")
+      // This can be deleted after 5.2 release
+      if (sendJobMetrics) {
+        self ! HarvestAnalysisJobs
       }
     // case x => logger.warn(s"Unhandled message $x")
   }
@@ -220,6 +304,8 @@ trait SmrtLinkEveMetricsProcessActor {
         Props(classOf[SmrtLinkEveMetricsProcessorActor],
               jobsDao(),
               sendEveJobMetrics,
+              serverId(),
+              dnsName(),
               eventManagerActor()))
 
   }
