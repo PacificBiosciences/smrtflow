@@ -153,7 +153,7 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     * Harvest all analysis jobs that are in a terminal state
     *
     */
-  def harvestAnalysisJobs(dao: JobsDao, maxConcurrent: Int = 10)(
+  def harvestAnalysisJobs(dao: JobsDao, maxConcurrent: Int)(
       implicit ec: ExecutionContext): Future[Seq[EngineJobMetrics]] = {
     def getIds(): Future[Seq[Int]] =
       dao
@@ -283,7 +283,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
       logger.info(s"Updated sendJobMetrics=$sendJobMetrics")
       // This can be deleted after 5.2 release
       if (sendJobMetrics) {
-        self ! HarvestAnalysisJobs
+        self ! HarvestAnalysisJobs(e.user, e.smrtlinkVersion)
       }
     // case x => logger.warn(s"Unhandled message $x")
   }
