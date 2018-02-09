@@ -82,11 +82,12 @@ object AcceptUserAgreement
   def getOrAcceptEula(sal: SmrtLinkServiceClient,
                       user: String,
                       smrtLinkVersion: String,
-                      enableInstallMetrics: Boolean): Future[EulaRecord] = {
+                      enableInstallMetrics: Boolean,
+                      enableJobMetrics: Boolean): Future[EulaRecord] = {
     sal
       .getEula(smrtLinkVersion)
       .recoverWith {
-        case NonFatal(_) => sal.acceptEula(user, enableInstallMetrics)
+        case NonFatal(_) => sal.acceptEula(user, enableInstallMetrics, enableJobMetrics)
       }
   }
 
@@ -102,7 +103,7 @@ object AcceptUserAgreement
       eula <- getOrAcceptEula(sal,
                               c.user,
                               smrtLinkVersion,
-                              enableInstallMetrics = true)
+                              enableInstallMetrics = true, enableJobMetrics = true)
     } yield s"Accepted Eula $eula"
 
     fx.onComplete { _ =>
