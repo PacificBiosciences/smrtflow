@@ -277,11 +277,13 @@ class DataSetService(dao: JobsDao)
           get {
             parameters('showAll.?, 'projectId.as[Int].?) {
               (showAll, projectId) =>
-                complete {
-                  getProjectIds(projectId, user)
-                    .map { ids =>
-                      GetDataSets(DS_LIMIT, showAll.isDefined, ids)
-                    }
+                encodeResponse {
+                  complete {
+                    getProjectIds(projectId, user)
+                      .map { ids =>
+                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
+                      }
+                  }
                 }
             }
           }
