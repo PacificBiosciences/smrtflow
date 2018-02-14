@@ -28,7 +28,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   InvalidJobOptionError,
   JobResultsWriter,
-  MockJobUtils
+  CoreJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -57,7 +57,7 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   }
 }
 
-trait ImportFastaUtils extends MockJobUtils {
+trait ImportFastaUtils extends CoreJobUtils {
   val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
   val SOURCE_ID: String
 

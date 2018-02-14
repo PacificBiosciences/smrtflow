@@ -9,7 +9,7 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter,
-  MockJobUtils
+  CoreJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
   PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions
@@ -51,7 +51,7 @@ case class PbsmrtpipeJobOptions(name: Option[String],
 class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     extends ServiceCoreJob(opts)
     with JobServiceConstants
-    with MockJobUtils {
+    with CoreJobUtils {
   type Out = PacBioDataStore
 
   private def toURL(baseURL: URL, uuid: UUID): URI = {

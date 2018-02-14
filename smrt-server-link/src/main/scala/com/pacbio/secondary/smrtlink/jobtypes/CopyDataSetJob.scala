@@ -25,7 +25,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -60,7 +60,7 @@ case class CopyDataSetJobOptions(datasetId: IdAble,
 
 class CopyDataSetJob(opts: CopyDataSetJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with DataSetFilterUtils
     with timeUtils {
   type Out = PacBioDataStore

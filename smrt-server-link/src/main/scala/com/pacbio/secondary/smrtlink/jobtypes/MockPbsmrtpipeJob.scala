@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter,
-  MockJobUtils
+  CoreJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.models.BoundServiceEntryPoint
@@ -33,7 +33,7 @@ case class MockPbsmrtpipeJobOptions(
   override def toJob() = new MockPbsmrtpipeJob(this)
 }
 
-trait MockPbsmrtpipeUtils extends MockJobUtils {
+trait MockPbsmrtpipeUtils extends CoreJobUtils {
 
   def runMockJob(job: JobResourceBase, resultsWriter: JobResultsWriter) = {
     //Ignore the entry points provided

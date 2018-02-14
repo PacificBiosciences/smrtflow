@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -43,7 +43,7 @@ case class ImportDataSetJobOptions(
 
 class ImportDataSetJob(opts: ImportDataSetJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with timeUtils {
   type Out = PacBioDataStore
   override def run(

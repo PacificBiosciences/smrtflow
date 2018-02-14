@@ -22,7 +22,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils

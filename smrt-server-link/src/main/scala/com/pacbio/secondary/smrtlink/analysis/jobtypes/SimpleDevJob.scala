@@ -4,7 +4,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   BaseCoreJob,
   BaseJobOptions,
   JobResultsWriter,
-  MockJobUtils
+  CoreJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID
@@ -21,7 +21,7 @@ case class SimpleDevJobOptions(
 
 class SimpleDevJob(opts: SimpleDevJobOptions)
     extends BaseCoreJob(opts: SimpleDevJobOptions)
-    with MockJobUtils {
+    with CoreJobUtils {
 
   type Out = PacBioDataStore
   val jobTypeId = JobTypeIds.SIMPLE

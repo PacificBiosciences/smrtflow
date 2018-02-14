@@ -14,7 +14,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
@@ -29,7 +29,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
   * This handles the mechanics of file deletion, and reporting.
   * Kept separate from service job implementation to facilitate testing.
   */
-trait DeleteResourcesUtils extends MockJobUtils with timeUtils {
+trait DeleteResourcesUtils extends CoreJobUtils with timeUtils {
 
   // internal result holder
   case class DeletedFile(path: String,

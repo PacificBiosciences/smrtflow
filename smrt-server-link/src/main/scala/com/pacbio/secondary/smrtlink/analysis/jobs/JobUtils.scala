@@ -282,7 +282,7 @@ trait JobImportUtils
 
 // Put all the general utils for writing a mock pbsmrtpipe jobOptions, then refactor
 // into real "jobOptions" level utils (e.g., progress updating, writing entry points, settings, options, etc...)
-trait MockJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
+trait CoreJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
 
   def setupJobResourcesAndCreateDirs(outputDir: Path): AnalysisJobResources = {
 

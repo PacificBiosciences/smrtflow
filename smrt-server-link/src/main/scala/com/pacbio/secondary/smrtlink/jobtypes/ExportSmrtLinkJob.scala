@@ -24,7 +24,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   ExportJob,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -67,7 +67,7 @@ case class ExportSmrtLinkJobOptions(ids: Seq[IdAble],
 
 class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with timeUtils {
 
   type Out = PacBioDataStore

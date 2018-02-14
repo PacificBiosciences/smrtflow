@@ -19,7 +19,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
@@ -53,7 +53,7 @@ case class DbBackUpJobOptions(user: String,
 
 }
 
-trait DbBackUpBase extends MockJobUtils with timeUtils {
+trait DbBackUpBase extends CoreJobUtils with timeUtils {
   val JOB_TYPE_ID_STR = JobTypeIds.DB_BACKUP.id
   val BASE_BACKUP_NAME = "smrtlink-db-backup"
   val BACKUP_EXT = "_db.bak"
