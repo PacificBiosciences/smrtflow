@@ -2,6 +2,8 @@ import java.nio.file.{Files, Path, Paths}
 import java.io.File
 import java.util.UUID
 
+import scala.util.Try
+
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
@@ -13,19 +15,17 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobModels,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  DeleteResourcesOptions,
-  DeleteResourcesJob,
-  DeleteDatasetsOptions,
-  DeleteDatasetsJob
-}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   JobResource,
   BoundEntryPoint
 }
+import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 
-class DeleteResourcesSpec extends Specification with LazyLogging {
+class DeleteJobUtilsSpec
+    extends Specification
+    with DeleteResourcesUtils
+    with LazyLogging {
 
   sequential
 
@@ -40,54 +40,45 @@ class DeleteResourcesSpec extends Specification with LazyLogging {
     (targetDir, targetFile, targetSubFile)
   }
 
-  val writer = new PrinterJobResultsWriter
-  "DeleteResourcesJob" should {
+  "Delete Job Utils" should {
     "Test basic use case" in {
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
-      val job = JobResource(UUID.randomUUID, outputDir)
-      val opts = DeleteResourcesOptions(targetDir, true)
-      val j = new DeleteResourcesJob(opts)
-      val jobResult = j.run(job, writer)
-      logger.info("Running delete job")
-      jobResult.isRight must beTrue
+      val rptPath = outputDir.resolve("delete_report.json")
+      val rpt = deleteJobDirFiles(targetDir, true, rptPath)
       Files.exists(targetFile.toPath) must beFalse
       Files.exists(targetSubFile.toPath) must beFalse
       val deleteFile = targetDir.resolve("DELETED")
       Files.exists(deleteFile) must beTrue
-      val r =
-        ReportUtils.loadReport(Paths.get(jobResult.right.get.files(1).path))
-      r.attributes(0).value must beEqualTo(targetDir.toString)
+      rpt.attributes(0).value must beEqualTo(targetDir.toString)
     }
     "Test behavior when delete is turned off" in {
       val (targetDir, targetFile, targetSubFile) = createTempFiles
       val outputDir = Files.createTempDirectory("delete-job")
-      val job = JobResource(UUID.randomUUID, outputDir)
-      val opts = DeleteResourcesOptions(targetDir, false)
-      val j = new DeleteResourcesJob(opts)
-      val jobResult = j.run(job, writer)
-      logger.info("Running delete job")
-      jobResult.isRight must beTrue
+      val rptPath = outputDir.resolve("delete_report.json")
+      val rpt = deleteJobDirFiles(targetDir, false, rptPath)
       Files.exists(targetFile.toPath) must beTrue
       Files.exists(targetSubFile.toPath) must beTrue
     }
   }
 }
 
-class DeleteDatasetsSpec extends Specification with LazyLogging {
+// This inherits from the same DeleteResourcesUtils trait as the previous
+// spec, but it requires PacBioTestData so it's a separate class
+class DeleteDatasetsSpec
+    extends Specification
+    with DeleteResourcesUtils
+    with LazyLogging {
 
   val NBYTES_MIN_BARCODED_SUBREADS: Long = 16729 // this may be a bad idea
 
   args(skipAll = !PacBioTestData.isAvailable)
   sequential
 
-  private def runJob(paths: Seq[Path]) = {
-    val writer = new PrinterJobResultsWriter
+  private def runToReport(paths: Seq[Path], removeFiles: Boolean = true) = {
     val outputDir = Files.createTempDirectory("delete-job")
-    val job = JobResource(UUID.randomUUID, outputDir)
-    val opts = DeleteDatasetsOptions(paths, true)
-    val j = new DeleteDatasetsJob(opts)
-    j.run(job, writer)
+    val rptPath = outputDir.resolve("delete_report.json")
+    deleteDataSetFiles(paths, removeFiles)
   }
 
   "DeleteDatasetsJob" should {
@@ -96,15 +87,10 @@ class DeleteDatasetsSpec extends Specification with LazyLogging {
       val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
       subreads.toFile.exists must beTrue
       barcodes.toFile.exists must beTrue
-      // run job
-      val jobResult = runJob(Seq(subreads))
-      logger.info("Running delete job")
-      jobResult.isRight must beTrue
+      val r = runToReport(Seq(subreads), true)
       subreads.toFile.exists must beFalse
       subreads.getParent.toFile.listFiles must beEmpty
       barcodes.toFile.exists must beTrue
-      val rptPath = Paths.get(jobResult.right.get.files(1).path)
-      val r = ReportUtils.loadReport(rptPath)
       r.attributes(0).value must beEqualTo(subreads.toString)
       r.attributes(1).value must beEqualTo(0)
       r.attributes(2).value.asInstanceOf[Long] must beGreaterThanOrEqualTo(
@@ -115,8 +101,7 @@ class DeleteDatasetsSpec extends Specification with LazyLogging {
       //val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
       val targetDir = Files.createTempDirectory("missing-dataset")
       val targetDs = Paths.get(targetDir.toString + "missing.subreadset.xml")
-      val jobResult = runJob(Seq(targetDs))
-      jobResult.isLeft must beTrue
+      Try(runToReport(Seq(targetDs))).toOption must beNone
     }
     "Remove a dataset with missing resources" in {
       val pbdata = PacBioTestData()
@@ -126,11 +111,8 @@ class DeleteDatasetsSpec extends Specification with LazyLogging {
         targetDir.toString + "/" +
           FilenameUtils.getName(targetDsSrc.toString))
       FileUtils.copyFile(targetDsSrc.toFile, targetDs.toFile)
-      val jobResult = runJob(Seq(targetDs))
-      jobResult.isRight must beTrue
+      val r = runToReport(Seq(targetDs))
       targetDs.toFile.exists must beFalse
-      val rptPath = Paths.get(jobResult.right.get.files(1).path)
-      val r = ReportUtils.loadReport(rptPath)
       r.attributes(1).value must beEqualTo(5)
       r.attributes(3).value must beEqualTo(5)
       r.tables(0).columns(0).values.size must beEqualTo(6) // includes sts.xml
@@ -139,13 +121,10 @@ class DeleteDatasetsSpec extends Specification with LazyLogging {
       val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
       val targetDir = Files.createTempDirectory("missing-dataset")
       val targetDs = Paths.get(targetDir.toString + "missing.subreadset.xml")
-      val jobResult = runJob(Seq(targetDs, subreads, barcodes))
-      jobResult.isRight must beTrue
+      val r = runToReport(Seq(targetDs, subreads, barcodes))
       subreads.toFile.exists must beFalse
       subreads.getParent.toFile.listFiles must beEmpty
       barcodes.toFile.exists must beFalse // deleting it this time
-      val rptPath = Paths.get(jobResult.right.get.files(1).path)
-      val r = ReportUtils.loadReport(rptPath)
       r.attributes(1).value must beEqualTo(1)
       r.attributes(3).value must beEqualTo(1)
       r.tables(0).columns(0).values.size must beEqualTo(9)

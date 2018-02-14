@@ -1,7 +1,15 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
+import java.io.File
+
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.joda.time.{DateTime => JodaDateTime}
+
+import scala.util.{Failure, Success, Try}
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.CommonModelImplicits._
@@ -12,15 +20,13 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.DeleteResourcesOptions
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
-
-import scala.util.{Failure, Success, Try}
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 case class DeleteSmrtLinkJobOptions(jobId: IdAble,
                                     name: Option[String],
@@ -76,22 +82,21 @@ case class DeleteSmrtLinkJobOptions(jobId: IdAble,
   */
 class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
     extends ServiceCoreJob(opts)
+    with DeleteResourcesCoreJob
     with timeUtils {
-  type Out = PacBioDataStore
+  override val resourceType = "Job"
 
-  override def run(
-      resources: JobResourceBase,
-      resultsWriter: JobResultsWriter,
-      dao: JobsDao,
-      config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-
+  override def runDelete(job: JobResourceBase,
+                         resultsWriter: JobResultsWriter,
+                         dao: JobsDao,
+                         config: SystemJobConfig): Try[Report] = {
     val startedAt = JodaDateTime.now()
+
     // DB interaction timeout
     val timeOut = 10.seconds
 
     // Job Id to delete
     val jobId = opts.jobId
-    //
 
     // If Running in Dry Mode, we ignore the user provided options and set both, force and remove files to false
     val (force, removeFiles, dryMode) = opts.dryRun match {
@@ -99,14 +104,10 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
       case _ => (opts.force.getOrElse(false), opts.removeFiles, false)
     }
 
-    def f1: Future[DeleteResourcesOptions] =
-      for {
-        targetJob <- opts.confirmIsDeletable(dao, jobId, force)
-        oldOpts <- Future.successful(
-          DeleteResourcesOptions(Paths.get(targetJob.path),
-                                 removeFiles,
-                                 targetJob.projectId))
-      } yield oldOpts
+    def f1: Future[Path] =
+      opts.confirmIsDeletable(dao, jobId, force).map(j => Paths.get(j.path))
+
+    val reportPath = job.path.resolve("delete_report.json")
 
     //FIXME(mpkocher)(8-31-2017) The order of this should be clearer. And perhaps handle a rollback if possible.
     def f2: Future[String] =
@@ -127,27 +128,18 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
       else f2
 
     // There's a bit of clumsy composition here between the Either and Try
-    val tx: Try[Either[ResultFailed, PacBioDataStore]] = for {
-      oldOpts <- runAndBlock(f1, timeOut)
-      result <- Try(oldOpts.toJob.run(resources, resultsWriter)) // Because removeFalse and force are false, this should be a null operation
+    for {
+      path <- runAndBlock(f1, timeOut)
+      report <- Try(deleteJobDirFiles(path, opts.removeFiles, reportPath))
       msgUpdate <- runAndBlock(updater, timeOut)
       _ <- Try(resultsWriter.writeLine(msgUpdate))
-    } yield result
-
-    tx match {
-      case Success(result) => result
-      case Failure(ex) =>
-        val runTime = computeTimeDeltaFromNow(startedAt)
-        val emsg =
-          s"Failed to run files in DeleteSmrtLinkJob $jobId ${ex.getMessage}"
-        resultsWriter.writeError(emsg)
-        Left(
-          ResultFailed(resources.jobId,
-                       jobTypeId.id,
-                       emsg,
-                       runTime,
-                       AnalysisJobStates.FAILED,
-                       host))
-    }
+    } yield report
   }
+
+  override def run(
+      resources: JobResourceBase,
+      resultsWriter: JobResultsWriter,
+      dao: JobsDao,
+      config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] =
+    runJob(resources, resultsWriter, dao, config)
 }
