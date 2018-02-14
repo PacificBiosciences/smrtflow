@@ -3,8 +3,9 @@ package com.pacbio.secondary.smrtlink.analysis.datasets.validators
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.FileType
 
-import scalaz._
-import Scalaz._
+import cats.data._
+import cats.data.Validated._
+import cats.implicits._
 
 import com.pacificbiosciences.pacbiodatasets.SubreadSet
 
@@ -24,8 +25,8 @@ object ValidateSubreadSet extends ValidateDataSet {
     * @param ds
     * @return
     */
-  override def validateCustom(ds: SubreadSet): ValidateDataSetE = {
-    ds.successNel
+  override def validateCustom(ds: SubreadSet): ValidationResult[DsType] = {
+    ds.validNel
   }
 
 }

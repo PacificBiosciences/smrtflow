@@ -1,20 +1,22 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
-import java.nio.file.Path
-
 import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType, _}
 
-import scalaz._
+import cats.data._
+import cats.data.Validated._
+import cats.implicits._
 
 /**
   * Created by mkocher on 4/11/16.
   */
 package object validators {
 
+  type ValidationResult[A] = ValidatedNel[String, A]
+
   object ImplicitDataSetValidators {
 
     abstract class DataSetValidator[T <: XmlDataSetType] {
-      def validate(ds: T): ValidationNel[String, T]
+      def validate(ds: T): ValidationResult[T]
     }
 
     implicit object SubreadSetValidator extends DataSetValidator[SubreadSet] {

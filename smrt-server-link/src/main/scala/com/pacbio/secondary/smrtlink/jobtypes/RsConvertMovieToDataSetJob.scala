@@ -1,11 +1,8 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.nio.file.{Paths, Path}
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
-
-import scalaz.{Success, Failure}
 
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter._
@@ -23,6 +20,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+
+import cats.data._
+import cats.data.Validated._
+import cats.implicits._
 
 /**
   * Created by mkocher on 8/17/17.
@@ -61,8 +62,8 @@ class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions)
     convertMovieOrFofnToHdfSubread(opts.path) match {
 
       case Right(dataset) =>
-        ValidateHdfSubreadSet.validator(dataset) match {
-          case Success(ds) =>
+        ValidateHdfSubreadSet.validator(dataset).toEither match {
+          case Right(ds) =>
             dataset.setName(name)
             // Update the name and rewrite the file
             DataSetWriter.writeHdfSubreadSet(dataset, dsPath)
@@ -90,15 +91,16 @@ class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions)
                                      Seq(dsFile, logFile))
             writeDataStore(ds, datastoreJson)
             Right(ds)
-          case Failure(errorsNel) =>
-            val msg = errorsNel.list.toList.mkString("; ")
+          case Left(errorsNel) =>
             Left(
-              ResultFailed(resources.jobId,
-                           opts.jobTypeId.toString,
-                           s"Failed to convert ${opts.path}. $msg",
-                           computeTimeDeltaFromNow(startedAt),
-                           AnalysisJobStates.FAILED,
-                           host))
+              ResultFailed(
+                resources.jobId,
+                opts.jobTypeId.toString,
+                s"Failed to convert ${opts.path}. $errorsNel",
+                computeTimeDeltaFromNow(startedAt),
+                AnalysisJobStates.FAILED,
+                host
+              ))
         }
       case Left(ex) =>
         Left(
