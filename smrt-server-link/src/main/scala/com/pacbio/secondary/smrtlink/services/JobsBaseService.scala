@@ -38,7 +38,7 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbsmrtpipeJobUtils
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._

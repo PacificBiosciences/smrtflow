@@ -9,7 +9,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFilterProperty
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.common.models.{
   JodaDateTimeProtocol,
   PathProtocols,

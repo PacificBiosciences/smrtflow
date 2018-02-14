@@ -4,16 +4,25 @@ import java.net.{URI, URL}
 import java.nio.file.Path
 import java.util.UUID
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Try
+
+import org.apache.commons.io.FileUtils
+import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
+
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
   JobResultsWriter,
   CoreJobUtils
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions
-}
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   EngineJobEntryPointRecord
@@ -48,10 +57,144 @@ case class PbsmrtpipeJobOptions(name: Option[String],
   override def toJob() = new PbsmrtpipeJob(this)
 }
 
+object PbsmrtpipeJobUtils {
+
+  final val PBSMRTPIPE_PID_KILL_FILE_SCRIPT = ".pbsmrtpipe-terminate.sh"
+
+  private def resolveTerminateScript(jobDir: Path): Path =
+    jobDir.resolve(PBSMRTPIPE_PID_KILL_FILE_SCRIPT)
+
+  def terminateJobFromDir(jobDir: Path) = {
+    val cmd =
+      Seq("bash", resolveTerminateScript(jobDir).toAbsolutePath.toString)
+    ExternalToolsUtils.runCmd(cmd)
+  }
+}
+
+/** Core functionality for running pbsmrtpipe on the command line.  This is
+  * also used by the convert-fasta-reference service.
+  *
+  */
+trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
+  this: ServiceCoreJob =>
+
+  import PbsmrtpipeConstants._
+
+  protected def runPbsmrtpipe(
+      job: JobResourceBase,
+      resultsWriter: JobResultsWriter,
+      pipelineId: String,
+      entryPoints: Seq[BoundEntryPoint],
+      taskOptions: Seq[ServiceTaskOptionBase],
+      workflowOptions: Seq[ServiceTaskOptionBase],
+      envPath: Option[Path],
+      serviceUri: Option[URI],
+      commandTemplate: Option[CommandTemplate] = None,
+      stdOut: Option[Path] = None,
+      stdErr: Option[Path] = None): Either[ResultFailed, PacBioDataStore] = {
+    val startedAt = JodaDateTime.now()
+
+    def writeOptions(opts: Seq[ServiceTaskOptionBase], msg: String): Unit = {
+      resultsWriter.writeLine(msg)
+      opts
+        .map(x => s"${x.id} -> ${x.value}")
+        .foreach(resultsWriter.writeLine)
+    }
+
+    resultsWriter.writeLine(
+      serviceUri
+        .map(x => s"Update URL:$x")
+        .getOrElse("Updating URL is not configured"))
+
+    writeOptions(workflowOptions, s"PbSmrtPipe job with Engine opts:")
+    writeOptions(taskOptions, s"PbSmrtPipe task options:")
+
+    val engineOpts = PbsmrtpipeEngineOptions(workflowOptions)
+
+    // 'Raw' pbsmrtpipe Command without stderr/stdout
+    // And will write the preset.json
+    val cmd = IOUtils.toCmd(entryPoints,
+                            pipelineId,
+                            job.path,
+                            taskOptions,
+                            workflowOptions,
+                            serviceUri)
+
+    resultsWriter.writeLine(s"pbsmrtpipe command '$cmd'")
+
+    val wrappedCmd = commandTemplate.map { tp =>
+      val commandJob = CommandTemplateJob(s"j${job.jobId.toString}",
+                                          engineOpts.maxNproc,
+                                          job.path.resolve(DEFAULT_STDOUT),
+                                          job.path.resolve(DEFAULT_STDERR),
+                                          cmd)
+      // This resulting string will be exec'ed
+      val customCmd = tp.render(commandJob)
+      // This should probably use 'exec'
+      val execCustomCmd = "eval \"" + customCmd + "\""
+      resultsWriter.writeLine(s"Custom command Job $commandJob")
+      resultsWriter.writeLine(
+        s"Resolved Custom command template 'pb-cmd-template' to '$execCustomCmd'")
+      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH),
+                                            execCustomCmd,
+                                            envPath)
+      resultsWriter.writeLine(
+        s"Writing custom wrapper to ${sh.toAbsolutePath.toString}'")
+      Seq("bash", sh.toAbsolutePath.toString)
+    } getOrElse {
+      val sh = IOUtils.writeJobShellWrapper(job.path.resolve(DEFAULT_JOB_SH),
+                                            cmd,
+                                            envPath)
+      Seq("bash", sh.toAbsolutePath.toString)
+    }
+
+    val stdoutP = stdOut.getOrElse(job.path.resolve(DEFAULT_STDOUT))
+    val stderrP = stdErr.getOrElse(job.path.resolve(DEFAULT_STDERR))
+
+    resultsWriter.writeLine(s"Running $wrappedCmd")
+    val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
+    val runTimeSec = computeTimeDeltaFromNow(startedAt)
+
+    val datastorePath = job.path.resolve("workflow/datastore.json")
+
+    val ds = Try {
+      val contents = FileUtils.readFileToString(datastorePath.toFile)
+      contents.parseJson.convertTo[PacBioDataStore]
+    } getOrElse {
+      resultsWriter.writeLine(
+        s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
+      PacBioDataStore.fromFiles(Seq.empty[DataStoreFile])
+    }
+    //FIXME(mpkocher)(1-27-2017) These error messages are not great. Try to parse the pbsmrtpipe LOG (or a structure
+    // data of the output to get a better error message)
+    exitCode match {
+      case 0 => Right(ds)
+      case 7 =>
+        Left(
+          ResultFailed(
+            job.jobId,
+            jobTypeId.toString,
+            s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). $errorMessage",
+            runTimeSec,
+            AnalysisJobStates.TERMINATED,
+            host
+          ))
+      case x =>
+        Left(ResultFailed(
+          job.jobId,
+          jobTypeId.toString,
+          s"Pbsmrtpipe job ${job.path} failed with exit code $x. $errorMessage",
+          runTimeSec,
+          AnalysisJobStates.FAILED,
+          host))
+    }
+  }
+}
+
 class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     extends ServiceCoreJob(opts)
     with JobServiceConstants
-    with CoreJobUtils {
+    with PbsmrtpipeCoreJob {
   type Out = PacBioDataStore
 
   private def toURL(baseURL: URL, uuid: UUID): URI = {
@@ -111,19 +254,16 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
         """.stripMargin
       resultsWriter.writeLine(msg)
     }
-
-    //MK. This isn't the greatest idea to have two different processes writing to the same file handle
-    val oldOpts = OldPbSmrtPipeJobOptions(opts.pipelineId,
-                                          entryPoints,
-                                          opts.taskOptions,
-                                          workflowLevelOptions,
-                                          envPath,
-                                          serviceURI,
-                                          None,
-                                          Some(logPath),
-                                          Some(stdErr),
-                                          opts.getProjectId())
-    val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    runPbsmrtpipe(resources,
+                  resultsWriter,
+                  opts.pipelineId,
+                  entryPoints,
+                  opts.taskOptions,
+                  workflowLevelOptions,
+                  envPath,
+                  serviceURI,
+                  None,
+                  Some(logPath),
+                  Some(stdErr))
   }
 }

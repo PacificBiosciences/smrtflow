@@ -13,6 +13,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   */
 object PbsmrtpipeConstants {
 
+  final val DEFAULT_STDERR = "job.stderr"
+  final val DEFAULT_STDOUT = "job.stdout"
+  final val DEFAULT_JOB_SH = "pbscala-job.sh"
+
   // pbsmrtpipe ENV vars
   final val ENV_BUNDLE_DIR = "SMRT_PIPELINE_BUNDLE_DIR"
   final val ENV_TOOL_CONTACT_DIR = "PB_TOOL_CONTRACT_DIR"
