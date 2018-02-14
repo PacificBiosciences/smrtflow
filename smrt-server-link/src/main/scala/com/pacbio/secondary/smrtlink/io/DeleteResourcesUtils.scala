@@ -14,7 +14,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils

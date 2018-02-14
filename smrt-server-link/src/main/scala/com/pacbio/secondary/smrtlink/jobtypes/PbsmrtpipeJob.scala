@@ -7,9 +7,11 @@ import java.util.UUID
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  JobResultsWriter,
+  MockJobUtils
+}
 import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  MockJobUtils,
   PbSmrtPipeJobOptions => OldPbSmrtPipeJobOptions
 }
 import com.pacbio.secondary.smrtlink.models.{

@@ -3,7 +3,8 @@ package com.pacbio.secondary.smrtlink.analysis.jobtypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   BaseCoreJob,
   BaseJobOptions,
-  JobResultsWriter
+  JobResultsWriter,
+  MockJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants.GENERAL_PROJECT_ID

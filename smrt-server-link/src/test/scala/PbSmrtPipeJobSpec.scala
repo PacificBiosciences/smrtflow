@@ -1,6 +1,11 @@
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.util.Try
+
+import com.typesafe.scalalogging.LazyLogging
+import org.specs2.mutable._
+
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   BoundEntryPoint,
   JobResource,
@@ -13,23 +18,19 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   PrinterJobResultsWriter,
   SecondaryJobJsonProtocol
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  MockPbSmrtPipeJobOptions,
-  PbSmrtPipeJobOptions,
-  PbSmrtpipeMockJob
-}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeEngineOptions
-import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mutable._
+import com.pacbio.secondary.smrtlink.jobtypes.MockPbsmrtpipeUtils
 
 class PbSmrtPipeJobSpec
     extends Specification
+    with MockPbsmrtpipeUtils
     with LazyLogging
     with SecondaryJobJsonProtocol {
 
   sequential
   val writer = new PrinterJobResultsWriter
-  "Sanity test for running a mock pbsmrtpipe jobOptions" should {
+  "Sanity test for running a mock pbsmrtpipe job" should {
     "Basic mock jobOptions to write datastore, jobOptions resources, report" in {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
       val entryPoints =
@@ -39,20 +40,9 @@ class PbSmrtPipeJobSpec
       val envPath: Option[Path] = None
       val job = JobResource(UUID.randomUUID, outputDir)
       val taskOptions = Seq[ServiceTaskOptionBase]()
-      val opts = MockPbSmrtPipeJobOptions(
-        "pbscala.pipelines.mock_dev_01",
-        entryPoints,
-        taskOptions,
-        PbsmrtpipeEngineOptions.defaultWorkflowOptions.map(_.asServiceOption),
-        envPath)
-      val s = new PbSmrtpipeMockJob(opts)
-      logger.debug(s"Running jobOptions in ${job.path.toString}")
-      logger.debug(s"Converting to JSON $job")
-
-      val jobResult = s.run(job, writer)
-      jobResult.isRight must beTrue
+      Try(runMockJob(job, writer)) must beSuccessfulTry
     }
-    "Serialization smoke test for mock pbsmrtpipe jobOptions option" in {
+    "Serialization smoke test for mock pbsmrtpipe job options" in {
       val entryPoints =
         Seq(BoundEntryPoint("e_01", Paths.get("/path/to/file.txt")))
       val taskOptions = Seq(ServiceTaskStrOption("option_01", "value_01"))

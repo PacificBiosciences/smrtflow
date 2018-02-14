@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{
   TechSupportConstants,
   TechSupportUtils

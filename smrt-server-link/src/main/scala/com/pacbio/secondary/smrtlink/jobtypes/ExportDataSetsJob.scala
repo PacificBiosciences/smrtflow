@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.models.{
   EngineJobEntryPointRecord,
   EngineJobEntryPoint
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.MockJobUtils
 import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils

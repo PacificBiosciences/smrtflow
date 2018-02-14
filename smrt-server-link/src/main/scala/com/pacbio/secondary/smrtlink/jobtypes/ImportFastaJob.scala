@@ -10,10 +10,7 @@ import com.pacificbiosciences.pacbiodatasets.{
   ContigSetMetadataType,
   ReferenceSet
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  MockJobUtils,
-  PbSmrtPipeJobOptions
-}
+import com.pacbio.secondary.smrtlink.analysis.jobtypes.PbSmrtPipeJobOptions
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.converters.{
   ReferenceConverterBase,
@@ -30,7 +27,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   InvalidJobOptionError,
-  JobResultsWriter
+  JobResultsWriter,
+  MockJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
