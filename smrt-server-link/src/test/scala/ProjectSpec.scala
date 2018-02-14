@@ -28,7 +28,6 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
   EngineCoreConfigLoader,
   PbsmrtpipeConfigLoader
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
   JobTypeIds
@@ -36,6 +35,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.{JobServiceConstants, SmrtLinkConstants}
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.jobtypes.SimpleJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -437,7 +437,7 @@ class ProjectSpec
 
     "move datasets to a new project" in {
       val jobType = JobTypeIds.SIMPLE
-      val opts = SimpleDevJobOptions(1, 7)
+      val opts = SimpleJobOptions(8, None, None)
       val jsonSettings = opts.toJson.asJsObject
       val jobUUID = UUID.randomUUID()
       val jobName = "test"

@@ -466,7 +466,6 @@ trait JobTypeSettingProtocol
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(
     PbsmrtpipeDirectJobOptions)
-  implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat5(EngineConfig)
