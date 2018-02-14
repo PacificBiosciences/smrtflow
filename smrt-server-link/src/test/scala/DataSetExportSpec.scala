@@ -187,7 +187,7 @@ class DataSetExportSpecAdvanced
         .map(_.getResourceId)
     resPaths.forall(Paths.get(_).isAbsolute) must beFalse
     val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
-    ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
+    ValidateSubreadSet.validator(subreads2).toEither.isRight must beTrue
   }
 
   private def exportDataSets(dsIds: Seq[String],
