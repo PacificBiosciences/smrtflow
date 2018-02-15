@@ -17,7 +17,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
@@ -41,7 +41,7 @@ case class RsConvertMovieToDataSetJobOptions(
 
 class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils {
+    with CoreJobUtils {
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,

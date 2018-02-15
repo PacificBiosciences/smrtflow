@@ -10,10 +10,6 @@ import com.pacificbiosciences.pacbiodatasets.{
   ContigSetMetadataType,
   ReferenceSet
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  MockJobUtils,
-  PbSmrtPipeJobOptions
-}
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.converters.{
   ReferenceConverterBase,
@@ -30,7 +26,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   InvalidJobOptionError,
-  JobResultsWriter
+  JobResultsWriter,
+  CoreJobUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -59,7 +56,7 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   }
 }
 
-trait ImportFastaUtils extends MockJobUtils {
+trait ImportFastaUtils extends CoreJobUtils {
   val DS_METATYPE: DataSetMetaTypes.DataSetMetaType
   val SOURCE_ID: String
 
@@ -112,6 +109,7 @@ abstract class ImportFastaBaseJob[T <: DataSetType, U <: DataSetMetadataType,
 V <: DataSetIO](opts: ImportFastaBaseJobOptions)
     extends ServiceCoreJob(opts)
     with ImportFastaUtils
+    with PbsmrtpipeCoreJob
     with timeUtils {
   type Out = PacBioDataStore
 
@@ -131,13 +129,15 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
   final val OPT_PLOIDY = "pbcoretools.task_options.ploidy"
   final val DEFAULT_REFERENCE_SET_NAME = "Fasta-Convert"
 
-  private def toPbsmrtPipeJobOptions(opts: ImportFastaBaseJobOptions,
-                                     config: SystemJobConfig,
-                                     jobUUID: UUID): PbSmrtPipeJobOptions = {
+  private def toPbsmrtPipeJob(
+      job: JobResourceBase,
+      resultsWriter: JobResultsWriter,
+      opts: ImportFastaBaseJobOptions,
+      config: SystemJobConfig): Either[ResultFailed, Out] = {
 
     // There's some common code that needs to be pulled out
     val updateUrl = new URL(
-      s"http://${config.host}:${config.port}/smrt-link/job-manager/jobs/pbsmrtpipe/${jobUUID.toString}")
+      s"http://${config.host}:${config.port}/smrt-link/job-manager/jobs/pbsmrtpipe/${job.jobId.toString}")
 
     def toPipelineOption(id: String, value: String) =
       ServiceTaskStrOption(id, value)
@@ -154,16 +154,16 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
 
     // FIXME. this should be Option[Path] or Option[Map[String, String]]
     val envPath: Option[Path] = None
-    PbSmrtPipeJobOptions(
+    runPbsmrtpipe(
+      job,
+      resultsWriter,
       PIPELINE_ID,
       entryPoints,
       taskOptions,
       config.pbSmrtPipeEngineOptions.toPipelineOptions.map(_.asServiceOption),
       envPath,
-      Some(updateUrl.toURI),
-      projectId = opts.getProjectId()
+      Some(updateUrl.toURI)
     )
-
   }
 
   /**
@@ -212,10 +212,7 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
                           job: JobResourceBase,
                           resultsWriter: JobResultsWriter,
                           config: SystemJobConfig): Try[PacBioDataStore] = {
-
-    val pbOpts = toPbsmrtPipeJobOptions(opts, config, job.jobId)
-
-    pbOpts.toJob.run(job, resultsWriter) match {
+    toPbsmrtPipeJob(job, resultsWriter, opts, config) match {
       case Right(x) => Success(x)
       case Left(e) => Failure(new Exception(s"Failed to run job ${e.message}"))
     }

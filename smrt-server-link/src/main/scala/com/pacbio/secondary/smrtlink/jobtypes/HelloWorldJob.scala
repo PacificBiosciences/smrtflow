@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 case class HelloWorldJobOptions(x: Int,
@@ -18,16 +17,14 @@ case class HelloWorldJobOptions(x: Int,
 }
 
 class HelloWorldServiceJob(opts: HelloWorldJobOptions)
-    extends ServiceCoreJob(opts) {
+    extends ServiceCoreJob(opts)
+    with SimpleDevJob {
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-    // shim
-    val oldOpts = SimpleDevJobOptions(1, 2, opts.getProjectId())
-    val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    Right(runDevJob(resources, resultsWriter, 3))
   }
 }

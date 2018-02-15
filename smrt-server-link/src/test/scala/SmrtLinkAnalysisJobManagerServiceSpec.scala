@@ -13,7 +13,6 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
   EngineCoreConfigLoader,
   PbsmrtpipeConfigLoader
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider

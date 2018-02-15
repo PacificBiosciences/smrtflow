@@ -9,7 +9,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFilterProperty
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.common.models.{
   JodaDateTimeProtocol,
   PathProtocols,
@@ -466,7 +465,6 @@ trait JobTypeSettingProtocol
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(
     PbsmrtpipeDirectJobOptions)
-  implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat5(EngineConfig)

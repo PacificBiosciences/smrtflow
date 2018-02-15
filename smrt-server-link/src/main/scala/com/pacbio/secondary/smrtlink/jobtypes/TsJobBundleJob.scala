@@ -10,7 +10,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
@@ -93,7 +93,7 @@ case class TsJobBundleJobOptions(jobId: IdAble,
 
 class TsJobBundleJob(opts: TsJobBundleJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with TsTgzUploadUtils {
   type Out = PacBioDataStore
 

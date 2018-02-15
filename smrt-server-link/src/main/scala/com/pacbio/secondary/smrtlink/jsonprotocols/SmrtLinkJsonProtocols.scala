@@ -226,8 +226,6 @@ trait SmrtLinkJsonProtocols
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
   implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
   implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
-  implicit val simpleDevJobOptionsFormat =
-    SecondaryJobProtocols.simpleDevJobOptionsFormat
 
   implicit val jobTypeFormat = jsonFormat4(JobTypeEndPoint)
 

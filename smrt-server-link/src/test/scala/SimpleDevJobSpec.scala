@@ -6,14 +6,14 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   PrinterJobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.{
-  SimpleDevJob,
-  SimpleDevJobOptions
-}
+import com.pacbio.secondary.smrtlink.jobtypes.{SimpleDevJob, SimpleJobOptions}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
-class SimpleDevJobSpec extends Specification with LazyLogging {
+class SimpleDevJobSpec
+    extends Specification
+    with SimpleDevJob
+    with LazyLogging {
 
   sequential
 
@@ -22,12 +22,8 @@ class SimpleDevJobSpec extends Specification with LazyLogging {
     "Basic adding jobOptions " in {
       val outputDir = Files.createTempDirectory("pbsmrtpipe-jobOptions")
       val job = JobResource(UUID.randomUUID, outputDir)
-      val opts = SimpleDevJobOptions(5, 7)
-      val j = new SimpleDevJob(opts)
-      val jobResult = j.run(job, writer)
-      logger.info("Running simple jobOptions")
-      jobResult.isRight must beTrue
+      val ds = runDevJob(job, writer, 4)
+      ds.files.size must beGreaterThan(0)
     }
   }
-
 }

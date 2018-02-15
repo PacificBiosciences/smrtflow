@@ -7,7 +7,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobModels,
   OptionTypes
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.jobtypes.ImportFastaJobOptions
 import org.joda.time.{DateTime => JodaDateTime}

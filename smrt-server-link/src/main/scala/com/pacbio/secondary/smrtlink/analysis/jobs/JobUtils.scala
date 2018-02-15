@@ -9,12 +9,16 @@ import scala.util.Try
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
+import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
+import com.pacificbiosciences.pacbiodatasets.DataSetType
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
   DataSetMetaTypes
 }
+import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetExporter
 import JobModels._
 
@@ -273,5 +277,158 @@ trait JobImportUtils
         throw new IllegalArgumentException(
           "Can't read export-job-manifest.json in $zipFile.  Only jobs exported through the SMRT Link export-jobs service may be imported.")
       }
+  }
+}
+
+// Put all the general utils for writing a mock pbsmrtpipe jobOptions, then refactor
+// into real "jobOptions" level utils (e.g., progress updating, writing entry points, settings, options, etc...)
+trait CoreJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
+
+  def setupJobResourcesAndCreateDirs(outputDir: Path): AnalysisJobResources = {
+
+    if (!Files.isDirectory(outputDir)) {
+      logger.error(s"output dir is not a Dir ${outputDir.toString}")
+    }
+
+    def toPx(x: Path, name: String): Path = {
+      val p = x.resolve(name)
+      if (!Files.exists(p)) {
+        logger.info(s"Creating dir $p")
+        Files.createDirectories(p)
+      }
+      p
+    }
+
+    def toFx(x: Path, name: String): Path = {
+      val p = x.resolve(name)
+//      if (!Files.exists(p)) {
+//        Files.createFile(p)
+//      }
+      p
+    }
+
+    val toP = toPx(outputDir, _: String)
+    val toF = toFx(outputDir, _: String)
+
+    // This is where the datastore.json will be written. Keep this
+    val workflowPath = toP("workflow")
+
+    // Don't create these for non-pbsmrtpipe jobs. This makes little sense to try to adhere to this interface
+    val tasksPath = outputDir.resolve("tasks")
+    val htmlPath = outputDir.resolve("html")
+    val logPath = outputDir.resolve("logs")
+
+    logger.debug(s"creating resources in ${outputDir.toAbsolutePath}")
+    val r = AnalysisJobResources(
+      outputDir,
+      tasksPath,
+      workflowPath,
+      logPath,
+      htmlPath,
+      toFx(workflowPath, "datastore.json"),
+      toFx(workflowPath, "entry-points.json"),
+      toFx(workflowPath, "jobOptions-report.json")
+    )
+
+    logger.info(s"Successfully created resources")
+    r
+  }
+
+  /**
+    * Get the fundamental "log" for the job
+    * FIXME(mpkocher)(2016-12-4) Centralizing this duplication. Should reevaluate the fundamental design
+    *
+    * @param path  Path to the Log file
+    * @return
+    */
+  def toSmrtLinkJobLog(path: Path,
+                       description: Option[String] = None): DataStoreFile = {
+
+    val now = JodaDateTime.now()
+    val desc = description.getOrElse(JobConstants.DATASTORE_FILE_MASTER_DESC)
+
+    DataStoreFile(
+      UUID.randomUUID(),
+      JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
+      FileTypes.LOG.fileTypeId,
+      // probably wrong; the file isn't closed yet.  But it won't get
+      // closed until after this method completes.
+      path.toFile.length,
+      now,
+      now,
+      path.toString,
+      isChunked = false,
+      JobConstants.DATASTORE_FILE_MASTER_NAME,
+      desc
+    )
+  }
+
+  def toDatastore(jobResources: AnalysisJobResources,
+                  files: Seq[DataStoreFile]): PacBioDataStore =
+    PacBioDataStore.fromFiles(files)
+
+  def writeStringToFile(s: String, path: Path): Path = {
+    // for backward compatibility
+    FileUtils.writeStringToFile(path.toFile, s)
+    path
+  }
+
+  def writeDataStore(ds: PacBioDataStore, path: Path): Path = {
+    FileUtils.writeStringToFile(path.toFile, ds.toJson.prettyPrint.toString)
+    path
+  }
+
+  def toDataStoreFile[T <: DataSetType](ds: T,
+                                        output: Path,
+                                        description: String,
+                                        sourceId: String): DataStoreFile = {
+    val uuid = UUID.fromString(ds.getUniqueId)
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    DataStoreFile(
+      uuid,
+      sourceId,
+      ds.getMetaType,
+      output.toFile.length,
+      createdAt,
+      modifiedAt,
+      output.toAbsolutePath.toString,
+      isChunked = false,
+      Option(ds.getName).getOrElse("PacBio DataSet"),
+      description
+    )
+  }
+
+  /**
+    * This will a real fasta file that can be used
+    *
+    * @return
+    */
+  def toMockFastaDataStoreFile(rootDir: Path): DataStoreFile = {
+    val createdAt = JodaDateTime.now()
+    val uuid = UUID.randomUUID()
+    val nrecords = 100
+    val p = rootDir.resolve(s"mock-${uuid.toString}.fasta")
+    MockFileUtils.writeMockFastaFile(nrecords, p)
+    DataStoreFile(
+      uuid,
+      "mock-pbsmrtpipe",
+      FileTypes.FASTA.fileTypeId,
+      p.toFile.length(),
+      createdAt,
+      createdAt,
+      p.toAbsolutePath.toString,
+      isChunked = false,
+      "Mock Fasta",
+      s"Mock Fasta file generated with $nrecords records"
+    )
+  }
+
+  def toMockDataStoreFiles(rootDir: Path): Seq[DataStoreFile] = {
+    (0 until 4).map(x => toMockFastaDataStoreFile(rootDir))
+  }
+
+  def writeEntryPoints(entryPoints: Seq[BoundEntryPoint], path: Path): Path = {
+    writeStringToFile(entryPoints.toJson.toString, path)
   }
 }

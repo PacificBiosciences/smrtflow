@@ -10,13 +10,13 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobModels,
   SecondaryJobProtocols
 }
-import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
+import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
 class SmrtLinkModelsSpec extends Specification {
 
   import JobModels._
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols._
   import com.pacbio.common.models.CommonModelImplicits._
 
   sequential
@@ -25,6 +25,12 @@ class SmrtLinkModelsSpec extends Specification {
     BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)
 
   "Test serialization of smrtlink models" should {
+    "HelloWorldJobOptions" in {
+      val opts = HelloWorldJobOptions(4, Some("my job"), None)
+      val opts2 = opts.toJson.convertTo[HelloWorldJobOptions]
+      opts2.x === opts.x
+      opts2.name must beSome
+    }
     "PbsmrtpipeJobOptions" in {
       val opts = PbsmrtpipeJobOptions(Some("test_job"),
                                       None,

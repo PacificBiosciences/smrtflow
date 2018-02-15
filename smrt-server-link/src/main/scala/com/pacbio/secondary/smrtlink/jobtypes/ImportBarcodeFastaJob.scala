@@ -22,7 +22,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
@@ -48,7 +48,7 @@ case class ImportBarcodeFastaJobOptions(path: Path,
 class ImportBarcodeFastaJob(opts: ImportBarcodeFastaJobOptions)
     extends ServiceCoreJob(opts)
     with ImportFastaUtils
-    with MockJobUtils
+    with CoreJobUtils
     with timeUtils {
 
   val DS_METATYPE = DataSetMetaTypes.Barcode

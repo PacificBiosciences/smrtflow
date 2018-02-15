@@ -20,7 +20,7 @@ import com.pacbio.secondary.smrtlink.models.{
   EngineJobEntryPointRecord,
   EngineJobEntryPoint
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
@@ -109,7 +109,7 @@ case class ExportDataSetsJobOptions(
 
 class ExportDataSetJob(opts: ExportDataSetsJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils {
+    with CoreJobUtils {
   type Out = PacBioDataStore
 
   import ServiceJobTypeJsonProtocols._

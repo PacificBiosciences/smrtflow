@@ -22,7 +22,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobImportUtils,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.{
   DataSetMetaDataSet,
@@ -89,7 +89,7 @@ case class ImportSmrtLinkJobOptions(zipPath: Path,
 
 class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with JobImportUtils
     with DataSetFileUtils
     with ImportServiceUtils
