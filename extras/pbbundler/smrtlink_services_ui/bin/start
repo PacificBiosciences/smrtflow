@@ -70,6 +70,8 @@ WSO2_DIR="$__dir/../wso2am-2.0.0"
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 logStartFile=${logDir}/start.log
 
+pbTmpDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['tmpDir'])" ${SL_SERVICES_CONF})
+export TMPDIR="${pbTmpDir}"
 
 echo "Step #2 Checking system requirements (e.g., ulimits)"
 ${__dir}/check-system-limits
