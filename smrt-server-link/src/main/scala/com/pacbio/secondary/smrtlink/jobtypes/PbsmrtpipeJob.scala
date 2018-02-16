@@ -8,19 +8,20 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  ExternalCmdFailure,
+  ExternalToolsUtils
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobResultsWriter,
-  CoreJobUtils
+  CoreJobUtils,
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
 import com.pacbio.secondary.smrtlink.models.{
@@ -64,10 +65,16 @@ object PbsmrtpipeJobUtils {
   private def resolveTerminateScript(jobDir: Path): Path =
     jobDir.resolve(PBSMRTPIPE_PID_KILL_FILE_SCRIPT)
 
-  def terminateJobFromDir(jobDir: Path) = {
+  /**
+    * This needs a better error handling.
+    *
+    * @param jobDir
+    * @return
+    */
+  def terminateJobFromDir(jobDir: Path): Option[ExternalCmdFailure] = {
     val cmd =
       Seq("bash", resolveTerminateScript(jobDir).toAbsolutePath.toString)
-    ExternalToolsUtils.runCmd(cmd)
+    ExternalToolsUtils.runCheckCall(cmd)
   }
 }
 
