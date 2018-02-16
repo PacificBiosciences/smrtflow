@@ -75,18 +75,18 @@ class TmpDirCleanupAlarmRunner(tmpDir: Path) extends AlarmRunner {
 
       cleanUp(tmpDir, toDateTimeFilter(aWeekAgo))
         .map(numFiles =>
-          AlarmUpdate(0.0, Some(s"Cleaned up $numFiles"), AlarmSeverity.CLEAR))
+          AlarmUpdate(0.0, Some(s"Cleaned up $numFiles resources from Temp Dir"), AlarmSeverity.CLEAR))
         .recover {
           case NonFatal(ex) =>
             AlarmUpdate(
               0.9,
-              Some(s"Error cleaning up Temp directory ${ex.getMessage}"),
+              Some(s"Error cleaning up Temp dir ${ex.getMessage}"),
               AlarmSeverity.ERROR)
         }
     } else {
       Future.successful(
         AlarmUpdate(1.0,
-                    Some(s"Temp directory $tmpDir does not exist"),
+                    Some(s"Temp dir $tmpDir does not exist"),
                     AlarmSeverity.CRITICAL))
     }
   }
