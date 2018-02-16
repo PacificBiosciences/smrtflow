@@ -20,8 +20,8 @@ object CallSaWriterIndex extends ExternalToolsUtils {
     val indexFile = fastaPath.toAbsolutePath.toString + ".sa"
     val indexPath = Paths.get(indexFile)
 
-    val stdout = outputDir.resolve("ngmlr.stdout")
-    val stderr = outputDir.resolve("ngmlr.stderr")
+    val stdout = outputDir.resolve(s"$EXE.stdout")
+    val stderr = outputDir.resolve(s"$EXE.stderr")
 
     val cmd = Seq(exePath,
                   indexPath.toAbsolutePath.toString,
