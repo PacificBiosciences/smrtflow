@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.models.Alarm
 
 class TmpDirectoryAlarmRunner(tmpDir: Path, fileSystemUtil: FileSystemUtil)
     extends DirectoryAlarmRunner(tmpDir, fileSystemUtil) {
-  override val alarm = Alarm("smrtlink.alarms.tmp_dir",
+  override val alarm = Alarm(AlarmTypeIds.DIR_TMP,
                              "Temp Dir",
                              "Monitors disk space usage in the tmp dir")
 

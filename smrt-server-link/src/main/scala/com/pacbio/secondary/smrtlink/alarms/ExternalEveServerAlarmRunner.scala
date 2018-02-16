@@ -35,9 +35,10 @@ class ExternalEveServerAlarmRunner(eveUrl: URL, apiSecret: String)(
             AlarmSeverity.ERROR)
       }
 
-  override val alarm = Alarm("smrtlink.alarms.eve_status",
-                             "Eve Status",
-                             "Monitor External Eve Service Status")
+  override val alarm = Alarm(
+    AlarmTypeIds.SERVER_EVE,
+    "Eve Server Status",
+    "Monitor to Successfully connect to external Eve Service (if configured)")
 
   override protected def update(): Future[AlarmUpdate] = getStatus(3)
 }
