@@ -11,21 +11,14 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
   HdfSubreadSetIO
 }
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
-  DataSetLoader,
-  DataSetWriter
-}
+
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
-import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import cats.data._
-import cats.data.Validated._
-import cats.implicits._
 import com.pacbio.secondary.smrtlink.analysis.converters.DatasetConvertError
 
 /**
