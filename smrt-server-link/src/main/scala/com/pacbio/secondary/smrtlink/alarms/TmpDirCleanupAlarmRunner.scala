@@ -74,14 +74,16 @@ class TmpDirCleanupAlarmRunner(tmpDir: Path) extends AlarmRunner {
       val aWeekAgo = now.minusDays(7)
 
       cleanUp(tmpDir, toDateTimeFilter(aWeekAgo))
-        .map(numFiles =>
-          AlarmUpdate(0.0, Some(s"Cleaned up $numFiles resources from Temp Dir"), AlarmSeverity.CLEAR))
+        .map(
+          numFiles =>
+            AlarmUpdate(0.0,
+                        Some(s"Cleaned up $numFiles resources from Temp Dir"),
+                        AlarmSeverity.CLEAR))
         .recover {
           case NonFatal(ex) =>
-            AlarmUpdate(
-              0.9,
-              Some(s"Error cleaning up Temp dir ${ex.getMessage}"),
-              AlarmSeverity.ERROR)
+            AlarmUpdate(0.9,
+                        Some(s"Error cleaning up Temp dir ${ex.getMessage}"),
+                        AlarmSeverity.ERROR)
         }
     } else {
       Future.successful(
