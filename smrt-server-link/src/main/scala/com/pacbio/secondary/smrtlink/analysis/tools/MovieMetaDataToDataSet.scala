@@ -53,17 +53,19 @@ object MovieMetaDataToDataSetTool
 
     val dsPath = Paths.get(c.datasetXMLPath)
 
-    val movieMetaDataXMLPath = c.movieMetadataXMLPath
-    val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath)
+    val movieMetaDataXMLPath = Paths.get(c.movieMetadataXMLPath)
+    val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath,
+                                           dsPath,
+                                           "converted-rs")
 
     x match {
-      case Right(ds) =>
-        DataSetWriter.writeHdfSubreadSet(ds, dsPath)
+      case Right(_) =>
         println(s"Successfully converted $movieMetaDataXMLPath")
         println(s"Writing HdfSubreadSet Dataset XML to $dsPath")
         Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
       case Left(e) =>
-        System.err.println(s"Failed to convert $movieMetaDataXMLPath")
+        System.err.println(
+          s"Failed to convert $movieMetaDataXMLPath ${e.getMessage}")
         Left(ToolFailure(toolId, computeTimeDeltaFromNow(startedAt), e.msg))
     }
   }

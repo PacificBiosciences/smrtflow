@@ -1,7 +1,9 @@
-import java.nio.file.{Paths, Files}
-import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter._
+import java.nio.file.{Files, Paths}
+
+import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FileUtils
 import org.specs2.mutable._
 
 import collection.JavaConverters._
@@ -25,10 +27,21 @@ class ConverterSpec extends Specification with LazyLogging {
       logger.debug(
         s"Converting movie to dataset ${uri.toString} -> ${dsXml.toString}")
       val path = Paths.get(uri.toURI)
-      val x = convertMovieMetaDataToSubread(path)
+      val tmpFile = Files.createTempFile("hdfsubreadset", ".hdfsubreadset.xml")
+      val x =
+        MovieMetadataConverter.convertRsMovieToHdfSubreadSet(path,
+                                                             tmpFile,
+                                                             "TestDataSet")
       x.isRight must beTrue
+
+      val hset = DataSetLoader.loadHdfSubreadSet(tmpFile)
+
+      hset.getExternalResources.getExternalResource.asScala.toList.length === 3
+
+      FileUtils.deleteQuietly(tmpFile.toFile)
+
       val xs =
-        x.right.get.getExternalResources.getExternalResource.asScala.toList.length
+        x.right.get.dataset.getExternalResources.getExternalResource.asScala.toList.length
       xs mustEqual 3
     }
   }
