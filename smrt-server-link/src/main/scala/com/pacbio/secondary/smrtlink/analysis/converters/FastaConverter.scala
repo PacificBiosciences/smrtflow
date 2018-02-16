@@ -204,9 +204,6 @@ trait ReferenceConverterBase[
           fastaPath,
           outputDir,
           inPlace = false,
-          mkdir = mkdir) match {
-      case Right(rio) => Success(rio)
-      case Left(ex) => Failure(new Exception(ex.getMessage))
-    }
+          mkdir = mkdir).toTry
   }
 }
