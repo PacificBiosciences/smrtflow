@@ -12,26 +12,25 @@ object CallSaWriterIndex extends ExternalToolsUtils {
 
   def isAvailable(): Boolean = isExeAvailable(Seq(EXE, "--help"))
 
-  def apply(fastaPath: Path,
-            exePath: String = EXE): Option[ExternalCmdFailure] = {
-    val indexFile = Paths.get(s"${fastaPath.toAbsolutePath.toString}.sa")
+  def run(outputDir: Path,
+          fastaPath: Path,
+          exePath: String = EXE): Either[ExternalCmdFailure, Path] = {
+
+    // Does sawriter let you set the output file path?
+    val indexFile = fastaPath.toAbsolutePath.toString + ".sa"
+    val indexPath = Paths.get(indexFile)
+
+    val stdout = outputDir.resolve("ngmlr.stdout")
+    val stderr = outputDir.resolve("ngmlr.stderr")
+
     val cmd = Seq(exePath,
-                  indexFile.toAbsolutePath.toString,
+                  indexPath.toAbsolutePath.toString,
                   fastaPath.toAbsolutePath.toString,
                   "-blt",
                   "8",
                   "-welter")
-    runSimpleCmd(cmd)
-  }
 
-  def run(fastaPath: Path,
-          exePath: String = EXE): Either[ExternalCmdFailure, Path] = {
-    // Does sawriter let you set the output file path?
-    val indexFile = fastaPath.toAbsolutePath.toString + ".sa"
-    val indexPath = Paths.get(indexFile)
-    apply(fastaPath, exePath) match {
-      case Some(e) => Left(e)
-      case _ => Right(indexPath)
-    }
+    runCmd(cmd, stdout, stderr, cwd = Some(outputDir.toFile)).map(_ =>
+      indexPath)
   }
 }
