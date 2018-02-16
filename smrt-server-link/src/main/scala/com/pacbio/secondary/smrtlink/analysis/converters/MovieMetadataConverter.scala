@@ -1,20 +1,22 @@
 package com.pacbio.secondary.smrtlink.analysis.converters
 
 import java.io.FileOutputStream
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import javax.xml.transform.stream.{StreamResult, StreamSource}
-import javax.xml.transform.{Result, Transformer, Source}
+import javax.xml.transform.{Result, Source, Transformer}
 
+import com.pacbio.secondary.smrtlink.analysis.datasets.HdfSubreadSetIO
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetLoader,
   DataSetMerger,
-  DataSetLoader
+  DataSetWriter
 }
 import com.pacificbiosciences.pacbiodatasets.HdfSubreadSet
 import com.typesafe.scalalogging.LazyLogging
 import net.sf.saxon.TransformerFactoryImpl
-import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 
-import scala.io.{Source => SSource}
+import scala.util.Try
 
 /**
   * Converts a movie Metadata to HdfSubread DataSet
@@ -29,97 +31,122 @@ object MovieMetadataConverter extends LazyLogging {
   // Path to RS movie -> HdfSubreadSet XML
   val DATASET_SUBREAD_XSLT = "/HdfSubreadDatasetTransform.xslt"
 
+  private def buildTransformer(xslSource: Source): Transformer = {
+    val transformerFactory = new TransformerFactoryImpl()
+    transformerFactory.newTransformer(xslSource)
+  }
+
+  // Convert by loading Resource as a Stream (for jar file, but doesn't work for tests)
+  private def convertFromStream(in: Path, out: Path): Path = {
+    val xmlSource: Source = new StreamSource(in.toFile)
+
+    val result: Result = new StreamResult(out.toFile)
+
+    // FIXME There's problems loading resources with this method. Tests pass
+    // but jar files with assembly and pack are broken
+    val aStream = getClass.getClass.getResourceAsStream(DATASET_SUBREAD_XSLT)
+
+    logger.debug(s"Loading xsl from $aStream")
+    val streamSource = new StreamSource(aStream)
+    val transformer = buildTransformer(streamSource)
+    transformer.transform(xmlSource, result)
+    out
+  }
+
+  // Convert by loading XSL as a Resource
+  private def convertFromURI(in: Path, out: Path): Path = {
+
+    // Movie Metadata XML
+    val xmlSource: Source = new StreamSource(in.toFile)
+
+    val outputStream = new FileOutputStream(out.toFile)
+
+    val result: Result = new StreamResult(outputStream)
+
+    // FIXME There's problems loading resources with this method. Tests pass but jar files with assembly and pack are broken
+    val myXsl = getClass.getResource(DATASET_SUBREAD_XSLT)
+    val myXslPath = myXsl.getPath
+    val xslSource: Source = new StreamSource(myXslPath)
+    val transformer = buildTransformer(xslSource)
+    transformer.transform(xmlSource, result)
+    out
+  }
+
   /**
     * Convert RS-era MovieMeta XML file -> HdfSubread Dataset XML file
     *
     * @param path Path to a dataset XML file
     * @return
     */
-  def convertMovieMetaDataToSubread(
-      path: Path): Either[DatasetConvertError, HdfSubreadSet] = {
+  private def convertMovieMetaDataToSubread(
+      path: Path,
+      output: Path): Either[DatasetConvertError, HdfSubreadSet] = {
 
-    val dsPath = Files.createTempFile("tmp", "hdfsubreadset.xml")
     logger.debug(
-      s"attempting to convert ${path.toString} to Dataset ${dsPath.toString}")
+      s"attempting to convert ${path.toString} to Dataset ${output.toString}")
 
-    def buildTransformer(xslSource: Source): Transformer = {
-      val transformerFactory = new TransformerFactoryImpl()
-      transformerFactory.newTransformer(xslSource)
+    def convertAndLoad(
+        f: (Path, Path) => Unit): (Path, Path) => HdfSubreadSet = {
+      (in, out) =>
+        f(in, out)
+        DataSetLoader.loadHdfSubreadSet(out)
     }
 
-    // Convert by loading Resource as a Stream (for jar file, but doesn't work for tests)
-    def convertFromStream: Path = {
-      val xmlSource: Source = new StreamSource(path.toFile)
+    // The tests can't load from a Stream and jar files
+    // can't load resources from URIs.
+    // Failed to load the XSL in the recover
+    val tx = Try(convertAndLoad(convertFromStream)(path, output))
+      .recover { case _ => convertAndLoad(convertFromURI)(path, output) }
 
-      val result: Result = new StreamResult(dsPath.toFile)
-
-      // FIXME There's problems loading resources with this method. Tests pass but jar files with assembly and pack are broken
-      val aStream = getClass.getClass.getResourceAsStream(DATASET_SUBREAD_XSLT)
-
-      logger.debug(s"Loading xsl from $aStream")
-      val streamSource = new StreamSource(aStream)
-      val transformer = buildTransformer(streamSource)
-      transformer.transform(xmlSource, result)
-      dsPath
+    tx.toEither.left.map { t =>
+      Files.deleteIfExists(output)
+      DatasetConvertError(t.getMessage)
     }
 
-    // Convert by loading XSL as a Resource
-    def convertFromURI: Path = {
-      val outputStream = new FileOutputStream(dsPath.toFile)
-
-      // Movie Metadata XML
-      val xmlSource: Source = new StreamSource(path.toFile)
-
-      val result: Result = new StreamResult(outputStream)
-
-      // FIXME There's problems loading resources with this method. Tests pass but jar files with assembly and pack are broken
-      val myXsl = getClass.getResource(DATASET_SUBREAD_XSLT)
-      val myXslPath = myXsl.getPath
-      val xslSource: Source = new StreamSource(myXslPath)
-      val transformer = buildTransformer(xslSource)
-      transformer.transform(xmlSource, result)
-      dsPath
-    }
-
-    // FIXME. This is lackluster code. The tests can't load from a Stream and jar files can't load resources from URIs.
-    try {
-      convertFromStream
-      logger.info(s"Completed writing dataset to $dsPath")
-      Right(DataSetLoader.loadHdfSubreadSet(dsPath))
-    } catch {
-      case e: Exception =>
-        // Failed to load the XSL
-        //logger.warn("Failed to load XSL from stream. Trying to load as URI")
-        try {
-          //logger.debug("Attempting to load XSL from resource.")
-          convertFromURI
-          logger.info(s"Completed writing dataset to $dsPath")
-          Right(DataSetLoader.loadHdfSubreadSet(dsPath))
-        } catch {
-          case e: Exception =>
-            logger.error(s"Failed to convert $path")
-            Files.deleteIfExists(dsPath)
-            Left(DatasetConvertError(e.getMessage))
-        }
-    }
   }
 
   /**
     * Convert a list of RS-era Movie Metadata XML files to an HdfSubreadSet
     *
+    * If there are more than one file, they will be merged into a Single HdfSubreadSet
+    * and written to the configured output file.
+    *
     * @param paths
     * @return
     */
-  def convertMovieMetadatasToHdfSubreadSet(
-      paths: Seq[Path]): Either[DatasetConvertError, HdfSubreadSet] = {
+  private def convertMovieMetadatasToHdfSubreadSet(
+      paths: Set[Path],
+      out: Path,
+      dsName: String): Either[DatasetConvertError, HdfSubreadSetIO] = {
 
-    val xs = paths.map(x => convertMovieMetaDataToSubread(x))
-    val subreadSets = xs.flatMap(_.right.toOption)
+    val xs = paths.toList.map { p =>
+      val tmpOut =
+        Files.createTempFile("rs-converted-dataset", ".hdfsubreadset.xml")
+      convertRsMovieToHdfSubreadSet(p, tmpOut, "temp-dataset")
+    }
+
+    val hsets = xs.flatMap(_.right.toOption)
+    hsets.map(_.path.toFile).foreach(FileUtils.deleteQuietly)
+
     val errors = xs.flatMap(_.left.toOption)
     if (errors.nonEmpty) {
       Left(DatasetConvertError(s"Failed to convert $errors"))
     } else {
-      Right(DataSetMerger.mergeHdfSubreadSets(subreadSets, "Convert-movie"))
+      val hset =
+        DataSetMerger.mergeHdfSubreadSets(hsets.map(_.dataset), dsName)
+      DataSetWriter.writeHdfSubreadSet(hset, out)
+      Right(HdfSubreadSetIO(hset, out))
+    }
+  }
+
+  def convertRsMovieToHdfSubreadSet(
+      path: Path,
+      out: Path,
+      dsName: String): Either[DatasetConvertError, HdfSubreadSetIO] = {
+    convertMovieMetaDataToSubread(path, out).map { hset =>
+      hset.setName(dsName)
+      DataSetWriter.writeHdfSubreadSet(hset, out)
+      HdfSubreadSetIO(hset, out)
     }
   }
 
@@ -129,12 +156,16 @@ object MovieMetadataConverter extends LazyLogging {
     * @return
     */
   def convertMovieOrFofnToHdfSubread(
-      movie: String): Either[DatasetConvertError, HdfSubreadSet] = {
-    FilenameUtils.getExtension(movie) match {
+      movie: Path,
+      out: Path,
+      dsName: String): Either[DatasetConvertError, HdfSubreadSetIO] = {
+    FilenameUtils.getExtension(movie.getFileName.toString) match {
       case "fofn" =>
-        convertMovieMetadatasToHdfSubreadSet(
-          Utils.fofnToFiles(Paths.get(movie)).toSet.toList)
-      case "xml" => convertMovieMetadatasToHdfSubreadSet(Seq(Paths.get(movie)))
+        convertMovieMetadatasToHdfSubreadSet(Utils.fofnToFiles(movie).toSet,
+                                             out,
+                                             dsName)
+      case "xml" =>
+        convertRsMovieToHdfSubreadSet(movie, out, dsName)
       case x =>
         Left(DatasetConvertError(
           s"Unsupported file type. '$x'. Supported files types 'xml', 'fofn'"))

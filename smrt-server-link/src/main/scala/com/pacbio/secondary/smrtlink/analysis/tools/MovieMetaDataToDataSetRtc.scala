@@ -62,11 +62,12 @@ object MovieMetaDataToDataSetRtcTool
     val dsPath =
       rtc.getResolvedToolContract.getOutputFiles.asScala.toList.head.toString
 
-    val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath)
+    val x = convertMovieOrFofnToHdfSubread(Paths.get(movieMetaDataXMLPath),
+                                           Paths.get(dsPath),
+                                           "converted-rs")
 
     x match {
       case Right(ds) =>
-        DataSetWriter.writeHdfSubreadSet(ds, Paths.get(dsPath))
         println(s"Successfully converted $movieMetaDataXMLPath")
         println(s"Writing HdfSubreadSet Dataset XML to $dsPath")
         Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))
