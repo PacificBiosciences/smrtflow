@@ -178,7 +178,7 @@ class DataSetExportSpecAdvanced
     val uuid = getDataSetMiniMeta(ds).uuid
     FileUtils.deleteDirectory(ds.getParent.toFile)
     val dest = Files.createTempDirectory("subreads-extracted")
-    runSimpleCmd(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
+    runCheckCall(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
     val basename = FilenameUtils.getName(ds.toString)
     val dsUnzip = dest.resolve(s"${uuid}/${basename}")
     val subreads = DataSetLoader.loadSubreadSet(dsUnzip)
