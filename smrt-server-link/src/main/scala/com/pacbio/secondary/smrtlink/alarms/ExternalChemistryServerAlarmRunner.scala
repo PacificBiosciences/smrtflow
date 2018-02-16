@@ -38,7 +38,7 @@ class ExternalChemistryServerAlarmRunner(url: URL)(
             AlarmSeverity.ERROR)
       }
 
-  override val alarm = Alarm("smrtlink.alarms.chemistry_update_server",
+  override val alarm = Alarm(AlarmTypeIds.SERVER_CHEM,
                              "Chemistry Update Server Status",
                              "Monitor External Chemistry Update Server Status")
 

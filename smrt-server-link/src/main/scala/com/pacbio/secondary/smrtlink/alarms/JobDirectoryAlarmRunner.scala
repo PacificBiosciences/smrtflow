@@ -8,7 +8,7 @@ import com.pacbio.secondary.smrtlink.models.Alarm
 class JobDirectoryAlarmRunner(path: Path, fileSystemUtil: FileSystemUtil)
     extends DirectoryAlarmRunner(path, fileSystemUtil) {
 
-  override val alarm = Alarm("smrtlink.alarms.job_dir",
+  override val alarm = Alarm(AlarmTypeIds.DIR_JOB,
                              "Job Dir",
                              "Monitors disk space usage in the job dir")
 
