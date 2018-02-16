@@ -1,6 +1,6 @@
 package com.pacbio.secondary.smrtlink.analysis.externaltools
 
-import java.nio.file.{Paths, Path}
+import java.nio.file.Path
 
 /**
   * External Call To sawriter (from blasr tools)
@@ -12,19 +12,13 @@ object CallDataset extends ExternalToolsUtils {
 
   def isAvailable(): Boolean = isExeAvailable(Seq(EXE, "--help"))
 
-  def absolutize(xmlPath: Path,
-                 exePath: String = EXE): Option[ExternalCmdFailure] = {
-    val cmd =
-      Seq(exePath, "absolutize", "--update", xmlPath.toAbsolutePath.toString)
-    runSimpleCmd(cmd)
-  }
-
   def runAbsolutize(
       xmlPath: Path,
       exePath: String = EXE): Either[ExternalCmdFailure, Path] = {
-    absolutize(xmlPath, exePath) match {
-      case Some(e) => Left(e)
-      case _ => Right(xmlPath)
-    }
+
+    val cmd =
+      Seq(exePath, "absolutize", "--update", xmlPath.toAbsolutePath.toString)
+
+    runCmd(cmd).map(_ => xmlPath)
   }
 }

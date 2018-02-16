@@ -36,7 +36,8 @@ class SaWriterSpec extends Specification with FastaSetupUtils {
   "Test sawriter plugin" should {
     "Sanity test" in {
       val tmpFasta = getFasta("example_01.fasta")
-      val result = CallSaWriterIndex.run(tmpFasta)
+      val outputDir = Files.createTempDirectory("sawriter")
+      val result = CallSaWriterIndex.run(outputDir, tmpFasta)
       val path = result.right.get
       path.toFile.exists must beTrue
     }
@@ -50,7 +51,8 @@ class NgmlrIndexSpec extends Specification with FastaSetupUtils {
   "Test ngmlr plugin" should {
     "Sanity test" in {
       val tmpFasta = getFasta("example_01.fasta")
-      val result = CallNgmlrIndex.run(tmpFasta)
+      val outputDir = Files.createTempDirectory("ngmlr")
+      val result = CallNgmlrIndex.run(outputDir, tmpFasta)
       val paths = result.right.get
       paths.size must beEqualTo(2)
       paths(0).toFile.exists must beTrue
