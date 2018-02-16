@@ -141,7 +141,7 @@ class AlarmSpec
       Get("/smrt-link/alarms") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarms = responseAs[Seq[AlarmStatus]]
-        alarms.size === 4
+        alarms.isEmpty must beFalse
         alarms.find(_.id == tmpId) must beSome
         alarms.find(_.id == jobId) must beSome
       }
