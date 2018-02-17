@@ -250,8 +250,8 @@ class PbsmrtpipeScenario(host: String, port: Int)
     WaitForSuccessfulJob(jobId),
     //fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
     dataStore := GetJobDataStore(jobId),
-    fail(s"job:${jobId} Expected five datastore files") IF dataStore.mapWith(
-      _.size) !=? 6,
+    fail(s"job:${jobId} Expected seven datastore files") IF dataStore.mapWith(
+      _.size) !=? 7,
     fail(s"job:${jobId} Analysis log file size is 0") IF dataStore.mapWith {
       ds =>
         ds.filter(_.sourceId == "pbsmrtpipe::pbsmrtpipe.log").head.fileSize
@@ -261,7 +261,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     } ==? 633, // for some reason this is the size it starts at
     job := GetJob(jobId),
     jobReports := GetJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
+    fail("Expected two reports") IF jobReports.mapWith(_.size) !=? 2,
     report := GetJobReport(job.mapWith(_.id),
                            jobReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(
@@ -313,10 +313,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
         getLastJob(j).importedAt.isDefined
       } !=? true,
     dataStore := GetJobDataStore(jobs.mapWith(j => getLastJob(j).uuid)),
-    fail(s"job:${jobId} Expected four datastore files") IF dataStore.mapWith(
-      _.size) !=? 5,
+    fail(s"job:${jobId} Expected six datastore files") IF dataStore.mapWith(
+      _.size) !=? 6,
     jobReports := GetJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
+    fail("Expected two reports") IF jobReports.mapWith(_.size) !=? 2,
     entryPoints := GetJobEntryPoints(jobs.mapWith(j => getLastJob(j).id)),
     fail("Expected one entry point for imported job") IF entryPoints.mapWith(
       _.size) !=? 1,
