@@ -406,8 +406,8 @@ object Converters extends DataSetMetadataUtils {
     val name = Option(dataset.getName).getOrElse(UNKNOWN)
     val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
     val tags = ""
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val numRecords = getNumRecords(dataset)
+    val totalLength = getTotalLength(dataset)
 
     ConsensusReadServiceDataSet(-99,
                                 uuid,

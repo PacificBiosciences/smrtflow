@@ -41,11 +41,7 @@
 		</xs:annotation>
 		<xs:complexType>
 			<xs:complexContent>
-				<xs:extension base="DataSetType">
-					<xs:sequence>
-						<xs:element name="DataSetMetadata" type="DataSetMetadataType"/>
-					</xs:sequence>
-				</xs:extension>
+				<xs:extension base="ReadSetType"/>
 			</xs:complexContent>
 		</xs:complexType>
 	</xs:element>

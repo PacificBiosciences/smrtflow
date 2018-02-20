@@ -33,13 +33,13 @@ import com.pacificbiosciences.pacbiobasedatamodel.UserDefinedFieldsType;
 public class ObjectFactory {
 
     private final static QName _UserDefinedFields_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "UserDefinedFields");
+    private final static QName _CollectionMetadataComponentVersions_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "ComponentVersions");
     private final static QName _ExpirationDataSequencingTube0PastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "SequencingTube0PastExpiration");
     private final static QName _ExpirationDataTemplatePrepKitPastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "TemplatePrepKitPastExpiration");
     private final static QName _ExpirationDataSequencingTube1PastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "SequencingTube1PastExpiration");
     private final static QName _ExpirationDataCellPacPastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "CellPacPastExpiration");
     private final static QName _ExpirationDataSequencingKitPastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "SequencingKitPastExpiration");
     private final static QName _ExpirationDataBindingKitPastExpiration_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "BindingKitPastExpiration");
-    private final static QName _CollectionMetadataComponentVersions_QNAME = new QName("http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", "ComponentVersions");
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: com.pacificbiosciences.pacbiocollectionmetadata
@@ -186,6 +186,15 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link CollectionMetadata.ComponentVersions }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", name = "ComponentVersions", scope = CollectionMetadata.class)
+    public JAXBElement<CollectionMetadata.ComponentVersions> createCollectionMetadataComponentVersions(CollectionMetadata.ComponentVersions value) {
+        return new JAXBElement<CollectionMetadata.ComponentVersions>(_CollectionMetadataComponentVersions_QNAME, CollectionMetadata.ComponentVersions.class, CollectionMetadata.class, value);
+    }
+
+    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link Integer }{@code >}}
      * 
      */
@@ -237,15 +246,6 @@ public class ObjectFactory {
     @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", name = "BindingKitPastExpiration", scope = ExpirationData.class)
     public JAXBElement<Integer> createExpirationDataBindingKitPastExpiration(Integer value) {
         return new JAXBElement<Integer>(_ExpirationDataBindingKitPastExpiration_QNAME, Integer.class, ExpirationData.class, value);
-    }
-
-    /**
-     * Create an instance of {@link JAXBElement }{@code <}{@link CollectionMetadata.ComponentVersions }{@code >}}
-     * 
-     */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", name = "ComponentVersions", scope = CollectionMetadata.class)
-    public JAXBElement<CollectionMetadata.ComponentVersions> createCollectionMetadataComponentVersions(CollectionMetadata.ComponentVersions value) {
-        return new JAXBElement<CollectionMetadata.ComponentVersions>(_CollectionMetadataComponentVersions_QNAME, CollectionMetadata.ComponentVersions.class, CollectionMetadata.class, value);
     }
 
 }

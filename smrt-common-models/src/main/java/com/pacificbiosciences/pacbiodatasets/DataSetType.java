@@ -68,7 +68,6 @@ import com.pacificbiosciences.pacbiobasedatamodel.StrictEntityType;
     "dataSets"
 })
 @XmlSeeAlso({
-    ConsensusReadSet.class,
     AlignmentSetType.class,
     BarcodeSetType.class,
     ContigSetType.class,
