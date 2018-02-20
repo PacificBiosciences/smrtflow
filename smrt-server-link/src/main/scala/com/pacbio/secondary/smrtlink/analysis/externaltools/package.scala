@@ -121,8 +121,8 @@ package object externaltools {
       logger.info(s"Starting cmd $cmd")
 
       val px = extraEnv
-        .map(x => Process(cmd, cwd = cwd, extraEnv = x.toSeq: _*))
-        .getOrElse(Process(cmd, cwd = cwd))
+        .map(x => Process(cmd, cwd = None, extraEnv = x.toSeq: _*))
+        .getOrElse(Process(cmd, cwd = None))
 
       val rcode = px.!(pxl)
 
