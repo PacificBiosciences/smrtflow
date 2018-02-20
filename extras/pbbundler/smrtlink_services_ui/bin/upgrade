@@ -31,7 +31,7 @@ ${rootBundleDir}/bin/apply-config
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
 logFile=${logDir}/upgrade.log
 
-pbTmpDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['tmpDir'])" ${config})
+pbTmpDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.realpath(d['pacBioSystem']['tmpDir'])" ${config})
 export TMPDIR="${pbTmpDir}"
 
 # To enable tools called from dbctrl
