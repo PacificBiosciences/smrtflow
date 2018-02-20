@@ -42,6 +42,7 @@ import javax.xml.bind.annotation.XmlType;
 })
 @XmlSeeAlso({
     HdfSubreadSet.class,
+    ConsensusReadSet.class,
     SubreadSetType.class
 })
 public class ReadSetType
