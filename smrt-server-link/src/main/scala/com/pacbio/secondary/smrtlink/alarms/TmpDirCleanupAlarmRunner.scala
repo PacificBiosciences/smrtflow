@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.alarms
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.{FileVisitOption, Files, Path}
 
 import com.pacbio.secondary.smrtlink.models.{Alarm, AlarmSeverity, AlarmUpdate}
 import org.apache.commons.io.FileUtils
@@ -20,10 +20,10 @@ class TmpDirCleanupAlarmRunner(tmpDir: Path) extends AlarmRunner {
     "TempDir Cleanup",
     "Monitors successful Temp Directory cleanup")
 
-  private def toDateTimeFilter(old: JodaDateTime): (Path) => Boolean = {
-    path =>
-      val lastModified = new JodaDateTime(path.toFile.lastModified())
-      lastModified.isBefore(old)
+  private def toDateTimeFilter(old: JodaDateTime,
+                               user: String): (Path) => Boolean = { path =>
+    val lastModified = new JodaDateTime(path.toFile.lastModified())
+    lastModified.isBefore(old) && Files.getOwner(path).toString == user
   }
 
   private def deleteDirIfEmpty(f: File): Unit = {
@@ -52,7 +52,7 @@ class TmpDirCleanupAlarmRunner(tmpDir: Path) extends AlarmRunner {
     Future {
       blocking {
         java.nio.file.Files
-          .walk(tmpDir)
+          .walk(tmpDir, FileVisitOption.FOLLOW_LINKS)
           .iterator()
           .asScala
           .filter(f)
@@ -72,8 +72,9 @@ class TmpDirCleanupAlarmRunner(tmpDir: Path) extends AlarmRunner {
     if (Files.exists(tmpDir)) {
       val now = JodaDateTime.now
       val aWeekAgo = now.minusDays(7)
+      val user = System.getProperty("user.name")
 
-      cleanUp(tmpDir, toDateTimeFilter(aWeekAgo))
+      cleanUp(tmpDir, toDateTimeFilter(aWeekAgo, user))
         .map(
           numFiles =>
             AlarmUpdate(0.0,
