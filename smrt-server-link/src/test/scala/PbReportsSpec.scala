@@ -1,4 +1,4 @@
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
@@ -39,25 +39,27 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
   // For the interface to work
   val jobTypeId = JobTypeIds.SIMPLE
 
+  private def getTestFile(ix: String): Path = {
+    val pbdata = PacBioTestData()
+    pbdata.getFile(ix)
+  }
+
   val log = new NullJobResultsWriter
   "Utility functions" should {
     "Verify sts.xml in Sequel dataset" in {
-      val pbdata = PacBioTestData()
-      val f = pbdata.getFile("subreads-sequel")
+      val f = getTestFile("subreads-sequel")
       val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
       hasStats must beTrue
     }
     "Verify NO sts.xml in RSII dataset" in {
-      val pbdata = PacBioTestData()
-      val f = pbdata.getFile("subreads-xml")
+      val f = getTestFile("subreads-xml")
       val hasStats = DataSetReports.hasStatsXml(f, DataSetMetaTypes.Subread)
       hasStats must beFalse
     }
   }
   "SubreadSet report generation" should {
     "create three reports for Sequel dataset with sts.xml" in {
-      val pbdata = PacBioTestData()
-      val f = pbdata.getFile("subreads-sequel")
+      val f = getTestFile("subreads-sequel")
       val tmpDir = Files.createTempDirectory("reports")
       val rpts = DataSetReports.runAll(f,
                                        DataSetMetaTypes.Subread,
@@ -72,15 +74,14 @@ class PbReportsSubreadsSpec extends Specification with LazyLogging {
             "pbreports.tasks.loading_report_xml"))
     }
     "create a single fallback report for converted RSII dataset" in {
-      val pbdata = PacBioTestData()
-      val f = pbdata.getFile("subreads-xml")
+      val f = getTestFile("subreads-xml")
       val tmpDir = Files.createTempDirectory("reports")
       val rpts = DataSetReports.runAll(f,
                                        DataSetMetaTypes.Subread,
                                        tmpDir,
                                        jobTypeId,
                                        log)
-      rpts.size must beEqualTo(1)
+      rpts.size === 0
     }
   }
 }

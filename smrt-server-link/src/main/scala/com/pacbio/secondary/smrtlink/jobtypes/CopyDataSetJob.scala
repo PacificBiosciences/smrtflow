@@ -97,23 +97,25 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
         applyFilters(paths.head, outputFile, opts.filters, opts.name))
       dsFile <- Future.successful(
         toDataStoreFile(ds, outputFile, "Filtered dataset", SOURCE_ID))
-      rptFiles <- Future.successful(
-        DataSetReports.runAll(outputFile,
-                              DataSetMetaTypes.Subread,
-                              job.path,
-                              opts.jobTypeId,
-                              resultsWriter,
-                              forceSimpleReports = true))
       dataStore <- Future.successful(
         PacBioDataStore.fromFiles(Seq(logFile, dsFile)))
-      dataStore <- Future.successful(
-        dataStore.copy(files = dataStore.files ++ rptFiles))
+      dataStore <- Future.successful(dataStore.copy(files = dataStore.files))
       _ <- Future.successful(writeDataStore(dataStore, datastoreJson))
       _ <- writer(
         s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
     } yield dataStore
   }
 
+  /**
+    * No Reports are Generated for Copied datasets
+    *
+    * @param resources     Resources for the Job to use (e.g., job id, root path) This needs to be expanded to include the system config.
+    *                      This be renamed for clarity
+    * @param resultsWriter Writer to write to job stdout and stderr
+    * @param dao           interface to the DB. See above comments on suggested use and responsibility
+    * @param config        System Job config. Any specific config for any job type needs to be pushed into this layer
+    * @return
+    */
   override def run(
       resources: JobResourceBase,
       resultsWriter: JobResultsWriter,

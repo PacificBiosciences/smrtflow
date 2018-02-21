@@ -208,9 +208,9 @@ class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
     fail(s"Wrong UUID") IF subreadSetDetails
       .mapWith(_.getUniqueId) !=? subreadsUuid1.get.toString,
     dsReports := GetSubreadSetReports(subreadsUuid1),
-    fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
+    fail(s"Expected no reports") IF dsReports.mapWith(_.size) !=? 0,
     dataStore := GetJobDataStore(jobId),
-    fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
+    fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 2,
     fail("Wrong UUID in datastore") IF dataStore.mapWith { dss =>
       dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
     } !=? subreadsUuid1.get,
