@@ -8,7 +8,6 @@ package object alarms {
     val SERVER_EVE = "smrtlink.alarms.eve_status"
     val DIR_TMP = "smrtlink.alarms.tmp_dir"
     val DIR_JOB = "smrtlink.alarms.job_dir"
-    val CLEANUP_TMP_DIR = "smrtlink.alarms.tmp_dir_cleanup"
   }
 
 }
