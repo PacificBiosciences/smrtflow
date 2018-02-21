@@ -96,9 +96,9 @@ object DataSetReports
     rpt.run(opts.inPath, dsFile) match {
       case Left(failure) => {
         opts.log.writeLine(
-          s"Failed to generate report SubreadSet. Using simple report for $dsFile")
+          s"Failed to generate report SubreadSet. Skipping Report Generation")
         opts.log.writeLine(failure.msg)
-        generateSimpleReports(opts)
+        Seq.empty[DataStoreFile]
       }
       case Right(result) => {
         val ds = FileUtils
@@ -110,10 +110,6 @@ object DataSetReports
     }
   }
 
-  private def generateSimpleReports(
-      opts: DataSetReportOptions): Seq[DataStoreFile] =
-    List(simpleReport(opts))
-
   private def generateSubreadSetReports(
       opts: DataSetReportOptions): Seq[DataStoreFile] = {
     if (PbReports.SubreadReports.canProcess(
@@ -122,9 +118,9 @@ object DataSetReports
       runSubreadSetReports(opts)
     } else {
       val msg =
-        s"Can't process detailed Reports for SubreadSet. Defaulting to simple report for ${opts.inPath}"
+        s"Can't process detailed Reports for SubreadSet. Skipping Report Generation"
       opts.log.writeLine(msg)
-      generateSimpleReports(opts)
+      Seq.empty[DataStoreFile]
     }
   }
 
@@ -133,7 +129,7 @@ object DataSetReports
       case DataSetMetaTypes.Subread =>
         generateSubreadSetReports(opts)
       case _ =>
-        generateSimpleReports(opts)
+        Seq.empty[DataStoreFile]
     }
   }
 
@@ -158,61 +154,10 @@ object DataSetReports
     rptParent.toFile.mkdir()
 
     val opts = DataSetReportOptions(inPath, dst, rptParent, log, jobTypeId)
-    if ((PbReports.isAvailable()) || (forceSimpleReports)) {
+    if (PbReports.isAvailable()) {
       generateReports(opts)
     } else {
-      generateSimpleReports(opts)
+      Seq.empty[DataStoreFile]
     }
-  }
-
-  private def simpleReport(opts: DataSetReportOptions): DataStoreFile = {
-
-    val inPath = opts.inPath
-    val dst = opts.dst
-
-    def attribs(md: DataSetMetadataType) =
-      List(
-        ReportLongAttribute("total_length", "Total Length", md.getTotalLength),
-        ReportLongAttribute("num_records", "Num Records", md.getNumRecords)
-      )
-
-    // This doesn't work. See comments below
-    //def toSimpleAttributes[T <: DataSetType](ds: T): Seq[ReportLongAttribute] = attribs(ds.getDataSetMetadata())
-
-    // The base DataSetType doesn't have a base metadatatype, therefore this
-    // has to be explicitly encoded here.
-    val reportAttrs: List[ReportAttribute] = dst match {
-      case DataSetMetaTypes.Subread =>
-        attribs(DataSetLoader.loadSubreadSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.HdfSubread =>
-        attribs(DataSetLoader.loadHdfSubreadSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.Reference =>
-        attribs(DataSetLoader.loadReferenceSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.Alignment =>
-        attribs(DataSetLoader.loadAlignmentSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.CCS =>
-        attribs(DataSetLoader.loadConsensusReadSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.AlignmentCCS =>
-        attribs(
-          DataSetLoader.loadConsensusAlignmentSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.Contig =>
-        attribs(DataSetLoader.loadContigSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.Barcode =>
-        attribs(DataSetLoader.loadBarcodeSet(inPath).getDataSetMetadata)
-      case DataSetMetaTypes.GmapReference =>
-        attribs(DataSetLoader.loadGmapReferenceSet(inPath).getDataSetMetadata)
-    }
-
-    val rpt = Report(simple,
-                     "Import DataSet Report",
-                     Constants.SMRTFLOW_VERSION,
-                     reportAttrs,
-                     Nil,
-                     Nil,
-                     UUID.randomUUID())
-
-    val reportPath = opts.rptParent.resolve(simple + ".json")
-    ReportUtils.writeReport(rpt, reportPath)
-    toDataStoreFile(reportPath, s"pbscala::dataset_report")
   }
 }
