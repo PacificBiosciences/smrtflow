@@ -95,9 +95,6 @@ trait AlarmRunnerLoaderProvider {
   val alarmRunners: Singleton[Seq[AlarmRunner]] = Singleton { () =>
     implicit val system = actorSystem()
 
-    val tmpDirCleanupAlarmRunner =
-      new TmpDirCleanupAlarmRunner(smrtLinkTempDir())
-
     val tmpDirDiskSpaceAlarmRunner =
       new TmpDirectoryAlarmRunner(smrtLinkTempDir(), fileSystemUtil())
     val jobDirDiskSpaceAlarmRunner =
@@ -112,8 +109,7 @@ trait AlarmRunnerLoaderProvider {
     Seq(Some(tmpDirDiskSpaceAlarmRunner),
         Some(jobDirDiskSpaceAlarmRunner),
         chemistryAlarmRunner,
-        eveAlarmRunner,
-        Some(tmpDirCleanupAlarmRunner)).flatten
+        eveAlarmRunner).flatten
   }
 
 }
