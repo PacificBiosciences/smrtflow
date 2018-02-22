@@ -118,7 +118,8 @@ class JobExporter(job: EngineJob, zipPath: Path)
     val f = path.toFile
     if (f.isFile) {
       if (FilenameUtils.getName(path.toString) == "datastore.json") {
-        val ds = relativizeDataStore(basePath, path)
+        val outPath = basePath.resolve("datastore.json")
+        val ds = relativizeDataStore(basePath, path, Some(outPath))
         exportFile(path, basePath, Some(ds))
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption
