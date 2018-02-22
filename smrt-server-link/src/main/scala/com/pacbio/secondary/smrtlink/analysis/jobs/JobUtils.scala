@@ -26,59 +26,43 @@ trait JobUtils extends SecondaryJobJsonProtocol {
     out
   }
 
-  /**
-    * This is a bit funky. The call needs to understand if None is provided
-    * the output file will not exist.
-    */
-  private def writeDataStoreAndCleanUp(ds: PacBioDataStore,
-                                       out: Option[Path]): Path = {
-    out match {
-      case Some(p) => writeDataStore(ds, p)
-      case _ =>
-        val p = Files.createTempFile(s"datastore-tmp", ".json")
-        writeDataStore(ds, p)
-        FileUtils.deleteQuietly(p.toFile)
-        p
-    }
-  }
-
   private def processDataStore(f: (PacBioDataStore => PacBioDataStore),
                                dataStorePath: Path,
-                               dsOutPath: Option[Path]): Path = {
+                               dsOutPath: Path): Path = {
     val ds = FileUtils
       .readFileToString(dataStorePath.toFile, "UTF-8")
       .parseJson
       .convertTo[PacBioDataStore]
 
-    writeDataStoreAndCleanUp(f(ds), dsOutPath)
+    writeDataStore(f(ds), dsOutPath)
   }
 
   /**
-    * Load a datastore JSON and convert all paths to relative, writing it to a
-    * temporary file (or optional output path)
-    * @param rootPath   base job directory to which all paths should be relative
-    * @param dataStorePath   path to datastore JSON
-    * @param dsOutPath  optional path to write to (default: new tmp file)
+    * Load a datastore JSON and convert all paths to relative to rootPath
+    *
+    * @param rootPath      base job directory to which all paths should be relative
+    * @param dataStorePath input path to datastore JSON
+    * @param dsOutPath     output datastore
     */
   protected def relativizeDataStore(rootPath: Path,
                                     dataStorePath: Path,
-                                    dsOutPath: Option[Path] = None): Path = {
+                                    dsOutPath: Path): Path = {
 
     processDataStore((ds: PacBioDataStore) => ds.relativize(rootPath),
-                     dataStorePath,
-                     dsOutPath)
+      dataStorePath,
+      dsOutPath)
   }
 
   /**
-    * Load a datastore JSON and convert paths to absolute, writing it to a
-    * temporary file (or optional output path)
-    * @param rootPath   base job directory to which input paths are relative
-    * @param dataStorePath   path to datastore JSON
-    * @param dsOutPath  optional path to write to (default: new tmp file)
+    * Load a datastore JSON and convert paths to absolute
+    *
+    * @param rootPath      base job directory to which input paths are relative
+    * @param dataStorePath in path to datastore JSON
+    * @param dsOutPath     output Path to datastore JSON
     */
   protected def absolutizeDataStore(rootPath: Path,
                                     dataStorePath: Path,
-                                    dsOutPath: Option[Path] = None): Path = {
+                                    dsOutPath: Path): Path = {
     processDataStore((ds: PacBioDataStore) => ds.absolutize(rootPath),
                      dataStorePath,
                      dsOutPath)
@@ -119,7 +103,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
     if (f.isFile) {
       if (FilenameUtils.getName(path.toString) == "datastore.json") {
         val outPath = basePath.resolve("datastore.json")
-        val ds = relativizeDataStore(basePath, path, Some(outPath))
+        val ds = relativizeDataStore(basePath, path, outPath)
         exportFile(path, basePath, Some(ds))
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption
@@ -268,7 +252,7 @@ trait JobImportUtils
       if (FilenameUtils
             .getName(fileName) == JobConstants.OUTPUT_DATASTORE_JSON) {
         logger.info(s"Updating paths in ${fileName}")
-        absolutizeDataStore(jobPath, newFile.toPath, Some(newFile.toPath))
+        absolutizeDataStore(jobPath, newFile.toPath, newFile.toPath)
       }
       ze = Option(zis.getNextEntry())
       nFiles += 1
