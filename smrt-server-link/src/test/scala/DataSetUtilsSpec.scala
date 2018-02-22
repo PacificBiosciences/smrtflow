@@ -38,7 +38,7 @@ class DataSetUtilsSpec
   "Extract metadata from SubreadSet" should {
     "Get well sample record" in {
       var ds = getSubreads("/dataset-subreads/example_01.xml")
-      getWellSample(ds).toOption.get.getName === "Well Sample 1"
+      getWellSample(ds).toOption.map(_.getName) === Some("Well Sample 1")
       ds = getSubreads("/dataset-subreads/merged.dataset.xml")
       getWellSample(ds).failed.get.getMessage === "multiple well sample records are present"
       val exs =
@@ -106,23 +106,27 @@ class DataSetUtilsSpec
         "Set 2 WellSample tag name(s) to foo")
     }
     "Get DNA Barcode names" in {
-      var ds = getSubreads("/dataset-subreads/example_01.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq.empty[String])
-      ds = getSubreads("/dataset-subreads/sample1.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1"))
-      ds = getSubreads("/dataset-subreads/multi_sample.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1", "F2--R2"))
-      ds = getSubreads("/dataset-subreads/merged.dataset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq("F1--R1", "F2--R2"))
-      ds = getSubreads("/dataset-subreads/no_collections.subreadset.xml")
-      getDnaBarcodeNames(ds) must beEqualTo(Seq.empty[String])
+
+      def customTest(sx: String, barcodeNames: Seq[String]) = {
+        val ds = getSubreads(sx)
+        getDnaBarcodeNames(ds) must beEqualTo(barcodeNames)
+      }
+
+      customTest("/dataset-subreads/example_01.xml", Seq.empty[String])
+      customTest("/dataset-subreads/sample1.subreadset.xml", Seq("F1--R1"))
+      customTest("/dataset-subreads/multi_sample.subreadset.xml",
+                 Seq("F1--R1", "F2--R2"))
+      customTest("/dataset-subreads/merged.dataset.xml",
+                 Seq("F1--R1", "F2--R2"))
+      customTest("/dataset-subreads/no_collections.subreadset.xml",
+                 Seq.empty[String])
     }
   }
 
   "Write updated XML files" should {
     "Update well and bio sample names" in {
       var dsFile = getResourcePath("/dataset-subreads/example_01.xml")
-      var tmpFile = Files.createTempFile("updated", ".subreadset.xml")
+      val tmpFile = Files.createTempFile("updated", ".subreadset.xml")
       DataSetUpdateUtils.saveUpdatedCopy(dsFile, tmpFile, resolvePaths = false) // no updates
       var ds = DataSetLoader.loadSubreadSet(tmpFile)
       getWellSampleNames(ds) must beEqualTo(Seq("Well Sample 1"))
