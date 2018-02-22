@@ -7,16 +7,16 @@ import java.util.UUID
 import java.util.zip._
 
 import scala.collection.mutable
-
 import com.typesafe.scalalogging.LazyLogging
-import collection.JavaConverters._
 
+import collection.JavaConverters._
 import com.pacbio.secondary.smrtlink.analysis.datasets._
 import com.pacificbiosciences.pacbiobasedatamodel.{
-  InputOutputDataType,
-  IndexedDataType
+  IndexedDataType,
+  InputOutputDataType
 }
 import com.pacificbiosciences.pacbiodatasets.DataSetType
+import org.apache.commons.io.FileUtils
 
 /**
   * Miscellaneous functions essential for exporting datasets and other file
@@ -171,7 +171,9 @@ abstract class DataSetExporter(zipPath: Path)
     val dsId = UUID.fromString(ds.getUniqueId)
     val dsTmp = Files.createTempFile(s"relativized-${dsId.toString}", ".xml")
     DataSetWriter.writeDataSet(dsType, ds, dsTmp)
-    writeFile(dsTmp, dsOutPath)
+    val total = writeFile(dsTmp, dsOutPath)
+    FileUtils.deleteQuietly(dsTmp.toFile)
+    total
   }
 
   protected def writeResourceFile(destPath: Path,
