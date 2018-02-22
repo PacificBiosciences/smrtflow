@@ -82,18 +82,15 @@ package object jobtypes {
                         writer: JobResultsWriter,
                         startedAt: JodaDateTime,
                         jobUUID: UUID): Either[ResultFailed, Out] = {
-      tx match {
-        case Success(x) => Right(x)
-        case Failure(ex) =>
-          val runTime = computeTimeDeltaFromNow(startedAt)
-          val msg = s"Failed to Run ${ex.getMessage}"
-          Left(
-            ResultFailed(jobUUID,
-                         jobTypeId.id,
-                         msg,
-                         runTime,
-                         AnalysisJobStates.FAILED,
-                         host))
+      tx.toEither.left.map { ex =>
+        val runTime = computeTimeDeltaFromNow(startedAt)
+        val msg = s"Failed to Run ${ex.getMessage}"
+        ResultFailed(jobUUID,
+                     jobTypeId.id,
+                     msg,
+                     runTime,
+                     AnalysisJobStates.FAILED,
+                     host)
       }
     }
 
@@ -327,13 +324,14 @@ package object jobtypes {
         datasetType: DataSetMetaTypes.DataSetMetaType,
         ids: Seq[IdAble]): Seq[EngineJobEntryPointRecord] = {
       val timeout: FiniteDuration = ids.length * TIMEOUT_PER_RECORD
-      val fx = for {
-        datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
-                                                              ids,
-                                                              dao)
-        entryPoints <- Future.successful(datasets.map(ds =>
-          EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
-      } yield entryPoints
+      def fx =
+        for {
+          datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
+                                                                ids,
+                                                                dao)
+          entryPoints <- Future.successful(datasets.map(ds =>
+            EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
+        } yield entryPoints
 
       Await.result(blocking(fx), timeout)
     }
