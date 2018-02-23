@@ -371,6 +371,13 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
         toJobResourceUrl(jobId, JOB_TASK_PREFIX + "/" + update.uuid.toString),
         update))
 
+  def updateJob(jobId: IdAble,
+                name: Option[String],
+                comment: Option[String]): Future[EngineJob] =
+    getObject[EngineJob](
+      Put(toUrl(ROOT_JOBS + "/" + jobId.toIdString),
+          UpdateJobRecord(name, comment)))
+
   // Runs
 
   protected def getRunUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId")

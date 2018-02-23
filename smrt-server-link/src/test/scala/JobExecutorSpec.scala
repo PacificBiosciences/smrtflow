@@ -252,6 +252,15 @@ class JobExecutorSpec
         f.fileSize must beEqualTo(12345)
       }
     }
+    "update job record" in {
+      val u = UpdateJobRecord(Some("My favorite job"), Some("Hello, world!"))
+      Put(toJobTypeById(JobTypeIds.MOCK_PBSMRTPIPE.id, 1), u) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val job = responseAs[EngineJob]
+        job.name === "My favorite job"
+        job.comment === "Hello, world!"
+      }
+    }
     "access job reports" in {
       Get(toJobTypeByIdWithRest(JobTypeIds.MOCK_PBSMRTPIPE.id, 1, "reports")) ~> totalRoutes ~> check {
         status.isSuccess must beTrue

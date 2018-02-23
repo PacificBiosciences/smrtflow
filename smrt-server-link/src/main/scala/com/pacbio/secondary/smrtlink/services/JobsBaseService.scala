@@ -263,6 +263,12 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           complete {
             dao.getJobById(jobId)
           }
+        } ~ put {
+          entity(as[UpdateJobRecord]) { update =>
+            complete {
+              dao.updateJob(jobId, update.name, update.comment)
+            }
+          }
         }
       } ~
         path(LOG_PREFIX) {
