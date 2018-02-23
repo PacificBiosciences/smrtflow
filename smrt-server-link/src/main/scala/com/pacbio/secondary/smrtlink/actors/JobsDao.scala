@@ -597,15 +597,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   def updateJob(jobId: IdAble,
                 name: Option[String],
                 comment: Option[String]): Future[EngineJob] = {
-    val now = JodaDateTime.now()
     val q = for {
       job <- qEngineJobById(jobId).result.head
       _ <- DBIO.seq(
         qEngineJobById(jobId)
-          .map(j => (j.updatedAt, j.name, j.comment))
-          .update(now,
-                  name.getOrElse(job.name),
-                  comment.getOrElse(job.comment))
+          .map(j => (j.name, j.comment))
+          .update(name.getOrElse(job.name), comment.getOrElse(job.comment))
       )
       updatedJob <- qEngineJobById(jobId).result.headOption
     } yield updatedJob
