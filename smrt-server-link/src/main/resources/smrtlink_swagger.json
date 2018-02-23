@@ -3368,7 +3368,7 @@
             },
             "description": "Error Message. Unable to find job or job type is invalid"
           },
-          "201": {
+          "200": {
             "description": "Returns a SMRT Link Service Job",
             "schema": {
               "$ref": "#/definitions/ServiceJob"
