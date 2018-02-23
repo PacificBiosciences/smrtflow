@@ -59,6 +59,7 @@ class PacBioBundleService(
   // When the system is downloading bundles, they'll be placed temporarily here, the moved to
   // under the bundle root if they are valid
   val tmpRootBundleDir = Files.createTempDirectory("tmp-bundles")
+  tmpRootBundleDir.toFile.deleteOnExit()
 
   val manifest = PacBioComponentManifest(
     toServiceId("pacbio_bundles"),
@@ -73,8 +74,7 @@ class PacBioBundleService(
       case Success(r) => Future.successful(r)
       case Failure(ex) =>
         Future.failed(
-          throw new UnprocessableEntityError(
-            s"$errorMessage ${ex.getMessage}"))
+          throw UnprocessableEntityError(s"$errorMessage ${ex.getMessage}"))
     }
   }
 
@@ -84,7 +84,7 @@ class PacBioBundleService(
     if (Files.exists(absPath)) Future.successful(absPath)
     else
       Future.failed(
-        throw new ResourceNotFoundError(
+        throw ResourceNotFoundError(
           s"Unable to resolve path: ${path.toString()}"))
   }
 

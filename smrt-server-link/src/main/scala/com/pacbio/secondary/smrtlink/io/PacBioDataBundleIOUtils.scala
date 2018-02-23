@@ -68,7 +68,7 @@ trait PacBioDataBundleIOUtils
     FileUtils.copyFile(file, tmpFile)
 
     TarGzUtils.uncompressTarGZ(file, outputDir)
-
+    FileUtils.deleteQuietly(tmpFile)
     outputDir.toPath.toAbsolutePath
   }
 
@@ -90,6 +90,7 @@ trait PacBioDataBundleIOUtils
     val tmpFile = File.createTempFile("pb-bundle", EXT_TGZ)
     downloadHttpFile(url, tmpFile)
     TarGzUtils.uncompressTarGZ(tmpFile, outputDir)
+    FileUtils.deleteQuietly(tmpFile)
     outputDir.toPath
   }
 
@@ -107,7 +108,7 @@ trait PacBioDataBundleIOUtils
 
   /**
     * This will download the bundle and return the path to
-    * the output directory
+    * the output directory within th
     *
     * @param url      URI of resource (.tar.gz, .tgz, .git)
     * @param outputDir Root Output Dir
@@ -118,24 +119,19 @@ trait PacBioDataBundleIOUtils
     def isGit(sx: String) = sx.endsWith(".git")
     def isTarGz(sx: String) = sx.endsWith(EXT_TGZ) | sx.endsWith(".tgz")
 
-    // Copy the bundle to a temporary directory
-    val uuid = UUID.randomUUID()
-    val bundleTmpName = s"bundle-$uuid"
-    val bundleTmpDir = outputDir.resolve(bundleTmpName)
-
     val errorMessage = s"Unable to handle URL $url"
 
     val outputBundle = Option(url.getProtocol) match {
-      case Some("http") if isGit(url.getFile) => downloadGit(url, bundleTmpDir)
+      case Some("http") if isGit(url.getFile) => downloadGit(url, outputDir)
       case Some("https") if isGit(url.getFile) =>
-        downloadGit(url, bundleTmpDir)
-      case Some("http") => downloadHttp(url, bundleTmpDir.toFile)
+        downloadGit(url, outputDir)
+      case Some("http") => downloadHttp(url, outputDir.toFile)
       case Some("file") if isTarGz(url.getFile) =>
-        copyFile(Paths.get(url.toURI).toFile, bundleTmpDir.toFile)
+        copyFile(Paths.get(url.toURI).toFile, outputDir.toFile)
       case Some(x) =>
-        throw new UnprocessableEntityError(s"$errorMessage with protocol $x")
+        throw UnprocessableEntityError(s"$errorMessage with protocol $x")
       case None =>
-        throw new UnprocessableEntityError(
+        throw UnprocessableEntityError(
           s"$errorMessage Expected protocols (http,https,file) and extension with .tar.gz or .tgz")
     }
 
@@ -152,11 +148,17 @@ trait PacBioDataBundleIOUtils
     * Supported Protocols: http, file (defaults to file)
     *
     * @param url
-    * @param outputDir
+    * @param rootOutputDir
     * @return
     */
   def downloadAndParseBundle(url: URL,
-                             outputDir: Path): (Path, PacBioDataBundle) = {
+                             rootOutputDir: Path): (Path, PacBioDataBundle) = {
+
+    // Copy the bundle to a temporary directory
+    val uuid = UUID.randomUUID()
+    val bundleTmpName = s"bundle-$uuid"
+    val outputDir = rootOutputDir.resolve(bundleTmpName)
+
     val tmpBundleDir = downloadBundle(url, outputDir)
     val b = parseBundle(tmpBundleDir)
     logger.info(s"Processed bundle $b")
@@ -207,8 +209,10 @@ trait PacBioDataBundleIOUtils
   def downloadAndProcessDataBundle(url: URL,
                                    rootBundleDir: Path): PacBioDataBundleIO = {
     val tmpRootBundleDir = Files.createTempDirectory("tmp-bundles")
-    val result = downloadAndParseBundle(url, tmpRootBundleDir)
-    copyBundleTo(result._1, result._2, rootBundleDir)
+    val (outPath, bundleIO) = downloadAndParseBundle(url, tmpRootBundleDir)
+    val b = copyBundleTo(outPath, bundleIO, rootBundleDir)
+    FileUtils.deleteQuietly(tmpRootBundleDir.toFile)
+    b
   }
 
   def getManifestXmlFromDir(path: Path): Option[Path] =
