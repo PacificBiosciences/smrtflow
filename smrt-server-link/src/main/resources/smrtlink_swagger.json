@@ -3027,7 +3027,7 @@
           "default": {
             "description": "Return value"
           },
-          "201": {
+          "200": {
             "description": "Return updated JobTask",
             "schema": {
               "$ref": "#/definitions/JobTask"
