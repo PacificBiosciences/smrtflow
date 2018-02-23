@@ -63,6 +63,7 @@ object Modes {
   case object DELETE_JOB extends Mode { val name = "delete-job" } // also only analysis jobs
   case object EXPORT_JOB extends Mode { val name = "export-job" }
   case object IMPORT_JOB extends Mode { val name = "import-job" }
+  case object UPDATE_JOB extends Mode { val name = "update-job" }
   case object DATASET extends Mode { val name = "get-dataset" }
   case object DATASETS extends Mode { val name = "get-datasets" }
   case object DELETE_DATASET extends Mode { val name = "delete-dataset" }
@@ -117,9 +118,9 @@ object PbServiceParser extends CommandLineToolVersion {
       datasetId: IdAble = 0,
       jobId: IdAble = 0,
       path: Path = null,
-      name: String = "",
-      organism: String = "",
-      ploidy: String = "",
+      name: Option[String] = None,
+      organism: Option[String] = None,
+      ploidy: Option[String] = None,
       maxItems: Int = 25,
       datasetType: DataSetMetaTypes.DataSetMetaType = DataSetMetaTypes.Subread,
       jobType: String = "pbsmrtpipe",
@@ -145,11 +146,17 @@ object PbServiceParser extends CommandLineToolVersion {
       password: Option[String] =
         Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
       usePassword: Boolean = false,
-      comment: String = "Sent via pbservice",
+      comment: Option[String] = None,
       includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
       numMaxConcurrentImport: Int = 10 // This number should be tuned.
-  ) extends LoggerConfig
+  ) extends LoggerConfig {
+    def getName =
+      name.getOrElse(
+        throw new RuntimeException(
+          "--name is required when running this command"))
+    def getComment = comment.getOrElse("Sent by pbservice")
+  }
 
   lazy val defaultHost: String =
     Properties.envOrElse("PB_SERVICE_HOST", "localhost")
@@ -289,13 +296,13 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(path = p.toPath)
       } text "FASTA path",
       opt[String]("name") action { (name, c) =>
-        c.copy(name = name) // do we need to check that this is non-blank?
+        c.copy(name = Some(name)) // do we need to check that this is non-blank?
       } text s"Name of $dsType",
       opt[String]("organism") action { (organism, c) =>
-        c.copy(organism = organism)
+        c.copy(organism = Some(organism))
       } text "Organism",
       opt[String]("ploidy") action { (ploidy, c) =>
-        c.copy(ploidy = ploidy)
+        c.copy(ploidy = Some(ploidy))
       } text "Ploidy",
       opt[Int]("timeout") action { (t, c) =>
         c.copy(maxTime = t.seconds)
@@ -329,7 +336,7 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(path = p.toPath)
       } text "FASTA path",
       arg[String]("name") required () action { (name, c) =>
-        c.copy(name = name)
+        c.copy(name = Some(name))
       } text "Name of BarcodeSet",
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
@@ -344,7 +351,7 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(path = p.toPath)
       } text "Path to RS II movie metadata XML file (or directory)",
       opt[String]("name") action { (name, c) =>
-        c.copy(name = name)
+        c.copy(name = Some(name))
       } text "Name of imported HdfSubreadSet",
       opt[String]("project") action { (p, c) =>
         c.copy(project = Some(p))
@@ -414,6 +421,23 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(path = f.toPath)
       } text "Path to ZIP file exported by a SMRT Link server"
     ) text "Import a SMRT Link job from a ZIP file"
+
+    note("\nUPDATE JOB\n")
+    cmd(Modes.UPDATE_JOB.name) action { (_, c) =>
+      c.copy(command = (c) => println(c), mode = Modes.UPDATE_JOB)
+    } children (
+      arg[String]("job-id") required () action { (i, c) =>
+        c.copy(jobId = entityIdOrUuid(i))
+      } validate { i =>
+        validateId(i, "Job")
+      } text "Job ID",
+      opt[String]("name") action { (n, c) =>
+        c.copy(name = Some(n))
+      } text "New job name",
+      opt[String]("comment") action { (s, c) =>
+        c.copy(comment = Some(s))
+      } text "New job comments field (optional)"
+    ) text "Update SMRT Link job name or comment"
 
     note("\nEMIT ANALYSIS JSON TEMPLATE\n")
     cmd(Modes.TEMPLATE.name) action { (_, c) =>
@@ -556,7 +580,7 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(command = (c) => println(c), mode = Modes.CREATE_PROJECT)
     } children (
       arg[String]("name") required () action { (n, c) =>
-        c.copy(name = n)
+        c.copy(name = Some(n))
       } text "Project name",
       arg[String]("description") required () action { (d, c) =>
         c.copy(description = d)
@@ -568,7 +592,7 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(command = (c) => println(c), mode = Modes.TS_STATUS)
     } children (
       opt[String]("comment") action { (s, c) =>
-        c.copy(comment = s)
+        c.copy(comment = Some(s))
       } text s"Comments to include (default: ${defaults.comment})"
     ) text "Send system status report to PacBio Tech Support"
 
@@ -580,7 +604,7 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(jobId = entityIdOrUuid(i))
       } text "ID of job whose details should be sent to tech support",
       opt[String]("comment") action { (s, c) =>
-        c.copy(comment = s)
+        c.copy(comment = Some(s))
       } text s"Comments to include (default: ${defaults.comment})"
     ) text "Send failed job information to PacBio Tech Support"
 
@@ -870,14 +894,15 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runImportFasta(path: Path,
                      name: String,
-                     organism: String,
-                     ploidy: String,
+                     organism: Option[String],
+                     ploidy: Option[String],
                      projectName: Option[String] = None): Future[String] = {
-    // this really shouldn't be optional
-    val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
                 FileTypes.DS_REFERENCE,
-                sal.importFasta(path, nameFinal, organism, ploidy),
+                sal.importFasta(path,
+                                name,
+                                organism.getOrElse("unknown"),
+                                ploidy.getOrElse("unknown")),
                 projectName)
   }
 
@@ -893,14 +918,15 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runImportFastaGmap(
       path: Path,
       name: String,
-      organism: String,
-      ploidy: String,
+      organism: Option[String],
+      ploidy: Option[String],
       projectName: Option[String] = None): Future[String] = {
-    // this really shouldn't be optional
-    val nameFinal = if (name.isEmpty) "unknown" else name
     importFasta(path,
                 FileTypes.DS_GMAP_REF,
-                sal.importFastaGmap(path, nameFinal, organism, ploidy),
+                sal.importFastaGmap(path,
+                                    name,
+                                    organism.getOrElse("unknown"),
+                                    ploidy.getOrElse("unknown")),
                 projectName)
   }
 
@@ -1285,14 +1311,13 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                   doImportMany)
   }
 
-  private def convertRsMovie(path: Path, name: String): Future[EngineJob] = {
-    val finalName = if (name == "") dsNameFromRsMetadata(path) else name
-    sal.convertRsMovie(path, finalName)
-  }
+  private def convertRsMovie(path: Path,
+                             name: Option[String]): Future[EngineJob] =
+    sal.convertRsMovie(path, name.getOrElse(dsNameFromRsMetadata(path)))
 
   protected def runImportRsMovie(
       path: Path,
-      name: String,
+      name: Option[String],
       asJson: Boolean = false,
       maxTimeOut: Option[FiniteDuration]): Future[String] = {
     for {
@@ -1322,7 +1347,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   }
 
   def runImportRsMovies(path: Path,
-                        name: String,
+                        name: Option[String],
                         asJson: Boolean = false,
                         blockingMode: Boolean = false,
                         projectName: Option[String] = None,
@@ -1332,7 +1357,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def doImportOne(p: Path) = runImportRsMovie(p, name, asJson, maxTimeOut)
 
     def doImportMany(files: Seq[File]) = {
-      if (name != "") {
+      if (name.getOrElse("") != "") {
         Future.failed(
           new RuntimeException(
             "--name option not allowed when path is a directory"))
@@ -1755,6 +1780,12 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       s"Job ${imported.uuid} ('${imported.name}') imported with ID ${imported.id}"
   }
 
+  def runUpdateJob(jobId: IdAble,
+                   name: Option[String],
+                   comment: Option[String],
+                   asJson: Boolean = false): Future[String] =
+    sal.updateJob(jobId, name, comment).map(job => formatJobInfo(job, asJson))
+
   protected def manifestSummary(m: PacBioComponentManifest) =
     s"Component name:${m.name} id:${m.id} version:${m.version}"
 
@@ -1876,15 +1907,15 @@ object PbService extends ClientAppUtils with LazyLogging {
                                 c.blockImportDataSet,
                                 c.numMaxConcurrentImport)
         case Modes.IMPORT_FASTA =>
-          ps.runImportFasta(c.path, c.name, c.organism, c.ploidy, c.project)
+          ps.runImportFasta(c.path, c.getName, c.organism, c.ploidy, c.project)
         case Modes.IMPORT_FASTA_GMAP =>
           ps.runImportFastaGmap(c.path,
-                                c.name,
+                                c.getName,
                                 c.organism,
                                 c.ploidy,
                                 c.project)
         case Modes.IMPORT_BARCODES =>
-          ps.runImportBarcodes(c.path, c.name, c.project)
+          ps.runImportBarcodes(c.path, c.getName, c.project)
         case Modes.IMPORT_MOVIE =>
           ps.runImportRsMovies(c.path,
                                c.name,
@@ -1912,6 +1943,8 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.EXPORT_JOB =>
           ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.IMPORT_JOB => ps.runImportJob(c.path)
+        case Modes.UPDATE_JOB =>
+          ps.runUpdateJob(c.jobId, c.name, c.comment, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS =>
           ps.runGetDataSets(c.datasetType,
@@ -1923,10 +1956,11 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
         case Modes.MANIFESTS => ps.runGetPacBioManifests
         case Modes.BUNDLES => ps.runGetPacBioDataBundles
-        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.comment)
-        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.comment)
+        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.getComment)
+        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.getComment)
         case Modes.ALARMS => ps.runGetAlarms
-        case Modes.CREATE_PROJECT => ps.runCreateProject(c.name, c.description)
+        case Modes.CREATE_PROJECT =>
+          ps.runCreateProject(c.getName, c.description)
         case x =>
           Future.failed(new RuntimeException(s"Unsupported action '$x'"))
       }
