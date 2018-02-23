@@ -70,8 +70,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.StrictEntityType;
 @XmlSeeAlso({
     AlignmentSetType.class,
     BarcodeSetType.class,
-    ContigSetType.class,
-    ReadSetType.class
+    ReadSetType.class,
+    ContigSetType.class
 })
 public class DataSetType
     extends StrictEntityType

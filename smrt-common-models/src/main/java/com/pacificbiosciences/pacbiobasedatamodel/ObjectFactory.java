@@ -101,14 +101,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link AutomationType }
-     * 
-     */
-    public AutomationType createAutomationType() {
-        return new AutomationType();
-    }
-
-    /**
      * Create an instance of {@link FilterType }
      * 
      */
@@ -189,11 +181,19 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link DyeSetAnalog }
+     * Create an instance of {@link AutomationType }
      * 
      */
-    public DyeSetAnalog createDyeSetAnalog() {
-        return new DyeSetAnalog();
+    public AutomationType createAutomationType() {
+        return new AutomationType();
+    }
+
+    /**
+     * Create an instance of {@link StrictEntityType }
+     * 
+     */
+    public StrictEntityType createStrictEntityType() {
+        return new StrictEntityType();
     }
 
     /**
@@ -202,6 +202,54 @@ public class ObjectFactory {
      */
     public BaseEntityType.Extensions createBaseEntityTypeExtensions() {
         return new BaseEntityType.Extensions();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitCellPack }
+     * 
+     */
+    public SupplyKitCellPack createSupplyKitCellPack() {
+        return new SupplyKitCellPack();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitControl }
+     * 
+     */
+    public SupplyKitControl createSupplyKitControl() {
+        return new SupplyKitControl();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitTemplate }
+     * 
+     */
+    public SupplyKitTemplate createSupplyKitTemplate() {
+        return new SupplyKitTemplate();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitBinding }
+     * 
+     */
+    public SupplyKitBinding createSupplyKitBinding() {
+        return new SupplyKitBinding();
+    }
+
+    /**
+     * Create an instance of {@link UserDefinedFieldsType }
+     * 
+     */
+    public UserDefinedFieldsType createUserDefinedFieldsType() {
+        return new UserDefinedFieldsType();
+    }
+
+    /**
+     * Create an instance of {@link DyeSetAnalog }
+     * 
+     */
+    public DyeSetAnalog createDyeSetAnalog() {
+        return new DyeSetAnalog();
     }
 
     /**
@@ -218,14 +266,6 @@ public class ObjectFactory {
      */
     public InputOutputDataType createInputOutputDataType() {
         return new InputOutputDataType();
-    }
-
-    /**
-     * Create an instance of {@link StrictEntityType }
-     * 
-     */
-    public StrictEntityType createStrictEntityType() {
-        return new StrictEntityType();
     }
 
     /**
@@ -277,14 +317,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link SupplyKitCellPack }
-     * 
-     */
-    public SupplyKitCellPack createSupplyKitCellPack() {
-        return new SupplyKitCellPack();
-    }
-
-    /**
      * Create an instance of {@link MapType }
      * 
      */
@@ -301,43 +333,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link SupplyKitControl }
-     * 
-     */
-    public SupplyKitControl createSupplyKitControl() {
-        return new SupplyKitControl();
-    }
-
-    /**
      * Create an instance of {@link DNABarcode }
      * 
      */
     public DNABarcode createDNABarcode() {
         return new DNABarcode();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitTemplate }
-     * 
-     */
-    public SupplyKitTemplate createSupplyKitTemplate() {
-        return new SupplyKitTemplate();
-    }
-
-    /**
-     * Create an instance of {@link UserDefinedFieldsType }
-     * 
-     */
-    public UserDefinedFieldsType createUserDefinedFieldsType() {
-        return new UserDefinedFieldsType();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitBinding }
-     * 
-     */
-    public SupplyKitBinding createSupplyKitBinding() {
-        return new SupplyKitBinding();
     }
 
     /**
@@ -378,14 +378,6 @@ public class ObjectFactory {
      */
     public SequencingChemistry.DyeSet.Analogs createSequencingChemistryDyeSetAnalogs() {
         return new SequencingChemistry.DyeSet.Analogs();
-    }
-
-    /**
-     * Create an instance of {@link AutomationType.AutomationParameters }
-     * 
-     */
-    public AutomationType.AutomationParameters createAutomationTypeAutomationParameters() {
-        return new AutomationType.AutomationParameters();
     }
 
     /**
@@ -482,6 +474,14 @@ public class ObjectFactory {
      */
     public AnalogType.Spectrum.Values createAnalogTypeSpectrumValues() {
         return new AnalogType.Spectrum.Values();
+    }
+
+    /**
+     * Create an instance of {@link AutomationType.AutomationParameters }
+     * 
+     */
+    public AutomationType.AutomationParameters createAutomationTypeAutomationParameters() {
+        return new AutomationType.AutomationParameters();
     }
 
     /**
