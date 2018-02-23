@@ -49,8 +49,8 @@ trait JobUtils extends SecondaryJobJsonProtocol {
                                     dsOutPath: Path): Path = {
 
     processDataStore((ds: PacBioDataStore) => ds.relativize(rootPath),
-      dataStorePath,
-      dsOutPath)
+                     dataStorePath,
+                     dsOutPath)
   }
 
   /**
@@ -102,9 +102,11 @@ class JobExporter(job: EngineJob, zipPath: Path)
     val f = path.toFile
     if (f.isFile) {
       if (FilenameUtils.getName(path.toString) == "datastore.json") {
-        val outPath = basePath.resolve("datastore.json")
-        val ds = relativizeDataStore(basePath, path, outPath)
-        exportFile(path, basePath, Some(ds))
+        val tmpOutPath = Files.createTempFile(s"datastore-tmp", ".json")
+        val ds = relativizeDataStore(basePath, path, tmpOutPath)
+        val n = exportFile(path, basePath, Some(ds))
+        FileUtils.deleteQuietly(tmpOutPath.toFile)
+        n
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption
           .map { m =>
