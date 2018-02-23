@@ -594,6 +594,22 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     f
   }
 
+  def updateJob(jobId: IdAble,
+                name: Option[String],
+                comment: Option[String]): Future[EngineJob] = {
+    val q = for {
+      job <- qEngineJobById(jobId).result.head
+      _ <- DBIO.seq(
+        qEngineJobById(jobId)
+          .map(j => (j.name, j.comment))
+          .update(name.getOrElse(job.name), comment.getOrElse(job.comment))
+      )
+      updatedJob <- qEngineJobById(jobId).result.headOption
+    } yield updatedJob
+    db.run(q.transactionally)
+      .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
+  }
+
   def deleteMultiJob(jobId: IdAble): Future[MessageResponse] = {
     logger.info(s"Attempting to delete job ${jobId.toIdString}")
 

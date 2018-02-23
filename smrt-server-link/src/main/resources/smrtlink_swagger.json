@@ -3027,7 +3027,7 @@
           "default": {
             "description": "Return value"
           },
-          "201": {
+          "200": {
             "description": "Return updated JobTask",
             "schema": {
               "$ref": "#/definitions/JobTask"
@@ -3345,6 +3345,59 @@
             "type": "string",
             "name": "job-id",
             "in": "path"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      },
+      "put": {
+        "description": "Update a job",
+        "responses": {
+          "default": {
+            "schema": {
+              "$ref": "#/definitions/SmrtServerError"
+            },
+            "examples": {
+              "httpCode": 404,
+              "message": "Unable to find JobId 66666",
+              "errorType": "Not Found"
+            },
+            "description": "Error Message. Unable to find job or job type is invalid"
+          },
+          "200": {
+            "description": "Returns a SMRT Link Service Job",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job type (e.g., pbsmrtpipe, import-dataset, merge-dataset",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job id and Integer or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job update object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateJobRecord"
+            }
           }
         ],
         "produces": [
@@ -7425,6 +7478,24 @@
           "type": "string",
           "title": "Event type",
           "description": "Event type"
+        }
+      }
+    },
+    "UpdateJobRecord": {
+      "type": "object",
+      "description": "Update job record fields",
+      "properties": {
+        "name": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Job name",
+          "description": "New job name (optional)"
+        },
+        "comment": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Job comments",
+          "description": "New job comments (optional)"
         }
       }
     }
