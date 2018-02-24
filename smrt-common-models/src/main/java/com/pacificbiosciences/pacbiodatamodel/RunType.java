@@ -20,6 +20,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType;
 import com.pacificbiosciences.pacbiobasedatamodel.RecordedEventType;
 import com.pacificbiosciences.pacbiobasedatamodel.StrictEntityType;
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedChipTypes;
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates;
 
 
@@ -76,6 +77,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates;
  *         &lt;/element>
  *       &lt;/sequence>
  *       &lt;attribute name="Status" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedRunStates" />
+ *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="1mChip" />
  *       &lt;attribute name="InstrumentId" type="{http://www.w3.org/2001/XMLSchema}string" />
  *       &lt;attribute name="InstrumentName" type="{http://www.w3.org/2001/XMLSchema}string" />
  *       &lt;attribute name="CreatedBy" type="{http://www.w3.org/2001/XMLSchema}string" />
@@ -123,6 +125,8 @@ public class RunType
     protected RunType.RecordedEvents recordedEvents;
     @XmlAttribute(name = "Status")
     protected SupportedRunStates status;
+    @XmlAttribute(name = "ChipType")
+    protected SupportedChipTypes chipType;
     @XmlAttribute(name = "InstrumentId")
     protected String instrumentId;
     @XmlAttribute(name = "InstrumentName")
@@ -278,6 +282,34 @@ public class RunType
      */
     public void setStatus(SupportedRunStates value) {
         this.status = value;
+    }
+
+    /**
+     * Gets the value of the chipType property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public SupportedChipTypes getChipType() {
+        if (chipType == null) {
+            return SupportedChipTypes.ONE_M_CHIP;
+        } else {
+            return chipType;
+        }
+    }
+
+    /**
+     * Sets the value of the chipType property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public void setChipType(SupportedChipTypes value) {
+        this.chipType = value;
     }
 
     /**

@@ -32,4 +32,10 @@
 <jaxb:bindings node="//xs:simpleType[@name='SupportedFilterOperators']/xs:restriction/xs:enumeration[@value='~']">
     <jaxb:typesafeEnumMember name="APPROX_EQ"/>
 </jaxb:bindings>
+<jaxb:bindings node="//xs:simpleType[@name='SupportedChipTypes']/xs:restriction/xs:enumeration[@value='1mChip']">
+    <jaxb:typesafeEnumMember name="ONE_M_CHIP"/>
+</jaxb:bindings>
+<jaxb:bindings node="//xs:simpleType[@name='SupportedChipTypes']/xs:restriction/xs:enumeration[@value='8mChip']">
+    <jaxb:typesafeEnumMember name="EIGHT_M_CHIP"/>
+</jaxb:bindings>
 </jaxb:bindings>
