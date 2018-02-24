@@ -14,7 +14,8 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableE
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacificbiosciences.pacbiobasedatamodel.{
   RecordedEventType,
-  SupportedAcquisitionStates
+  SupportedAcquisitionStates,
+  SupportedChipTypes
 }
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import com.pacificbiosciences.pacbiocollectionmetadata.{
