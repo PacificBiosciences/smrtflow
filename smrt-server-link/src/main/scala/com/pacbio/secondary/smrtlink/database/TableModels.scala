@@ -651,7 +651,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("status")
 
     def chipType: Rep[SupportedChipTypes] =
-      column[SupportedChipTypes]("chipType")
+      column[SupportedChipTypes]("chip_type")
 
     def totalCells: Rep[Int] = column[Int]("total_cells")
 
