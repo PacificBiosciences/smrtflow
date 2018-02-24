@@ -201,7 +201,7 @@ object DataModelParserImpl extends DataModelParser {
         transfersCompletedAt,
         completedAt,
         runModel.getStatus,
-        Option(runModel.getChipType),
+        Option(runModel.getChipType).getOrElse(SupportedChipTypes.ONE_M_CHIP),
         collections.size,
         collections.count(c =>
           c.status == SupportedAcquisitionStates.COMPLETE),
