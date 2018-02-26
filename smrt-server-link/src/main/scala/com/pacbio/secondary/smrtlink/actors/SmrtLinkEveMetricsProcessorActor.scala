@@ -20,6 +20,7 @@ import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.JavaConverters._
@@ -267,6 +268,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
         case Success(engineJobMetrics) =>
           if (engineJobMetrics.isEmpty) {
             logger.info("No 'old' jobs to harvest. Skipping sending to Eve")
+            FileUtils.deleteQuietly(tmpTgz.toFile)
           } else {
             logger.info(
               s"Harvested ${engineJobMetrics.length} jobs to be sent to Eve")
@@ -275,7 +277,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
         case Failure(ex) =>
           logger.error(
             s"Failed to create Harvested Job History for ${ex.getMessage}")
-          Files.deleteIfExists(tmpTgz)
+          FileUtils.deleteQuietly(tmpTgz.toFile)
       }
 
     case e: EulaRecord =>
