@@ -13,6 +13,7 @@ import javax.xml.bind.annotation.XmlElementDecl;
 import javax.xml.bind.annotation.XmlIDREF;
 import javax.xml.bind.annotation.XmlRegistry;
 import javax.xml.namespace.QName;
+import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType;
 
 
 /**
@@ -32,6 +33,7 @@ import javax.xml.namespace.QName;
 @XmlRegistry
 public class ObjectFactory {
 
+    private final static QName _BioSamplesCsv_QNAME = new QName("http://pacificbiosciences.com/PacBioSampleInfo.xsd", "BioSamplesCsv");
     private final static QName _BioSample_QNAME = new QName("http://pacificbiosciences.com/PacBioSampleInfo.xsd", "BioSample");
     private final static QName _BarcodedSamplePointersBarcodedSamplePointer_QNAME = new QName("http://pacificbiosciences.com/PacBioSampleInfo.xsd", "BarcodedSamplePointer");
 
@@ -80,6 +82,15 @@ public class ObjectFactory {
      */
     public BioSampleType.DNABarcodes createBioSampleTypeDNABarcodes() {
         return new BioSampleType.DNABarcodes();
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link InputOutputDataType }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioSampleInfo.xsd", name = "BioSamplesCsv")
+    public JAXBElement<InputOutputDataType> createBioSamplesCsv(InputOutputDataType value) {
+        return new JAXBElement<InputOutputDataType>(_BioSamplesCsv_QNAME, InputOutputDataType.class, null, value);
     }
 
     /**
