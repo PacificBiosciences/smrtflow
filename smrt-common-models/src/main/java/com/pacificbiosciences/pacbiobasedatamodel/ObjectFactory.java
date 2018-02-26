@@ -40,9 +40,9 @@ public class ObjectFactory {
     private final static QName _KeyValueMap_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "KeyValueMap");
     private final static QName _DataEntity_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataEntity");
     private final static QName _ExtensionElement_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "ExtensionElement");
-    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
     private final static QName _DefaultsTypeFilters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "Filters");
     private final static QName _DefaultsTypeAutomationParameters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "AutomationParameters");
+    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
     private final static QName _SupplyKitControlCustomSequence_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "CustomSequence");
 
     /**
@@ -205,6 +205,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link InputOutputDataType }
+     * 
+     */
+    public InputOutputDataType createInputOutputDataType() {
+        return new InputOutputDataType();
+    }
+
+    /**
      * Create an instance of {@link SupplyKitCellPack }
      * 
      */
@@ -258,14 +266,6 @@ public class ObjectFactory {
      */
     public ExternalResource createExternalResource() {
         return new ExternalResource();
-    }
-
-    /**
-     * Create an instance of {@link InputOutputDataType }
-     * 
-     */
-    public InputOutputDataType createInputOutputDataType() {
-        return new InputOutputDataType();
     }
 
     /**
@@ -557,16 +557,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
-     * 
-     */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
-    @XmlIDREF
-    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
-        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
-    }
-
-    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link DefaultsType.Filters }{@code >}}
      * 
      */
@@ -582,6 +572,16 @@ public class ObjectFactory {
     @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "AutomationParameters", scope = DefaultsType.class)
     public JAXBElement<DefaultsType.AutomationParameters> createDefaultsTypeAutomationParameters(DefaultsType.AutomationParameters value) {
         return new JAXBElement<DefaultsType.AutomationParameters>(_DefaultsTypeAutomationParameters_QNAME, DefaultsType.AutomationParameters.class, DefaultsType.class, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
+    @XmlIDREF
+    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
+        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
     }
 
     /**

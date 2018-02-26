@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import com.pacificbiosciences.pacbiobasedatamodel.InputOutputDataType;
 
 
 /**
@@ -27,6 +28,7 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
+ *         &lt;element ref="{http://pacificbiosciences.com/PacBioSampleInfo.xsd}BioSamplesCsv" minOccurs="0"/>
  *         &lt;element ref="{http://pacificbiosciences.com/PacBioSampleInfo.xsd}BioSample" maxOccurs="unbounded"/>
  *       &lt;/sequence>
  *     &lt;/restriction>
@@ -38,13 +40,40 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
+    "bioSamplesCsv",
     "bioSample"
 })
 @XmlRootElement(name = "BioSamples")
 public class BioSamples {
 
+    @XmlElement(name = "BioSamplesCsv")
+    protected InputOutputDataType bioSamplesCsv;
     @XmlElement(name = "BioSample", required = true)
     protected List<BioSampleType> bioSample;
+
+    /**
+     * Gets the value of the bioSamplesCsv property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link InputOutputDataType }
+     *     
+     */
+    public InputOutputDataType getBioSamplesCsv() {
+        return bioSamplesCsv;
+    }
+
+    /**
+     * Sets the value of the bioSamplesCsv property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link InputOutputDataType }
+     *     
+     */
+    public void setBioSamplesCsv(InputOutputDataType value) {
+        this.bioSamplesCsv = value;
+    }
 
     /**
      * Gets the value of the bioSample property.
