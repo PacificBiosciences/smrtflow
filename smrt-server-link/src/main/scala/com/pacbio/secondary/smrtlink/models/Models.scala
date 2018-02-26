@@ -11,7 +11,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
   SupportedRunStates,
-  SupportedChipTypes,
+  SupportedChipTypes
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
