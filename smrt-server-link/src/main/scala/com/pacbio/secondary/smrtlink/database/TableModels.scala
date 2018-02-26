@@ -13,7 +13,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates
+  SupportedRunStates,
+  SupportedChipTypes
 }
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -616,12 +617,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   implicit val runStatusType =
     MappedColumnType.base[SupportedRunStates, String](
-      { s =>
-        s.value()
-      }, { s =>
-        SupportedRunStates.fromValue(s)
-      }
-    )
+      _.value(),
+      SupportedRunStates.fromValue)
+
+  implicit val chipTypeType =
+    MappedColumnType.base[SupportedChipTypes, String](
+      _.value(),
+      SupportedChipTypes.fromValue)
+
   class RunSummariesT(tag: Tag)
       extends Table[RunSummary](tag, "run_summaries") {
 
@@ -646,6 +649,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
       column[Option[JodaDateTime]]("completed_at")
 
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("status")
+
+    def chipType: Rep[SupportedChipTypes] =
+      column[SupportedChipTypes]("chip_type")
 
     def totalCells: Rep[Int] = column[Int]("total_cells")
 
@@ -692,6 +698,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         transfersCompletedAt ::
         completedAt ::
         status ::
+        chipType ::
         totalCells ::
         numCellsCompleted ::
         numCellsFailed ::

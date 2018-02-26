@@ -14,7 +14,8 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableE
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacificbiosciences.pacbiobasedatamodel.{
   RecordedEventType,
-  SupportedAcquisitionStates
+  SupportedAcquisitionStates,
+  SupportedChipTypes
 }
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import com.pacificbiosciences.pacbiocollectionmetadata.{
@@ -201,6 +202,7 @@ object DataModelParserImpl extends DataModelParser {
         transfersCompletedAt,
         completedAt,
         runModel.getStatus,
+        Option(runModel.getChipType).getOrElse(SupportedChipTypes.ONE_M_CHIP),
         collections.size,
         collections.count(c =>
           c.status == SupportedAcquisitionStates.COMPLETE),

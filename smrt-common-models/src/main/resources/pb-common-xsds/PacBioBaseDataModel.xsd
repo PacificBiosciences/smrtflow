@@ -843,6 +843,12 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 			<xs:enumeration value="Unknown"/>
 		</xs:restriction>
 	</xs:simpleType>
+	<xs:simpleType name="SupportedChipTypes">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="1mChip"/>
+			<xs:enumeration value="8mChip"/>
+		</xs:restriction>
+	</xs:simpleType>
 	<xs:complexType name="UserDefinedFieldsType">
 		<xs:sequence>
 			<xs:element name="DataEntities" type="DataEntityType" maxOccurs="unbounded"/>

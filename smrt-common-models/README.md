@@ -21,6 +21,7 @@ cp /path/to/xsd-datamodels/*.xsd smrt-common-models/src/main/resources/pb-common
 bash update-java-classes.sh
 ````
 
+NOTE: If you have enum values are not valid java variable names, e.g. containing special characters or starting with numbers, you will first have to update [bindings.xml](/src/main/resources/bindings.xml)
 
 ## Step #2
 

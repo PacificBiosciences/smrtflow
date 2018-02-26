@@ -9,7 +9,8 @@ import spray.json._
 // This common model should not be defined here
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates
+  SupportedRunStates,
+  SupportedChipTypes
 }
 import com.pacbio.common.models._
 import com.pacbio.common.semver.SemVersion
@@ -29,6 +30,17 @@ trait SupportedRunStatesProtocols extends DefaultJsonProtocol {
     def read(v: JsValue): SupportedRunStates = v match {
       case JsString(s) => SupportedRunStates.fromValue(s)
       case _ => deserializationError("Expected SupportedRunStates as JsString")
+    }
+  }
+}
+
+trait SupportedChipTypesProtocols extends DefaultJsonProtocol {
+  implicit object SupportedChipTypesFormat
+      extends RootJsonFormat[SupportedChipTypes] {
+    def write(s: SupportedChipTypes): JsValue = JsString(s.value())
+    def read(v: JsValue): SupportedChipTypes = v match {
+      case JsString(s) => SupportedChipTypes.fromValue(s)
+      case _ => deserializationError("Expected SupportedChipTypes as JsString")
     }
   }
 }
@@ -189,6 +201,7 @@ trait SmrtLinkJsonProtocols
     with JobStatesJsonProtocol
     with PipelineTemplateOptionProtocol
     with SupportedRunStatesProtocols
+    with SupportedChipTypesProtocols
     with SupportedAcquisitionStatesProtocols
     with PathProtocols
     with UrlProtocol

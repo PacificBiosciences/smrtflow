@@ -14,6 +14,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
+  SupportedChipTypes,
   SupportedRunStates
 }
 import org.specs2.mutable.Specification
@@ -184,6 +185,7 @@ class DatabaseSpec
         transfersCompletedAt = Some(now),
         completedAt = Some(now),
         SupportedRunStates.COMPLETE,
+        SupportedChipTypes.ONE_M_CHIP,
         totalCells = 1,
         numCellsCompleted = 1,
         numCellsFailed = 0,
