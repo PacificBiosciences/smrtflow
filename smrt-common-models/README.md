@@ -27,6 +27,6 @@ NOTE: If you have enum values are not valid java variable names, e.g. containing
 
 Update Constants.scala in smrt-common-models with the git SHA of the xsd-datamodels repo.
 
-Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L13) and [DATASET_VERSION](src/main/scala/com/pacbio/common/models/Constants.scala#L11).
+Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L13)
 
-# FIXME(mpkocher)(2016-12-6) This needs to be automated. 
+**FIXME(mpkocher)(2016-12-6)** This still needs to be automated. 
