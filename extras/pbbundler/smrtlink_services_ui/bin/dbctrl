@@ -235,17 +235,16 @@ def _run_cmd_and_log(cmd, env=None):
     env_str = "ENV {}".format(env) if env else ""
     log.debug("Running cmd '{}' {}".format(cmd, env_str))
     px = subprocess.Popen(cmd, shell=True, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    px.wait()
 
-    px.stdout.flush()
-    px.stderr.flush()
+    stdout, stderr = px.communicate()
 
     exit_code = px.returncode
     if exit_code != 0:
         log.error("Command {} failed with exit code {}".format(cmd, exit_code))
-        log.error(px.stderr.readline())
+        log.error(stderr)
     else:
         log.debug("Successfully ran command {}".format(cmd))
+        log.debug("Output {}".format(stdout))
 
     return exit_code
 
@@ -513,13 +512,13 @@ def db_setup(dbc, wso2_dir=None, wso2_init=None):
     def _apply_funcs(funcs, init_state):
         if funcs and init_state:
             f = funcs.pop()
-            n = f(dbc)
-            sx = to_b(n)
+            exit_code = f(dbc)
+            sx = to_b(exit_code)
             if sx:
                 log.debug("db func {} was successful".format(f.__name__))
                 return _apply_funcs(funcs, sx)
             else:
-                log.error("db func {} FAILED with exit code {}".format(f.__name__, n))
+                log.error("db func {} FAILED with exit code {}".format(f.__name__, exit_code))
                 return False
         else:
             return init_state
