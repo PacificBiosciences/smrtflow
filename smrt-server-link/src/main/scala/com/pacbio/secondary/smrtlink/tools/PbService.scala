@@ -17,6 +17,7 @@ import scala.util.{Failure, Properties, Success, Try}
 
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 import spray.json._
 
@@ -74,6 +75,7 @@ object Modes {
   case object TS_STATUS extends Mode { val name = "ts-status" }
   case object TS_JOB extends Mode { val name = "ts-failed-job" }
   case object ALARMS extends Mode { val name = "get-alarms" }
+  case object IMPORT_RUN extends Mode { val name = "import-run" }
   case object UNKNOWN extends Mode { val name = "unknown" }
 }
 
@@ -142,6 +144,7 @@ object PbServiceParser extends CommandLineToolVersion {
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
       force: Boolean = false,
+      reserved: Boolean = false,
       user: String = System.getProperty("user.name"),
       password: Option[String] =
         Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
@@ -614,6 +617,22 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(command = (c) => println(c), mode = Modes.ALARMS)
       }
       .text("Get a List of SMRT Link System Alarm")
+
+    note("\nIMPORT RUN DESIGN\n")
+    cmd(Modes.IMPORT_RUN.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.IMPORT_RUN)
+      }
+      .text("Import a SMRT Link run design XML")
+      .children(
+        arg[File]("xml-file")
+          .required()
+          .action((f, c) => c.copy(path = f.toPath))
+          .text("Run design XML file"),
+        opt[Unit]("reserved")
+          .action((_, c) => c.copy(reserved = true))
+          .text("Set reserved=True")
+      )
 
     // Don't show the help if validation error
     override def showUsageOnError = false
@@ -1865,6 +1884,14 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runGetAlarms: Future[String] = sal.getAlarms().map(alarmsSummary)
 
+  def runImportRun(xmlFile: Path, reserved: Boolean = false): Future[String] = {
+    for {
+      runSummary <- sal.createRun(FileUtils.readFileToString(xmlFile.toFile))
+      runSummary <- if (reserved) {
+        sal.updateRun(runSummary.uniqueId, reserved = Some(true))
+      } else Future.successful(runSummary)
+    } yield runSummary.toJson.prettyPrint.toString
+  }
 }
 
 object PbService extends ClientAppUtils with LazyLogging {
@@ -1961,6 +1988,7 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.ALARMS => ps.runGetAlarms
         case Modes.CREATE_PROJECT =>
           ps.runCreateProject(c.getName, c.description)
+        case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
         case x =>
           Future.failed(new RuntimeException(s"Unsupported action '$x'"))
       }
