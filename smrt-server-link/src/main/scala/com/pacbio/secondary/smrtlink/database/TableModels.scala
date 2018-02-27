@@ -198,6 +198,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def importedAt: Rep[Option[JodaDateTime]] =
       column[Option[JodaDateTime]]("imported_at", O.Default(None))
 
+    def tags: Rep[String] = column[String]("tags")
+
     def * =
       (id,
        uuid,
@@ -219,7 +221,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        isMultiJob,
        workflow,
        parentMultiJobId,
-       importedAt) <> (EngineJob.tupled, EngineJob.unapply)
+       importedAt,
+       tags) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 

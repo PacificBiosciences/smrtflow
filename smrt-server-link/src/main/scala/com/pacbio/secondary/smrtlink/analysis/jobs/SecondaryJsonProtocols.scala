@@ -443,7 +443,7 @@ trait JobTypeSettingProtocol
 
   import JobModels._
 
-  implicit val engineJobFormat = jsonFormat21(EngineJob)
+  implicit val engineJobFormat = jsonFormat22(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile.apply)

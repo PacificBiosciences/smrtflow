@@ -245,7 +245,7 @@ trait SmrtLinkJsonProtocols
   // Jobs
   implicit val pbSimpleStatusFormat = jsonFormat3(SimpleStatus)
   implicit val engineJobEntryPointsFormat = jsonFormat3(EngineJobEntryPoint)
-  implicit val jobUpdateFormat = jsonFormat2(UpdateJobRecord)
+  implicit val jobUpdateFormat = jsonFormat3(UpdateJobRecord)
 
   // DataSet
   implicit val dataSetMetadataFormat = jsonFormat17(DataSetMetaDataSet)

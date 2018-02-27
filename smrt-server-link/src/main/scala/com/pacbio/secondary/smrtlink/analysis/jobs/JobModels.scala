@@ -433,6 +433,9 @@ object JobModels {
     * @param smrtlinkVersion SL System version
     * @param isActive        if the job is active. Not Active jobs will not be displayed by default
     * @param errorMessage    error message if the job is an Error state.
+    * @param importedAt      if the job was imported, this will be the timestamp of the imported at date
+    * @param tags            tags of jobs. This follows the same model as the dataset. An empty string is the default and
+    *                        values are comma separated.
     */
   case class EngineJob(id: Int,
                        uuid: UUID,
@@ -454,7 +457,8 @@ object JobModels {
                        isMultiJob: Boolean = false,
                        workflow: String = "{}",
                        parentMultiJobId: Option[Int] = None,
-                       importedAt: Option[JodaDateTime] = None)
+                       importedAt: Option[JodaDateTime] = None,
+                       tags: String = "")
       extends SmrtLinkJob {
 
     def toEngineCoreJob: EngineCoreJob = {
@@ -476,7 +480,8 @@ object JobModels {
         isActive,
         errorMessage,
         projectId,
-        parentMultiJobId
+        parentMultiJobId,
+        tags = tags
       )
     }
   }
@@ -500,7 +505,8 @@ object JobModels {
                            isActive: Boolean = true,
                            errorMessage: Option[String] = None,
                            projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-                           parentMultiJobId: Option[Int] = None)
+                           parentMultiJobId: Option[Int] = None,
+                           tags: String = "")
       extends SmrtLinkJob {}
 
   /**
