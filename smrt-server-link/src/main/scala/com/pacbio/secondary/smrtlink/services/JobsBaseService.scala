@@ -266,7 +266,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         } ~ put {
           entity(as[UpdateJobRecord]) { update =>
             complete {
-              dao.updateJob(jobId, update.name, update.comment)
+              dao.updateJob(jobId, update.name, update.comment, update.tags)
             }
           }
         }

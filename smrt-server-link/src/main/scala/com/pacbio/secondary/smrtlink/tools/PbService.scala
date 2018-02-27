@@ -152,7 +152,8 @@ object PbServiceParser extends CommandLineToolVersion {
       comment: Option[String] = None,
       includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
-      numMaxConcurrentImport: Int = 10 // This number should be tuned.
+      numMaxConcurrentImport: Int = 10, // This number should be tuned.
+      tags: Option[String] = None
   ) extends LoggerConfig {
     def getName =
       name.getOrElse(
@@ -439,7 +440,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "New job name",
       opt[String]("comment") action { (s, c) =>
         c.copy(comment = Some(s))
-      } text "New job comments field (optional)"
+      } text "New job comments field (optional)",
+      opt[String]("tags") action { (s, c) =>
+        c.copy(tags = Some(s))
+      } text "Updated job tags field (optional)"
     ) text "Update SMRT Link job name or comment"
 
     note("\nEMIT ANALYSIS JSON TEMPLATE\n")
@@ -1802,8 +1806,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runUpdateJob(jobId: IdAble,
                    name: Option[String],
                    comment: Option[String],
+                   tags: Option[String],
                    asJson: Boolean = false): Future[String] =
-    sal.updateJob(jobId, name, comment).map(job => formatJobInfo(job, asJson))
+    sal
+      .updateJob(jobId, name, comment, tags)
+      .map(job => formatJobInfo(job, asJson))
 
   protected def manifestSummary(m: PacBioComponentManifest) =
     s"Component name:${m.name} id:${m.id} version:${m.version}"
@@ -1971,7 +1978,7 @@ object PbService extends ClientAppUtils with LazyLogging {
           ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
         case Modes.IMPORT_JOB => ps.runImportJob(c.path)
         case Modes.UPDATE_JOB =>
-          ps.runUpdateJob(c.jobId, c.name, c.comment, c.asJson)
+          ps.runUpdateJob(c.jobId, c.name, c.comment, c.tags, c.asJson)
         case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
         case Modes.DATASETS =>
           ps.runGetDataSets(c.datasetType,

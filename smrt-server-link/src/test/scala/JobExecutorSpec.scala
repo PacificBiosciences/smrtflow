@@ -253,12 +253,16 @@ class JobExecutorSpec
       }
     }
     "update job record" in {
-      val u = UpdateJobRecord(Some("My favorite job"), Some("Hello, world!"))
+      val tags = "alpha,beta.gamma"
+      val comment = "Hello, world!"
+      val name = "My favorite job"
+      val u = UpdateJobRecord(Some(name), Some(comment), Some(tags))
       Put(toJobTypeById(JobTypeIds.MOCK_PBSMRTPIPE.id, 1), u) ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val job = responseAs[EngineJob]
-        job.name === "My favorite job"
-        job.comment === "Hello, world!"
+        job.name === name
+        job.comment === comment
+        job.tags === tags
       }
     }
     "access job reports" in {

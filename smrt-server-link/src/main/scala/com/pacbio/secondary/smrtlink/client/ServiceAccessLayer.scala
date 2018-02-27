@@ -373,10 +373,11 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def updateJob(jobId: IdAble,
                 name: Option[String],
-                comment: Option[String]): Future[EngineJob] =
+                comment: Option[String],
+                tags: Option[String]): Future[EngineJob] =
     getObject[EngineJob](
       Put(toUrl(ROOT_JOBS + "/" + jobId.toIdString),
-          UpdateJobRecord(name, comment)))
+          UpdateJobRecord(name, comment, tags)))
 
   // Runs
 

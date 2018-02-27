@@ -45,6 +45,7 @@ class MailSpec extends Specification {
       "",
       createdAt,
       createdAt,
+      createdAt,
       AnalysisJobStates.SUCCESSFUL,
       JobTypeIds.PBSMRTPIPE.id,
       "/path",

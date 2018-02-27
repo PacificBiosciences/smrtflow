@@ -157,6 +157,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def jobUpdatedAt: Rep[JodaDateTime] =
+      column[JodaDateTime]("job_updated_at")
+
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
@@ -195,6 +198,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def importedAt: Rep[Option[JodaDateTime]] =
       column[Option[JodaDateTime]]("imported_at", O.Default(None))
 
+    def tags: Rep[String] = column[String]("tags")
+
     def * =
       (id,
        uuid,
@@ -202,6 +207,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        comment,
        createdAt,
        updatedAt,
+       jobUpdatedAt,
        state,
        jobTypeId,
        path,
@@ -215,7 +221,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        isMultiJob,
        workflow,
        parentMultiJobId,
-       importedAt) <> (EngineJob.tupled, EngineJob.unapply)
+       importedAt,
+       tags) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 

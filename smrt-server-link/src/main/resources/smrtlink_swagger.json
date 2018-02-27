@@ -3976,7 +3976,7 @@
         "tags": {
           "type": "string",
           "title": "Tags",
-          "description": ""
+          "description": "Tags for the dataset. These should be ',' separated values"
         },
         "version": {
           "type": "string",
@@ -5674,6 +5674,11 @@
           "title": "Updated At",
           "description": "Datetime of when the job was last updated."
         },
+        "jobUpdatedAt": {
+          "type": "string",
+          "title": "Job Execution Last Updated At",
+          "description": "Datetime of when the job execution was last updated."
+        },
         "importedAt": {
           "type": ["null", "string"],
           "title": "Imported At",
@@ -5711,14 +5716,6 @@
           ],
           "title": "SMRT Link System Version",
           "description": "SMRT Link System Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
-        },
-        "smrtlinkToolsVersion": {
-          "type": [
-            "null",
-            "string"
-          ],
-          "title": "SMRT Tools Version",
-          "description": "SMRT Tools Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
         },
         "comment": {
           "type": "string",
@@ -5789,23 +5786,32 @@
           "type": "string",
           "title": "MultiJob Workflow State",
           "description": "If a MultiJOb, this is the workflow state of the MultiJob that is persisted"
+        },
+        "tags": {
+          "type": "string",
+          "title": "Tags",
+          "description": "Tags for the dataset. These should be ',' separated values"
         }
       },
       "required": [
         "name",
         "updatedAt",
+        "jobUpdatedAt",
         "path",
         "state",
         "uuid",
-        "smrtlinkToolsVersion",
         "jobTypeId",
         "id",
         "smrtlinkVersion",
         "comment",
         "createdAt",
+        "createdByEmail",
         "isActive",
         "createdBy",
-        "jsonSettings"
+        "jsonSettings",
+        "isMultiJob",
+        "workflow",
+        "tags"
       ],
       "example": {
         "name": "Job import-dataset",
@@ -6126,45 +6132,6 @@
       "example": {
         "url": "file:///home/UNIXHOME/mkocher/chemistry-tests/chemistry-9.8.7.tar.gz"
       }
-    },
-    "TechSupportJobRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "jobId": {
-          "description": "SMRT Link Job Id",
-          "title": "Job Id",
-          "type": "integer"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "jobId", "comment"],
-      "type": "object"
-    },
-    "TechSupportSystemStatusRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "comment"],
-      "type": "object"
     },
     "PipelineOption": {
       "type": "object",

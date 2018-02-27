@@ -308,13 +308,17 @@ class JobModelsSpec extends Specification with timeUtils {
 
   "Testing EngineJob serialization including previous versions" should {
     "Serialize model to JSON and recycle" in {
+
+      val now = JodaDateTime.now()
+
       val job = EngineJob(
         1,
         UUID.randomUUID(),
         "My job",
         "Test job",
-        JodaDateTime.now(),
-        JodaDateTime.now(),
+        now,
+        now,
+        now,
         AnalysisJobStates.CREATED,
         "pbsmrtpipe",
         "/tmp/0001",

@@ -74,6 +74,7 @@ class DatabaseSpec
         "job-comment",
         createdAt = now,
         updatedAt = now,
+        jobUpdatedAt = now,
         AnalysisJobStates.CREATED,
         "job-type-id",
         "/job/path",

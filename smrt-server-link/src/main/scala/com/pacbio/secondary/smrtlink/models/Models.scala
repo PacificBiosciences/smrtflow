@@ -402,7 +402,9 @@ case class UpdateJobTaskRecord(uuid: UUID,
                                message: String,
                                errorMessage: Option[String])
 
-case class UpdateJobRecord(name: Option[String], comment: Option[String])
+case class UpdateJobRecord(name: Option[String],
+                           comment: Option[String],
+                           tags: Option[String])
 
 case class JobCompletedMessage(job: EngineJob)
 case class MultiJobSubmitted(jobId: Int)
