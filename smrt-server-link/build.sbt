@@ -47,7 +47,8 @@ packMain := Map(
   "merge-datasets" -> "com.pacbio.secondary.smrtlink.analysis.tools.DataSetMergerApp",
   "ds-tools" -> "com.pacbio.secondary.smrtlink.analysis.tools.PbDataSetToolsApp",
   "smrtflow-example-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleToolApp",
-  "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp"
+  "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp",
+  "smrt-link-job-cleanup" -> "com.pacbio.secondary.smrtlink.tools.JobCleanupApp"
 )
 
 packGenerateWindowsBatFile := false

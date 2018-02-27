@@ -12,6 +12,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 import com.typesafe.scalalogging.LazyLogging
 
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -195,7 +196,7 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
 
 }
 
-trait ClientAppUtils extends LazyLogging {
+trait ClientAppUtils extends DaoFutureUtils with LazyLogging {
   // These are the ONLY place that should have a blocking call
   // and explicit case match to Success/Failure handing for Try
   def executeBlockAndSummary(fx: Future[String],
