@@ -31,11 +31,14 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
     logger.info(sx)
     sx
   }
+
+  private def formatJobInfo(job: EngineJob) =
+    s"Job ${job.id} (${job.state.toString}) last updated ${job.updatedAt.toString}"
+
   protected def cleanupJob(sal: SmrtLinkServiceClient,
                            job: EngineJob): Future[Int] =
     for {
-      _ <- andLog(
-        s"Job ${job.id} (${job.state.toString}) last updated ${job.updatedAt.toString}")
+      _ <- andLog(formatJobInfo(job))
       _ <- sal.deleteJob(job.uuid)
     } yield 1
 
@@ -44,8 +47,10 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
 
     def runCleanUp(client: SmrtLinkServiceClient,
                    job: EngineJob): Future[Int] = {
-      if (c.dryRun) Future.successful(0)
-      else if (Paths.get(job.path).resolve("DO_NOT_DELETE").toFile.exists) {
+      if (c.dryRun) {
+        logger.info(formatJobInfo(job))
+        Future.successful(0)
+      } else if (Paths.get(job.path).resolve("DO_NOT_DELETE").toFile.exists) {
         logger.info(s"Skipping protected job ${job.id}") // XXX EVIL
         Future.successful(0)
       } else cleanupJob(client, job)
@@ -61,9 +66,12 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
       _ <- andLog(s"Will remove all failed jobs prior to ${cutoff.toString}")
       allJobs <- sal.getAnalysisJobs
       jobs <- Future.successful(allJobs.filter(filterJob))
-      results <- Future.sequence(jobs.map(job => runCleanUp(sal, job)))
+      results <- runBatch(10, jobs, (job: EngineJob) => runCleanUp(sal, job))
       total <- Future.successful(results.reduceLeftOption(_ + _).getOrElse(0))
-      msg <- andLog(s"Deleted $total jobs")
+      msg <- andLog {
+        if (!c.dryRun) s"Deleted $total jobs"
+        else s"Would have deleted ${results.size} jobs"
+      }
     } yield msg
   }
 }
