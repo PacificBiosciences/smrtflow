@@ -2,9 +2,10 @@ package com.pacbio.secondary.smrtlink.actors
 
 import java.util.UUID
 
-import akka.actor.{Props, ActorRef}
+import akka.actor.{ActorRef, Props}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedChipTypes
 
 import scala.concurrent.ExecutionContext.Implicits._
 
@@ -13,11 +14,13 @@ import scala.concurrent.ExecutionContext.Implicits._
   * @param name if present, only run designs whose name matches the given name will be returned
   * @param substring if present, only run designs whose name or summary contains the substring will be returned
   * @param createdBy if present, only run designs created by the given user will be returned
+  * @param chipType if present, only run designs of the given chipType will be returned
   * @param reserved if present, only run designs that are in the given reserve state will be returned
   */
 case class SearchCriteria(name: Option[String],
                           substring: Option[String],
                           createdBy: Option[String],
+                          chipType: Option[SupportedChipTypes],
                           reserved: Option[Boolean])
 
 /**

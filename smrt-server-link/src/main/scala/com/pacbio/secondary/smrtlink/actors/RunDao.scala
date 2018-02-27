@@ -103,6 +103,8 @@ class InMemoryRunDao(parser: DataModelParser) extends RunDao {
             _.contains(criteria.substring.get)))
     if (criteria.createdBy.isDefined)
       results = results.filter(_.createdBy.exists(_ == criteria.createdBy.get))
+    if (criteria.chipType.isDefined)
+      results = results.filter(_.chipType == criteria.chipType.get)
     if (criteria.reserved.isDefined)
       results = results.filter(_.reserved == criteria.reserved.get)
     results.map(_.summarize).toSet

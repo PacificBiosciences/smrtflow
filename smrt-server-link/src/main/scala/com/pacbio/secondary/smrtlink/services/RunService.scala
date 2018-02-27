@@ -10,6 +10,8 @@ import com.pacbio.secondary.smrtlink.actors.{
   RunServiceActorRefProvider,
   SearchCriteria
 }
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedChipTypes
+
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -54,13 +56,18 @@ class RunService(runActor: ActorRef)
     pathPrefix("runs") {
       pathEndOrSingleSlash {
         get {
-          parameters('name.?, 'substring.?, 'createdBy.?, 'reserved.?) {
-            (name, substring, createdBy, reserved) =>
+          parameters('name.?,
+                     'substring.?,
+                     'createdBy.?,
+                     'chipType.?,
+                     'reserved.?) {
+            (name, substring, createdBy, reserved, chipType) =>
               complete {
                 (runActor ? GetRuns(
                   SearchCriteria(name,
                                  substring,
                                  createdBy,
+                                 chipType.map(SupportedChipTypes.fromValue),
                                  reserved.map(stringToBoolean))))
                   .mapTo[Set[RunSummary]]
               }

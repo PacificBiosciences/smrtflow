@@ -477,6 +477,12 @@
           },
           {
             "required": false,
+            "type": "string",
+            "name": "chipType",
+            "in": "query"
+          },
+          {
+            "required": false,
             "type": "boolean",
             "name": "reserved",
             "in": "query"
