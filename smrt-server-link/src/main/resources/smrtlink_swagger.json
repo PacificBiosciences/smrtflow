@@ -5674,6 +5674,11 @@
           "title": "Updated At",
           "description": "Datetime of when the job was last updated."
         },
+        "jobUpdatedAt": {
+          "type": "string",
+          "title": "Job Execution Last Updated At",
+          "description": "Datetime of when the job execution was last updated."
+        },
         "importedAt": {
           "type": ["null", "string"],
           "title": "Imported At",
