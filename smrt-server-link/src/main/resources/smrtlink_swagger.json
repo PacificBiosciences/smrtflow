@@ -6133,45 +6133,6 @@
         "url": "file:///home/UNIXHOME/mkocher/chemistry-tests/chemistry-9.8.7.tar.gz"
       }
     },
-    "TechSupportJobRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "jobId": {
-          "description": "SMRT Link Job Id",
-          "title": "Job Id",
-          "type": "integer"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "jobId", "comment"],
-      "type": "object"
-    },
-    "TechSupportSystemStatusRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "comment"],
-      "type": "object"
-    },
     "PipelineOption": {
       "type": "object",
       "description": "Defines a pbsmrtpipe pipeline option",
