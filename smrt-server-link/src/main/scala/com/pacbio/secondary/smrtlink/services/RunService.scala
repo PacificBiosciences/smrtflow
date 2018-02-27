@@ -61,7 +61,7 @@ class RunService(runActor: ActorRef)
                      'createdBy.?,
                      'chipType.?,
                      'reserved.?) {
-            (name, substring, createdBy, reserved, chipType) =>
+            (name, substring, createdBy, chipType, reserved) =>
               complete {
                 (runActor ? GetRuns(
                   SearchCriteria(name,
