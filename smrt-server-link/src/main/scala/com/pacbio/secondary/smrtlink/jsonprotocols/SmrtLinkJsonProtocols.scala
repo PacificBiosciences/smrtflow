@@ -321,7 +321,7 @@ trait SmrtLinkJsonProtocols
   // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
   // of namespace conflicts.
   implicit val pipelineTemplateFormat =
-    SecondaryJobProtocols.PipelineTemplateFormat
+    SecondaryJobProtocols.pipelineTemplateFormat
   implicit val pipelineTemplateViewRule =
     SecondaryJobProtocols.pipelineTemplateViewRule
 

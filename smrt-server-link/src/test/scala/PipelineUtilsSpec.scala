@@ -29,9 +29,9 @@ class PipelineUtilsSpec extends Specification {
                                  Seq(0.01, 0.1, 1.0))
     )
 
-    val entryPoints = Seq[EntryPoint]()
+    val entryPoints = Seq.empty[EntryPoint]
     val tags = Seq("dev", "example")
-    val presets = Seq[PipelineTemplatePreset]()
+    val presets = Some(Seq.empty[PipelineTemplatePreset])
     PipelineTemplate("pbsmrtpipe.pipelines.sa3_resequencing",
                      "Name",
                      "Desc",
@@ -123,7 +123,7 @@ class PipelineUtilsSpec extends Specification {
   }
 
   def getOpt(p: PipelineTemplate, id: String): Option[ServiceTaskOptionBase] =
-    p.presets.headOption
+    p.getPresets.headOption
       .map(x => x.taskOptions.filter(_.id == id))
       .get
       .headOption
@@ -136,13 +136,15 @@ class PipelineUtilsSpec extends Specification {
       px2 must beSome[ServiceTaskOptionBase]
       px2.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(
         Some(99999))
-      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      val n =
+        pipelineTemplate.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
     }
     "Convert from string values" in {
       val pipelineTemplate =
         PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset2))
-      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      val n =
+        pipelineTemplate.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
       var px = getOpt(pipelineTemplate, "id-a")
       px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(
@@ -169,7 +171,8 @@ class PipelineUtilsSpec extends Specification {
     "Process empty presets" in {
       val pipelineTemplate =
         PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset3))
-      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      val n =
+        pipelineTemplate.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
       // still default
       var px = getOpt(pipelineTemplate, "id-a")
@@ -179,7 +182,8 @@ class PipelineUtilsSpec extends Specification {
     "Process inappropriate options" in {
       val pipelineTemplate =
         PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset4))
-      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      val n =
+        pipelineTemplate.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
       // still default
       var px = getOpt(pipelineTemplate, "id-a")
@@ -189,7 +193,8 @@ class PipelineUtilsSpec extends Specification {
     "Process presets for incorrect pipeline" in { // but correct option IDs!
       val pipelineTemplate =
         PipelineUtils.updatePipelinePreset(rsPipelineTemplate, Seq(preset5))
-      val n = pipelineTemplate.presets.headOption.map(x => x.taskOptions.size)
+      val n =
+        pipelineTemplate.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(None)
     }
   }

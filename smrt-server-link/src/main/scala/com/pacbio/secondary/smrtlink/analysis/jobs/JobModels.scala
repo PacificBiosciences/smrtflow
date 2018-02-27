@@ -833,7 +833,10 @@ object JobModels {
                               taskOptions: Seq[PipelineBaseOption],
                               entryPoints: Seq[EntryPoint],
                               tags: Seq[String],
-                              presets: Seq[PipelineTemplatePreset])
+                              presets: Option[Seq[PipelineTemplatePreset]] =
+                                None) {
+    def getPresets = presets.getOrElse(Seq.empty[PipelineTemplatePreset])
+  }
 
   // templateId refers to the PipelineTemplate Id
   case class PipelineTemplatePreset(presetId: String,
