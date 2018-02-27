@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.client._
 
 case class JobCleanupConfig(host: String,
                             port: Int,
-                            minAge: Int = 6,
+                            minAge: Int = 180,
                             maxTime: FiniteDuration = 30.minutes,
                             dryRun: Boolean = false)
     extends LoggerConfig
@@ -43,7 +43,7 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
     } yield 1
 
   def apply(sal: SmrtLinkServiceClient, c: JobCleanupConfig): Future[String] = {
-    val cutoff = JodaDateTime.now().minusMonths(c.minAge)
+    val cutoff = JodaDateTime.now().minusDays(c.minAge)
 
     def runCleanUp(client: SmrtLinkServiceClient,
                    job: EngineJob): Future[Int] = {
@@ -106,7 +106,8 @@ object JobCleanupTool extends CommandLineToolRunner[JobCleanupConfig] {
 
       opt[Int]("age")
         .action((x, c) => c.copy(minAge = x))
-        .text("Minimum age of jobs to delete (default = 6 months)")
+        .text(
+          s"Minimum age of jobs to delete (default = ${defaults.minAge} days)")
 
       opt[Int]("timeout")
         .action((t, c) => c.copy(maxTime = t.seconds))
