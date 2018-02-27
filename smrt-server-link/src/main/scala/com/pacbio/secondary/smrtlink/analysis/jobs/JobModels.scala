@@ -417,22 +417,22 @@ object JobModels {
     * For example, for jobTypeId, "pbsmrtpipe", the jsonSettings JSON must have a pipelineId key
     * that is a String.
     *
-    *
-    * @param id id of the Job (unique relative to the SL System)
-    * @param uuid Globally unique job identifier
-    * @param name Display name of task
-    * @param comment User comment
-    * @param createdAt when the Job was created
-    * @param updatedAt when the job was last updated
-    * @param state current state of the job
-    * @param projectId id of the associated project
-    * @param jobTypeId job type id
-    * @param path path to job output directory
-    * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
-    * @param createdBy user that created the Job
+    * @param id              id of the Job (unique relative to the SL System)
+    * @param uuid            Globally unique job identifier
+    * @param name            Display name of task
+    * @param comment         User comment
+    * @param createdAt       when the Job was created
+    * @param updatedAt       when the job metadata was last updated at
+    * @param jobUpdatedAt    when the job execution was last updated at
+    * @param state           current state of the job
+    * @param projectId       id of the associated project
+    * @param jobTypeId       job type id
+    * @param path            path to job output directory
+    * @param jsonSettings    JSON format of the job options (this structure will be consistent with the job type id)
+    * @param createdBy       user that created the Job
     * @param smrtlinkVersion SL System version
-    * @param isActive if the job is active. Not Active jobs will not be displayed by default
-    * @param errorMessage error message if the job is an Error state.
+    * @param isActive        if the job is active. Not Active jobs will not be displayed by default
+    * @param errorMessage    error message if the job is an Error state.
     */
   case class EngineJob(id: Int,
                        uuid: UUID,
@@ -440,6 +440,7 @@ object JobModels {
                        comment: String,
                        createdAt: JodaDateTime,
                        updatedAt: JodaDateTime,
+                       jobUpdatedAt: JodaDateTime,
                        state: AnalysisJobStates.JobStates,
                        jobTypeId: String,
                        path: String,
@@ -464,6 +465,7 @@ object JobModels {
         comment,
         createdAt,
         updatedAt,
+        jobUpdatedAt,
         state,
         jobTypeId,
         path,
@@ -487,6 +489,7 @@ object JobModels {
                            comment: String,
                            createdAt: JodaDateTime,
                            updatedAt: JodaDateTime,
+                           jobUpdatedAt: JodaDateTime,
                            state: AnalysisJobStates.JobStates,
                            jobTypeId: String,
                            path: String,

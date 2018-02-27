@@ -504,19 +504,23 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
     // This needs to be thought out a bit more. The entire engine job table needs to be locked in a worker-queue model
     // This is using a head call that fail in the caught and recover block
-    val fx = for {
-      job <- q1.result.head
-      _ <- qEngineJobById(job.id)
-        .map(j => (j.state, j.updatedAt))
-        .update((AnalysisJobStates.SUBMITTED, JodaDateTime.now()))
-      _ <- jobEvents += JobEvent(
-        UUID.randomUUID(),
-        job.id,
-        AnalysisJobStates.SUBMITTED,
-        s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)",
-        JodaDateTime.now())
-      job <- qEngineJobById(job.id).result.head
-    } yield job
+    def fx =
+      for {
+        job <- q1.result.head
+        _ <- qEngineJobById(job.id)
+          .map(j => (j.state, j.updatedAt, j.jobUpdatedAt))
+          .update(
+            (AnalysisJobStates.SUBMITTED,
+             JodaDateTime.now(),
+             JodaDateTime.now()))
+        _ <- jobEvents += JobEvent(
+          UUID.randomUUID(),
+          job.id,
+          AnalysisJobStates.SUBMITTED,
+          s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)",
+          JodaDateTime.now())
+        job <- qEngineJobById(job.id).result.head
+      } yield job
 
     db.run(fx.transactionally)
       .map { engineJob =>
@@ -571,16 +575,17 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val now = JodaDateTime.now()
 
     // The error handling of this .head call needs to be improved
-    val xs = for {
-      job <- qEngineJobById(jobId).result.head
-      _ <- DBIO.seq(
-        qEngineJobById(jobId)
-          .map(j => (j.state, j.updatedAt, j.errorMessage))
-          .update(state, now, errorMessage),
-        jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
-      )
-      updatedJob <- qEngineJobById(jobId).result.headOption
-    } yield updatedJob
+    def xs =
+      for {
+        job <- qEngineJobById(jobId).result.head
+        _ <- DBIO.seq(
+          qEngineJobById(jobId)
+            .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.errorMessage))
+            .update(state, now, now, errorMessage),
+          jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
+        )
+        updatedJob <- qEngineJobById(jobId).result.headOption
+      } yield updatedJob
 
     val f: Future[EngineJob] = db
       .run(xs.transactionally)
@@ -594,6 +599,14 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     f
   }
 
+  /**
+    * Update Job metadata
+    *
+    * @param jobId   Job Id
+    * @param name    Name of the Job
+    * @param comment Description of the Job
+    * @return
+    */
   def updateJob(jobId: IdAble,
                 name: Option[String],
                 comment: Option[String]): Future[EngineJob] = {
@@ -601,8 +614,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       job <- qEngineJobById(jobId).result.head
       _ <- DBIO.seq(
         qEngineJobById(jobId)
-          .map(j => (j.name, j.comment))
-          .update(name.getOrElse(job.name), comment.getOrElse(job.comment))
+          .map(j => (j.name, j.comment, j.updatedAt))
+          .update(name.getOrElse(job.name),
+                  comment.getOrElse(job.comment),
+                  JodaDateTime.now())
       )
       updatedJob <- qEngineJobById(jobId).result.headOption
     } yield updatedJob
@@ -635,9 +650,20 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       job <- qEngineJobById(jobId).result.head
       _ <- DBIO.seq(
         qEngineMultiJobById(jobId)
-          .map(j =>
-            (j.updatedAt, j.jsonSettings, j.name, j.comment, j.projectId))
-          .update(now, jsonSetting.toString(), name, description, projectId)
+          .map(
+            j =>
+              (j.updatedAt,
+               j.jobUpdatedAt,
+               j.jsonSettings,
+               j.name,
+               j.comment,
+               j.projectId))
+          .update(now,
+                  now,
+                  jsonSetting.toString(),
+                  name,
+                  description,
+                  projectId)
       )
       updatedJob <- qEngineMultiJobById(jobId).result.head
     } yield updatedJob
@@ -660,8 +686,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       job <- qEngineMultiJobById(jobId).result.head
       _ <- DBIO.seq(
         qEngineMultiJobById(jobId)
-          .map(j => (j.state, j.updatedAt, j.workflow, j.errorMessage))
-          .update(state, now, workflow.toString(), errorMessage),
+          .map(j =>
+            (j.state, j.updatedAt, j.jobUpdatedAt, j.workflow, j.errorMessage))
+          .update(state, now, now, workflow.toString(), errorMessage),
         jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
       )
       updatedJob <- qEngineJobById(jobId).result.headOption
@@ -757,6 +784,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       description,
       createdAt,
       createdAt,
+      createdAt,
       AnalysisJobStates.CREATED,
       jobTypeId.id,
       path,
@@ -797,6 +825,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       uuid,
       name,
       description,
+      createdAt,
       createdAt,
       createdAt,
       AnalysisJobStates.CREATED,
@@ -858,11 +887,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                             eventTypeId =
                               JobConstants.EVENT_TYPE_JOB_TASK_STATUS)
 
-    val fx = for {
-      _ <- jobTasks += jobTask
-      _ <- jobEvents += jobEvent
-      task <- jobTasks.filter(_.uuid === jobTask.uuid).result
-    } yield task
+    def fx =
+      for {
+        _ <- jobTasks += jobTask
+        _ <- jobEvents += jobEvent
+        task <- jobTasks.filter(_.uuid === jobTask.uuid).result
+      } yield task
 
     db.run(fx.transactionally)
       .map(_.headOption)

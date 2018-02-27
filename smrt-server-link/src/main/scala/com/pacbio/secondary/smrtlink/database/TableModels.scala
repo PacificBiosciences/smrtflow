@@ -157,6 +157,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def jobUpdatedAt: Rep[JodaDateTime] =
+      column[JodaDateTime]("job_updated_at")
+
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
@@ -202,6 +205,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        comment,
        createdAt,
        updatedAt,
+       jobUpdatedAt,
        state,
        jobTypeId,
        path,
