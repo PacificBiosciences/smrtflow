@@ -29,7 +29,7 @@ class PipelineTemplatePresetIntegrationSpec
   }
 
   def getOpt(p: PipelineTemplate, id: String): Option[ServiceTaskOptionBase] =
-    p.presets.headOption
+    p.getPresets.headOption
       .map(x => x.taskOptions.filter(_.id == id))
       .get
       .headOption
@@ -40,11 +40,11 @@ class PipelineTemplatePresetIntegrationSpec
       logger.info(s"Loaded $preset")
       preset.taskOptions.size must beEqualTo(7)
       val p = loadPipeline
-      p.presets must beEmpty
+      p.getPresets must beEmpty
       preset.pipelineId must beEqualTo(p.id)
       val pt = PipelineUtils.updatePipelinePreset(p, Seq(preset))
-      pt.presets.size must beEqualTo(1)
-      val n = pt.presets.headOption.map(x => x.taskOptions.size)
+      pt.getPresets.size must beEqualTo(1)
+      val n = pt.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
       var px = getOpt(pt, "pbsmrtpipe.task_options.gamma")
       px.map(x => x.asInstanceOf[ServiceTaskIntOption].value) must beEqualTo(
@@ -74,10 +74,10 @@ class PipelineTemplatePresetIntegrationSpec
       logger.info(s"Loaded $preset")
       val p = loadPipeline
       preset.pipelineId must beEqualTo(p.id)
-      p.presets must beEmpty
+      p.getPresets must beEmpty
       val pt = PipelineUtils.updatePipelinePreset(p, Seq(preset))
-      pt.presets.size must beEqualTo(1)
-      val n = pt.presets.headOption.map(x => x.taskOptions.size)
+      pt.getPresets.size must beEqualTo(1)
+      val n = pt.getPresets.headOption.map(x => x.taskOptions.size)
       n must beEqualTo(Some(7))
       var px = getOpt(pt, "pbsmrtpipe.task_options.alpha")
       px.map(x => x.asInstanceOf[ServiceTaskStrOption].value) must beEqualTo(

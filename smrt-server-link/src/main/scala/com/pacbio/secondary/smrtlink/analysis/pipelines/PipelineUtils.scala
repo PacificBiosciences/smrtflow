@@ -7,7 +7,7 @@ import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.PipelineTemplateJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import org.apache.commons.io.FileUtils
 
 import scala.util.Random
@@ -88,8 +88,8 @@ trait PipelineUtils extends LazyLogging {
     }
 
     val mergedPresets =
-      (p.presets ++ processedPresets).map(t => (t.presetId, t)).toMap
-    p.copy(presets = mergedPresets.values.toList)
+      (p.getPresets ++ processedPresets).map(t => (t.presetId, t)).toMap
+    p.copy(presets = Some(mergedPresets.values.toList))
   }
 
   def updatePipelinePresets(ps: Seq[PipelineTemplate],
@@ -120,7 +120,7 @@ trait Loader[T] {
 
 trait JsonPipelineTemplatesLoader
     extends Loader[PipelineTemplate]
-    with PipelineTemplateJsonProtocol {
+    with SecondaryJobJsonProtocol {
 
   val extFilter = Seq("json")
 

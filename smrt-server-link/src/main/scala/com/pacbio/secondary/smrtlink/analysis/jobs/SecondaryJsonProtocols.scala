@@ -267,71 +267,6 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
   }
 }
 
-trait PipelineTemplateJsonProtocol
-    extends DefaultJsonProtocol
-    with PipelineTemplateOptionProtocol {
-
-  implicit object PipelineTemplateFormat
-      extends RootJsonFormat[PipelineTemplate] {
-    def write(p: PipelineTemplate): JsObject = {
-
-      implicit val entryPointFormat = jsonFormat3(EntryPoint)
-
-      val jobOpts = JsArray(p.options.map(_.toJson).toVector)
-      val taskOpts = JsArray(p.taskOptions.map(_.toJson).toVector)
-      val entryPoints = p.entryPoints.toJson
-      val tags = p.tags.toJson
-
-      JsObject(
-        "id" -> JsString(p.id),
-        "name" -> JsString(p.name),
-        "description" -> JsString(p.description),
-        "version" -> JsString(p.version),
-        "entryPoints" -> entryPoints,
-        "options" -> jobOpts,
-        "taskOptions" -> taskOpts,
-        "tags" -> tags
-      )
-    }
-
-    def read(value: JsValue) = {
-      implicit val entryPointFormat = jsonFormat3(EntryPoint)
-
-      value.asJsObject.getFields("id",
-                                 "name",
-                                 "description",
-                                 "version",
-                                 "tags",
-                                 "taskOptions",
-                                 "entryPoints",
-                                 "options") match {
-        case Seq(JsString(id),
-                 JsString(name),
-                 JsString(description),
-                 JsString(version),
-                 JsArray(jtags),
-                 JsArray(jtaskOptions),
-                 JsArray(entryPoints),
-                 JsArray(joptions)) =>
-          val tags = jtags.map(_.convertTo[String])
-          val epoints = entryPoints.map(_.convertTo[EntryPoint])
-          val taskOptions = jtaskOptions.map(_.convertTo[PipelineBaseOption])
-          val engineOptions = joptions.map(_.convertTo[PipelineBaseOption])
-          PipelineTemplate(id,
-                           name,
-                           description,
-                           version,
-                           engineOptions,
-                           taskOptions,
-                           epoints,
-                           tags,
-                           Seq[PipelineTemplatePreset]())
-        case x => deserializationError(s"Expected Pipeline template Got $x")
-      }
-    }
-  }
-}
-
 trait PipelineTemplatePresetJsonProtocol
     extends DefaultJsonProtocol
     with PipelineTemplateOptionProtocol {
@@ -436,7 +371,6 @@ trait JobTypeSettingProtocol
     with UUIDJsonProtocol
     with JobStatesJsonProtocol
     with DataSetMetaTypesProtocol
-    with PipelineTemplateJsonProtocol
     with PipelineTemplatePresetJsonProtocol
     with URIJsonProtocol
     with PathProtocols {
@@ -449,8 +383,9 @@ trait JobTypeSettingProtocol
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile.apply)
   implicit val datastoreFormat = jsonFormat4(PacBioDataStore.apply)
   implicit val boundEntryPointFormat = jsonFormat2(BoundEntryPoint)
-  implicit val entryPointFormat = jsonFormat3(EntryPoint)
   implicit val jobEventFormat = jsonFormat6(JobEvent)
+  implicit val entryPointFormat = jsonFormat3(EntryPoint)
+  implicit val pipelineTemplateFormat = jsonFormat9(PipelineTemplate)
 
   // Job results
   implicit val jobResultSuccesFormat = jsonFormat6(ResultSuccess)

@@ -39,9 +39,9 @@ class PipelineTemplateDao(pipelineTemplates: Seq[PipelineTemplate])
       pipelineId: String,
       pipelinePresetId: String): Option[PipelineTemplatePreset] =
     getPipelineTemplateById(pipelineId).flatMap(x =>
-      x.presets.find(_.presetId == pipelinePresetId))
+      x.getPresets.find(_.presetId == pipelinePresetId))
 
   def getPresetsFromPipelineTemplateId(pipelineId: String) =
-    _pipelines.get(pipelineId).map(_.presets)
+    _pipelines.get(pipelineId).map(_.getPresets)
 
 }
