@@ -31,13 +31,16 @@ trait MockJobExport {
     logDirPath.toFile.mkdir
     val logPath = logDirPath.resolve("master.log")
     FileUtils.writeStringToFile(logPath.toFile, "Hello world!", "UTF-8")
+
+    val now = JodaDateTime.now()
     EngineJob(
       1,
       UUID.randomUUID(),
       "My job",
       "Test job",
-      JodaDateTime.now(),
-      JodaDateTime.now(),
+      now,
+      now,
+      now,
       AnalysisJobStates.SUCCESSFUL,
       "pbsmrtpipe",
       jobPath.toString,
