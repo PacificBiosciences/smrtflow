@@ -212,6 +212,9 @@ class DatabaseRunDao(db: Database, parser: DataModelParser)
         .filter(_.createdBy.isDefined)
         .filter(_.createdBy === criteria.createdBy)
 
+    if (criteria.chipType.isDefined)
+      query = query.filter(_.chipType === criteria.chipType.get)
+
     if (criteria.reserved.isDefined)
       query = query.filter(_.reserved === criteria.reserved.get)
 
