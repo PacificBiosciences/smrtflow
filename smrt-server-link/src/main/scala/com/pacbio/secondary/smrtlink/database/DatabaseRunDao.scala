@@ -195,24 +195,29 @@ class DatabaseRunDao(db: Database, parser: DataModelParser)
   }
 
   override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
-    var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] =
-      runSummaries
 
     val q0 = runSummaries
 
-    val q1 = criteria.chipType.map(c => q0.filter(_.chipType === c)).getOrElse(q0)
+    val q1 =
+      criteria.chipType.map(c => q0.filter(_.chipType === c)).getOrElse(q0)
 
     val q2 = criteria.name.map(n => q1.filter(_.name === n)).getOrElse(q1)
 
-    val q3 = criteria.substring.map { sx =>
-      q2.filter { r =>
-        (r.name.indexOf(sx) >= 0).||(r.summary.getOrElse("").indexOf(sx) >= 0)
+    val q3 = criteria.substring
+      .map { sx =>
+        q2.filter { r =>
+          (r.name.indexOf(sx) >= 0)
+            .||(r.summary.getOrElse("").indexOf(sx) >= 0)
+        }
       }
-    }.getOrElse(q2)
+      .getOrElse(q2)
 
-    val q4 = criteria.reserved.map(c => q3.filter(_.reserved === c)).getOrElse(q3)
+    val q4 =
+      criteria.reserved.map(c => q3.filter(_.reserved === c)).getOrElse(q3)
 
-    val q5 = criteria.createdBy.map(c => q4.filter(_.createdBy.isDefined).filter(_.createdBy === c)).getOrElse(q4)
+    val q5 = criteria.createdBy
+      .map(c => q4.filter(_.createdBy.isDefined).filter(_.createdBy === c))
+      .getOrElse(q4)
 
     db.run(q5.result).map(_.toSet)
   }
