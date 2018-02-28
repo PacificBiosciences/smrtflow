@@ -198,27 +198,23 @@ class DatabaseRunDao(db: Database, parser: DataModelParser)
     var query: Query[RunSummariesT, RunSummariesT#TableElementType, Seq] =
       runSummaries
 
-    if (criteria.name.isDefined)
-      query = query.filter(_.name === criteria.name.get)
+    val q0 = runSummaries
 
-    if (criteria.substring.isDefined)
-      query = query.filter { r =>
-        (r.name.indexOf(criteria.substring.get) >= 0)
-          .||(r.summary.getOrElse("").indexOf(criteria.substring.get) >= 0)
+    val q1 = criteria.chipType.map(c => q0.filter(_.chipType === c)).getOrElse(q0)
+
+    val q2 = criteria.name.map(n => q1.filter(_.name === n)).getOrElse(q1)
+
+    val q3 = criteria.substring.map { sx =>
+      q2.filter { r =>
+        (r.name.indexOf(sx) >= 0).||(r.summary.getOrElse("").indexOf(sx) >= 0)
       }
+    }.getOrElse(q2)
 
-    if (criteria.createdBy.isDefined)
-      query = query
-        .filter(_.createdBy.isDefined)
-        .filter(_.createdBy === criteria.createdBy)
+    val q4 = criteria.reserved.map(c => q3.filter(_.reserved === c)).getOrElse(q3)
 
-    if (criteria.chipType.isDefined)
-      query = query.filter(_.chipType === criteria.chipType.get)
+    val q5 = criteria.createdBy.map(c => q4.filter(_.createdBy.isDefined).filter(_.createdBy === c)).getOrElse(q4)
 
-    if (criteria.reserved.isDefined)
-      query = query.filter(_.reserved === criteria.reserved.get)
-
-    db.run(query.result).map(_.toSet)
+    db.run(q5.result).map(_.toSet)
   }
 
   override def getRun(id: UUID): Future[Run] = {
