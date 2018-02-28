@@ -81,10 +81,12 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
         |     is active: ${job.isActive}
         |     createdAt: ${job.createdAt}
         |     updatedAt: ${job.updatedAt}
+        |  jobUpdatedAt: ${job.jobUpdatedAt}
         |      run time: $runTimeSec sec
         |    SL version: ${job.smrtlinkVersion.getOrElse("Unknown")}
         |    created by: ${job.createdBy.getOrElse("none")}
         |       comment: ${job.comment}
+        |          tags: ${job.tags}
         |          path: ${job.path}
       """.stripMargin
 
