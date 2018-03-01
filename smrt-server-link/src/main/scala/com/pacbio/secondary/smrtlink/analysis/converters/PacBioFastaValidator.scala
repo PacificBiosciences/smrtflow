@@ -2,7 +2,6 @@ package com.pacbio.secondary.smrtlink.analysis.converters
 
 import java.nio.file.{Files, Path}
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.ReferenceDatasetFileIO
 import com.typesafe.scalalogging.LazyLogging
 import htsjdk.samtools.reference.{FastaSequenceFile, ReferenceSequence}
 
