@@ -3,7 +3,7 @@
         xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd"
         xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        Tags="barcode moreTags mapping mytags"
+        Tags="barcode,moreTags,mapping,mytags"
         UniqueId="780ffb66-ccab-40f5-9295-19c1eadb0f77"
         TimeStampedName="transcriptset_180301_100000"
         MetaType="PacBio.DataSet.TranscriptSet"
