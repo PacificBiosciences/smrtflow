@@ -866,8 +866,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                 job.state.toString,
                 job.name,
                 job.uuid.toString,
-                job.createdBy.getOrElse("")))
-      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy"))
+                job.createdBy.getOrElse(""),
+                job.tags))
+      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy", "Tags"))
     }
   }
 

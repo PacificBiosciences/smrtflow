@@ -5,8 +5,8 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
-  DataSetMetaTypes,
-  DataSetFilterProperty
+  DataSetFilterProperty,
+  DataSetMetaTypes
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.common.models.{
@@ -18,6 +18,8 @@ import com.pacbio.common.models.{
 import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+
+import scala.util.{Failure, Success, Try}
 
 /**
   * Custom SecondaryJsonProtocols for spray.json
@@ -359,6 +361,81 @@ trait JsonProjectSupport {
   }
 }
 
+/**
+  * Custom JSON parser to handle backward compatibility
+  *
+  * Note, only Official SL releases are supported. (e.g. 5.1.0)
+  */
+trait EngineJobJsonSupport
+    extends DefaultJsonProtocol
+    with JodaDateTimeProtocol
+    with UUIDJsonProtocol
+    with JobStatesJsonProtocol {
+
+  case class SmrtLink510EngineJob(id: Int,
+                                  uuid: UUID,
+                                  name: String,
+                                  comment: String,
+                                  createdAt: JodaDateTime,
+                                  updatedAt: JodaDateTime,
+                                  state: AnalysisJobStates.JobStates,
+                                  jobTypeId: String,
+                                  path: String,
+                                  jsonSettings: String,
+                                  createdBy: Option[String],
+                                  createdByEmail: Option[String],
+                                  smrtlinkVersion: Option[String],
+                                  isActive: Boolean = true,
+                                  errorMessage: Option[String] = None,
+                                  projectId: Int =
+                                    JobConstants.GENERAL_PROJECT_ID,
+                                  isMultiJob: Boolean = false,
+                                  workflow: String = "{}",
+                                  parentMultiJobId: Option[Int] = None,
+                                  importedAt: Option[JodaDateTime] = None) {
+    def toEngineJob() =
+      EngineJob(
+        id,
+        uuid,
+        name,
+        comment,
+        createdAt,
+        updatedAt,
+        updatedAt,
+        state,
+        jobTypeId,
+        path,
+        jsonSettings,
+        createdBy,
+        createdByEmail,
+        smrtlinkVersion,
+        isActive,
+        errorMessage,
+        projectId,
+        isMultiJob,
+        workflow,
+        parentMultiJobId,
+        importedAt
+      )
+  }
+
+  val engineJobJsonNewestFormat = jsonFormat22(EngineJob)
+  val smrtLink510engineJobJson = jsonFormat20(SmrtLink510EngineJob)
+
+  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
+    override def read(json: JsValue): EngineJob =
+      Try(engineJobJsonNewestFormat.read(json)) match {
+        case Success(engineJob) => engineJob
+        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
+      }
+
+    override def write(obj: EngineJob): JsValue =
+      engineJobJsonNewestFormat.write(obj)
+  }
+}
+
+object EngineJobJsonSupport extends EngineJobJsonSupport
+
 case class ExampleServiceJobOption(name: String,
                                    private val projectId: Option[Int]) {
   val DEFAULT_PROJECT_ID = 1
@@ -373,11 +450,10 @@ trait JobTypeSettingProtocol
     with DataSetMetaTypesProtocol
     with PipelineTemplatePresetJsonProtocol
     with URIJsonProtocol
-    with PathProtocols {
+    with PathProtocols
+    with EngineJobJsonSupport {
 
   import JobModels._
-
-  implicit val engineJobFormat = jsonFormat22(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile.apply)
