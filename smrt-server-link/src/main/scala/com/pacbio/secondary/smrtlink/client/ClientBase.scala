@@ -107,11 +107,10 @@ trait ClientBase extends Retrying {
     val req = request.addHeader(
       `Accept-Encoding`(HttpEncodings.gzip, HttpEncodings.deflate))
 
-
     http.singleRequest(req).flatMap { response =>
       response.status match {
         case StatusCodes.OK | StatusCodes.Created =>
-          customLogResponse(response)
+          // customLogResponse(response)
           Future.successful(response)
         case _ =>
           Future.failed(
