@@ -228,6 +228,17 @@ class DataSetService(dao: JobsDao)
   def getContigDataSetDetails(i: IdAble): Future[String] =
     dao.getContigDataSetDetailsById(i)
 
+  // TranscriptSets
+  def getTranscriptSet(
+      limit: Int,
+      includeInactive: Boolean = false,
+      projectIds: Seq[Int] = Nil): Future[Seq[TranscriptServiceDataSet]] =
+    dao.getTranscriptDataSets(limit, includeInactive, projectIds)
+  def getTranscriptSetById(i: IdAble): Future[TranscriptServiceDataSet] =
+    dao.getTranscriptDataSetById(i)
+  def getTranscriptSetDetails(i: IdAble): Future[String] =
+    dao.getTranscriptDataSetDetailsById(i)
+
   def updateDataSet(id: IdAble,
                     sopts: DataSetUpdateRequest): Future[MessageResponse] = {
     def f1 =
@@ -422,7 +433,12 @@ class DataSetService(dao: JobsDao)
             DataSetMetaTypes.Contig.shortName,
             getContigDataSet,
             getContigDataSetById,
-            getContigDataSetDetails)
+            getContigDataSetDetails) ~
+          datasetRoutes[TranscriptServiceDataSet](
+            DataSetMetaTypes.Transcript.shortName,
+            getTranscriptSet,
+            getTranscriptSetById,
+            getTranscriptSetDetails)
       }
 }
 

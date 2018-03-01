@@ -1287,6 +1287,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       Converters.convertConsensusAlignmentSet,
       ImportAbleConsensusAlignmentSet.apply)(dsj)
 
+  def loadImportAbleTranscriptSet(
+      dsj: DsServiceJobFile): ImportAbleTranscriptSet =
+    loadImportAbleServiceFileLoader[TranscriptSet,
+                                    TranscriptServiceDataSet,
+                                    ImportAbleTranscriptSet](
+      DataSetLoader.loadTranscriptSet,
+      Converters.convertTranscriptSet,
+      ImportAbleTranscriptSet.apply)(dsj)
+
   def loadImportAbleContigSet(dsj: DsServiceJobFile): ImportAbleContigSet =
     loadImportAbleServiceFileLoader[ContigSet,
                                     ContigServiceDataSet,
@@ -1330,6 +1339,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         case DataSetMetaTypes.Reference => loadImportAbleReferenceSet(dsj)
         case DataSetMetaTypes.GmapReference =>
           loadImportAbleGmapReferenceSet(dsj)
+        case DataSetMetaTypes.Transcript => loadImportAbleTranscriptSet(dsj)
       }
       .getOrElse(ImportAbleDataStoreFile(dsj))
   }
@@ -1544,6 +1554,23 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleConsensusAlignmentSet): Future[MessageResponse] =
     db.run(actionImportConsensusAlignmentSet(i).transactionally)
 
+  private def actionImportTranscriptSet(
+      i: ImportAbleTranscriptSet): DBIO[MessageResponse] = {
+    val ds = i.file
+
+    val action0 = insertMetaData(i.file).flatMap { id: Int =>
+      dsTranscript2 forceInsert TranscriptServiceSet(id, ds.uuid)
+    }
+
+    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+
+    checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
+  }
+
+  def importImportAbleTranscriptSet(
+      i: ImportAbleTranscriptSet): Future[MessageResponse] =
+    db.run(actionImportTranscriptSet(i).transactionally)
+
   private def actionImportContigSet(
       i: ImportAbleContigSet): DBIO[MessageResponse] = {
     val ds = i.ds.file
@@ -1613,6 +1640,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case x: ImportAbleContigSet => importImportAbleContigSet(x)
       case x: ImportAbleReferenceSet => importReferenceSet(x)
       case x: ImportAbleGmapReferenceSet => importGmapReferenceSet(x)
+      case x: ImportAbleTranscriptSet => importImportAbleTranscriptSet(x)
     }
   }
 
@@ -1630,6 +1658,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case x: ImportAbleContigSet => actionImportContigSet(x)
       case x: ImportAbleReferenceSet => actionImportReferenceSet(x)
       case x: ImportAbleGmapReferenceSet => actionImportGmapReferenceSet(x)
+      case x: ImportAbleTranscriptSet => actionImportTranscriptSet(x)
     }
   }
 
@@ -2173,6 +2202,53 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def getConsensusAlignmentDataSetDetailsById(id: IdAble): Future[String] =
     getConsensusAlignmentDataSetById(id).map(consensusAlignmentSetToDetails)
+
+  /*--- TRANSCRIPTS ---*/
+  private def toT(t1: DataSetMetaDataSet) =
+    TranscriptServiceDataSet(
+      t1.id,
+      t1.uuid,
+      t1.name,
+      t1.path,
+      t1.createdAt,
+      t1.updatedAt,
+      t1.numRecords,
+      t1.totalLength,
+      t1.version,
+      t1.comments,
+      t1.tags,
+      t1.md5,
+      t1.createdBy,
+      t1.jobId,
+      t1.projectId
+    )
+
+  def getTranscriptDataSets(
+      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
+      includeInactive: Boolean = false,
+      projectIds: Seq[Int] = Nil): Future[Seq[TranscriptServiceDataSet]] = {
+    val qj = dsMetaData2 join dsTranscript2 on (_.id === _.id)
+    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
+    val q =
+      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
+      else qi
+    db.run(q.result).map(_.map(x => toT(x._1)))
+  }
+
+  def getTranscriptDataSetById(id: IdAble): Future[TranscriptServiceDataSet] = {
+    val q = qDsMetaDataById(id) join dsTranscript2 on (_.id === _.id)
+    db.run(q.result.headOption)
+      .map(_.map(x => toT(x._1)))
+      .flatMap(failIfNone(
+        s"Unable to find ConsensusAlignmentSet with uuid ${id.toIdString}"))
+  }
+
+  private def transcriptSetToDetails(ds: TranscriptServiceDataSet): String =
+    DataSetJsonUtils.transcriptSetToJson(
+      DataSetLoader.loadTranscriptSet(Paths.get(ds.path)))
+
+  def getTranscriptDataSetDetailsById(id: IdAble): Future[String] =
+    getTranscriptDataSetById(id).map(transcriptSetToDetails)
 
   /*--- BARCODES ---*/
 

@@ -463,6 +463,41 @@ object Converters extends DataSetMetadataUtils {
                                      projectId)
   }
 
+  def convertTranscriptSet(dataset: TranscriptSet,
+                           path: Path,
+                           createdBy: Option[String],
+                           jobId: Int,
+                           projectId: Int): TranscriptServiceDataSet = {
+    val uuid = UUID.fromString(dataset.getUniqueId)
+    // this is not correct
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    val comments = "transcript dataset converted"
+
+    //val tags = dataset.getTags
+    val name = Option(dataset.getName).getOrElse(UNKNOWN)
+    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
+    val tags = ""
+    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+
+    TranscriptServiceDataSet(-99,
+                             uuid,
+                             name,
+                             path.toFile.toString,
+                             createdAt,
+                             modifiedAt,
+                             numRecords,
+                             totalLength,
+                             dsVersion,
+                             comments,
+                             tags,
+                             toMd5(uuid.toString),
+                             createdBy,
+                             jobId,
+                             projectId)
+  }
+
   def convertBarcodeSet(dataset: BarcodeSet,
                         path: Path,
                         createdBy: Option[String],

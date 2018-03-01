@@ -296,6 +296,21 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                               dsId,
                               "details")))
 
+  def getTranscriptSets: Future[Seq[TranscriptServiceDataSet]] =
+    getObject[Seq[TranscriptServiceDataSet]](
+      Get(toDataSetsUrl(DataSetMetaTypes.Transcript.shortName)))
+
+  def getTranscriptSet(dsId: IdAble): Future[TranscriptServiceDataSet] =
+    getObject[TranscriptServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Transcript.shortName, dsId)))
+
+  def getTranscriptSetDetails(dsId: IdAble): Future[TranscriptSet] =
+    getObject[TranscriptSet](
+      Get(
+        toDataSetResourcesUrl(DataSetMetaTypes.Transcript.shortName,
+                              dsId,
+                              "details")))
+
   def getContigSets: Future[Seq[ContigServiceDataSet]] =
     getObject[Seq[ContigServiceDataSet]](
       Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName)))

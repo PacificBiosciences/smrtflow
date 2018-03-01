@@ -561,6 +561,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <> (ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
+  class TranscriptDataSetT(tag: Tag)
+      extends IdAbleTable[TranscriptServiceSet](tag, "datasets_transcripts") {
+    def * =
+      (id, uuid) <> (TranscriptServiceSet.tupled, TranscriptServiceSet.unapply)
+  }
+
   /**
     * The general metadata container for DataStoreFile(s) produced by an EngineJob.
     *
@@ -866,6 +872,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
   lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
   lazy val dsContig2 = TableQuery[ContigDataSetT]
+  lazy val dsTranscript2 = TableQuery[TranscriptDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
@@ -913,7 +920,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eulas
+    eulas,
+    dsTranscript2
   )
 
   lazy val runTables: Set[SlickTable] =

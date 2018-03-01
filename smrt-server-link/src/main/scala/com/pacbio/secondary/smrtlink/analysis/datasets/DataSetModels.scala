@@ -22,7 +22,8 @@ import com.pacificbiosciences.pacbiodatasets.{
   ConsensusAlignmentSet,
   ContigSet,
   ReferenceSet,
-  GmapReferenceSet
+  GmapReferenceSet,
+  TranscriptSet
 }
 import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType}
 
@@ -89,6 +90,11 @@ object DataSetMetaTypes {
     override def shortName = "gmapreferences"
   }
 
+  case object Transcript extends DataSetMetaType {
+    final val fileType = FileTypes.DS_TRANSCRIPT
+    override def shortName = "transcripts"
+  }
+
   // FIXME. The order is important. Will reuse this in the db
   val ALL = Set(Subread,
                 HdfSubread,
@@ -98,9 +104,10 @@ object DataSetMetaTypes {
                 Contig,
                 Reference,
                 AlignmentCCS,
-                GmapReference)
+                GmapReference,
+                Transcript)
   val BAM_DATASETS: Set[DataSetMetaType] =
-    Set(Subread, CCS, Alignment, AlignmentCCS)
+    Set(Subread, CCS, Alignment, AlignmentCCS, Transcript)
 
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString
@@ -214,3 +221,5 @@ case class ContigSetIO(dataset: ContigSet, path: Path) extends DataSetIO {
 }
 case class GmapReferenceSetIO(dataset: GmapReferenceSet, path: Path)
     extends DataSetIO { type T = GmapReferenceSet }
+case class TranscriptSetIO(dataset: TranscriptSet, path: Path)
+    extends DataSetIO { type T = TranscriptSet }

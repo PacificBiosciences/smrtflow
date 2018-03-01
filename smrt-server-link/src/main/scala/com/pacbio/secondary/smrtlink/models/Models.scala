@@ -519,6 +519,10 @@ case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet,
                                     dataset: ContigServiceSet)
 
+case class TranscriptServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
+case class TranscriptServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                        dataset: TranscriptServiceSet)
+
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
 case class DataStoreServiceFile(uuid: UUID,
@@ -793,6 +797,26 @@ case class GmapReferenceServiceDataSet(id: Int,
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
 
+case class TranscriptServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    createdBy: Option[String],
+    jobId: Int,
+    projectId: Int,
+    parentUuid: Option[UUID] = None,
+    datasetType: String = Transcript.toString())
+    extends ServiceDataSetMetadata
+
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
 case class DataSetMergeServiceOptions(datasetType: String,
@@ -848,6 +872,10 @@ case class ImportAbleReferenceSet(ds: DsServiceJobFile,
 
 case class ImportAbleGmapReferenceSet(ds: DsServiceJobFile,
                                       file: GmapReferenceServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleTranscriptSet(ds: DsServiceJobFile,
+                                   file: TranscriptServiceDataSet)
     extends ImportAbleServiceFile
 
 // Project models

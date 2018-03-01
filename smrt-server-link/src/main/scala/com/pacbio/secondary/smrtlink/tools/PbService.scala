@@ -686,6 +686,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       numConsensusReadSets <- sal.getConsensusReadSets.map(_.length)
       numConsensusAlignmentSets <- sal.getConsensusAlignmentSets.map(_.length)
       numContigSets <- sal.getContigSets.map(_.length)
+      numTranscriptSets <- sal.getTranscriptSets.map(_.length)
     } yield s"""
         |DataSet Summary (active datasets) :
         |
@@ -698,6 +699,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         |ConsensusAlignmentSets : $numConsensusAlignmentSets
         |ConsensusReadSets      : $numConsensusReadSets
         |ContigSets             : $numContigSets
+        |TranscriptSets         : $numTranscriptSets
       """.stripMargin
   }
 
@@ -809,6 +811,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         sal.getConsensusAlignmentSets.map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.CCS =>
         sal.getConsensusReadSets.map(_.map(ds => (ds, ds.toJson)))
+      case DataSetMetaTypes.Transcript =>
+        sal.getTranscriptSets.map(_.map(ds => (ds, ds.toJson)))
     }
     for {
       records <- fx
