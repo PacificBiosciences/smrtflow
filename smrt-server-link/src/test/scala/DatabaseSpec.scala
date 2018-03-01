@@ -377,7 +377,7 @@ class DatabaseSpec
       dm === runDataModel
       cm === collection
       sa === sample
-      to === transcript
+      to === transcript.copy(id=transcriptId)
     }
 
     "Match TableModels" in {
