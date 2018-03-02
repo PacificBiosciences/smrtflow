@@ -152,6 +152,18 @@ object DataSetJsonUtils {
       .asInstanceOf[GmapReferenceSet]
   }
 
+  def transcriptSetToJson(dataset: TranscriptSet) =
+    contextToJson(JAXBContext.newInstance(classOf[TranscriptSet]), dataset)
+
+  def transcriptSetFromJson(json: String): TranscriptSet = {
+    val ctx = JAXBContext.newInstance(classOf[TranscriptSet])
+    contextToUnmarshaller(ctx)
+      .unmarshal(new StreamSource(new StringReader(json)),
+                 classOf[TranscriptSet])
+      .getValue()
+      .asInstanceOf[TranscriptSet]
+  }
+
 }
 
 trait DataSetJsonProtocols extends DefaultJsonProtocol {
@@ -221,6 +233,14 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
       DataSetJsonUtils.gmapReferenceSetToJson(obj).parseJson.asJsObject
     def read(json: JsValue): GmapReferenceSet =
       DataSetJsonUtils.gmapReferenceSetFromJson(json.toString)
+  }
+
+  implicit object TranscriptSetJsonFormat
+      extends RootJsonFormat[TranscriptSet] {
+    def write(obj: TranscriptSet): JsObject =
+      DataSetJsonUtils.transcriptSetToJson(obj).parseJson.asJsObject
+    def read(json: JsValue): TranscriptSet =
+      DataSetJsonUtils.transcriptSetFromJson(json.toString)
   }
 
   implicit object DataSetFilterPropertyFormat

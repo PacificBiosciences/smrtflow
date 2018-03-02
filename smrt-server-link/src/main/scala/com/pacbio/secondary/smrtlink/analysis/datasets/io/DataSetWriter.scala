@@ -80,6 +80,12 @@ object DataSetWriter {
     dataset
   }
 
+  def writeTranscriptSet(dataset: TranscriptSet, path: Path): TranscriptSet = {
+    toMarshaller(JAXBContext.newInstance(classOf[TranscriptSet]))
+      .marshal(dataset, path.toFile)
+    dataset
+  }
+
   def writeDataSet(dst: DataSetMetaTypes.DataSetMetaType,
                    dataset: DataSetType,
                    path: Path): DataSetType = {
@@ -103,6 +109,8 @@ object DataSetWriter {
         writeBarcodeSet(dataset.asInstanceOf[BarcodeSet], path)
       case DataSetMetaTypes.GmapReference =>
         writeGmapReferenceSet(dataset.asInstanceOf[GmapReferenceSet], path)
+      case DataSetMetaTypes.Transcript =>
+        writeTranscriptSet(dataset.asInstanceOf[TranscriptSet], path)
     }
   }
 

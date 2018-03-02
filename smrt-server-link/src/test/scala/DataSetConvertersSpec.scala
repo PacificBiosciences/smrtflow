@@ -84,6 +84,12 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
       sds.runName === Converters.UNKNOWN
       sds.parentUuid === None
     }
+    "TranscriptSet" in {
+      val p = getPath("/dataset-transcripts/transcriptset.xml")
+      val ds = DataSetLoader.loadTranscriptSet(p)
+      val sds = Converters.convertTranscriptSet(ds, p, None, 1, 1)
+      sds.name === "Example transcript set"
+    }
   }
 }
 

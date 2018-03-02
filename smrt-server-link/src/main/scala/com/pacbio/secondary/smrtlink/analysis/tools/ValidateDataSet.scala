@@ -121,6 +121,9 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
     val validateGmapReferenceSet = vx[GmapReferenceSet](
       DataSetLoader.loadAndResolveGmapReferenceSet,
       DataSetValidator.validate)
+    val validateTranscriptSet = vx[TranscriptSet](
+      DataSetLoader.loadAndResolveTranscriptSet,
+      DataSetValidator.validate)
 
     dsType match {
       case Some(metatype) =>
@@ -136,6 +139,7 @@ object ValidateDataSetRunner extends CommandLineToolRunner[ValidatorConfig] {
           case DataSetMetaTypes.Barcode => validateBarcodeSet(p)
           case DataSetMetaTypes.Contig => validateContigSet(p)
           case DataSetMetaTypes.GmapReference => validateGmapReferenceSet(p)
+          case DataSetMetaTypes.Transcript => validateTranscriptSet(p)
         }
       case _ =>
         Left(

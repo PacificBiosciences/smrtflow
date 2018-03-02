@@ -217,6 +217,16 @@ object DataSetLoader extends LazyLogging {
   def loadGmapReferenceSetIO(path: Path): GmapReferenceSetIO =
     GmapReferenceSetIO(loadGmapReferenceSet(path), path)
 
+  def loadTranscriptSet(path: Path): TranscriptSet =
+    toUnMarshaller(JAXBContext.newInstance(classOf[TranscriptSet]), path)
+      .asInstanceOf[TranscriptSet]
+
+  def loadAndResolveTranscriptSet(path: Path): TranscriptSet =
+    resolveDataSet(loadTranscriptSet(path), path.toAbsolutePath.getParent)
+
+  def loadTranscriptSetIO(path: Path): TranscriptSetIO =
+    TranscriptSetIO(loadTranscriptSet(path), path)
+
   def loadType(dst: DataSetMetaTypes.DataSetMetaType,
                input: Path): DataSetType = {
     dst match {
@@ -229,6 +239,7 @@ object DataSetLoader extends LazyLogging {
       case DataSetMetaTypes.Contig => loadContigSet(input)
       case DataSetMetaTypes.Barcode => loadBarcodeSet(input)
       case DataSetMetaTypes.GmapReference => loadGmapReferenceSet(input)
+      case DataSetMetaTypes.Transcript => loadTranscriptSet(input)
     }
   }
 }
@@ -280,6 +291,10 @@ object ImplicitDataSetLoader {
     def load(path: Path) = loadGmapReferenceSet(path)
   }
 
+  implicit object TranscriptSetLoader extends DataSetLoader[TranscriptSet] {
+    def load(path: Path) = loadTranscriptSet(path)
+  }
+
   def loader[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
     lx.load(path)
 
@@ -302,6 +317,8 @@ object ImplicitDataSetLoader {
       case DataSetMetaTypes.Barcode => loaderAndResolve[BarcodeSet](input)
       case DataSetMetaTypes.GmapReference =>
         loaderAndResolve[GmapReferenceSet](input)
+      case DataSetMetaTypes.Transcript =>
+        loaderAndResolve[TranscriptSet](input)
     }
   }
 

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pbds:TranscriptSet
+        xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd"
+        xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        Tags="barcode,moreTags,mapping,mytags"
+        UniqueId="780ffb66-ccab-40f5-9295-19c1eadb0f77"
+        TimeStampedName="transcriptset_180301_100000"
+        MetaType="PacBio.DataSet.TranscriptSet"
+        Name="Example transcript set"
+        Version="3.0.1"
+        CreatedAt="2018-03-01T10:00:00">
+    <pbbase:ExternalResources>
+        <pbbase:ExternalResource
+                Name="First Transcripts BAM"
+                Description="Points to an example Transcripts BAM file."
+                UniqueId="54c0f761-fed4-43f4-aaa3-63bd76c2fe28"
+                TimeStampedName="transcriptt_bam_180301_100000"
+                MetaType="PacBio.TranscriptFile.TranscriptBamFile"
+                ResourceId="file:///mnt/path/to/transcripts0.bam" Tags="Example">
+            <pbbase:FileIndices>
+                <pbbase:FileIndex
+                        UniqueId="6e0066c3-5a02-4a3f-a659-82186270974c"
+                        TimeStampedName="bam_index_180301_100000"
+                        MetaType="PacBio.Index.PacBioIndex"
+                        ResourceId="file:///mnt/path/to/transcripts0.pbi"/>
+            </pbbase:FileIndices>
+        </pbbase:ExternalResource>
+    </pbbase:ExternalResources>
+    <pbds:DataSetMetadata>
+        <pbds:TotalLength>50000</pbds:TotalLength>
+        <pbds:NumRecords>5000</pbds:NumRecords>
+    </pbds:DataSetMetadata>
+</pbds:TranscriptSet>

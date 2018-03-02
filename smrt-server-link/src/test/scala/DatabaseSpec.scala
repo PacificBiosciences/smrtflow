@@ -161,6 +161,7 @@ class DatabaseSpec
       val barcode = BarcodeServiceSet(id = -1, UUID.randomUUID())
       val ccs = ConsensusReadServiceSet(id = -1, UUID.randomUUID())
       val consensus = ConsensusAlignmentServiceSet(id = -1, UUID.randomUUID())
+      val transcript = TranscriptServiceSet(id = -1, UUID.randomUUID())
       val contig = ContigServiceSet(id = -1, UUID.randomUUID())
       val datastoreFile = DataStoreServiceFile(
         UUID.randomUUID(),
@@ -249,6 +250,7 @@ class DatabaseSpec
           _ <- dataModels += runDataModel
           _ <- collectionMetadata += collection
           _ <- samples += sample
+          _ <- dsTranscript2 += transcript
         } yield ()
       )
 
@@ -312,6 +314,10 @@ class DatabaseSpec
       val co = Await.result(
         testdb.run(dsContig2.filter(_.uuid === contig.uuid).result.head),
         1.second)
+      val to = Await.result(
+        testdb.run(
+          dsTranscript2.filter(_.uuid === transcript.uuid).result.head),
+        1.second)
       val df = Await.result(
         testdb.run(
           datastoreServiceFiles.filter(_.jobId === ej.id).result.head),
@@ -346,6 +352,7 @@ class DatabaseSpec
       val ccsId = cc.id
       val consensusId = ca.id
       val contigId = co.id
+      val transcriptId = to.id
 
       ej === job.copy(id = jobId, projectId = projectId)
       je === event.copy(jobId = jobId)
@@ -370,6 +377,7 @@ class DatabaseSpec
       dm === runDataModel
       cm === collection
       sa === sample
+      to === transcript.copy(id=transcriptId)
     }
 
     "Match TableModels" in {

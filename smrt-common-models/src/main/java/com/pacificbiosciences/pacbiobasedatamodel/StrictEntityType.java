@@ -54,15 +54,15 @@ import com.pacificbiosciences.pacbiorightsandroles.UserIdentityType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "StrictEntityType")
 @XmlSeeAlso({
+    RunType.class,
+    SubsetType.class,
     UserIdentityType.class,
     AuditableEventType.class,
-    SubsetType.class,
-    RunType.class,
-    DataSetType.class,
     AccessRightType.class,
     RoleType.class,
-    InputOutputDataType.class,
-    CollectionMetadata.class
+    CollectionMetadata.class,
+    DataSetType.class,
+    InputOutputDataType.class
 })
 public class StrictEntityType
     extends BaseEntityType

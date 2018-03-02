@@ -40,9 +40,9 @@ public class ObjectFactory {
     private final static QName _KeyValueMap_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "KeyValueMap");
     private final static QName _DataEntity_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataEntity");
     private final static QName _ExtensionElement_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "ExtensionElement");
+    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
     private final static QName _DefaultsTypeFilters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "Filters");
     private final static QName _DefaultsTypeAutomationParameters_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "AutomationParameters");
-    private final static QName _DataPointersDataPointer_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "DataPointer");
     private final static QName _SupplyKitControlCustomSequence_QNAME = new QName("http://pacificbiosciences.com/PacBioBaseDataModel.xsd", "CustomSequence");
 
     /**
@@ -98,6 +98,14 @@ public class ObjectFactory {
      */
     public SequencingChemistry.DyeSet createSequencingChemistryDyeSet() {
         return new SequencingChemistry.DyeSet();
+    }
+
+    /**
+     * Create an instance of {@link AutomationType }
+     * 
+     */
+    public AutomationType createAutomationType() {
+        return new AutomationType();
     }
 
     /**
@@ -181,19 +189,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link AutomationType }
+     * Create an instance of {@link DyeSetAnalog }
      * 
      */
-    public AutomationType createAutomationType() {
-        return new AutomationType();
-    }
-
-    /**
-     * Create an instance of {@link StrictEntityType }
-     * 
-     */
-    public StrictEntityType createStrictEntityType() {
-        return new StrictEntityType();
+    public DyeSetAnalog createDyeSetAnalog() {
+        return new DyeSetAnalog();
     }
 
     /**
@@ -205,6 +205,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link ExternalResource }
+     * 
+     */
+    public ExternalResource createExternalResource() {
+        return new ExternalResource();
+    }
+
+    /**
      * Create an instance of {@link InputOutputDataType }
      * 
      */
@@ -213,59 +221,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link SupplyKitCellPack }
+     * Create an instance of {@link StrictEntityType }
      * 
      */
-    public SupplyKitCellPack createSupplyKitCellPack() {
-        return new SupplyKitCellPack();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitControl }
-     * 
-     */
-    public SupplyKitControl createSupplyKitControl() {
-        return new SupplyKitControl();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitTemplate }
-     * 
-     */
-    public SupplyKitTemplate createSupplyKitTemplate() {
-        return new SupplyKitTemplate();
-    }
-
-    /**
-     * Create an instance of {@link SupplyKitBinding }
-     * 
-     */
-    public SupplyKitBinding createSupplyKitBinding() {
-        return new SupplyKitBinding();
-    }
-
-    /**
-     * Create an instance of {@link UserDefinedFieldsType }
-     * 
-     */
-    public UserDefinedFieldsType createUserDefinedFieldsType() {
-        return new UserDefinedFieldsType();
-    }
-
-    /**
-     * Create an instance of {@link DyeSetAnalog }
-     * 
-     */
-    public DyeSetAnalog createDyeSetAnalog() {
-        return new DyeSetAnalog();
-    }
-
-    /**
-     * Create an instance of {@link ExternalResource }
-     * 
-     */
-    public ExternalResource createExternalResource() {
-        return new ExternalResource();
+    public StrictEntityType createStrictEntityType() {
+        return new StrictEntityType();
     }
 
     /**
@@ -317,6 +277,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link SupplyKitCellPack }
+     * 
+     */
+    public SupplyKitCellPack createSupplyKitCellPack() {
+        return new SupplyKitCellPack();
+    }
+
+    /**
      * Create an instance of {@link MapType }
      * 
      */
@@ -333,11 +301,43 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link SupplyKitControl }
+     * 
+     */
+    public SupplyKitControl createSupplyKitControl() {
+        return new SupplyKitControl();
+    }
+
+    /**
      * Create an instance of {@link DNABarcode }
      * 
      */
     public DNABarcode createDNABarcode() {
         return new DNABarcode();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitTemplate }
+     * 
+     */
+    public SupplyKitTemplate createSupplyKitTemplate() {
+        return new SupplyKitTemplate();
+    }
+
+    /**
+     * Create an instance of {@link UserDefinedFieldsType }
+     * 
+     */
+    public UserDefinedFieldsType createUserDefinedFieldsType() {
+        return new UserDefinedFieldsType();
+    }
+
+    /**
+     * Create an instance of {@link SupplyKitBinding }
+     * 
+     */
+    public SupplyKitBinding createSupplyKitBinding() {
+        return new SupplyKitBinding();
     }
 
     /**
@@ -378,6 +378,14 @@ public class ObjectFactory {
      */
     public SequencingChemistry.DyeSet.Analogs createSequencingChemistryDyeSetAnalogs() {
         return new SequencingChemistry.DyeSet.Analogs();
+    }
+
+    /**
+     * Create an instance of {@link AutomationType.AutomationParameters }
+     * 
+     */
+    public AutomationType.AutomationParameters createAutomationTypeAutomationParameters() {
+        return new AutomationType.AutomationParameters();
     }
 
     /**
@@ -477,14 +485,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link AutomationType.AutomationParameters }
-     * 
-     */
-    public AutomationType.AutomationParameters createAutomationTypeAutomationParameters() {
-        return new AutomationType.AutomationParameters();
-    }
-
-    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link KeyValueMap }{@code >}}
      * 
      */
@@ -557,6 +557,16 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
+    @XmlIDREF
+    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
+        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
+    }
+
+    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link DefaultsType.Filters }{@code >}}
      * 
      */
@@ -572,16 +582,6 @@ public class ObjectFactory {
     @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "AutomationParameters", scope = DefaultsType.class)
     public JAXBElement<DefaultsType.AutomationParameters> createDefaultsTypeAutomationParameters(DefaultsType.AutomationParameters value) {
         return new JAXBElement<DefaultsType.AutomationParameters>(_DefaultsTypeAutomationParameters_QNAME, DefaultsType.AutomationParameters.class, DefaultsType.class, value);
-    }
-
-    /**
-     * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
-     * 
-     */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioBaseDataModel.xsd", name = "DataPointer", scope = DataPointers.class)
-    @XmlIDREF
-    public JAXBElement<Object> createDataPointersDataPointer(Object value) {
-        return new JAXBElement<Object>(_DataPointersDataPointer_QNAME, Object.class, DataPointers.class, value);
     }
 
     /**

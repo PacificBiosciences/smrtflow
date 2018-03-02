@@ -144,6 +144,10 @@ object FileTypes {
                                           "file",
                                           "gmapreferenceset.xml",
                                           MimeTypes.XML)
+  final val DS_TRANSCRIPT = DataSetBaseType(toDS("TranscriptSet"),
+                                            "file",
+                                            "transcriptset.xml",
+                                            MimeTypes.XML)
 
   // 'File' types
   //# PacBio Defined Formats
@@ -180,6 +184,11 @@ object FileTypes {
     "PacBio.AlignmentFile.ConsensusAlignmentBamFile",
     "file",
     "ccs_align.bam",
+    MimeTypes.BINARY)
+  final val BAM_TRANSCRIPT = FileBaseType(
+    "PacBio.TranscriptFile.TranscriptBamFile",
+    "file",
+    "transcripts.bam",
     MimeTypes.BINARY)
 
   // FIXME. Add Bax/Bam Formats here. This should replace the exiting pre-SA3 formats.

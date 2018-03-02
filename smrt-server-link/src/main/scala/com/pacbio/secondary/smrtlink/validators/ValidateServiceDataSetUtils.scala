@@ -118,6 +118,7 @@ trait ValidateServiceDataSetUtils extends DataSetFileUtils {
       case DataSetMetaTypes.Contig => dao.getContigDataSetById(id)
       case DataSetMetaTypes.GmapReference =>
         dao.getGmapReferenceDataSetById(id)
+      case DataSetMetaTypes.Transcript => dao.getTranscriptDataSetById(id)
     }
 
     f1.recoverWith {

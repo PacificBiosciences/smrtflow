@@ -207,6 +207,13 @@ class DataSetServiceSpec
         //dst.id must be_==("pacbio.datasets.subread")
       }
     }
+    "Secondary analysis TranscriptSet resources" in {
+      Get(s"/$ROOT_SA_PREFIX/datasets/transcripts") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        //val dst = responseAs[DataSetType]
+        //dst.id must be_==("pacbio.datasets.subread")
+      }
+    }
     // TODO(smcclellan): Turn test case on once dataset ids use autoinc (see TODOs in JobsDao)
 //    "Secondary analysis Hdf Subread DataSet resources" in {
 //      Get(s"/$ROOT_SERVICE_PREFIX/datasets/hdfsubreads/1/details") ~> totalRoutes ~> check {

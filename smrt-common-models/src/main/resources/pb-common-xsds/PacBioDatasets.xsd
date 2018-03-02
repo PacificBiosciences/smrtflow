@@ -45,6 +45,16 @@
 			</xs:complexContent>
 		</xs:complexType>
 	</xs:element>
+	<xs:element name="TranscriptSet">
+		<xs:annotation>
+			<xs:documentation>DataSet for processed Iso-Seq transcripts.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="TranscriptSetType"/>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
 	<xs:element name="Contigs">
 		<xs:annotation>
 			<xs:documentation>List of contigs in a ContigSet</xs:documentation>
@@ -143,6 +153,23 @@
 					<xs:element name="DataSetMetadata" type="AlignmentSetMetadataType" minOccurs="0"/>
 				</xs:sequence>
 			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="TranscriptSetType">
+		<xs:annotation>
+			<xs:documentation>Type for DataSets containing processed RNA transcripts</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="DataSetType">
+				<xs:sequence>
+					<xs:element name="DataSetMetadata" type="TranscriptSetMetadataType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="TranscriptSetMetadataType">
+		<xs:complexContent>
+			<xs:extension base="DataSetMetadataType"/>
 		</xs:complexContent>
 	</xs:complexType>
 	<xs:complexType name="BarcodeSetMetadataType">
