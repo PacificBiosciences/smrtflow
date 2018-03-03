@@ -6,9 +6,7 @@ import java.util.UUID
 
 import scala.util.Try
 import scala.collection.JavaConverters._
-
 import org.joda.time.{DateTime => JodaDateTime}
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetadataUtils
 
@@ -55,35 +53,84 @@ object Converters extends DataSetMetadataUtils {
       }
     }
 
-  private def getTotalLength(dataset: ReadSetType): Long =
-    Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+  /**
+    * First try to extract the created at time
+    * from the XML, if that doesn't work or is
+    * malformed, then use the last modified
+    * timestamp of the file.
+    *
+    */
+  private def getCreatedAt[T <: DataSetType](
+      ds: T,
+      path: Path): Option[JodaDateTime] = {
+    Try {
+      // These APIs are terrible to work with.
+      // This might not be the recommended way to do this.
+      val xs = ds.getCreatedAt
+      val c = xs.toGregorianCalendar
+      new JodaDateTime(c.getTimeInMillis)
+    }.recover {
+      case _ =>
+        // I'm not sure this is the best method
+        new JodaDateTime(path.toFile.lastModified())
+    }
+  }.toOption
 
-  private def getNumRecords(dataset: ReadSetType): Int =
-    Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
+  private case class M(uuid: UUID,
+                       name: String,
+                       createdAt: JodaDateTime,
+                       modifiedAt: JodaDateTime,
+                       dsVersion: String,
+                       tags: String,
+                       md5: String,
+                       comments: String)
+
+  private def convertMetadata[T <: DataSetType](
+      ds: T,
+      defaultName: String = UNKNOWN,
+      defaultTags: String = "",
+      defaultComment: String = "",
+      defaultCreatedAt: Option[JodaDateTime] = None): M = {
+
+    val now = JodaDateTime.now()
+    // The timestamp model still needs to be clarified
+    //FIXME(mpkocher) This should be added to the model
+    val importedAt = now
+    val createdAt = defaultCreatedAt.getOrElse(now)
+    val modifiedAt = createdAt
+
+    val uuid = UUID.fromString(ds.getUniqueId)
+    val name = Option(ds.getName).getOrElse(defaultName)
+    val dsVersion = Option(ds.getVersion).getOrElse(DEFAULT_VERSION)
+    val tags = Option(ds.getTags).getOrElse(defaultTags)
+
+    val comment = Option(ds.getDescription).getOrElse(defaultComment)
+
+    M(uuid,
+      name,
+      createdAt,
+      modifiedAt,
+      dsVersion,
+      tags,
+      toMd5(uuid.toString),
+      comment)
+  }
+
+  def getNumRecordsTotalLength[T <: DataSetMetadataType](m: T): (Int, Long) = {
+    val numRecords: Int = Try { m.getNumRecords } getOrElse 0
+    val totalLength = Try { m.getTotalLength } getOrElse 0L
+    (numRecords, totalLength)
+  }
 
   def convertSubreadSet(dataset: SubreadSet,
                         path: Path,
                         createdBy: Option[String],
                         jobId: Int,
                         projectId: Int): SubreadServiceDataSet = {
-    // this is not correct, but the timestamps are often written correctly
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-
-    val dsUUID = UUID.fromString(dataset.getUniqueId)
-    val md5 = toMd5(dataset.getUniqueId)
 
     // XXX this is only the first collection!  we do not always want to use
     // the values we extract from it as representative of the entire dataset
     val metadata = getCollectionsMetadata(dataset).headOption
-
-    //MK. I'm annoyed with all this null-mania datamodel nonsense. Wrapping every fucking thing in a Try Option
-    // there's a more clever way to do this but I don't care.
-    val name = Try { Option(dataset.getName).getOrElse(UNKNOWN) } getOrElse UNKNOWN
-    val dsVersion = Try {
-      Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    } getOrElse DEFAULT_VERSION
-    val tags = Try { Option(dataset.getTags).getOrElse(DEFAULT_TAGS) } getOrElse DEFAULT_TAGS
 
     // This might not be correct. Should the description come from the Collection Metadata
     val comments = Try {
@@ -136,23 +183,28 @@ object Converters extends DataSetMetadataUtils {
         .getOrElse(DEFAULT_CELL_ID)
     }.getOrElse(DEFAULT_CELL_ID)
 
-    val numRecords = getNumRecords(dataset)
-    val totalLength = getTotalLength(dataset)
     val parentUuid = getParentDataSetId(dataset)
+
+    val m = convertMetadata(dataset,
+                            defaultTags = "converted",
+                            defaultComment = comments,
+                            defaultCreatedAt = getCreatedAt(dataset, path))
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
 
     SubreadServiceDataSet(
       -99,
-      dsUUID,
-      name,
+      m.uuid,
+      m.name,
       path.toAbsolutePath.toString,
-      createdAt,
-      modifiedAt,
+      m.createdAt,
+      m.modifiedAt,
       numRecords,
       totalLength,
-      dsVersion,
-      comments,
-      tags,
-      md5,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
       instrumentName,
       instrumentControlVersion,
       contextId,
@@ -175,18 +227,11 @@ object Converters extends DataSetMetadataUtils {
                            createdBy: Option[String],
                            jobId: Int,
                            projectId: Int): HdfSubreadServiceDataSet = {
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
 
-    // Because of the how the schemas are defined, everything is wrapped in Try to default to a value if there's a
-    // problem parsing an element or attribute
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = Try { dataset.getTags } getOrElse "converted"
     val wellSampleName = Try {
       dataset.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head.getWellSample.getName
     } getOrElse UNKNOWN
+
     val comments = Try {
       dataset.getDataSetMetadata.getBioSamples.getBioSample.asScala.head.getDescription
     } getOrElse " "
@@ -210,22 +255,26 @@ object Converters extends DataSetMetadataUtils {
 
     val bioSampleName = getNameOrDefault(getBioSampleNames(dataset))
 
-    val numRecords = getNumRecords(dataset)
-    val totalLength = getTotalLength(dataset)
+    val m = convertMetadata(dataset,
+                            defaultTags = "converted",
+                            defaultComment = comments,
+                            defaultCreatedAt = getCreatedAt(dataset, path))
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
 
     HdfSubreadServiceDataSet(
       -99,
-      UUID.fromString(dataset.getUniqueId),
-      name,
+      m.uuid,
+      m.name,
       path.toAbsolutePath.toString,
-      createdAt,
-      modifiedAt,
+      m.createdAt,
+      m.modifiedAt,
       numRecords,
       totalLength,
-      dsVersion,
-      comments,
-      dataset.getTags,
-      toMd5(dataset.getUniqueId),
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
       instrumentName,
       contextId,
       wellSampleName,
@@ -244,32 +293,26 @@ object Converters extends DataSetMetadataUtils {
                        createdBy: Option[String],
                        jobId: Int,
                        projectId: Int): ContigServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "contig dataset comments"
 
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    //val tags = dataset.getTags
-    val tags = ""
-
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val m =
+      convertMetadata(dataset,
+                      defaultComment = "contig dataset comments",
+                      defaultCreatedAt = getCreatedAt(dataset, path))
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
 
     ContigServiceDataSet(-99,
-                         uuid,
-                         name,
+                         m.uuid,
+                         m.name,
                          path.toFile.toString,
-                         createdAt,
-                         modifiedAt,
+                         m.createdAt,
+                         m.modifiedAt,
                          numRecords,
                          totalLength,
-                         dsVersion,
-                         comments,
-                         tags,
-                         toMd5(uuid.toString),
+                         m.dsVersion,
+                         m.comments,
+                         m.tags,
+                         m.md5,
                          createdBy,
                          jobId,
                          projectId)
@@ -280,33 +323,26 @@ object Converters extends DataSetMetadataUtils {
                           createdBy: Option[String],
                           jobId: Int,
                           projectId: Int): ReferenceServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "reference dataset comments"
-
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    //val tags = dataset.getTags
-    val tags = ""
-
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val m =
+      convertMetadata(dataset,
+                      defaultComment = "reference dataset comments",
+                      defaultCreatedAt = getCreatedAt(dataset, path))
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
 
     ReferenceServiceDataSet(
       -99,
-      uuid,
-      name,
+      m.uuid,
+      m.name,
       path.toFile.toString,
-      createdAt,
-      modifiedAt,
+      m.createdAt,
+      m.modifiedAt,
       numRecords,
       totalLength,
-      dsVersion,
-      comments,
-      tags,
-      toMd5(uuid.toString),
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
       createdBy,
       jobId,
       projectId,
@@ -321,33 +357,27 @@ object Converters extends DataSetMetadataUtils {
                               createdBy: Option[String],
                               jobId: Int,
                               projectId: Int): GmapReferenceServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "reference dataset comments"
 
-    //val tags = dataset.getTags
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = ""
-
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
+    val m = convertMetadata[GmapReferenceSet](
+      dataset,
+      defaultComment = "reference dataset comments",
+      defaultCreatedAt = getCreatedAt(dataset, path))
 
     GmapReferenceServiceDataSet(
       -99,
-      uuid,
-      name,
+      m.uuid,
+      m.name,
       path.toFile.toString,
-      createdAt,
-      modifiedAt,
+      m.createdAt,
+      m.modifiedAt,
       numRecords,
       totalLength,
-      dsVersion,
-      comments,
-      tags,
-      toMd5(uuid.toString),
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
       createdBy,
       jobId,
       projectId,
@@ -361,31 +391,25 @@ object Converters extends DataSetMetadataUtils {
                           createdBy: Option[String],
                           jobId: Int,
                           projectId: Int): AlignmentServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "alignment dataset converted"
 
-    //val tags = dataset.getTags
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = ""
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
+    val m = convertMetadata[AlignmentSet](dataset,
+                                          defaultComment =
+                                            "alignment dataset converted")
 
     AlignmentServiceDataSet(-99,
-                            uuid,
-                            name,
+                            m.uuid,
+                            m.name,
                             path.toFile.toString,
-                            createdAt,
-                            modifiedAt,
+                            m.createdAt,
+                            m.modifiedAt,
                             numRecords,
                             totalLength,
-                            dsVersion,
-                            comments,
-                            tags,
-                            toMd5(uuid.toString),
+                            m.dsVersion,
+                            m.comments,
+                            m.tags,
+                            m.md5,
                             createdBy,
                             jobId,
                             projectId)
@@ -396,31 +420,23 @@ object Converters extends DataSetMetadataUtils {
                               createdBy: Option[String],
                               jobId: Int,
                               projectId: Int): ConsensusReadServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "ccs dataset converted"
-
-    //val tags = dataset.getTags
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = ""
-    val numRecords = getNumRecords(dataset)
-    val totalLength = getTotalLength(dataset)
-
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
+    val m = convertMetadata(dataset,
+                            defaultComment = "ccs dataset converted",
+                            defaultCreatedAt = getCreatedAt(dataset, path))
     ConsensusReadServiceDataSet(-99,
-                                uuid,
-                                name,
+                                m.uuid,
+                                m.name,
                                 path.toFile.toString,
-                                createdAt,
-                                modifiedAt,
+                                m.createdAt,
+                                m.modifiedAt,
                                 numRecords,
                                 totalLength,
-                                dsVersion,
-                                comments,
-                                tags,
-                                toMd5(uuid.toString),
+                                m.dsVersion,
+                                m.comments,
+                                m.tags,
+                                m.md5,
                                 createdBy,
                                 jobId,
                                 projectId)
@@ -433,31 +449,25 @@ object Converters extends DataSetMetadataUtils {
       createdBy: Option[String],
       jobId: Int,
       projectId: Int): ConsensusAlignmentServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "ccs alignment dataset converted"
 
-    //val tags = dataset.getTags
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = ""
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
+    val m = convertMetadata(dataset,
+                            defaultComment = "ccs alignment dataset converted",
+                            defaultCreatedAt = getCreatedAt(dataset, path))
 
     ConsensusAlignmentServiceDataSet(-99,
-                                     uuid,
-                                     name,
+                                     m.uuid,
+                                     m.name,
                                      path.toFile.toString,
-                                     createdAt,
-                                     modifiedAt,
+                                     m.createdAt,
+                                     m.modifiedAt,
                                      numRecords,
                                      totalLength,
-                                     dsVersion,
-                                     comments,
-                                     tags,
-                                     toMd5(uuid.toString),
+                                     m.dsVersion,
+                                     m.comments,
+                                     m.tags,
+                                     m.md5,
                                      createdBy,
                                      jobId,
                                      projectId)
@@ -468,31 +478,26 @@ object Converters extends DataSetMetadataUtils {
                            createdBy: Option[String],
                            jobId: Int,
                            projectId: Int): TranscriptServiceDataSet = {
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
-    val comments = "transcript dataset converted"
 
-    //val tags = dataset.getTags
-    val name = Option(dataset.getName).getOrElse(UNKNOWN)
-    val dsVersion = Option(dataset.getVersion).getOrElse(DEFAULT_VERSION)
-    val tags = ""
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
+    val m =
+      convertMetadata(dataset,
+                      defaultComment = "transcript dataset converted",
+                      defaultCreatedAt = getCreatedAt(dataset, path))
 
     TranscriptServiceDataSet(-99,
-                             uuid,
-                             name,
+                             m.uuid,
+                             m.name,
                              path.toFile.toString,
-                             createdAt,
-                             modifiedAt,
+                             m.createdAt,
+                             m.modifiedAt,
                              numRecords,
                              totalLength,
-                             dsVersion,
-                             comments,
-                             tags,
-                             toMd5(uuid.toString),
+                             m.dsVersion,
+                             m.comments,
+                             m.tags,
+                             m.md5,
                              createdBy,
                              jobId,
                              projectId)
@@ -504,37 +509,32 @@ object Converters extends DataSetMetadataUtils {
                         jobId: Int,
                         projectId: Int): BarcodeServiceDataSet = {
 
-    val uuid = UUID.fromString(dataset.getUniqueId)
-    // this is not correct
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
     // There is no description at the root level. There's a description in the ExternalResource
     // MK. It's not clear to me what's going on here. If it's null, Barcode null imported is on several datasets
     val barcodeConstruction =
       Option(dataset.getDataSetMetadata.getBarcodeConstruction).getOrElse("")
-    val comments = s"Barcode $barcodeConstruction imported"
 
-    val tags = Try { Some(dataset.getTags).getOrElse("") }.getOrElse("")
-    val numRecords = Try { dataset.getDataSetMetadata.getNumRecords } getOrElse 0
-    val totalLength = Try { dataset.getDataSetMetadata.getTotalLength } getOrElse 0L
+    val (numRecords, totalLength) = getNumRecordsTotalLength(
+      dataset.getDataSetMetadata)
 
-    val name = Option(dataset.getName).getOrElse("BarcodeSet")
-    val version = Option(dataset.getVersion).getOrElse("Unknown")
-    val md5 = toMd5(uuid.toString)
-
+    val m = convertMetadata(dataset,
+                            "BarcodeSet",
+                            defaultComment =
+                              s"Barcode $barcodeConstruction imported",
+                            defaultCreatedAt = getCreatedAt(dataset, path))
     // The BC construction should be stored here, but that would require a schema change. Putting it in the comments for now
     BarcodeServiceDataSet(-1,
-                          uuid,
-                          name,
-                          path.toAbsolutePath.toString,
-                          createdAt,
-                          modifiedAt,
+                          m.uuid,
+                          m.name,
+                          path.toFile.toString,
+                          m.createdAt,
+                          m.modifiedAt,
                           numRecords,
                           totalLength,
-                          version,
-                          comments,
-                          tags,
-                          md5,
+                          m.dsVersion,
+                          m.comments,
+                          m.tags,
+                          m.md5,
                           createdBy,
                           jobId,
                           projectId)

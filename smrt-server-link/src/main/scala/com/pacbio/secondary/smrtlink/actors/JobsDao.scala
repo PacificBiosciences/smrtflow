@@ -1178,15 +1178,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def insertMetaData(ds: ServiceDataSetMetadata)
     : DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
-    val createdAt = JodaDateTime.now()
-    val modifiedAt = createdAt
+
     dsMetaData2 returning dsMetaData2.map(_.id) += DataSetMetaDataSet(
       -999,
       ds.uuid,
       ds.name,
       ds.path,
-      createdAt,
-      modifiedAt,
+      ds.createdAt,
+      ds.createdAt,
       ds.numRecords,
       ds.totalLength,
       ds.tags,
@@ -1221,7 +1220,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                         dsj.file.jobId,
                         dsj.projectId)
     logger.debug(
-      s"Converted DataSet id:${sds.id} uuid:${sds.uuid} jobId:${sds.jobId} projectId:${sds.projectId}")
+      s"Converted DataSet id:${sds.id} uuid:${sds.uuid} jobId:${sds.jobId} projectId:${sds.projectId} createdAt:${sds.createdAt}")
 
     g(dsj, sds)
   }
