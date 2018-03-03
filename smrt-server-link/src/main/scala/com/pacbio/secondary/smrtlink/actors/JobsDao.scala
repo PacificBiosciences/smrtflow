@@ -1185,7 +1185,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       ds.name,
       ds.path,
       ds.createdAt,
-      ds.createdAt,
+      ds.updatedAt,
       ds.numRecords,
       ds.totalLength,
       ds.tags,
