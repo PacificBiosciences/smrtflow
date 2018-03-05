@@ -817,6 +817,11 @@ case class TranscriptServiceDataSet(
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 
+case class DataSetSearchCriteria(projectIds: Set[Int],
+                                 showAll: Boolean = true,
+                                 isActive: Option[Boolean] = Some(true),
+                                 limit: Int = 1000)
+
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
 case class DataSetMergeServiceOptions(datasetType: String,

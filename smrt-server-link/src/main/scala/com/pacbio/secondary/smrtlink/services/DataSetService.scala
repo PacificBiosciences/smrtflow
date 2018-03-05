@@ -130,10 +130,8 @@ class DataSetService(dao: JobsDao)
 
   // SubreadSet
   def getSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
-    dao.getSubreadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] =
+    dao.getSubreadDataSets(c)
   def getSubreadSetById(i: IdAble): Future[SubreadServiceDataSet] =
     dao.getSubreadDataSetById(i)
   def getSubreadSetDetailsById(i: IdAble): Future[String] =
@@ -141,10 +139,8 @@ class DataSetService(dao: JobsDao)
 
   // HdfSubreadSet
   def getHdfSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
-    dao.getHdfDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[HdfSubreadServiceDataSet]] =
+    dao.getHdfDataSets(c)
   def getHdfSubreadById(i: IdAble): Future[HdfSubreadServiceDataSet] =
     dao.getHdfDataSetById(i)
   def getHdfSubreadDetailsById(i: IdAble): Future[String] =
@@ -152,10 +148,8 @@ class DataSetService(dao: JobsDao)
 
   // AlignmentSets
   def getAlignmentSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
-    dao.getAlignmentDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[AlignmentServiceDataSet]] =
+    dao.getAlignmentDataSets(c)
   def getAlignmentSetById(i: IdAble): Future[AlignmentServiceDataSet] =
     dao.getAlignmentDataSetById(i)
   def getAlignmentSetDetails(i: IdAble): Future[String] =
@@ -163,10 +157,8 @@ class DataSetService(dao: JobsDao)
 
   // ReferenceSets
   def getReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
-    dao.getReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ReferenceServiceDataSet]] =
+    dao.getReferenceDataSets(c)
   def getReferenceSetById(i: IdAble): Future[ReferenceServiceDataSet] =
     dao.getReferenceDataSetById(i)
   def getReferenceSetDetails(i: IdAble): Future[String] =
@@ -174,10 +166,8 @@ class DataSetService(dao: JobsDao)
 
   // GmapReferenceSet
   def getGmapReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
-    dao.getGmapReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[GmapReferenceServiceDataSet]] =
+    dao.getGmapReferenceDataSets(c)
   def getGmapReferenceSetById(i: IdAble): Future[GmapReferenceServiceDataSet] =
     dao.getGmapReferenceDataSetById(i)
   def getGmapReferenceSetDetails(i: IdAble): Future[String] =
@@ -185,10 +175,8 @@ class DataSetService(dao: JobsDao)
 
   /// BarcodeSet
   def getBarcodeSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
-    dao.getBarcodeDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[BarcodeServiceDataSet]] =
+    dao.getBarcodeDataSets(c)
   def getBarcodeSetById(i: IdAble): Future[BarcodeServiceDataSet] =
     dao.getBarcodeDataSetById(i)
   def getBarcodeSetDetails(i: IdAble): Future[String] =
@@ -196,21 +184,17 @@ class DataSetService(dao: JobsDao)
 
   // Consensus Reads
   def getConsensusReadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
-    dao.getConsensusReadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ConsensusReadServiceDataSet]] =
+    dao.getConsensusReadDataSets(c)
   def getConsensusReadSetById(i: IdAble): Future[ConsensusReadServiceDataSet] =
     dao.getConsensusReadDataSetById(i)
   def getConsensusReadSetDetails(i: IdAble): Future[String] =
     dao.getConsensusReadDataSetDetailsById(i)
 
   // Consensus AlignmentSets
-  def getConsensusAlignmentSet(limit: Int,
-                               includeInactive: Boolean = false,
-                               projectIds: Seq[Int] = Nil)
+  def getConsensusAlignmentSet(c: DataSetSearchCriteria)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    dao.getConsensusAlignmentDataSets(limit, includeInactive, projectIds)
+    dao.getConsensusAlignmentDataSets(c)
   def getConsensusAlignmentSetById(
       i: IdAble): Future[ConsensusAlignmentServiceDataSet] =
     dao.getConsensusAlignmentDataSetById(i)
@@ -219,10 +203,8 @@ class DataSetService(dao: JobsDao)
 
   // ContigSets
   def getContigDataSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
-    dao.getContigDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ContigServiceDataSet]] =
+    dao.getContigDataSets(c)
   def getContigDataSetById(i: IdAble): Future[ContigServiceDataSet] =
     dao.getContigDataSetById(i)
   def getContigDataSetDetails(i: IdAble): Future[String] =
@@ -230,12 +212,12 @@ class DataSetService(dao: JobsDao)
 
   // TranscriptSets
   def getTranscriptSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[TranscriptServiceDataSet]] =
-    dao.getTranscriptDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] =
+    dao.getTranscriptDataSets(c)
+
   def getTranscriptSetById(i: IdAble): Future[TranscriptServiceDataSet] =
     dao.getTranscriptDataSetById(i)
+
   def getTranscriptSetDetails(i: IdAble): Future[String] =
     dao.getTranscriptDataSetDetailsById(i)
 
@@ -276,7 +258,7 @@ class DataSetService(dao: JobsDao)
 
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
+      GetDataSets: (DataSetSearchCriteria) => Future[Seq[R]],
       GetDataSetById: IdAble => Future[R],
       GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
@@ -292,7 +274,8 @@ class DataSetService(dao: JobsDao)
                   complete {
                     getProjectIds(projectId, user)
                       .map { ids =>
-                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
+                        GetDataSets(
+                          DataSetSearchCriteria(ids.toSet, showAll.isDefined))
                       }
                   }
                 }
