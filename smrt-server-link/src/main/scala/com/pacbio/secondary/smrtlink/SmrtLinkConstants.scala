@@ -43,7 +43,6 @@ trait JobServiceConstants {
   // passed to the pbsmrtpipe process to communicate back to the services to log events/updates
   final val LOG_PB_SMRTPIPE_RESOURCE_ID = "pbsmrtpipe"
 
-
 }
 
 trait PacBioDataBundleConstants {

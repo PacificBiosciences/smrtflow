@@ -6,6 +6,11 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
+import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  IntQueryOperator,
+  LongQueryOperator,
+  StringQueryOperator
+}
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
@@ -256,6 +261,70 @@ class DataSetService(dao: JobsDao)
     } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
+  private def parseQueryOperator[T](
+      sx: Option[String],
+      f: (String) => Option[T]): Future[Option[T]] = {
+
+    sx match {
+      case Some(v) =>
+        f(v) match {
+          case Some(op) => Future.successful(Some(op))
+          case _ =>
+            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+        }
+      case _ =>
+        // Nothing was provided
+        Future.successful(None)
+    }
+  }
+
+  // Temporary validation/conversion mechanism
+  def parseDataSetSearchCriteria(
+      projectIds: Set[Int],
+      showAll: Boolean,
+      limit: Int,
+      id: Option[String],
+      name: Option[String],
+      numRecords: Option[String],
+      totalLength: Option[String],
+      version: Option[String],
+      jobId: Option[String],
+      projectId: Option[String]): Future[DataSetSearchCriteria] = {
+
+    val search = DataSetSearchCriteria(projectIds, showAll, limit = limit)
+
+    for {
+      qId <- parseQueryOperator[IntQueryOperator](id,
+                                                  IntQueryOperator.fromString)
+      qName <- parseQueryOperator[StringQueryOperator](
+        name,
+        StringQueryOperator.fromString)
+      qNumRecords <- parseQueryOperator[LongQueryOperator](
+        numRecords,
+        LongQueryOperator.fromString)
+      qTotalLength <- parseQueryOperator[LongQueryOperator](
+        totalLength,
+        LongQueryOperator.fromString)
+      qVersion <- parseQueryOperator[StringQueryOperator](
+        version,
+        StringQueryOperator.fromString)
+      qJobId <- parseQueryOperator[IntQueryOperator](
+        jobId,
+        IntQueryOperator.fromString)
+      qProjectId <- parseQueryOperator[IntQueryOperator](
+        projectId,
+        IntQueryOperator.fromString)
+    } yield
+      search.copy(name = qName,
+                  id = qId,
+                  numRecords = qNumRecords,
+                  totalLength = qTotalLength,
+                  version = qVersion,
+                  jobId = qJobId,
+                  projectId = qProjectId)
+
+  }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
       GetDataSets: (DataSetSearchCriteria) => Future[Seq[R]],
@@ -268,15 +337,42 @@ class DataSetService(dao: JobsDao)
       pathPrefix(shortName) {
         pathEnd {
           get {
-            parameters('showAll.?, 'projectId.as[Int].?) {
-              (showAll, projectId) =>
+            parameters('showAll.?,
+                       'limit.as[Int].?,
+                       'id.?,
+                       'name.?,
+                       'numRecords.?,
+                       'totalLength.?,
+                       'version.?,
+                       'jobId.?,
+                       'projectId.?) {
+              (showAll,
+               limit,
+               id,
+               name,
+               numRecords,
+               totalLength,
+               version,
+               jobId,
+               projectId) =>
                 encodeResponse {
                   complete {
-                    getProjectIds(projectId, user)
-                      .map { ids =>
-                        GetDataSets(
-                          DataSetSearchCriteria(ids.toSet, showAll.isDefined))
-                      }
+                    for {
+                      // workaround for this project id oddness in the API
+                      ids <- getProjectIds(projectId.map(_.toInt), user)
+                      searchCriteria <- parseDataSetSearchCriteria(
+                        ids.toSet,
+                        showAll.isDefined,
+                        limit.getOrElse(DS_LIMIT),
+                        id,
+                        name,
+                        numRecords,
+                        totalLength,
+                        version,
+                        jobId,
+                        projectId)
+                      datasets <- GetDataSets(searchCriteria)
+                    } yield datasets
                   }
                 }
             }

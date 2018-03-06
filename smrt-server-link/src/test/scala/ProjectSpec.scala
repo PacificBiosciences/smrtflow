@@ -443,10 +443,13 @@ class ProjectSpec
       val jobName = "test"
       val jobDescription = "description"
 
+      val search = DataSetSearchCriteria.default.copy(
+        projectIds = Set(GENERAL_PROJECT_ID))
+
       val jobFut = for {
         // getting datasets here because the project dataset list
         // doesn't include the dataset type
-        ds <- dao.getSubreadDataSets(projectIds = List(GENERAL_PROJECT_ID))
+        ds <- dao.getSubreadDataSets(search)
         dsToMove = ds.head
         entryPoint = EngineJobEntryPointRecord(dsToMove.uuid,
                                                dsToMove.datasetType)

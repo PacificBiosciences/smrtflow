@@ -47,6 +47,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacificbiosciences.pacbiodatasets._
 import org.apache.commons.io.FileUtils
 import org.postgresql.util.PSQLException
@@ -1886,18 +1887,112 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
 
   private def qDsMetaDataBySearch(c: DataSetSearchCriteria) = {
-    val includeInactive = true
-
     val q0 = dsMetaData2
-
-    val q1 = if (includeInactive) q0.filter(_.isActive) else q0
-
+    val q1 = if (c.includeInactive) q0.filter(_.isActive) else q0
     val q2 = if (c.projectIds.isEmpty) {
       q1
     } else {
+      // This needs to be fixed/clarified.
       q1.filter(_.projectId inSet c.projectIds)
     }
-    q2
+
+    type Q = Query[DataSetMetaT, DataSetMetaT#TableElementType, Seq]
+
+    def qById(q: Q): Q = {
+      c.id
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.id === value)
+          case IntInQueryOperator(values) => q.filter(_.id inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.id >= value)
+          case IntGtQueryOperator(value) => q.filter(_.id > value)
+          case IntLteQueryOperator(value) => q.filter(_.id <= value)
+          case IntLtQueryOperator(value) => q.filter(_.id < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By Name
+    def qByName(q: Q): Q = {
+      c.name
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringINQueryOperator(values) => q.filter(_.name inSet values)
+        }
+        .getOrElse(q)
+    }
+
+    // By NumRecords
+    def qByNumRecords(q: Q): Q = {
+      c.numRecords
+        .map {
+          case LongEqQueryOperator(value) => q.filter(_.numRecords === value)
+          case LongInQueryOperator(values) =>
+            q.filter(_.numRecords inSet values)
+          case LongGteQueryOperator(value) => q.filter(_.numRecords >= value)
+          case LongGtQueryOperator(value) => q.filter(_.numRecords > value)
+          case LongLteQueryOperator(value) => q.filter(_.numRecords <= value)
+          case LongLtQueryOperator(value) => q.filter(_.numRecords < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By TotalLength
+    def qByTotalength(q: Q): Q = {
+      c.totalLength
+        .map {
+          case LongEqQueryOperator(value) => q.filter(_.totalLength === value)
+          case LongInQueryOperator(values) =>
+            q.filter(_.totalLength inSet values)
+          case LongGteQueryOperator(value) => q.filter(_.totalLength >= value)
+          case LongGtQueryOperator(value) => q.filter(_.totalLength > value)
+          case LongLteQueryOperator(value) => q.filter(_.totalLength <= value)
+          case LongLtQueryOperator(value) => q.filter(_.totalLength < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By Job Id
+    def qByJobId(q: Q): Q = {
+      c.jobId
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.jobId === value)
+          case IntInQueryOperator(values) => q.filter(_.jobId inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.jobId >= value)
+          case IntGtQueryOperator(value) => q.filter(_.jobId > value)
+          case IntLteQueryOperator(value) => q.filter(_.jobId <= value)
+          case IntLtQueryOperator(value) => q.filter(_.jobId < value)
+        }
+        .getOrElse(q)
+    }
+    // By Version
+    def qByVersion(q: Q): Q = {
+      c.version
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.version === value)
+          case StringINQueryOperator(values) =>
+            q.filter(_.version inSet values)
+        }
+        .getOrElse(q)
+    }
+    // By Created By
+    def qByCreatedBy(q: Q): Q = {
+      c.createdBy
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringINQueryOperator(values) =>
+            q.filter(_.createdBy inSet values)
+        }
+        .getOrElse(q)
+    }
+
+    // There has to be a cleaner way to do this.
+    qById(
+      qByName(
+        qByNumRecords(
+          qByTotalength(
+            qByJobId(
+              qByVersion(
+                qByCreatedBy(q2)))))))
   }
 
   def getSubreadDataSets(

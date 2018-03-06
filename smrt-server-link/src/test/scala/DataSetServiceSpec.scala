@@ -22,6 +22,7 @@ import org.specs2.mutable.Specification
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import com.pacbio.secondary.smrtlink.models.QueryOperators.IntQueryOperator
 import spray.json._
 import slick.jdbc.PostgresProfile.api._
 
@@ -79,6 +80,9 @@ class DataSetServiceSpec
   step(runInsertAllMockData(dao))
 
   "DataSetService should list" should {
+    "Successfully parse Query filter" in {
+      IntQueryOperator.fromString("in:1,2,3") must beSome
+    }
     "Secondary analysis DataSets Types resources" in {
       Get(s"/$ROOT_SA_PREFIX/dataset-types") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -93,7 +97,9 @@ class DataSetServiceSpec
     }
     "Sanity DAO insertion test" in {
       val timeout = 10.seconds
-      val datasets = Await.result(dao.getSubreadDataSets(), timeout)
+      val datasets =
+        Await.result(dao.getSubreadDataSets(DataSetSearchCriteria.default),
+                     timeout)
       datasets.length === 2
     }
     "Secondary analysis Get SubreadSet list" in {
