@@ -106,7 +106,16 @@ class DataSetServiceSpec
       Get(s"/$ROOT_SA_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        // subreads.foreach(println)
         subreads.size === 2
+      }
+    }
+    "Secondary analysis Get SubreadSet list by name" in {
+      Get(
+        s"/$ROOT_SA_PREFIX/datasets/subreads?name=DataSet_SubreadSet&id=gte:2") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        subreads.size === 1
       }
     }
     "Secondary analysis SubreadSets by TEST/MOCK PROJECT ID" in {

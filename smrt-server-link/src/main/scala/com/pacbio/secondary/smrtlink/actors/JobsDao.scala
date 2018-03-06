@@ -1988,11 +1988,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     // There has to be a cleaner way to do this.
     qById(
       qByName(
-        qByNumRecords(
-          qByTotalength(
-            qByJobId(
-              qByVersion(
-                qByCreatedBy(q2)))))))
+        qByNumRecords(qByTotalength(qByJobId(qByVersion(qByCreatedBy(q2)))))))
   }
 
   def getSubreadDataSets(
