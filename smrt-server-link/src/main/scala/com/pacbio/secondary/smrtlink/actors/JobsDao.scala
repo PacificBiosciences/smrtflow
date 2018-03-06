@@ -1916,7 +1916,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.name
         .map {
           case StringEqQueryOperator(value) => q.filter(_.name === value)
-          case StringINQueryOperator(values) => q.filter(_.name inSet values)
+          case StringInQueryOperator(values) => q.filter(_.name inSet values)
         }
         .getOrElse(q)
     }
@@ -1969,7 +1969,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.version
         .map {
           case StringEqQueryOperator(value) => q.filter(_.version === value)
-          case StringINQueryOperator(values) =>
+          case StringInQueryOperator(values) =>
             q.filter(_.version inSet values)
         }
         .getOrElse(q)
@@ -1979,7 +1979,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.createdBy
         .map {
           case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
-          case StringINQueryOperator(values) =>
+          case StringInQueryOperator(values) =>
             q.filter(_.createdBy inSet values)
         }
         .getOrElse(q)

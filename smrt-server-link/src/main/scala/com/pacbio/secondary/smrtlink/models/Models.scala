@@ -16,10 +16,6 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
-import com.pacbio.secondary.smrtlink.models.QueryOperators.{
-  NumericQueryOperator,
-  StringQueryOperator
-}
 import spray.json.JsObject
 
 import scala.concurrent.duration._
@@ -833,7 +829,7 @@ case class TranscriptServiceDataSet(
 object QueryOperators {
   sealed trait StringQueryOperator {}
   case class StringEqQueryOperator(value: String) extends StringQueryOperator
-  case class StringINQueryOperator(value: Set[String])
+  case class StringInQueryOperator(value: Set[String])
       extends StringQueryOperator
 
   object StringQueryOperator {
@@ -848,7 +844,7 @@ object QueryOperators {
     def fromString(value: String): Option[StringQueryOperator] = {
       value.split(":", 2).toList match {
         case "in" :: tail :: Nil =>
-          Some(StringINQueryOperator(tail.split(",").toSet))
+          Some(StringInQueryOperator(tail.split(",").toSet))
         case head :: Nil => Some(StringEqQueryOperator(head))
         case _ =>
           // Invalid or unsupported String Query Operator
@@ -927,7 +923,7 @@ case class DataSetSearchCriteria(
     numRecords: Option[QueryOperators.LongQueryOperator] = None,
     totalLength: Option[QueryOperators.LongQueryOperator] = None,
     version: Option[QueryOperators.StringQueryOperator] = None,
-    createdBy: Option[StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
     projectId: Option[QueryOperators.IntQueryOperator] = None) {
   def includeInactive: Boolean = !isActive.getOrElse(true)
