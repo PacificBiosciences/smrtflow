@@ -828,23 +828,54 @@ case class TranscriptServiceDataSet(
   */
 object QueryOperators {
 
+  // This is a bit of a grab bag of utils
   trait QueryOperatorConverter[T] {
-    def convert(sx: String): T
-    def convertToSet(sx: String): Set[T] = sx.split(",").map(convert).toSet
 
-    def toValue(sx: String): Option[T] = Try(convert(sx)).toOption
-    def toSetValue(sx: String): Option[Set[T]] = Try(convertToSet(sx)).toOption
+    /**
+      * Convert the raw string to the specific type of Query Operator
+      */
+    def convertFromString(sx: String): T
+    def convertFromStringToSet(sx: String): Set[T] =
+      sx.split(",").map(convertFromString).toSet
+
+    def toValue(sx: String): Option[T] = Try(convertFromString(sx)).toOption
+    def toSetValue(sx: String): Option[Set[T]] =
+      Try(convertFromStringToSet(sx)).toOption
 
   }
 
-  sealed trait StringQueryOperator {}
-  case class StringEqQueryOperator(value: String) extends StringQueryOperator
+  trait ToQueryStringOperator {
+
+    /**
+      * Common Utils to generate a
+      */
+    final def toInQuery(values: Set[String]): String =
+      s"in:${values.toList.reduce(_ + "," + _)}"
+
+    final def toEqQuery(value: String): String = value
+    final def toLtQuery(value: String): String = s"lt:$value"
+    final def toLteQuery(value: String) = s"lte:$value"
+    final def toGtQuery(value: String) = s"gt:$value"
+    final def toGteQuery(value: String) = s"gte:$value"
+
+    /**
+      * Returns the raw Query string. e.g, in:1,2,3 or gt:12354
+      */
+    def toQueryString: String
+  }
+
+  sealed trait StringQueryOperator extends ToQueryStringOperator
+  case class StringEqQueryOperator(value: String) extends StringQueryOperator {
+    override def toQueryString: String = toEqQuery(value)
+  }
   case class StringInQueryOperator(value: Set[String])
-      extends StringQueryOperator
+      extends StringQueryOperator {
+    override def toQueryString: String = toInQuery(value)
+  }
 
   object StringQueryOperator extends QueryOperatorConverter[String] {
 
-    override def convert(sx: String): String = sx
+    override def convertFromString(sx: String): String = sx
 
     /**
       * foo=bar
@@ -867,16 +898,30 @@ object QueryOperators {
   // For Numeric Types
   sealed trait QueryOperator[T]
 
-  sealed trait IntQueryOperator extends QueryOperator[Int]
-  case class IntEqQueryOperator(value: Int) extends IntQueryOperator
-  case class IntInQueryOperator(value: Set[Int]) extends IntQueryOperator
-  case class IntGtQueryOperator(value: Int) extends IntQueryOperator
-  case class IntGteQueryOperator(value: Int) extends IntQueryOperator
-  case class IntLtQueryOperator(value: Int) extends IntQueryOperator
-  case class IntLteQueryOperator(value: Int) extends IntQueryOperator
+  sealed trait IntQueryOperator
+      extends QueryOperator[Int]
+      with ToQueryStringOperator
+  case class IntEqQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class IntGtQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toGtQuery(value.toString)
+  }
+  case class IntGteQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toGteQuery(value.toString)
+  }
+  case class IntLtQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toLtQuery(value.toString)
+  }
+  case class IntLteQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class IntInQueryOperator(value: Set[Int]) extends IntQueryOperator {
+    override def toQueryString: String = toInQuery(value.map(_.toString))
+  }
 
   object IntQueryOperator extends QueryOperatorConverter[Int] {
-    def convert(sx: String): Int = sx.toInt
+    def convertFromString(sx: String): Int = sx.toInt
 
     def fromString(value: String): Option[IntQueryOperator] = {
       value.split(":", 2).toList match {
@@ -891,16 +936,30 @@ object QueryOperators {
     }
   }
 
-  sealed trait LongQueryOperator extends QueryOperator[Long]
-  case class LongEqQueryOperator(value: Long) extends LongQueryOperator
-  case class LongInQueryOperator(value: Set[Long]) extends LongQueryOperator
-  case class LongGtQueryOperator(value: Long) extends LongQueryOperator
-  case class LongGteQueryOperator(value: Long) extends LongQueryOperator
-  case class LongLtQueryOperator(value: Long) extends LongQueryOperator
-  case class LongLteQueryOperator(value: Long) extends LongQueryOperator
+  sealed trait LongQueryOperator
+      extends QueryOperator[Long]
+      with ToQueryStringOperator
+  case class LongEqQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class LongGtQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toGtQuery(value.toString)
+  }
+  case class LongGteQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toGteQuery(value.toString)
+  }
+  case class LongLtQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toLtQuery(value.toString)
+  }
+  case class LongLteQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toLteQuery(value.toString)
+  }
+  case class LongInQueryOperator(value: Set[Long]) extends LongQueryOperator {
+    override def toQueryString: String = toInQuery(value.map(_.toString))
+  }
 
   object LongQueryOperator extends QueryOperatorConverter[Long] {
-    def convert(sx: String): Long = sx.toLong
+    def convertFromString(sx: String): Long = sx.toLong
 
     def fromString(value: String): Option[LongQueryOperator] = {
       value.split(":", 2).toList match {
@@ -915,17 +974,32 @@ object QueryOperators {
     }
   }
 
-  sealed trait DateTimeQueryOperator {}
-  case class DateTimeEqOperator(dt: JodaDateTime) extends DateTimeQueryOperator
-  case class DateTimeGtOperator(dt: JodaDateTime) extends DateTimeQueryOperator
+  sealed trait DateTimeQueryOperator extends ToQueryStringOperator {
+    def dateTimeToString(dt: JodaDateTime): String = dt.toString()
+  }
+  case class DateTimeEqOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = dateTimeToString(dt)
+  }
+  case class DateTimeGtOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toGteQuery(dateTimeToString(dt))
+  }
   case class DateTimeGteOperator(dt: JodaDateTime)
-      extends DateTimeQueryOperator
-  case class DateTimeLtOperator(dt: JodaDateTime) extends DateTimeQueryOperator
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toGteQuery(dateTimeToString(dt))
+  }
+  case class DateTimeLtOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toLtQuery(dateTimeToString(dt))
+  }
   case class DateTimeLteOperator(dt: JodaDateTime)
-      extends DateTimeQueryOperator
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toLteQuery(dateTimeToString(dt))
+  }
 
   object DateTimeQueryOperator extends QueryOperatorConverter[JodaDateTime] {
-    def convert(sx: String): JodaDateTime = JodaDateTime.parse(sx)
+    def convertFromString(sx: String): JodaDateTime = JodaDateTime.parse(sx)
 
     // "in" doesn't really make sense here. It would be better
     // to define an interval of "createdAt=range:start,end"
@@ -944,12 +1018,18 @@ object QueryOperators {
     }
   }
 
-  sealed trait UUIDQueryOperator {}
-  case class UUIDEqOperator(uuid: UUID) extends UUIDQueryOperator
-  case class UUIDInOperator(uuids: Set[UUID]) extends UUIDQueryOperator
+  sealed trait UUIDQueryOperator extends ToQueryStringOperator {
+    def uuidToString(uuid: UUID): String = uuid.toString
+  }
+  case class UUIDEqOperator(uuid: UUID) extends UUIDQueryOperator {
+    override def toQueryString: String = uuidToString(uuid)
+  }
+  case class UUIDInOperator(uuids: Set[UUID]) extends UUIDQueryOperator {
+    override def toQueryString: String = toInQuery(uuids.map(uuidToString))
+  }
 
   object UUIDQueryOperator extends QueryOperatorConverter[UUID] {
-    override def convert(sx: String): UUID = UUID.fromString(sx)
+    override def convertFromString(sx: String): UUID = UUID.fromString(sx)
 
     def fromString(sx: String): Option[UUIDQueryOperator] = {
       sx.split(":", 2).toList match {
