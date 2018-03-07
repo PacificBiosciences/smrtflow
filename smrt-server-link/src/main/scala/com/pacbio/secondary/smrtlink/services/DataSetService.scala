@@ -6,12 +6,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.models.QueryOperators.{
-  DateTimeQueryOperator,
-  IntQueryOperator,
-  LongQueryOperator,
-  StringQueryOperator
-}
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
@@ -285,6 +280,7 @@ class DataSetService(dao: JobsDao)
       showAll: Boolean,
       limit: Int,
       id: Option[String],
+      uuid: Option[String],
       name: Option[String],
       createdAt: Option[String],
       updatedAt: Option[String],
@@ -299,6 +295,9 @@ class DataSetService(dao: JobsDao)
     for {
       qId <- parseQueryOperator[IntQueryOperator](id,
                                                   IntQueryOperator.fromString)
+      qUUID <- parseQueryOperator[UUIDQueryOperator](
+        uuid,
+        UUIDQueryOperator.fromString)
       qName <- parseQueryOperator[StringQueryOperator](
         name,
         StringQueryOperator.fromString)
@@ -327,6 +326,7 @@ class DataSetService(dao: JobsDao)
       search.copy(
         name = qName,
         id = qId,
+        uuid = qUUID,
         createdAt = qCreatedAt,
         updatedAt = qUpdatedAt,
         numRecords = qNumRecords,
@@ -353,6 +353,7 @@ class DataSetService(dao: JobsDao)
             parameters('showAll.?,
                        'limit.as[Int].?,
                        'id.?,
+                       'uuid.?,
                        'name.?,
                        'createdAt.?,
                        'updatedAt.?,
@@ -364,6 +365,7 @@ class DataSetService(dao: JobsDao)
               (showAll,
                limit,
                id,
+               uuid,
                name,
                createdAt,
                updatedAt,
@@ -382,6 +384,7 @@ class DataSetService(dao: JobsDao)
                         showAll.isDefined,
                         limit.getOrElse(DS_LIMIT),
                         id,
+                        uuid,
                         name,
                         createdAt,
                         updatedAt,

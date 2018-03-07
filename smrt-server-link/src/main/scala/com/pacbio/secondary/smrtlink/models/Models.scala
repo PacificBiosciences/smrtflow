@@ -943,6 +943,23 @@ object QueryOperators {
       }
     }
   }
+
+  sealed trait UUIDQueryOperator {}
+  case class UUIDEqOperator(uuid: UUID) extends UUIDQueryOperator
+  case class UUIDInOperator(uuids: Set[UUID]) extends UUIDQueryOperator
+
+  object UUIDQueryOperator extends QueryOperatorConverter[UUID] {
+    override def convert(sx: String): UUID = UUID.fromString(sx)
+
+    def fromString(sx: String): Option[UUIDQueryOperator] = {
+      sx.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(UUIDInOperator)
+        case head :: Nil => toValue(head).map(UUIDEqOperator)
+        case _ => None
+      }
+    }
+  }
+
 }
 
 case class DataSetSearchCriteria(
@@ -951,6 +968,7 @@ case class DataSetSearchCriteria(
     isActive: Option[Boolean] = Some(true),
     limit: Int,
     id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
     name: Option[QueryOperators.StringQueryOperator] = None,
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,

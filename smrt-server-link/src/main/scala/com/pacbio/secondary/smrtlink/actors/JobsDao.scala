@@ -1998,7 +1998,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
 
     def qByUpdatedAt(q: Q): Q = {
-      c.createdAt
+      c.updatedAt
         .map {
           case DateTimeEqOperator(value) => q.filter(_.updatedAt === value)
           case DateTimeGtOperator(value) => q.filter(_.updatedAt > value)
@@ -2009,10 +2009,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         .getOrElse(q)
     }
 
+    def qByUUID(q: Q): Q = {
+      c.uuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.uuid === value)
+          case UUIDInOperator(values) => q.filter(_.uuid inSet values)
+        }
+        .getOrElse(q)
+    }
+
     // There has to be a cleaner way to do this.
     qById(
-      qByName(qByNumRecords(qByTotalength(
-        qByJobId(qByVersion(qByCreatedBy(qByCreatedAt(qByUpdatedAt(q2)))))))))
+      qByName(qByNumRecords(qByTotalength(qByJobId(
+        qByVersion(qByCreatedBy(qByCreatedAt(qByUpdatedAt(qByUUID(q2))))))))))
   }
 
   def getSubreadDataSets(
