@@ -10,8 +10,8 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates,
-  SupportedChipTypes
+  SupportedChipTypes,
+  SupportedRunStates
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
@@ -20,6 +20,7 @@ import spray.json.JsObject
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Try
 
 object Models
 
@@ -816,6 +817,129 @@ case class TranscriptServiceDataSet(
     parentUuid: Option[UUID] = None,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
+
+/**
+  * Subset of Grammar defined here: https://specs.openstack.org/openstack/api-wg/guidelines/pagination_filter_sort.html
+  *
+  * GET /app/items?foo=buzz
+  * GET /app/items?foo=in:buzz,bar
+  * GET /app/items?size=gt:8
+  *
+  */
+object QueryOperators {
+  sealed trait StringQueryOperator {}
+  case class StringEqQueryOperator(value: String) extends StringQueryOperator
+  case class StringInQueryOperator(value: Set[String])
+      extends StringQueryOperator
+
+  object StringQueryOperator {
+
+    /**
+      * foo=bar
+      * foo=in:bar,baz
+      *
+      * @param value raw Query String
+      * @return
+      */
+    def fromString(value: String): Option[StringQueryOperator] = {
+      value.split(":", 2).toList match {
+        case "in" :: tail :: Nil =>
+          Some(StringInQueryOperator(tail.split(",").toSet))
+        case head :: Nil => Some(StringEqQueryOperator(head))
+        case _ =>
+          // Invalid or unsupported String Query Operator
+          None
+      }
+    }
+  }
+
+  sealed trait NumericQueryOperator[T]
+  trait NumericConverter[T] {
+    def convert(sx: String): T
+    def convertToSet(sx: String): Set[T] = sx.split(",").map(convert).toSet
+
+    def toValue(sx: String): Option[T] = Try(convert(sx)).toOption
+    def toSetValue(sx: String): Option[Set[T]] = Try(convertToSet(sx)).toOption
+
+  }
+
+  sealed trait IntQueryOperator extends NumericQueryOperator[Int]
+  case class IntEqQueryOperator(value: Int) extends IntQueryOperator
+  case class IntInQueryOperator(value: Set[Int]) extends IntQueryOperator
+  case class IntGtQueryOperator(value: Int) extends IntQueryOperator
+  case class IntGteQueryOperator(value: Int) extends IntQueryOperator
+  case class IntLtQueryOperator(value: Int) extends IntQueryOperator
+  case class IntLteQueryOperator(value: Int) extends IntQueryOperator
+
+  object IntQueryOperator extends NumericConverter[Int] {
+    def convert(sx: String): Int = sx.toInt
+
+    def fromString(value: String): Option[IntQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(IntEqQueryOperator)
+        case "in" :: tail :: Nil => toSetValue(tail).map(IntInQueryOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(IntGtQueryOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(IntGteQueryOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(IntLtQueryOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(IntLteQueryOperator)
+        case _ => None
+      }
+    }
+  }
+
+  sealed trait LongQueryOperator extends NumericQueryOperator[Long]
+  case class LongEqQueryOperator(value: Long) extends LongQueryOperator
+  case class LongInQueryOperator(value: Set[Long]) extends LongQueryOperator
+  case class LongGtQueryOperator(value: Long) extends LongQueryOperator
+  case class LongGteQueryOperator(value: Long) extends LongQueryOperator
+  case class LongLtQueryOperator(value: Long) extends LongQueryOperator
+  case class LongLteQueryOperator(value: Long) extends LongQueryOperator
+
+  object LongQueryOperator extends NumericConverter[Long] {
+    def convert(sx: String): Long = sx.toLong
+
+    def fromString(value: String): Option[LongQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(LongEqQueryOperator)
+        case "in" :: tail :: Nil => toSetValue(tail).map(LongInQueryOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(LongGtQueryOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(LongGteQueryOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(LongLtQueryOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(LongLteQueryOperator)
+        case _ => None
+      }
+    }
+  }
+
+}
+
+case class DataSetSearchCriteria(
+    projectIds: Set[Int],
+    showAll: Boolean = true,
+    isActive: Option[Boolean] = Some(true),
+    limit: Int,
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    numRecords: Option[QueryOperators.LongQueryOperator] = None,
+    totalLength: Option[QueryOperators.LongQueryOperator] = None,
+    version: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    jobId: Option[QueryOperators.IntQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None) {
+  def includeInactive: Boolean = !isActive.getOrElse(true)
+}
+object DataSetSearchCriteria {
+  final val DEFAULT_MAX_DATASETS = 10000
+  final val DEFAULT_IS_ACTIVE = true
+  final val DEFAULT_SHOW_ALL = true
+
+  def default =
+    DataSetSearchCriteria(Set.empty[Int],
+                          showAll = DEFAULT_SHOW_ALL,
+                          isActive = Some(DEFAULT_IS_ACTIVE),
+                          name = None,
+                          limit = DEFAULT_MAX_DATASETS)
+}
 
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!

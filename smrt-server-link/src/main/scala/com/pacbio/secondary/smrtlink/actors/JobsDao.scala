@@ -47,6 +47,7 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacificbiosciences.pacbiodatasets._
 import org.apache.commons.io.FileUtils
 import org.postgresql.util.PSQLException
@@ -1885,16 +1886,116 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       Future(blocking(subreadToDetails(x)))
     }
 
+  private def qDsMetaDataBySearch(c: DataSetSearchCriteria) = {
+    val q0 = dsMetaData2
+    val q1 = if (c.includeInactive) q0.filter(_.isActive) else q0
+    val q2 = if (c.projectIds.isEmpty) {
+      q1
+    } else {
+      // This needs to be fixed/clarified.
+      q1.filter(_.projectId inSet c.projectIds)
+    }
+
+    type Q = Query[DataSetMetaT, DataSetMetaT#TableElementType, Seq]
+
+    def qById(q: Q): Q = {
+      c.id
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.id === value)
+          case IntInQueryOperator(values) => q.filter(_.id inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.id >= value)
+          case IntGtQueryOperator(value) => q.filter(_.id > value)
+          case IntLteQueryOperator(value) => q.filter(_.id <= value)
+          case IntLtQueryOperator(value) => q.filter(_.id < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By Name
+    def qByName(q: Q): Q = {
+      c.name
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringInQueryOperator(values) => q.filter(_.name inSet values)
+        }
+        .getOrElse(q)
+    }
+
+    // By NumRecords
+    def qByNumRecords(q: Q): Q = {
+      c.numRecords
+        .map {
+          case LongEqQueryOperator(value) => q.filter(_.numRecords === value)
+          case LongInQueryOperator(values) =>
+            q.filter(_.numRecords inSet values)
+          case LongGteQueryOperator(value) => q.filter(_.numRecords >= value)
+          case LongGtQueryOperator(value) => q.filter(_.numRecords > value)
+          case LongLteQueryOperator(value) => q.filter(_.numRecords <= value)
+          case LongLtQueryOperator(value) => q.filter(_.numRecords < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By TotalLength
+    def qByTotalength(q: Q): Q = {
+      c.totalLength
+        .map {
+          case LongEqQueryOperator(value) => q.filter(_.totalLength === value)
+          case LongInQueryOperator(values) =>
+            q.filter(_.totalLength inSet values)
+          case LongGteQueryOperator(value) => q.filter(_.totalLength >= value)
+          case LongGtQueryOperator(value) => q.filter(_.totalLength > value)
+          case LongLteQueryOperator(value) => q.filter(_.totalLength <= value)
+          case LongLtQueryOperator(value) => q.filter(_.totalLength < value)
+        }
+        .getOrElse(q)
+    }
+
+    // By Job Id
+    def qByJobId(q: Q): Q = {
+      c.jobId
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.jobId === value)
+          case IntInQueryOperator(values) => q.filter(_.jobId inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.jobId >= value)
+          case IntGtQueryOperator(value) => q.filter(_.jobId > value)
+          case IntLteQueryOperator(value) => q.filter(_.jobId <= value)
+          case IntLtQueryOperator(value) => q.filter(_.jobId < value)
+        }
+        .getOrElse(q)
+    }
+    // By Version
+    def qByVersion(q: Q): Q = {
+      c.version
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.version === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.version inSet values)
+        }
+        .getOrElse(q)
+    }
+    // By Created By
+    def qByCreatedBy(q: Q): Q = {
+      c.createdBy
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.createdBy inSet values)
+        }
+        .getOrElse(q)
+    }
+
+    // There has to be a cleaner way to do this.
+    qById(
+      qByName(
+        qByNumRecords(qByTotalength(qByJobId(qByVersion(qByCreatedBy(q2)))))))
+  }
+
   def getSubreadDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] = {
-    val qj = dsMetaData2 join dsSubread2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toSds(x._1, x._2)))
+      c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsSubread2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toSds(x._1, x._2)))
   }
 
   /**
@@ -1925,15 +2026,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getReferenceDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] = {
-    val qj = dsMetaData2 join dsReference2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toR(x._1, x._2)))
+      c: DataSetSearchCriteria): Future[Seq[ReferenceServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsReference2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toR(x._1, x._2)))
   }
 
   def getReferenceDataSetById(id: IdAble): Future[ReferenceServiceDataSet] = {
@@ -1976,15 +2072,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getGmapReferenceDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] = {
-    val qj = dsMetaData2 join dsGmapReference2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toGmapR(x._1, x._2)))
+      c: DataSetSearchCriteria): Future[Seq[GmapReferenceServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsGmapReference2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toGmapR(x._1, x._2)))
   }
 
   def getGmapReferenceDataSetById(
@@ -2004,15 +2095,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     getGmapReferenceDataSetById(id).map(gmapReferenceToDetails)
 
   def getHdfDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] = {
-    val qj = dsMetaData2 join dsHdfSubread2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toHds(x._1, x._2)))
+      c: DataSetSearchCriteria): Future[Seq[HdfSubreadServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsHdfSubread2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toHds(x._1, x._2)))
   }
 
   private def toHds(t1: DataSetMetaDataSet,
@@ -2076,15 +2162,11 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getAlignmentDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] = {
-    val qj = dsMetaData2 join dsAlignment2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toA(x._1)))
+      c: DataSetSearchCriteria): Future[Seq[AlignmentServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    // DataSets that don't extend the base model don't really need to do a join.
+    val q1 = q0 join dsAlignment2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toA(x._1)))
   }
 
   def getAlignmentDataSetById(id: IdAble): Future[AlignmentServiceDataSet] = {
@@ -2125,15 +2207,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
   def getConsensusReadDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] = {
-    val qj = dsMetaData2 join dsCCSread2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toCCSread(x._1)))
+      c: DataSetSearchCriteria): Future[Seq[ConsensusReadServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsCCSread2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toCCSread(x._1)))
   }
 
   def getConsensusReadDataSetById(
@@ -2173,16 +2250,11 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId
     )
 
-  def getConsensusAlignmentDataSets(limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-                                    includeInactive: Boolean = false,
-                                    projectIds: Seq[Int] = Nil)
+  def getConsensusAlignmentDataSets(c: DataSetSearchCriteria)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] = {
-    val qj = dsMetaData2 join dsCCSAlignment2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toCCSA(x._1)))
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsCCSAlignment2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toCCSA(x._1)))
   }
 
   def getConsensusAlignmentDataSetById(
@@ -2223,15 +2295,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getTranscriptDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[TranscriptServiceDataSet]] = {
-    val qj = dsMetaData2 join dsTranscript2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toT(x._1)))
+      c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsCCSAlignment2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toT(x._1)))
   }
 
   def getTranscriptDataSetById(id: IdAble): Future[TranscriptServiceDataSet] = {
@@ -2271,15 +2338,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getBarcodeDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] = {
-    val qj = dsMetaData2 join dsBarcode2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toB(x._1)))
+      c: DataSetSearchCriteria): Future[Seq[BarcodeServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsBarcode2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toB(x._1)))
   }
 
   def getBarcodeDataSetById(id: IdAble): Future[BarcodeServiceDataSet] = {
@@ -2318,15 +2380,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     )
 
   def getContigDataSets(
-      limit: Int = DEFAULT_MAX_DATASET_LIMIT,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] = {
-    val qj = dsMetaData2 join dsContig2 on (_.id === _.id)
-    val qi = if (!includeInactive) qj.filter(_._1.isActive) else qj
-    val q =
-      if (projectIds.nonEmpty) qi.filter(_._1.projectId inSet projectIds)
-      else qi
-    db.run(q.result).map(_.map(x => toCtg(x._1)))
+      c: DataSetSearchCriteria): Future[Seq[ContigServiceDataSet]] = {
+    val q0 = qDsMetaDataBySearch(c)
+    val q1 = q0 join dsContig2 on (_.id === _.id)
+    db.run(q1.result).map(_.map(x => toCtg(x._1)))
   }
 
   def getContigDataSetById(id: IdAble): Future[ContigServiceDataSet] = {

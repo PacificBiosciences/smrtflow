@@ -6,6 +6,11 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
+import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  IntQueryOperator,
+  LongQueryOperator,
+  StringQueryOperator
+}
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
@@ -130,10 +135,8 @@ class DataSetService(dao: JobsDao)
 
   // SubreadSet
   def getSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
-    dao.getSubreadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] =
+    dao.getSubreadDataSets(c)
   def getSubreadSetById(i: IdAble): Future[SubreadServiceDataSet] =
     dao.getSubreadDataSetById(i)
   def getSubreadSetDetailsById(i: IdAble): Future[String] =
@@ -141,10 +144,8 @@ class DataSetService(dao: JobsDao)
 
   // HdfSubreadSet
   def getHdfSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
-    dao.getHdfDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[HdfSubreadServiceDataSet]] =
+    dao.getHdfDataSets(c)
   def getHdfSubreadById(i: IdAble): Future[HdfSubreadServiceDataSet] =
     dao.getHdfDataSetById(i)
   def getHdfSubreadDetailsById(i: IdAble): Future[String] =
@@ -152,10 +153,8 @@ class DataSetService(dao: JobsDao)
 
   // AlignmentSets
   def getAlignmentSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
-    dao.getAlignmentDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[AlignmentServiceDataSet]] =
+    dao.getAlignmentDataSets(c)
   def getAlignmentSetById(i: IdAble): Future[AlignmentServiceDataSet] =
     dao.getAlignmentDataSetById(i)
   def getAlignmentSetDetails(i: IdAble): Future[String] =
@@ -163,10 +162,8 @@ class DataSetService(dao: JobsDao)
 
   // ReferenceSets
   def getReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
-    dao.getReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ReferenceServiceDataSet]] =
+    dao.getReferenceDataSets(c)
   def getReferenceSetById(i: IdAble): Future[ReferenceServiceDataSet] =
     dao.getReferenceDataSetById(i)
   def getReferenceSetDetails(i: IdAble): Future[String] =
@@ -174,10 +171,8 @@ class DataSetService(dao: JobsDao)
 
   // GmapReferenceSet
   def getGmapReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
-    dao.getGmapReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[GmapReferenceServiceDataSet]] =
+    dao.getGmapReferenceDataSets(c)
   def getGmapReferenceSetById(i: IdAble): Future[GmapReferenceServiceDataSet] =
     dao.getGmapReferenceDataSetById(i)
   def getGmapReferenceSetDetails(i: IdAble): Future[String] =
@@ -185,10 +180,8 @@ class DataSetService(dao: JobsDao)
 
   /// BarcodeSet
   def getBarcodeSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
-    dao.getBarcodeDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[BarcodeServiceDataSet]] =
+    dao.getBarcodeDataSets(c)
   def getBarcodeSetById(i: IdAble): Future[BarcodeServiceDataSet] =
     dao.getBarcodeDataSetById(i)
   def getBarcodeSetDetails(i: IdAble): Future[String] =
@@ -196,21 +189,17 @@ class DataSetService(dao: JobsDao)
 
   // Consensus Reads
   def getConsensusReadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
-    dao.getConsensusReadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ConsensusReadServiceDataSet]] =
+    dao.getConsensusReadDataSets(c)
   def getConsensusReadSetById(i: IdAble): Future[ConsensusReadServiceDataSet] =
     dao.getConsensusReadDataSetById(i)
   def getConsensusReadSetDetails(i: IdAble): Future[String] =
     dao.getConsensusReadDataSetDetailsById(i)
 
   // Consensus AlignmentSets
-  def getConsensusAlignmentSet(limit: Int,
-                               includeInactive: Boolean = false,
-                               projectIds: Seq[Int] = Nil)
+  def getConsensusAlignmentSet(c: DataSetSearchCriteria)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    dao.getConsensusAlignmentDataSets(limit, includeInactive, projectIds)
+    dao.getConsensusAlignmentDataSets(c)
   def getConsensusAlignmentSetById(
       i: IdAble): Future[ConsensusAlignmentServiceDataSet] =
     dao.getConsensusAlignmentDataSetById(i)
@@ -219,10 +208,8 @@ class DataSetService(dao: JobsDao)
 
   // ContigSets
   def getContigDataSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
-    dao.getContigDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ContigServiceDataSet]] =
+    dao.getContigDataSets(c)
   def getContigDataSetById(i: IdAble): Future[ContigServiceDataSet] =
     dao.getContigDataSetById(i)
   def getContigDataSetDetails(i: IdAble): Future[String] =
@@ -230,12 +217,12 @@ class DataSetService(dao: JobsDao)
 
   // TranscriptSets
   def getTranscriptSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[TranscriptServiceDataSet]] =
-    dao.getTranscriptDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] =
+    dao.getTranscriptDataSets(c)
+
   def getTranscriptSetById(i: IdAble): Future[TranscriptServiceDataSet] =
     dao.getTranscriptDataSetById(i)
+
   def getTranscriptSetDetails(i: IdAble): Future[String] =
     dao.getTranscriptDataSetDetailsById(i)
 
@@ -274,9 +261,73 @@ class DataSetService(dao: JobsDao)
     } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
+  private def parseQueryOperator[T](
+      sx: Option[String],
+      f: (String) => Option[T]): Future[Option[T]] = {
+
+    sx match {
+      case Some(v) =>
+        f(v) match {
+          case Some(op) => Future.successful(Some(op))
+          case _ =>
+            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+        }
+      case _ =>
+        // Nothing was provided
+        Future.successful(None)
+    }
+  }
+
+  // Temporary validation/conversion mechanism
+  def parseDataSetSearchCriteria(
+      projectIds: Set[Int],
+      showAll: Boolean,
+      limit: Int,
+      id: Option[String],
+      name: Option[String],
+      numRecords: Option[String],
+      totalLength: Option[String],
+      version: Option[String],
+      jobId: Option[String],
+      projectId: Option[String]): Future[DataSetSearchCriteria] = {
+
+    val search = DataSetSearchCriteria(projectIds, showAll, limit = limit)
+
+    for {
+      qId <- parseQueryOperator[IntQueryOperator](id,
+                                                  IntQueryOperator.fromString)
+      qName <- parseQueryOperator[StringQueryOperator](
+        name,
+        StringQueryOperator.fromString)
+      qNumRecords <- parseQueryOperator[LongQueryOperator](
+        numRecords,
+        LongQueryOperator.fromString)
+      qTotalLength <- parseQueryOperator[LongQueryOperator](
+        totalLength,
+        LongQueryOperator.fromString)
+      qVersion <- parseQueryOperator[StringQueryOperator](
+        version,
+        StringQueryOperator.fromString)
+      qJobId <- parseQueryOperator[IntQueryOperator](
+        jobId,
+        IntQueryOperator.fromString)
+      qProjectId <- parseQueryOperator[IntQueryOperator](
+        projectId,
+        IntQueryOperator.fromString)
+    } yield
+      search.copy(name = qName,
+                  id = qId,
+                  numRecords = qNumRecords,
+                  totalLength = qTotalLength,
+                  version = qVersion,
+                  jobId = qJobId,
+                  projectId = qProjectId)
+
+  }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
+      GetDataSets: (DataSetSearchCriteria) => Future[Seq[R]],
       GetDataSetById: IdAble => Future[R],
       GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
@@ -286,14 +337,42 @@ class DataSetService(dao: JobsDao)
       pathPrefix(shortName) {
         pathEnd {
           get {
-            parameters('showAll.?, 'projectId.as[Int].?) {
-              (showAll, projectId) =>
+            parameters('showAll.?,
+                       'limit.as[Int].?,
+                       'id.?,
+                       'name.?,
+                       'numRecords.?,
+                       'totalLength.?,
+                       'version.?,
+                       'jobId.?,
+                       'projectId.?) {
+              (showAll,
+               limit,
+               id,
+               name,
+               numRecords,
+               totalLength,
+               version,
+               jobId,
+               projectId) =>
                 encodeResponse {
                   complete {
-                    getProjectIds(projectId, user)
-                      .map { ids =>
-                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
-                      }
+                    for {
+                      // workaround for this project id oddness in the API
+                      ids <- getProjectIds(projectId.map(_.toInt), user)
+                      searchCriteria <- parseDataSetSearchCriteria(
+                        ids.toSet,
+                        showAll.isDefined,
+                        limit.getOrElse(DS_LIMIT),
+                        id,
+                        name,
+                        numRecords,
+                        totalLength,
+                        version,
+                        jobId,
+                        projectId)
+                      datasets <- GetDataSets(searchCriteria)
+                    } yield datasets
                   }
                 }
             }
