@@ -827,12 +827,24 @@ case class TranscriptServiceDataSet(
   *
   */
 object QueryOperators {
+
+  trait QueryOperatorConverter[T] {
+    def convert(sx: String): T
+    def convertToSet(sx: String): Set[T] = sx.split(",").map(convert).toSet
+
+    def toValue(sx: String): Option[T] = Try(convert(sx)).toOption
+    def toSetValue(sx: String): Option[Set[T]] = Try(convertToSet(sx)).toOption
+
+  }
+
   sealed trait StringQueryOperator {}
   case class StringEqQueryOperator(value: String) extends StringQueryOperator
   case class StringInQueryOperator(value: Set[String])
       extends StringQueryOperator
 
-  object StringQueryOperator {
+  object StringQueryOperator extends QueryOperatorConverter[String] {
+
+    override def convert(sx: String): String = sx
 
     /**
       * foo=bar
@@ -843,9 +855,8 @@ object QueryOperators {
       */
     def fromString(value: String): Option[StringQueryOperator] = {
       value.split(":", 2).toList match {
-        case "in" :: tail :: Nil =>
-          Some(StringInQueryOperator(tail.split(",").toSet))
-        case head :: Nil => Some(StringEqQueryOperator(head))
+        case "in" :: tail :: Nil => toSetValue(tail).map(StringInQueryOperator)
+        case head :: Nil => toValue(head).map(StringEqQueryOperator)
         case _ =>
           // Invalid or unsupported String Query Operator
           None
@@ -853,15 +864,8 @@ object QueryOperators {
     }
   }
 
+  // For Numeric Types
   sealed trait QueryOperator[T]
-  trait QueryOperatorConverter[T] {
-    def convert(sx: String): T
-    def convertToSet(sx: String): Set[T] = sx.split(",").map(convert).toSet
-
-    def toValue(sx: String): Option[T] = Try(convert(sx)).toOption
-    def toSetValue(sx: String): Option[Set[T]] = Try(convertToSet(sx)).toOption
-
-  }
 
   sealed trait IntQueryOperator extends QueryOperator[Int]
   case class IntEqQueryOperator(value: Int) extends IntQueryOperator
