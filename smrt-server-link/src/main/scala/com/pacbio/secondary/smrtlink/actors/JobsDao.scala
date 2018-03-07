@@ -1985,10 +1985,34 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         .getOrElse(q)
     }
 
+    def qByCreatedAt(q: Q): Q = {
+      c.createdAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.createdAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.createdAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.createdAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.createdAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.createdAt <= value)
+        }
+        .getOrElse(q)
+    }
+
+    def qByUpdatedAt(q: Q): Q = {
+      c.createdAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.updatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.updatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.updatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.updatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.updatedAt <= value)
+        }
+        .getOrElse(q)
+    }
+
     // There has to be a cleaner way to do this.
     qById(
-      qByName(
-        qByNumRecords(qByTotalength(qByJobId(qByVersion(qByCreatedBy(q2)))))))
+      qByName(qByNumRecords(qByTotalength(
+        qByJobId(qByVersion(qByCreatedBy(qByCreatedAt(qByUpdatedAt(q2)))))))))
   }
 
   def getSubreadDataSets(

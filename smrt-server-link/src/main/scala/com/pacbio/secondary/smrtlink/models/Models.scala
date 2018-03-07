@@ -853,8 +853,8 @@ object QueryOperators {
     }
   }
 
-  sealed trait NumericQueryOperator[T]
-  trait NumericConverter[T] {
+  sealed trait QueryOperator[T]
+  trait QueryOperatorConverter[T] {
     def convert(sx: String): T
     def convertToSet(sx: String): Set[T] = sx.split(",").map(convert).toSet
 
@@ -863,7 +863,7 @@ object QueryOperators {
 
   }
 
-  sealed trait IntQueryOperator extends NumericQueryOperator[Int]
+  sealed trait IntQueryOperator extends QueryOperator[Int]
   case class IntEqQueryOperator(value: Int) extends IntQueryOperator
   case class IntInQueryOperator(value: Set[Int]) extends IntQueryOperator
   case class IntGtQueryOperator(value: Int) extends IntQueryOperator
@@ -871,7 +871,7 @@ object QueryOperators {
   case class IntLtQueryOperator(value: Int) extends IntQueryOperator
   case class IntLteQueryOperator(value: Int) extends IntQueryOperator
 
-  object IntQueryOperator extends NumericConverter[Int] {
+  object IntQueryOperator extends QueryOperatorConverter[Int] {
     def convert(sx: String): Int = sx.toInt
 
     def fromString(value: String): Option[IntQueryOperator] = {
@@ -887,7 +887,7 @@ object QueryOperators {
     }
   }
 
-  sealed trait LongQueryOperator extends NumericQueryOperator[Long]
+  sealed trait LongQueryOperator extends QueryOperator[Long]
   case class LongEqQueryOperator(value: Long) extends LongQueryOperator
   case class LongInQueryOperator(value: Set[Long]) extends LongQueryOperator
   case class LongGtQueryOperator(value: Long) extends LongQueryOperator
@@ -895,7 +895,7 @@ object QueryOperators {
   case class LongLtQueryOperator(value: Long) extends LongQueryOperator
   case class LongLteQueryOperator(value: Long) extends LongQueryOperator
 
-  object LongQueryOperator extends NumericConverter[Long] {
+  object LongQueryOperator extends QueryOperatorConverter[Long] {
     def convert(sx: String): Long = sx.toLong
 
     def fromString(value: String): Option[LongQueryOperator] = {
@@ -911,6 +911,34 @@ object QueryOperators {
     }
   }
 
+  sealed trait DateTimeQueryOperator {}
+  case class DateTimeEqOperator(dt: JodaDateTime) extends DateTimeQueryOperator
+  case class DateTimeGtOperator(dt: JodaDateTime) extends DateTimeQueryOperator
+  case class DateTimeGteOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator
+  case class DateTimeLtOperator(dt: JodaDateTime) extends DateTimeQueryOperator
+  case class DateTimeLteOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator
+
+  object DateTimeQueryOperator extends QueryOperatorConverter[JodaDateTime] {
+    def convert(sx: String): JodaDateTime = JodaDateTime.parse(sx)
+
+    // "in" doesn't really make sense here. It would be better
+    // to define an interval of "createdAt=range:start,end"
+    // For now, the core gt, gte, lt, lte the core usecases.
+    // A user could make a query with one then filter client side,
+    // or make two queries and filter
+    def fromString(value: String): Option[DateTimeQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(DateTimeEqOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(DateTimeGtOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(DateTimeGteOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(DateTimeLtOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(DateTimeLteOperator)
+        case _ => None
+      }
+    }
+  }
 }
 
 case class DataSetSearchCriteria(
@@ -920,6 +948,8 @@ case class DataSetSearchCriteria(
     limit: Int,
     id: Option[QueryOperators.IntQueryOperator] = None,
     name: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     numRecords: Option[QueryOperators.LongQueryOperator] = None,
     totalLength: Option[QueryOperators.LongQueryOperator] = None,
     version: Option[QueryOperators.StringQueryOperator] = None,

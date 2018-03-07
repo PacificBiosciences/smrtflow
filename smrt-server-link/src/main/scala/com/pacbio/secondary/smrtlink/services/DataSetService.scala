@@ -7,6 +7,7 @@ import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
 import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  DateTimeQueryOperator,
   IntQueryOperator,
   LongQueryOperator,
   StringQueryOperator
@@ -285,6 +286,8 @@ class DataSetService(dao: JobsDao)
       limit: Int,
       id: Option[String],
       name: Option[String],
+      createdAt: Option[String],
+      updatedAt: Option[String],
       numRecords: Option[String],
       totalLength: Option[String],
       version: Option[String],
@@ -314,14 +317,24 @@ class DataSetService(dao: JobsDao)
       qProjectId <- parseQueryOperator[IntQueryOperator](
         projectId,
         IntQueryOperator.fromString)
+      qCreatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        createdAt,
+        DateTimeQueryOperator.fromString)
+      qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        createdAt,
+        DateTimeQueryOperator.fromString)
     } yield
-      search.copy(name = qName,
-                  id = qId,
-                  numRecords = qNumRecords,
-                  totalLength = qTotalLength,
-                  version = qVersion,
-                  jobId = qJobId,
-                  projectId = qProjectId)
+      search.copy(
+        name = qName,
+        id = qId,
+        createdAt = qCreatedAt,
+        updatedAt = qUpdatedAt,
+        numRecords = qNumRecords,
+        totalLength = qTotalLength,
+        version = qVersion,
+        jobId = qJobId,
+        projectId = qProjectId
+      )
 
   }
 
@@ -341,6 +354,8 @@ class DataSetService(dao: JobsDao)
                        'limit.as[Int].?,
                        'id.?,
                        'name.?,
+                       'createdAt.?,
+                       'updatedAt.?,
                        'numRecords.?,
                        'totalLength.?,
                        'version.?,
@@ -350,6 +365,8 @@ class DataSetService(dao: JobsDao)
                limit,
                id,
                name,
+               createdAt,
+               updatedAt,
                numRecords,
                totalLength,
                version,
@@ -366,6 +383,8 @@ class DataSetService(dao: JobsDao)
                         limit.getOrElse(DS_LIMIT),
                         id,
                         name,
+                        createdAt,
+                        updatedAt,
                         numRecords,
                         totalLength,
                         version,
