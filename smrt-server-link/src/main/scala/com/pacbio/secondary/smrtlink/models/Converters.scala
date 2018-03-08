@@ -80,6 +80,7 @@ object Converters extends DataSetMetadataUtils {
                        name: String,
                        createdAt: JodaDateTime,
                        modifiedAt: JodaDateTime,
+                       importedAt: JodaDateTime,
                        dsVersion: String,
                        tags: String,
                        md5: String,
@@ -110,6 +111,7 @@ object Converters extends DataSetMetadataUtils {
       name,
       createdAt,
       modifiedAt,
+      importedAt,
       dsVersion,
       tags,
       toMd5(uuid.toString),
@@ -199,6 +201,7 @@ object Converters extends DataSetMetadataUtils {
       path.toAbsolutePath.toString,
       m.createdAt,
       m.modifiedAt,
+      m.importedAt,
       numRecords,
       totalLength,
       m.dsVersion,
@@ -270,6 +273,7 @@ object Converters extends DataSetMetadataUtils {
       path.toAbsolutePath.toString,
       m.createdAt,
       m.modifiedAt,
+      m.importedAt,
       numRecords,
       totalLength,
       m.dsVersion,
@@ -302,21 +306,24 @@ object Converters extends DataSetMetadataUtils {
     val (numRecords, totalLength) = getNumRecordsTotalLength(
       dataset.getDataSetMetadata)
 
-    ContigServiceDataSet(-99,
-                         m.uuid,
-                         m.name,
-                         path.toFile.toString,
-                         m.createdAt,
-                         m.modifiedAt,
-                         numRecords,
-                         totalLength,
-                         m.dsVersion,
-                         m.comments,
-                         m.tags,
-                         m.md5,
-                         createdBy,
-                         jobId,
-                         projectId)
+    ContigServiceDataSet(
+      -99,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
   }
 
   def convertReferenceSet(dataset: ReferenceSet,
@@ -338,6 +345,7 @@ object Converters extends DataSetMetadataUtils {
       path.toFile.toString,
       m.createdAt,
       m.modifiedAt,
+      m.importedAt,
       numRecords,
       totalLength,
       m.dsVersion,
@@ -373,6 +381,7 @@ object Converters extends DataSetMetadataUtils {
       path.toFile.toString,
       m.createdAt,
       m.modifiedAt,
+      m.importedAt,
       numRecords,
       totalLength,
       m.dsVersion,
@@ -399,21 +408,24 @@ object Converters extends DataSetMetadataUtils {
                                           defaultComment =
                                             "alignment dataset converted")
 
-    AlignmentServiceDataSet(-99,
-                            m.uuid,
-                            m.name,
-                            path.toFile.toString,
-                            m.createdAt,
-                            m.modifiedAt,
-                            numRecords,
-                            totalLength,
-                            m.dsVersion,
-                            m.comments,
-                            m.tags,
-                            m.md5,
-                            createdBy,
-                            jobId,
-                            projectId)
+    AlignmentServiceDataSet(
+      -99,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
   }
 
   def convertConsensusReadSet(dataset: ConsensusReadSet,
@@ -426,21 +438,24 @@ object Converters extends DataSetMetadataUtils {
     val m = convertMetadata(dataset,
                             defaultComment = "ccs dataset converted",
                             defaultCreatedAt = getCreatedAt(dataset, path))
-    ConsensusReadServiceDataSet(-99,
-                                m.uuid,
-                                m.name,
-                                path.toFile.toString,
-                                m.createdAt,
-                                m.modifiedAt,
-                                numRecords,
-                                totalLength,
-                                m.dsVersion,
-                                m.comments,
-                                m.tags,
-                                m.md5,
-                                createdBy,
-                                jobId,
-                                projectId)
+    ConsensusReadServiceDataSet(
+      -99,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
   }
 
   // FIXME consolidate with AlignmentSet implementation
@@ -457,21 +472,24 @@ object Converters extends DataSetMetadataUtils {
                             defaultComment = "ccs alignment dataset converted",
                             defaultCreatedAt = getCreatedAt(dataset, path))
 
-    ConsensusAlignmentServiceDataSet(-99,
-                                     m.uuid,
-                                     m.name,
-                                     path.toFile.toString,
-                                     m.createdAt,
-                                     m.modifiedAt,
-                                     numRecords,
-                                     totalLength,
-                                     m.dsVersion,
-                                     m.comments,
-                                     m.tags,
-                                     m.md5,
-                                     createdBy,
-                                     jobId,
-                                     projectId)
+    ConsensusAlignmentServiceDataSet(
+      -99,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
   }
 
   def convertTranscriptSet(dataset: TranscriptSet,
@@ -487,21 +505,24 @@ object Converters extends DataSetMetadataUtils {
                       defaultComment = "transcript dataset converted",
                       defaultCreatedAt = getCreatedAt(dataset, path))
 
-    TranscriptServiceDataSet(-99,
-                             m.uuid,
-                             m.name,
-                             path.toFile.toString,
-                             m.createdAt,
-                             m.modifiedAt,
-                             numRecords,
-                             totalLength,
-                             m.dsVersion,
-                             m.comments,
-                             m.tags,
-                             m.md5,
-                             createdBy,
-                             jobId,
-                             projectId)
+    TranscriptServiceDataSet(
+      -99,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
   }
 
   def convertBarcodeSet(dataset: BarcodeSet,
@@ -524,21 +545,24 @@ object Converters extends DataSetMetadataUtils {
                               s"Barcode $barcodeConstruction imported",
                             defaultCreatedAt = getCreatedAt(dataset, path))
     // The BC construction should be stored here, but that would require a schema change. Putting it in the comments for now
-    BarcodeServiceDataSet(-1,
-                          m.uuid,
-                          m.name,
-                          path.toFile.toString,
-                          m.createdAt,
-                          m.modifiedAt,
-                          numRecords,
-                          totalLength,
-                          m.dsVersion,
-                          m.comments,
-                          m.tags,
-                          m.md5,
-                          createdBy,
-                          jobId,
-                          projectId)
+    BarcodeServiceDataSet(
+      -1,
+      m.uuid,
+      m.name,
+      path.toFile.toString,
+      m.createdAt,
+      m.modifiedAt,
+      m.importedAt,
+      numRecords,
+      totalLength,
+      m.dsVersion,
+      m.comments,
+      m.tags,
+      m.md5,
+      createdBy,
+      jobId,
+      projectId
+    )
 
   }
 }

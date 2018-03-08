@@ -110,6 +110,7 @@ class DatabaseSpec
         "/dataset/path",
         createdAt = now,
         updatedAt = now,
+        importedAt = now,
         numRecords = 1,
         totalLength = 1,
         "tags",
