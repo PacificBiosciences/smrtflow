@@ -1187,6 +1187,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       ds.path,
       ds.createdAt,
       ds.updatedAt,
+      ds.importedAt,
       ds.numRecords,
       ds.totalLength,
       ds.tags,
@@ -1196,7 +1197,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       ds.createdBy,
       ds.jobId,
       ds.projectId,
-      isActive = true,
+      isActive = ds.isActive,
       parentUuid = ds.parentUuid
     )
   }
@@ -1840,6 +1841,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -1859,7 +1861,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId,
       t2.dnaBarcodeName,
-      t1.parentUuid
+      t1.parentUuid,
+      isActive = t1.isActive
     )
 
   /**
@@ -1898,7 +1901,12 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     type QOF = (Q => Option[Q])
 
     val qInActive: QOF = { q =>
-      if (c.includeInactive) Some(q.filter(_.isActive)) else None
+      c.isActive.map { value =>
+        value match {
+          case true => q.filter(_.isActive === true)
+          case false => q.filter(_.isActive === false)
+        }
+      }
     }
 
     // This needs to be clarified and collapsed back into the SearchCriteria API
@@ -2060,6 +2068,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2070,7 +2079,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId,
       t2.ploidy,
-      t2.organism
+      t2.organism,
+      isActive = t1.isActive
     )
 
   def getReferenceDataSets(
@@ -2106,6 +2116,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2116,7 +2127,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.jobId,
       t1.projectId,
       t2.ploidy,
-      t2.organism
+      t2.organism,
+      isActive = t1.isActive
     )
 
   def getGmapReferenceDataSets(
@@ -2158,6 +2170,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2173,7 +2186,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t2.runName,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] = {
@@ -2198,6 +2212,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2206,7 +2221,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getAlignmentDataSets(
@@ -2242,6 +2258,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2250,7 +2267,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
@@ -2287,6 +2305,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2295,7 +2314,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getConsensusAlignmentDataSets(c: DataSetSearchCriteria)
@@ -2331,6 +2351,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2339,7 +2360,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getTranscriptDataSets(
@@ -2374,6 +2396,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2382,7 +2405,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getBarcodeDataSets(
@@ -2416,6 +2440,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.path,
       t1.createdAt,
       t1.updatedAt,
+      t1.importedAt,
       t1.numRecords,
       t1.totalLength,
       t1.version,
@@ -2424,7 +2449,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.md5,
       t1.createdBy,
       t1.jobId,
-      t1.projectId
+      t1.projectId,
+      isActive = t1.isActive
     )
 
   def getContigDataSets(

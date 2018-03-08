@@ -429,6 +429,7 @@ case class DataSetMetaDataSet(id: Int,
                               path: String,
                               createdAt: JodaDateTime,
                               updatedAt: JodaDateTime,
+                              importedAt: JodaDateTime,
                               numRecords: Long,
                               totalLength: Long,
                               tags: String,
@@ -573,6 +574,7 @@ trait ServiceDataSetMetadata {
   val path: String
   val createdAt: JodaDateTime
   val updatedAt: JodaDateTime
+  val importedAt: JodaDateTime
   val numRecords: Long
   val totalLength: Long
   val version: String
@@ -584,6 +586,7 @@ trait ServiceDataSetMetadata {
   val jobId: Int
   val projectId: Int
   val parentUuid: Option[UUID]
+  val isActive: Boolean
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -609,6 +612,7 @@ case class SubreadServiceDataSet(
     path: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
     numRecords: Long,
     totalLength: Long,
     version: String,
@@ -629,6 +633,7 @@ case class SubreadServiceDataSet(
     projectId: Int,
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
+    isActive: Boolean = true,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -639,6 +644,7 @@ case class HdfSubreadServiceDataSet(
     path: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
     numRecords: Long,
     totalLength: Long,
     version: String,
@@ -656,6 +662,7 @@ case class HdfSubreadServiceDataSet(
     jobId: Int,
     projectId: Int,
     parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -665,6 +672,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    path: String,
                                    createdAt: JodaDateTime,
                                    updatedAt: JodaDateTime,
+                                   importedAt: JodaDateTime,
                                    numRecords: Long,
                                    totalLength: Long,
                                    version: String,
@@ -677,6 +685,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    ploidy: String,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -686,6 +695,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    path: String,
                                    createdAt: JodaDateTime,
                                    updatedAt: JodaDateTime,
+                                   importedAt: JodaDateTime,
                                    numRecords: Long,
                                    totalLength: Long,
                                    version: String,
@@ -696,6 +706,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    jobId: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -705,6 +716,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        path: String,
                                        createdAt: JodaDateTime,
                                        updatedAt: JodaDateTime,
+                                       importedAt: JodaDateTime,
                                        numRecords: Long,
                                        totalLength: Long,
                                        version: String,
@@ -715,6 +727,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        jobId: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -724,6 +737,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             path: String,
                                             createdAt: JodaDateTime,
                                             updatedAt: JodaDateTime,
+                                            importedAt: JodaDateTime,
                                             numRecords: Long,
                                             totalLength: Long,
                                             version: String,
@@ -734,6 +748,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             jobId: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
+                                            isActive: Boolean = true,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -744,6 +759,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  path: String,
                                  createdAt: JodaDateTime,
                                  updatedAt: JodaDateTime,
+                                 importedAt: JodaDateTime,
                                  numRecords: Long,
                                  totalLength: Long,
                                  version: String,
@@ -754,6 +770,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  jobId: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
+                                 isActive: Boolean = true,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -763,6 +780,7 @@ case class ContigServiceDataSet(id: Int,
                                 path: String,
                                 createdAt: JodaDateTime,
                                 updatedAt: JodaDateTime,
+                                importedAt: JodaDateTime,
                                 numRecords: Long,
                                 totalLength: Long,
                                 version: String,
@@ -773,6 +791,7 @@ case class ContigServiceDataSet(id: Int,
                                 jobId: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
+                                isActive: Boolean = true,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -782,6 +801,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        path: String,
                                        createdAt: JodaDateTime,
                                        updatedAt: JodaDateTime,
+                                       importedAt: JodaDateTime,
                                        numRecords: Long,
                                        totalLength: Long,
                                        version: String,
@@ -794,6 +814,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        ploidy: String,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
@@ -805,6 +826,7 @@ case class TranscriptServiceDataSet(
     path: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
     numRecords: Long,
     totalLength: Long,
     version: String,
@@ -815,6 +837,7 @@ case class TranscriptServiceDataSet(
     jobId: Int,
     projectId: Int,
     parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 
@@ -1044,7 +1067,6 @@ object QueryOperators {
 
 case class DataSetSearchCriteria(
     projectIds: Set[Int],
-    showAll: Boolean = true,
     isActive: Option[Boolean] = Some(true),
     limit: Int,
     id: Option[QueryOperators.IntQueryOperator] = None,
@@ -1057,18 +1079,14 @@ case class DataSetSearchCriteria(
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None) {
-  def includeInactive: Boolean = !isActive.getOrElse(true)
-}
+    projectId: Option[QueryOperators.IntQueryOperator] = None) {}
 object DataSetSearchCriteria {
   final val DEFAULT_MAX_DATASETS = 10000
-  final val DEFAULT_IS_ACTIVE = true
-  final val DEFAULT_SHOW_ALL = true
+  final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
 
   def default =
     DataSetSearchCriteria(Set.empty[Int],
-                          showAll = DEFAULT_SHOW_ALL,
-                          isActive = Some(DEFAULT_IS_ACTIVE),
+                          isActive = DEFAULT_IS_ACTIVE,
                           name = None,
                           limit = DEFAULT_MAX_DATASETS)
 }

@@ -376,6 +376,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
+
     def numRecords: Rep[Long] = column[Long]("num_records")
 
     def totalLength: Rep[Long] = column[Long]("total_length")
@@ -409,6 +411,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        path,
        createdAt,
        updatedAt,
+       importedAt,
        numRecords,
        totalLength,
        tags,
