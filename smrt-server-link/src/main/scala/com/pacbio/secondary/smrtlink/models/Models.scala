@@ -1067,7 +1067,6 @@ object QueryOperators {
 
 case class DataSetSearchCriteria(
     projectIds: Set[Int],
-    showAll: Boolean = true,
     isActive: Option[Boolean] = Some(true),
     limit: Int,
     id: Option[QueryOperators.IntQueryOperator] = None,
@@ -1080,18 +1079,14 @@ case class DataSetSearchCriteria(
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None) {
-  def includeInactive: Boolean = !isActive.getOrElse(true)
-}
+    projectId: Option[QueryOperators.IntQueryOperator] = None) {}
 object DataSetSearchCriteria {
   final val DEFAULT_MAX_DATASETS = 10000
-  final val DEFAULT_IS_ACTIVE = true
-  final val DEFAULT_SHOW_ALL = true
+  final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
 
   def default =
     DataSetSearchCriteria(Set.empty[Int],
-                          showAll = DEFAULT_SHOW_ALL,
-                          isActive = Some(DEFAULT_IS_ACTIVE),
+                          isActive = DEFAULT_IS_ACTIVE,
                           name = None,
                           limit = DEFAULT_MAX_DATASETS)
 }

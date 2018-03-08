@@ -277,7 +277,7 @@ class DataSetService(dao: JobsDao)
   // Temporary validation/conversion mechanism
   def parseDataSetSearchCriteria(
       projectIds: Set[Int],
-      showAll: Boolean,
+      isActive: Option[Boolean],
       limit: Int,
       id: Option[String],
       uuid: Option[String],
@@ -290,7 +290,8 @@ class DataSetService(dao: JobsDao)
       jobId: Option[String],
       projectId: Option[String]): Future[DataSetSearchCriteria] = {
 
-    val search = DataSetSearchCriteria(projectIds, showAll, limit = limit)
+    val search =
+      DataSetSearchCriteria(projectIds, isActive = isActive, limit = limit)
 
     for {
       qId <- parseQueryOperator[IntQueryOperator](id,
@@ -381,7 +382,7 @@ class DataSetService(dao: JobsDao)
                       ids <- getProjectIds(projectId.map(_.toInt), user)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
-                        showAll.isDefined,
+                        Some(showAll.isEmpty),
                         limit.getOrElse(DS_LIMIT),
                         id,
                         uuid,

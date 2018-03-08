@@ -1901,7 +1901,12 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     type QOF = (Q => Option[Q])
 
     val qInActive: QOF = { q =>
-      if (c.includeInactive) Some(q.filter(_.isActive)) else None
+      c.isActive.map { value =>
+        value match {
+          case true => q.filter(_.isActive === true)
+          case false => q.filter(_.isActive === false)
+        }
+      }
     }
 
     // This needs to be clarified and collapsed back into the SearchCriteria API
