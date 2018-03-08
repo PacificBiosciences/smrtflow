@@ -1886,19 +1886,29 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       Future(blocking(subreadToDetails(x)))
     }
 
+  /**
+    * Note, that limit is not imposed here. Consumers should explicitly
+    * set this (perhaps after doing a join on another dataset table).
+    *
+    */
   private def qDsMetaDataBySearch(c: DataSetSearchCriteria) = {
-    val q0 = dsMetaData2
-    val q1 = if (c.includeInactive) q0.filter(_.isActive) else q0
-    val q2 = if (c.projectIds.isEmpty) {
-      q1
-    } else {
-      // This needs to be fixed/clarified.
-      q1.filter(_.projectId inSet c.projectIds)
-    }
 
     type Q = Query[DataSetMetaT, DataSetMetaT#TableElementType, Seq]
+    type QF = (Q => Q)
+    type QOF = (Q => Option[Q])
 
-    def qById(q: Q): Q = {
+    val qInActive: QOF = { q =>
+      if (c.includeInactive) Some(q.filter(_.isActive)) else None
+    }
+
+    // This needs to be clarified and collapsed back into the SearchCriteria API
+    // in the new standard way.
+    val qOldProjectIds: QOF = { q =>
+      if (c.projectIds.nonEmpty) Some(q.filter(_.projectId inSet c.projectIds))
+      else None
+    }
+
+    val qById: QOF = { q =>
       c.id
         .map {
           case IntEqQueryOperator(value) => q.filter(_.id === value)
@@ -1908,21 +1918,19 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case IntLteQueryOperator(value) => q.filter(_.id <= value)
           case IntLtQueryOperator(value) => q.filter(_.id < value)
         }
-        .getOrElse(q)
     }
 
     // By Name
-    def qByName(q: Q): Q = {
+    val qByName: QOF = { q =>
       c.name
         .map {
           case StringEqQueryOperator(value) => q.filter(_.name === value)
           case StringInQueryOperator(values) => q.filter(_.name inSet values)
         }
-        .getOrElse(q)
     }
 
     // By NumRecords
-    def qByNumRecords(q: Q): Q = {
+    val qByNumRecords: QOF = { q =>
       c.numRecords
         .map {
           case LongEqQueryOperator(value) => q.filter(_.numRecords === value)
@@ -1933,11 +1941,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case LongLteQueryOperator(value) => q.filter(_.numRecords <= value)
           case LongLtQueryOperator(value) => q.filter(_.numRecords < value)
         }
-        .getOrElse(q)
     }
 
     // By TotalLength
-    def qByTotalength(q: Q): Q = {
+    val qByTotaLength: QOF = { q =>
       c.totalLength
         .map {
           case LongEqQueryOperator(value) => q.filter(_.totalLength === value)
@@ -1948,11 +1955,10 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case LongLteQueryOperator(value) => q.filter(_.totalLength <= value)
           case LongLtQueryOperator(value) => q.filter(_.totalLength < value)
         }
-        .getOrElse(q)
     }
 
     // By Job Id
-    def qByJobId(q: Q): Q = {
+    val qByJobId: QOF = { q =>
       c.jobId
         .map {
           case IntEqQueryOperator(value) => q.filter(_.jobId === value)
@@ -1962,33 +1968,75 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           case IntLteQueryOperator(value) => q.filter(_.jobId <= value)
           case IntLtQueryOperator(value) => q.filter(_.jobId < value)
         }
-        .getOrElse(q)
     }
     // By Version
-    def qByVersion(q: Q): Q = {
+    val qByVersion: QOF = { q =>
       c.version
         .map {
           case StringEqQueryOperator(value) => q.filter(_.version === value)
           case StringInQueryOperator(values) =>
             q.filter(_.version inSet values)
         }
-        .getOrElse(q)
     }
+
     // By Created By
-    def qByCreatedBy(q: Q): Q = {
+    val qByCreatedBy: QOF = { q =>
       c.createdBy
         .map {
           case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
           case StringInQueryOperator(values) =>
             q.filter(_.createdBy inSet values)
         }
-        .getOrElse(q)
     }
 
-    // There has to be a cleaner way to do this.
-    qById(
-      qByName(
-        qByNumRecords(qByTotalength(qByJobId(qByVersion(qByCreatedBy(q2)))))))
+    val qByCreatedAt: QOF = { q =>
+      c.createdAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.createdAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.createdAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.createdAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.createdAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.createdAt <= value)
+        }
+    }
+
+    val qByUpdatedAt: QOF = { q =>
+      c.updatedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.updatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.updatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.updatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.updatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.updatedAt <= value)
+        }
+    }
+
+    val qByUUID: QOF = { q =>
+      c.uuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.uuid === value)
+          case UUIDInOperator(values) => q.filter(_.uuid inSet values)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(qInActive,
+                                qOldProjectIds,
+                                qById,
+                                qByName,
+                                qByNumRecords,
+                                qByTotaLength,
+                                qByJobId,
+                                qByVersion,
+                                qByCreatedBy,
+                                qByCreatedAt,
+                                qByUpdatedAt,
+                                qByUUID)
+
+    val qTotal: QF = { q =>
+      queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }
+    }
+
+    qTotal(dsMetaData2)
   }
 
   def getSubreadDataSets(
