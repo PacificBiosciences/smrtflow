@@ -4350,6 +4350,12 @@
                "title": "Updated At",
                "description": ""
              },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -4495,7 +4501,8 @@
         "metadataContextId",
         "runName",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
@@ -4521,7 +4528,8 @@
         "metadataContextId": "m54011_160727_002259",
         "runName": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
         "datasetType": "PacBio.DataSet.SubreadSet",
-        "comments": " "
+        "comments": " ",
+        "isActive": true
       }
     },
     "BarcodeSetDetails": {
@@ -4544,6 +4552,12 @@
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
         },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4632,7 +4646,8 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_barcode_adapters_96",
@@ -4651,7 +4666,8 @@
         "createdAt": "2016-07-13T20:32:48.349Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.BarcodeSet",
-        "comments": "Barcode  imported"
+        "comments": "Barcode  imported",
+        "isActive": true
       }
     },
     "ConsensusAlignmentSet": {
@@ -4674,6 +4690,12 @@
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
         },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4762,7 +4784,8 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
@@ -4780,7 +4803,8 @@
         "createdAt": "2016-11-04T06:32:04.982Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
-        "comments": "ccs alignment dataset converted"
+        "comments": "ccs alignment dataset converted",
+        "isActive": true
       }
     },
     "ContigSetDetails": {
@@ -4803,6 +4827,12 @@
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
         },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4891,7 +4921,8 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
@@ -4910,7 +4941,8 @@
         "createdAt": "2017-01-23T23:43:43.521Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ContigSet",
-        "comments": "contig dataset comments"
+        "comments": "contig dataset comments",
+        "isActive": true
       }
     },
     "ConsensusReadDetails": {
@@ -4933,6 +4965,12 @@
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
         },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -5021,7 +5059,8 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
@@ -5040,7 +5079,8 @@
         "createdAt": "2017-02-02T06:56:46.940Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusReadSet",
-        "comments": "ccs dataset converted"
+        "comments": "ccs dataset converted",
+        "isActive": true
       }
     },
     "ReferenceSetDetails": {
@@ -5062,6 +5102,12 @@
           "type": "string",
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
         },
         "path": {
           "type": "string",
@@ -5163,7 +5209,8 @@
         "organism",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "lambdaNEB",
@@ -5184,7 +5231,8 @@
         "organism": "lambdaNEB",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ReferenceSet",
-        "comments": "reference dataset comments"
+        "comments": "reference dataset comments",
+        "isActive": true
       }
     },
     "GmapReferenceSetDetails": {
@@ -5206,6 +5254,12 @@
           "type": "string",
           "title": "Imported At",
           "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
         },
         "path": {
           "type": "string",
@@ -5307,7 +5361,8 @@
         "organism",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "hg38",
@@ -5327,7 +5382,8 @@
         "organism": "hg38",
         "userId": 1,
         "datasetType": "PacBio.DataSet.GmapReferenceSet",
-        "comments": "reference dataset comments"
+        "comments": "reference dataset comments",
+        "isActive": true
       }
     },
     "Manifests": {
