@@ -3969,6 +3969,11 @@
           "title": "Updated At",
           "description": ""
         },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
@@ -4091,6 +4096,11 @@
           "title": "Created At",
           "description": ""
         },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
@@ -4110,6 +4120,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4128,6 +4139,7 @@
       "example": {
         "name": "pacbio_dataset_alignmentset-160202_223320635",
         "updatedAt": "2016-02-02T22:34:38.534Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/000/000003/tasks/pbsmrtpipe.tasks.gather_alignmentset-1/file.alignmentset.xml",
         "tags": "",
         "uuid": "ee7d9225-d834-01b0-0488-b0bda263e085",
@@ -4159,6 +4171,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4268,6 +4285,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "instrumentName",
@@ -4293,6 +4311,7 @@
       "example": {
         "name": "Convert-movie",
         "updatedAt": "2016-03-04T14:15:00.653Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/home/UNIXHOME/ckonig/Cologne_CCS2_201603/B01_1/m160119_004643_42207_c100947812550000001823211506101611_s1_p0.hdfsubreadset.xml",
         "tags": "pacbio.secondary.instrument=RS",
         "instrumentName": "42207",
@@ -4331,6 +4350,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4450,6 +4474,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "instrumentName",
@@ -4475,6 +4500,7 @@
       "example": {
         "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
         "updatedAt": "2016-12-02T23:34:58.660Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/collections/315/3150315/r54011_20160727_001907/1_A01/m54011_160727_002259.subreadset.xml",
         "tags": "subreadset",
         "instrumentName": "Alpha11",
@@ -4513,6 +4539,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4587,6 +4618,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4605,6 +4637,7 @@
       "example": {
         "name": "pacbio_barcode_adapters_96",
         "updatedAt": "2016-07-13T20:32:48.349Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/dept/secondary/siv/barcodes/pacbio_barcodes_96_revcomp/pacbio_barcodes_96_revcomp.barcodeset.xml",
         "tags": "",
         "uuid": "bee0488f-49a6-0505-e89a-2579411804b8",
@@ -4636,6 +4669,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4710,6 +4748,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4759,6 +4798,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4833,6 +4877,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4851,6 +4896,7 @@
       "example": {
         "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
         "updatedAt": "2017-01-23T23:43:43.521Z",
+        "importedAt": "2017-02-02T06:56:46.940Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003805/tasks/pbcoretools.tasks.gather_contigset-1/file.contigset.xml",
         "tags": "",
         "uuid": "776bbba8-cb83-e46d-5228-ff02e449e3c4",
@@ -4882,6 +4928,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4956,6 +5007,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4974,6 +5026,7 @@
       "example": {
         "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
         "updatedAt": "2017-02-02T06:56:46.940Z",
+        "importedAt": "2017-02-02T06:56:46.940Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003943/tasks/pbcoretools.tasks.gather_ccsset-1/file.consensusreadset.xml",
         "tags": "",
         "uuid": "0e4cb148-7a5e-c98b-c204-a5ac47378e14",
@@ -5005,6 +5058,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -5089,6 +5147,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "ploidy",
         "tags",
@@ -5109,6 +5168,7 @@
       "example": {
         "name": "lambdaNEB",
         "updatedAt": "2016-02-02T22:26:22.168Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/current/bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
         "ploidy": "haploid",
         "tags": "",
@@ -5142,6 +5202,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -5226,6 +5291,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "ploidy",
         "tags",
