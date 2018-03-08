@@ -584,6 +584,7 @@ trait ServiceDataSetMetadata {
   val jobId: Int
   val projectId: Int
   val parentUuid: Option[UUID]
+  val isActive: Boolean
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -629,6 +630,7 @@ case class SubreadServiceDataSet(
     projectId: Int,
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
+    isActive: Boolean = true,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -656,6 +658,7 @@ case class HdfSubreadServiceDataSet(
     jobId: Int,
     projectId: Int,
     parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -677,6 +680,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    ploidy: String,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -696,6 +700,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    jobId: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -715,6 +720,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        jobId: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -734,6 +740,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             jobId: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
+                                            isActive: Boolean = true,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -754,6 +761,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  jobId: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
+                                 isActive: Boolean = true,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -773,6 +781,7 @@ case class ContigServiceDataSet(id: Int,
                                 jobId: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
+                                isActive: Boolean = true,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -794,6 +803,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        ploidy: String,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
@@ -815,6 +825,7 @@ case class TranscriptServiceDataSet(
     jobId: Int,
     projectId: Int,
     parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 

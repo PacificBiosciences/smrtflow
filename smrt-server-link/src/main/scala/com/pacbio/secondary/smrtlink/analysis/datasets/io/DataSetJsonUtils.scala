@@ -251,8 +251,10 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
                "value" -> JsString(p.value))
     def read(value: JsValue): DataSetFilterProperty = {
       value.asJsObject.getFields("name", "operator", "value") match {
-        case Seq(JsString(name), JsString(operator), JsString(value)) =>
-          DataSetFilterProperty(name, operator, value)
+        case Seq(JsString(name),
+                 JsString(operator),
+                 JsString(operatorValue)) =>
+          DataSetFilterProperty(name, operator, operatorValue)
         case x =>
           deserializationError(s"Expected DataSetFilterProperty, got $x")
       }
