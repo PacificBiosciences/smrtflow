@@ -548,6 +548,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 
+  case class TranscriptServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
+
   case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet,
                                       dataset: ContigServiceSet)
 
@@ -1398,6 +1400,12 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <> (ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
+  class TranscriptDataSetT(tag: Tag)
+      extends IdAbleTable[TranscriptServiceSet](tag, "datasets_transcripts") {
+    def * =
+      (id, uuid) <> (TranscriptServiceSet.tupled, TranscriptServiceSet.unapply)
+  }
+
   /**
     * The general metadata container for DataStoreFile(s) produced by an EngineJob.
     *
@@ -1673,6 +1681,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
   lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
   lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
   lazy val dsContig2 = TableQuery[ContigDataSetT]
+  // XXX not part of serviceTables!
+  lazy val dsTranscript2 = TableQuery[TranscriptDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
