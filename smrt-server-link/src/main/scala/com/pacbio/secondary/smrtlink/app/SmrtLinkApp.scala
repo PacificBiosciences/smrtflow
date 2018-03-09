@@ -178,7 +178,9 @@ trait SmrtLinkProviders
 
   override val baseServiceId: Singleton[String] = Singleton(
     "smrtlink_analysis")
-  override val actorSystemName = Some("smrtlink-analysis-server")
+  // keep this name as short as possible. It's in the log at a high
+  // frequency
+  override val actorSystemName = Some("sl-server")
   override val buildPackage: Singleton[Package] = Singleton(
     getClass.getPackage)
 }
