@@ -2051,7 +2051,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsSubread2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toSds(x._1, x._2)))
+    db.run(q1.take(c.limit).result).map(_.map(x => toSds(x._1, x._2)))
   }
 
   /**
