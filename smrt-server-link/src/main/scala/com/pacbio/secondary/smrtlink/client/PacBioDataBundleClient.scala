@@ -7,23 +7,23 @@ import com.pacbio.secondary.smrtlink.models.PacBioDataBundle
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model.Uri
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
-  *
-  *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
   * @param actorSystem Actor System
   */
-class PacBioDataBundleClient(override val baseUrl: URL)(
+class PacBioDataBundleClient(host: String, port: Int)(
     implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem) {
+    extends ServiceAccessLayer(host, port)(actorSystem) {
 
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+
+  val BUNDLES_PATH = Uri.Path("smrt-link") / "bundles"
 
   /**
     * This will resolve the URL to bundle root service.
@@ -31,14 +31,16 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
     * @param bundleType
     * @return
     */
-  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
-    val segment = bundleType.map(b => s"/$b").getOrElse("")
-    toUrl(segment)
-  }
+  def toPacBioDataBundleUriPath(bundleType: Option[String] = None): Uri.Path =
+    bundleType.map(b => BUNDLES_PATH / b).getOrElse(BUNDLES_PATH)
 
-  def toPacBioBundleDownloadUrl(bundleType: String, bundleVersion: String) = {
-    val segment = s"/$bundleType/$bundleVersion/download"
-    toUrl(segment)
+  def toPacBioDataBundleUrl(bundleType: Option[String] = None): Uri =
+    toUri(toPacBioDataBundleUriPath(bundleType))
+
+  def toPacBioBundleDownloadUrl(bundleType: String,
+                                bundleVersion: String): Uri = {
+    val path = BUNDLES_PATH / bundleType / bundleVersion / "download"
+    toUri(path)
   }
 
   /**
@@ -61,7 +63,7 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
       typeId: String,
       versionId: String): Future[Seq[PacBioDataBundle]] =
     getObject[Seq[PacBioDataBundle]](
-      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId"))))
+      Get(toUri(toPacBioDataBundleUriPath(Some(s"$typeId")) / versionId)))
 
 }
 
@@ -73,29 +75,28 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
   * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
   * @param actorSystem Actor System
   */
-class PacBioDataBundleUpdateServerClient(override val baseUrl: URL)(
+class PacBioDataBundleUpdateServerClient(host: String, port: Int)(
     implicit actorSystem: ActorSystem)
-    extends PacBioDataBundleClient(baseUrl)(actorSystem) {
+    extends PacBioDataBundleClient(host, port)(actorSystem) {
 
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  val V2_PREFIX = "/api/v2/updates"
+  val V2_PREFIX_PATH: Uri.Path = Uri.Path("api") / "v2" / "updates"
 
   def toV2PacBioDataBundleUrl(pacBioSystemVersion: String,
-                              bundleType: Option[String] = None): String = {
-    val segment = bundleType
-      .map(b => s"$V2_PREFIX/$pacBioSystemVersion/bundles/$b")
-      .getOrElse(s"$V2_PREFIX/$pacBioSystemVersion/bundles")
-    toUrl(segment)
+                              bundleType: Option[String] = None): Uri = {
+
+    val base = V2_PREFIX_PATH / pacBioSystemVersion / "bundles"
+
+    toUri(bundleType.map(b => base / b).getOrElse(base))
   }
 
   def toV2PacBioBundleDownloadUrl(pacBioSystemVersion: String,
                                   bundleType: String,
-                                  bundleVersion: String): String = {
-    val segment =
-      s"$V2_PREFIX/$pacBioSystemVersion/bundles/$bundleType/$bundleVersion/download"
-    toUrl(segment)
+                                  bundleVersion: String): Uri = {
+    val path = V2_PREFIX_PATH / pacBioSystemVersion / "bundles" / bundleType / bundleVersion / "download"
+    toUri(path)
   }
 
   /**

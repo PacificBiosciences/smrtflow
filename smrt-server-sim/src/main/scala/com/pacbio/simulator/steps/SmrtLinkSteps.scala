@@ -114,7 +114,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetSubreadSets extends VarStep[Seq[SubreadServiceDataSet]] {
     override val name = "GetSubreadSets"
     override def runWith =
-      smrtLinkClient.getSubreadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getSubreadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetSubreadSet(dsId: Var[UUID])

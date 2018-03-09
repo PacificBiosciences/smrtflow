@@ -58,18 +58,13 @@ trait ClientBase extends Retrying {
 
   lazy val http = Http()
 
-  val baseUrl: URL
+  def RootUri: Uri
 
-  // This should really return a URL instance, not a string
-  protected def toUrl(segment: String): String =
-    new URL(baseUrl.getProtocol,
-            baseUrl.getHost,
-            baseUrl.getPort,
-            baseUrl.getPath + segment).toString
+  def toUri(path: Uri.Path): Uri = RootUri.copy(path = Uri.Path / path)
 
-  val statusUrl = toUrl("/status")
+  lazy val statusUrl: Uri = toUri(Uri.Path("status"))
 
-  protected def getEndpoint(endpointUrl: String): Future[HttpResponse] =
+  protected def getEndpoint(endpointUrl: Uri): Future[HttpResponse] =
     http.singleRequest(Get(endpointUrl))
 
   private def decodeResponse(response: HttpResponse): HttpResponse = {
@@ -177,7 +172,7 @@ trait ClientBase extends Retrying {
     * @param timeOut     Max timeout for status request
     * @return
     */
-  def checkEndpoint(endpointUrl: String,
+  def checkEndpoint(endpointUrl: Uri,
                     timeOut: FiniteDuration = 20.seconds): Int = {
 
     def statusToInt(status: StatusCode): Int = {
@@ -208,14 +203,14 @@ trait ClientBase extends Retrying {
 /**
   * Base class for clients
   */
-abstract class ServiceAccessLayer(val baseUrl: URL)(
+abstract class ServiceAccessLayer(host: String, port: Int)(
     implicit val actorSystem: ActorSystem)
     extends ClientBase {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
-  def this(host: String, port: Int)(implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port))(actorSystem)
-  }
+  // The HTTP scheme type should be configurable from the constructor
+  def RootUri =
+    Uri.from(host = host, port = port, scheme = Uri.httpScheme())
 }

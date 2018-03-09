@@ -19,7 +19,8 @@ import scala.util.control.NonFatal
 class ExternalChemistryServerAlarmRunner(url: URL)(
     implicit actorSystem: ActorSystem)
     extends AlarmRunner {
-  val client = new PacBioDataBundleClient(url)(actorSystem)
+  val client =
+    new PacBioDataBundleClient(url.getHost, url.getPort)(actorSystem)
 
   def getStatus(maxRetries: Int): Future[AlarmUpdate] =
     client

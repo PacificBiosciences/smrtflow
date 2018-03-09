@@ -28,12 +28,11 @@ import scala.collection.immutable
   * There's some friction here with the current EventURL defined in the config, versus only defining a
   * host, port or URL, then determining the relative endpoints.
   *
-  * @param baseUrl note, this is the base URL of the system, not http://my-server:8080/my-events.
   * @param actorSystem
   */
-class EventServerClient(baseUrl: URL, apiSecret: String)(
+class EventServerClient(host: String, port: Int, apiSecret: String)(
     implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem)
+    extends ServiceAccessLayer(host, port)(actorSystem)
     with LazyLogging {
 
   import SprayJsonSupport._
@@ -42,23 +41,35 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
   private val SEGMENT_EVENTS = "events"
   private val SEGMENT_FILES = "files"
 
-  val PREFIX_BASE = "/api/v1"
-  val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
-  val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
+  val PREFIX_API_PATH = Uri.Path("api") / "v1"
+
+  val UPLOAD_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_FILES
+  val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_EVENTS
+  val FILES_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_FILES
+
+  val FILES_URI = toUri(FILES_URI_PATH)
+  val EVENTS_URI = toUri(EVENTS_URI_PATH)
+  val UPLOAD_URI = toUri(UPLOAD_URI_PATH)
+
+  //val toUploadUrl: Uri = toUri(UPLOAD_URI_PATH)
+  //val eventsUrl:Uri = toUri(EVENTS_URI_PATH)
+  //val filesUrl = toApiUrl(SEGMENT_FILES)
+
+  //val PREFIX_BASE = "/api/v1"
+  //val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
+  //val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
 
   /**
     * Create an Eve Client
     *
     * Note, the default protocol will be set to http if not explicitly provided.
     *
-    * @param host        Host name
-    * @param port        Port
     * @param apiSecret   API Secret used in the auth hashing algo
     * @param actorSystem Actor System
     */
-  def this(host: String, port: Int, apiSecret: String)(
+  def this(baseUrl: URL, apiSecret: String)(
       implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
+    this(baseUrl.getHost, baseUrl.getPort, apiSecret)(actorSystem)
   }
 
   // Useful for debugging
@@ -70,39 +81,16 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
   }
 
   private def generateAuthHeader(method: HttpMethod,
-                                 segment: String): HttpHeader = {
+                                 segment: Uri.Path): HttpHeader = {
     val key =
       Signer.generate(apiSecret, s"${method.value}+$segment", Signer.timestamp)
     val authHeader = s"hmac uid:$key"
     RawHeader("Authentication", authHeader)
   }
 
-  /**
-    * Create URL relative to the base prefix segment
-    *
-    * wtf does super.toUrl return a String?
-    *
-    * @param segment relative segment to the base '/api/vi/' prefix
-    * @return
-    */
-  def toApiUrl(segment: String): URL = {
-    new URL(baseUrl.getProtocol,
-            baseUrl.getHost,
-            baseUrl.getPort,
-            s"$PREFIX_BASE/$segment")
-  }
-
-  val toUploadUrl: URL = new URL(baseUrl.getProtocol,
-                                 baseUrl.getHost,
-                                 baseUrl.getPort,
-                                 PREFIX_FILES)
-
-  val eventsUrl = toApiUrl(SEGMENT_EVENTS)
-  val filesUrl = toApiUrl(SEGMENT_FILES)
-
   def smrtLinkSystemEventPipeline(
       method: HttpMethod,
-      segment: String): HttpRequest => Future[SmrtLinkSystemEvent] = {
+      segment: Uri.Path): HttpRequest => Future[SmrtLinkSystemEvent] = {
     httpRequest =>
       getObject[SmrtLinkSystemEvent](
         httpRequest.withHeaders(
@@ -111,8 +99,8 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
 
   def sendSmrtLinkSystemEvent(
       event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline(HttpMethods.POST, PREFIX_EVENTS) {
-      Post(eventsUrl.toString, event)
+    smrtLinkSystemEventPipeline(HttpMethods.POST, EVENTS_URI_PATH) {
+      Post(EVENTS_URI, event)
     }
 
   def sendSmrtLinkSystemEventWithBlockingRetry(
@@ -154,8 +142,8 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
 
   def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
 
-    smrtLinkSystemEventPipeline(HttpMethods.POST, PREFIX_FILES) {
-      Post(toUploadUrl.toString, createUploadEntity(pathTgz))
+    smrtLinkSystemEventPipeline(HttpMethods.POST, FILES_URI_PATH) {
+      Post(UPLOAD_URI, createUploadEntity(pathTgz))
     }
   }
 
