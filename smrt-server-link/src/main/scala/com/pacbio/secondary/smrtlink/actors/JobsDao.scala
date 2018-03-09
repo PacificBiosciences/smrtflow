@@ -2367,7 +2367,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getTranscriptDataSets(
       c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
-    val q1 = q0 join dsCCSAlignment2 on (_.id === _.id)
+    val q1 = q0 join dsTranscript2 on (_.id === _.id)
     db.run(q1.result).map(_.map(x => toT(x._1)))
   }
 
@@ -2376,7 +2376,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     db.run(q.result.headOption)
       .map(_.map(x => toT(x._1)))
       .flatMap(failIfNone(
-        s"Unable to find ConsensusAlignmentSet with uuid ${id.toIdString}"))
+        s"Unable to find TranscriptSet with uuid ${id.toIdString}"))
   }
 
   private def transcriptSetToDetails(ds: TranscriptServiceDataSet): String =
