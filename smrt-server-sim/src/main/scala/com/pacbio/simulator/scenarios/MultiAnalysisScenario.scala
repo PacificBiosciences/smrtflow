@@ -168,7 +168,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       _ <- andLog(s"Loaded TestDataFile $subreadset")
       msg <- client.getStatus
       _ <- andLog(
-        s"Successfully connected to SMRT Link Server: ${client.baseUrl} ${msg.message}")
+        s"Successfully connected to SMRT Link Server: ${client.RootUri} ${msg.message}")
       dst <- Future.successful(getDataSetMiniMeta(subreadset.path))
       importJob <- client.importDataSet(subreadset.path, dst.metatype)
       _ <- andLog(s"Created import-dataset job ${importJob.id}")
