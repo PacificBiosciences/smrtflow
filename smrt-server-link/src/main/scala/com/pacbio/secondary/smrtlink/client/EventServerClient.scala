@@ -30,9 +30,15 @@ import scala.collection.immutable
   *
   * @param actorSystem
   */
-class EventServerClient(host: String, port: Int, apiSecret: String)(
-    implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(host, port)(actorSystem)
+class EventServerClient(
+    host: String,
+    port: Int,
+    apiSecret: String,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem)
     with LazyLogging {
 
   import SprayJsonSupport._
@@ -69,7 +75,10 @@ class EventServerClient(host: String, port: Int, apiSecret: String)(
     */
   def this(baseUrl: URL, apiSecret: String)(
       implicit actorSystem: ActorSystem) {
-    this(baseUrl.getHost, baseUrl.getPort, apiSecret)(actorSystem)
+    this(baseUrl.getHost,
+         baseUrl.getPort,
+         apiSecret,
+         securedConnection = (baseUrl.getProtocol == "https"))(actorSystem)
   }
 
   // Useful for debugging

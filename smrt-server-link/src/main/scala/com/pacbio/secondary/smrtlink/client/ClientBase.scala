@@ -203,14 +203,20 @@ trait ClientBase extends Retrying {
 /**
   * Base class for clients
   */
-abstract class ServiceAccessLayer(host: String, port: Int)(
-    implicit val actorSystem: ActorSystem)
+abstract class ServiceAccessLayer(
+    host: String,
+    port: Int,
+    securedConnection: Boolean = false)(implicit val actorSystem: ActorSystem)
     extends ClientBase {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
   // The HTTP scheme type should be configurable from the constructor
+  private val httpSchme = Uri.httpScheme()
+
   def RootUri =
-    Uri.from(host = host, port = port, scheme = Uri.httpScheme())
+    Uri.from(host = host,
+             port = port,
+             scheme = Uri.httpScheme(securedConnection))
 }

@@ -16,9 +16,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
   * @param actorSystem Actor System
   */
-class PacBioDataBundleClient(host: String, port: Int)(
-    implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(host, port)(actorSystem) {
+class PacBioDataBundleClient(
+    host: String,
+    port: Int,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem) {
 
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
@@ -72,12 +77,16 @@ class PacBioDataBundleClient(host: String, port: Int)(
   *
   * This client can access the legacy "V1" routes, or the new "V2" routes.
   *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
   * @param actorSystem Actor System
   */
-class PacBioDataBundleUpdateServerClient(host: String, port: Int)(
-    implicit actorSystem: ActorSystem)
-    extends PacBioDataBundleClient(host, port)(actorSystem) {
+class PacBioDataBundleUpdateServerClient(
+    host: String,
+    port: Int,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends PacBioDataBundleClient(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem) {
 
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
