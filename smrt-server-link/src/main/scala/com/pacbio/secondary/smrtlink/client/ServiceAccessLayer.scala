@@ -66,18 +66,17 @@ class SmrtLinkServiceClient(
   /// Uri.Path instances, not raw strings.
 
   // This should be deleted in favor of ROOT_SL
-  val ROOT_SA_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SA_PREFIX)
   val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SL_PREFIX)
 
-  val ROOT_JM_URI_PATH: Uri.Path = ROOT_SA_PREFIX_URI_PATH / JOB_MANAGER_PREFIX
+  val ROOT_JM_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / JOB_MANAGER_PREFIX
   val ROOT_JOBS_URI_PATH: Uri.Path = ROOT_JM_URI_PATH / JOB_ROOT_PREFIX
   val ROOT_MULTI_JOBS_URI_PATH
     : Uri.Path = ROOT_JM_URI_PATH / JOB_MULTI_ROOT_PREFIX
-  val ROOT_DS_URI_PATH: Uri.Path = ROOT_SA_PREFIX_URI_PATH / "datasets"
+  val ROOT_DS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "datasets"
   val ROOT_PB_DATA_BUNDLE_URI_PATH
     : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "bundles"
   val ROOT_DATASTORE_URI_PATH
-    : Uri.Path = ROOT_SA_PREFIX_URI_PATH / DATASTORE_FILES_PREFIX
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / DATASTORE_FILES_PREFIX
   val ROOT_RUNS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "runs"
   val ROOT_PROJECTS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "projects"
   val ROOT_EULA_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "eula"
