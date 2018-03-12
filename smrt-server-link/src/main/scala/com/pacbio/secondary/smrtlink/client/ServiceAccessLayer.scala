@@ -850,11 +850,11 @@ class SmrtLinkServiceClient(
     * @return
     */
   def getRegistryProxy(resource: UUID, path: Uri.Path): Future[HttpResponse] = {
-    // FIXME This might not be correct
     val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
     getObject[HttpResponse](
       Get(
-        toUri(ROOT_REGISTRY_URI_PATH / "resources" / "proxy" / px.toString()))
+        toUri(
+          Uri.Path(s"$ROOT_REGISTRY_URI_PATH/resources/$resource/proxy$px")))
     )
   }
 

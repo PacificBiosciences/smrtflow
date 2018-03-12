@@ -71,7 +71,7 @@ class RegistryScenario(client: SmrtLinkServiceClient)
   private val proxyHost = "jsonplaceholder.typicode.com"
   private val proxyPort = 80
   private val resourceId = s"test-resource-${UUID.randomUUID()}"
-  private val path = Uri.Path("/users")
+  private val path: Uri.Path = Uri.Path("users")
   override val steps: Seq[Step] = Seq(
     RegistrySanityStep(proxyHost, proxyPort, resourceId, path))
 
