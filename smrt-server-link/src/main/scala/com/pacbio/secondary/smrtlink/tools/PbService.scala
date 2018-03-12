@@ -792,16 +792,13 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
     DataSetSearchCriteria.default.copy(limit = maxItems)
 
-    val qName = searchName.flatMap(n => StringQueryOperator.fromString(n))
+    val qName = searchName.flatMap(StringQueryOperator.fromString)
+    val qPath = searchPath.flatMap(StringQueryOperator.fromString)
 
     val searchCriteria =
-      DataSetSearchCriteria.default.copy(limit = maxItems, name = qName)
-
-    def isMatching(ds: ServiceDataSetMetadata): Boolean = {
-      val qName = searchName.map(n => ds.name contains n).getOrElse(true)
-      val qPath = searchPath.map(p => ds.path contains p).getOrElse(true)
-      qName && qPath
-    }
+      DataSetSearchCriteria.default.copy(limit = maxItems,
+                                         name = qName,
+                                         path = qPath)
 
     def fx: Future[Seq[(ServiceDataSetMetadata, JsValue)]] = dsType match {
       case DataSetMetaTypes.Subread =>
@@ -829,12 +826,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
     for {
       records <- fx
-      filtered <- Future.successful(records.filter(r => isMatching(r._1)))
       outstr <- Future.successful {
         if (asJson) {
-          filtered.map(_._2).map(_.prettyPrint).mkString(",\n")
+          records.map(_._2).map(_.prettyPrint).mkString(",\n")
         } else {
-          val table = filtered.map(_._1).reverse.take(maxItems).map { ds =>
+          val table = records.map(_._1).reverse.take(maxItems).map { ds =>
             Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
           }
           toTable(table, Seq("ID", "UUID", "Name", "Path"))
