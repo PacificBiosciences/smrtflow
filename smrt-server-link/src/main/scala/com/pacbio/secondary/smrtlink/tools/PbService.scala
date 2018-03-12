@@ -677,18 +677,23 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     ""
   }
 
+  // This really needs a count call on each dataset type
+  // or a direct summary endpoint. This doesn't really
+  // work with the new query endpoint.
   protected def systemDataSetSummary(): Future[String] = {
     for {
       numSubreadSets <- sal.getSubreadSets().map(_.length)
-      numHdfSubreadSets <- sal.getHdfSubreadSets.map(_.length)
-      numReferenceSets <- sal.getReferenceSets.map(_.length)
-      numGmapReferenceSets <- sal.getGmapReferenceSets.map(_.length)
-      numAlignmenSets <- sal.getAlignmentSets.map(_.length)
-      numBarcodeSets <- sal.getBarcodeSets.map(_.length)
-      numConsensusReadSets <- sal.getConsensusReadSets.map(_.length)
-      numConsensusAlignmentSets <- sal.getConsensusAlignmentSets.map(_.length)
-      numContigSets <- sal.getContigSets.map(_.length)
-      numTranscriptSets <- sal.getTranscriptSets.map(_.length)
+      numHdfSubreadSets <- sal.getHdfSubreadSets().map(_.length)
+      numReferenceSets <- sal.getReferenceSets().map(_.length)
+      numGmapReferenceSets <- sal.getGmapReferenceSets().map(_.length)
+      numAlignmenSets <- sal.getAlignmentSets().map(_.length)
+      numBarcodeSets <- sal.getBarcodeSets().map(_.length)
+      numConsensusReadSets <- sal.getConsensusReadSets().map(_.length)
+      numConsensusAlignmentSets <- sal
+        .getConsensusAlignmentSets()
+        .map(_.length)
+      numContigSets <- sal.getContigSets().map(_.length)
+      numTranscriptSets <- sal.getTranscriptSets().map(_.length)
     } yield s"""
         |DataSet Summary (active datasets) :
         |
@@ -806,23 +811,41 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           .getSubreadSets(Some(searchCriteria))
           .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.HdfSubread =>
-        sal.getHdfSubreadSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getHdfSubreadSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Barcode =>
-        sal.getBarcodeSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getBarcodeSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Reference =>
-        sal.getReferenceSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getReferenceSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.GmapReference =>
-        sal.getGmapReferenceSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getGmapReferenceSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Contig =>
-        sal.getContigSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getContigSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Alignment =>
-        sal.getAlignmentSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getAlignmentSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.AlignmentCCS =>
-        sal.getConsensusAlignmentSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getConsensusAlignmentSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.CCS =>
-        sal.getConsensusReadSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getConsensusReadSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Transcript =>
-        sal.getTranscriptSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getTranscriptSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
     }
     for {
       records <- fx

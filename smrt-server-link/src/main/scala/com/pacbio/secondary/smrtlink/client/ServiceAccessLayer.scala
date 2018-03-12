@@ -246,9 +246,10 @@ class SmrtLinkServiceClient(
       Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
           DataSetUpdateRequest(isActive, bioSampleName, wellSampleName)))
 
-  def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] =
+  def getHdfSubreadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[HdfSubreadServiceDataSet]] =
     getObject[Seq[HdfSubreadServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.HdfSubread, c)))
 
   def getHdfSubreadSet(dsId: IdAble): Future[HdfSubreadServiceDataSet] =
     getObject[HdfSubreadServiceDataSet](
@@ -261,9 +262,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] =
+  def getBarcodeSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[BarcodeServiceDataSet]] =
     getObject[Seq[BarcodeServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Barcode, c)))
 
   def getBarcodeSet(dsId: IdAble): Future[BarcodeServiceDataSet] =
     getObject[BarcodeServiceDataSet](
@@ -276,9 +278,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] =
+  def getReferenceSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ReferenceServiceDataSet]] =
     getObject[Seq[ReferenceServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Reference, c)))
 
   def getReferenceSet(dsId: IdAble): Future[ReferenceServiceDataSet] =
     getObject[ReferenceServiceDataSet](
@@ -291,9 +294,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] =
+  def getGmapReferenceSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[GmapReferenceServiceDataSet]] =
     getObject[Seq[GmapReferenceServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.GmapReference, c)))
 
   def getGmapReferenceSet(dsId: IdAble): Future[GmapReferenceServiceDataSet] =
     getObject[GmapReferenceServiceDataSet](
@@ -306,9 +310,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] =
+  def getAlignmentSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[AlignmentServiceDataSet]] =
     getObject[Seq[AlignmentServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Alignment, c)))
 
   def getAlignmentSet(dsId: IdAble): Future[AlignmentServiceDataSet] =
     getObject[AlignmentServiceDataSet](
@@ -321,9 +326,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] =
+  def getConsensusReadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ConsensusReadServiceDataSet]] =
     getObject[Seq[ConsensusReadServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.CCS.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.CCS, c)))
 
   def getConsensusReadSet(dsId: IdAble): Future[ConsensusReadServiceDataSet] =
     getObject[ConsensusReadServiceDataSet](
@@ -333,10 +339,10 @@ class SmrtLinkServiceClient(
     getObject[ConsensusReadSet](Get(
       toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName, dsId, "details")))
 
-  def getConsensusAlignmentSets
+  def getConsensusAlignmentSets(c: Option[DataSetSearchCriteria] = None)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
     getObject[Seq[ConsensusAlignmentServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.AlignmentCCS.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.AlignmentCCS, c)))
 
   def getConsensusAlignmentSet(
       dsId: IdAble): Future[ConsensusAlignmentServiceDataSet] =
@@ -351,9 +357,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getTranscriptSets: Future[Seq[TranscriptServiceDataSet]] =
+  def getTranscriptSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[TranscriptServiceDataSet]] =
     getObject[Seq[TranscriptServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Transcript.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Transcript, c)))
 
   def getTranscriptSet(dsId: IdAble): Future[TranscriptServiceDataSet] =
     getObject[TranscriptServiceDataSet](
@@ -366,9 +373,10 @@ class SmrtLinkServiceClient(
                               dsId,
                               "details")))
 
-  def getContigSets: Future[Seq[ContigServiceDataSet]] =
+  def getContigSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ContigServiceDataSet]] =
     getObject[Seq[ContigServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Contig, c)))
 
   def getContigSet(dsId: IdAble): Future[ContigServiceDataSet] =
     getObject[ContigServiceDataSet](
