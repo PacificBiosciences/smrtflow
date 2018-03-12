@@ -254,13 +254,17 @@ class DataSetService(dao: JobsDao)
     } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
+  /**
+    * Validate and URL decode the raw string.
+    */
   private def parseQueryOperator[T](
       sx: Option[String],
       f: (String) => Option[T]): Future[Option[T]] = {
 
     sx match {
       case Some(v) =>
-        f(v) match {
+        val urlDecodedString = java.net.URLDecoder.decode(v, "UTF-8")
+        f(urlDecodedString) match {
           case Some(op) => Future.successful(Some(op))
           case _ =>
             Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
@@ -271,13 +275,17 @@ class DataSetService(dao: JobsDao)
     }
   }
 
-  // Temporary validation/conversion mechanism
+  /**
+    * URL decode, convert to QueryOperators and
+    * return a DataSet DataSetSearchCriteria.
+    */
   def parseDataSetSearchCriteria(
       projectIds: Set[Int],
       isActive: Option[Boolean],
       limit: Int,
       marker: Option[Int],
       id: Option[String],
+      path: Option[String],
       uuid: Option[String],
       name: Option[String],
       createdAt: Option[String],
@@ -324,11 +332,15 @@ class DataSetService(dao: JobsDao)
       qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
         createdAt,
         DateTimeQueryOperator.fromString)
+      qPath <- parseQueryOperator[StringQueryOperator](
+        path,
+        StringQueryOperator.fromString)
     } yield
       search.copy(
         name = qName,
         id = qId,
         uuid = qUUID,
+        path = qPath,
         createdAt = qCreatedAt,
         updatedAt = qUpdatedAt,
         numRecords = qNumRecords,
@@ -358,6 +370,7 @@ class DataSetService(dao: JobsDao)
               'marker.as[Int].?,
               'id.?,
               'uuid.?,
+              'path.?,
               'name.?,
               'createdAt.?,
               'updatedAt.?,
@@ -372,6 +385,7 @@ class DataSetService(dao: JobsDao)
                marker,
                id,
                uuid,
+               path,
                name,
                createdAt,
                updatedAt,
@@ -392,6 +406,7 @@ class DataSetService(dao: JobsDao)
                           DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
                         marker,
                         id,
+                        path,
                         uuid,
                         name,
                         createdAt,
