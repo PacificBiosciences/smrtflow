@@ -73,7 +73,6 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
              resultsWriter: JobResultsWriter,
              dao: JobsDao,
              config: SystemJobConfig): Future[PacBioDataStore] = {
-    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
     val outputFile = job.path.resolve("filtered.subreadset.xml")
     val datastoreJson = job.path.resolve("datastore.json")
 
@@ -84,10 +83,7 @@ class CopyDataSetJob(opts: CopyDataSetJobOptions)
     }
 
     for {
-      logFile <- addStdOutLogToDataStore(job.jobId,
-                                         dao,
-                                         logPath,
-                                         opts.projectId)
+      logFile <- addStdOutLogToDataStore(job, dao, opts.projectId)
       paths <- resolvePathsAndWriteEntryPoints(dao,
                                                job.path,
                                                DataSetMetaTypes.Subread,

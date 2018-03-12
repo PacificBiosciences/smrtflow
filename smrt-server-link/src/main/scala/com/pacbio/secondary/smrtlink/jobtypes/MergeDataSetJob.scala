@@ -132,8 +132,6 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
     val startedAt = JodaDateTime.now()
 
     // Job Resources
-    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toSmrtLinkJobLog(logPath)
     val outputDataSetPath = job.path.resolve("merged.dataset.xml")
     val datastoreJson = job.path.resolve("datastore.json")
 
@@ -156,8 +154,8 @@ class MergeDataSetJob(opts: MergeDataSetJobOptions)
 
     // add datastore file so the errors are propagated on failure
     for {
-      _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
-                       opts.DEFAULT_TIMEOUT)
+      logFile <- runAndBlock(addStdOutLogToDataStore(job, dao, opts.projectId),
+                             opts.DEFAULT_TIMEOUT)
       _ <- Success(writeInitSummary())
       paths <- runAndBlock(resolvePathsAndWriteEntryPoints(dao,
                                                            job.path,

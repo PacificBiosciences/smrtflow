@@ -9,6 +9,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
   DataSetMetaTypes,
@@ -126,15 +127,27 @@ package object jobtypes {
       * @return
       */
     def addStdOutLogToDataStore(
-        jobId: UUID,
+        resources: JobResourceBase,
         dao: JobsDao,
-        path: Path,
         projectId: Option[Int]): Future[DataStoreFile] = {
+      val now = JodaDateTime.now()
+      val path = resources.path.resolve(JobConstants.JOB_STDOUT)
+      val file = DataStoreFile(
+        UUID.randomUUID(),
+        JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
+        FileTypes.LOG.fileTypeId,
+        // probably wrong; the file isn't closed yet.  But it won't get
+        // closed until after this method completes.
+        path.toFile.length,
+        now,
+        now,
+        path.toString,
+        isChunked = false,
+        JobConstants.DATASTORE_FILE_MASTER_NAME,
+        JobConstants.DATASTORE_FILE_MASTER_DESC
+      )
 
-      val file = DataStoreFile.fromMaster(path)
-
-      dao.importDataStoreFile(file, jobId, projectId).map(_ => file)
-
+      dao.importDataStoreFile(file, resources.jobId, projectId).map(_ => file)
     }
 
     def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =

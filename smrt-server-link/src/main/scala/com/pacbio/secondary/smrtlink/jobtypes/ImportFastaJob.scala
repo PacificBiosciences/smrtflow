@@ -175,8 +175,6 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
       job: JobResourceBase,
       resultsWriter: JobResultsWriter): Try[PacBioDataStore] = {
 
-    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toSmrtLinkJobLog(logPath)
     val outputDir = job.path.resolve("pacbio-reference")
 
     def w(sx: String): Unit = {
@@ -190,8 +188,8 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
     // Proactively add the log file, so the datastore file will show up in
     // SL and can be accessible from the UI
     for {
-      _ <- runAndBlock(dao.importDataStoreFile(logFile, job.jobId),
-                       opts.DEFAULT_TIMEOUT)
+      logFile <- runAndBlock(addStdOutLogToDataStore(job, dao, opts.projectId),
+                             opts.DEFAULT_TIMEOUT)
       _ <- PacBioFastaValidator.toTry(Paths.get(opts.path))
       _ <- Success(w(s"Successfully validated fasta file ${opts.path}"))
       r <- CONVERTER.toTry(opts.name.getOrElse(DEFAULT_REFERENCE_SET_NAME),

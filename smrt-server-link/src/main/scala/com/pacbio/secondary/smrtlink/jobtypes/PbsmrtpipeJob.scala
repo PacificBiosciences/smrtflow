@@ -222,8 +222,6 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     resultsWriter.writeLine(
       s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
 
-    val logFile = toSmrtLinkJobLog(logPath)
-
     val rootUpdateURL = new URL(
       s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
@@ -236,7 +234,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     // Proactively add the datastore file to communicate
     // Resolve Entry Points (with updated paths for SubreadSets)
     val fx: Future[Seq[BoundEntryPoint]] = for {
-      _ <- dao.importDataStoreFile(logFile, resources.jobId)
+      logFile <- addStdOutLogToDataStore(resources, dao, opts.projectId)
       entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
       epUpdated <- Future.sequence {
         entryPoints.map { ep =>

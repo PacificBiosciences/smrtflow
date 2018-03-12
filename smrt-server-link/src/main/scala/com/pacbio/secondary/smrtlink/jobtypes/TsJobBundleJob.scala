@@ -190,10 +190,7 @@ class TsJobBundleJob(opts: TsJobBundleJobOptions)
 
     // Add stdout/log proactively so errors are exposed
     val tx = for {
-      stdoutDsFile <- addStdOutLogToDataStore(resources.jobId,
-                                              dao,
-                                              stdoutLog,
-                                              opts.projectId)
+      stdoutDsFile <- addStdOutLogToDataStore(resources, dao, opts.projectId)
       eveUrl <- opts.validateEveUrl(config.externalEveUrl)
       failedJob <- opts.getJob(dao)
       manifest <- Future.successful(
