@@ -9,6 +9,7 @@ import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.JdbcBackend.DatabaseDef
 
 import com.pacbio.secondary.smrtlink.database.TableModels
+import com.pacbio.secondary.smrtlink.database.legacy.BaseLine
 import com.pacbio.secondary.smrtlink.models.ServiceDataSetMetaType
 
 import scala.concurrent.Future
@@ -22,7 +23,7 @@ class V17__AddTranscriptSetTable
 
     db.run(
       DBIO.seq(
-        TableModels.dsTranscript2.schema.create,
+        BaseLine.dsTranscript2.schema.create,
         TableModels.datasetMetaTypes ++= Seq(ServiceDataSetMetaType(
           "PacBio.DataSet.TranscriptSet",
           "Display name for PacBio.DataSet.TranscriptSet",
