@@ -2393,8 +2393,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q = qDsMetaDataById(id) join dsTranscript2 on (_.id === _.id)
     db.run(q.result.headOption)
       .map(_.map(x => toT(x._1)))
-      .flatMap(failIfNone(
-        s"Unable to find TranscriptSet with uuid ${id.toIdString}"))
+      .flatMap(
+        failIfNone(s"Unable to find TranscriptSet with uuid ${id.toIdString}"))
   }
 
   private def transcriptSetToDetails(ds: TranscriptServiceDataSet): String =
