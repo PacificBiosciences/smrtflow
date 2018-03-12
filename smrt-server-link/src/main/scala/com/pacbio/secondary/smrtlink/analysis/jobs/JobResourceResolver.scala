@@ -3,7 +3,6 @@ package com.pacbio.secondary.smrtlink.analysis.jobs
 import java.io.IOException
 import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.RunnableJobWithId
 import com.typesafe.scalalogging.LazyLogging
 
 /**

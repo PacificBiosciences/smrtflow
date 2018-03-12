@@ -99,6 +99,8 @@ object OptionTypes {
 
 }
 
+case class InvalidJobOptionError(msg: String) extends Exception(msg)
+
 object JobModels {
 
   // Constants used across all Job types
@@ -356,14 +358,6 @@ object JobModels {
     def prettySummary =
       s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
   }
-
-  // New Job Models
-  case class RunnableJob(job: CoreJob, state: AnalysisJobStates.JobStates)
-
-  // There's a bit of awkwardness here due to the PrimaryKey of the job having a Int and UUID
-  case class RunnableJobWithId(id: Int,
-                               job: CoreJob,
-                               state: AnalysisJobStates.JobStates)
 
   // This should only have the "completed" jobOptions states
   case class JobCompletedResult(uuid: UUID, state: AnalysisJobStates.JobStates)
