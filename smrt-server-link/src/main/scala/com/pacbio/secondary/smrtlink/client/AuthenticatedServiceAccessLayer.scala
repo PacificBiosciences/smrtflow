@@ -14,26 +14,33 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.client.RequestBuilding._
 
+/**
+  * FIXME. This is broken.
+  */
 class AuthenticatedServiceAccessLayer(
     host: String,
     port: Int,
     token: String,
-    wso2Port: Int = 8243)(implicit actorSystem: ActorSystem)
+    wso2Port: Int = 8243,
+    securedConnection: Boolean = true)(implicit actorSystem: ActorSystem)
     extends SmrtLinkServiceClient(host, port)(actorSystem)
     with ApiManagerClientBase {
 
   implicit val timeout: Timeout = 30.seconds
 
   override def RootUri: Uri =
-    Uri.from(host = host, port = port, scheme = Uri.httpScheme())
+    Uri.from(host = host,
+             port = wso2Port,
+             scheme = Uri.httpScheme(securedConnection))
 
-  lazy val RootAuthUriPath: Uri.Path = Uri.Path("SMRTLink") / "1.0.0"
+  lazy val RootAuthUriPath
+    : Uri.Path = Uri.Path./ ++ Uri.Path("SMRTLink") / "1.0.0"
 
   override def toUri(path: Uri.Path) =
-    RootUri.copy(path = RootAuthUriPath / path.toString())
+    RootUri.copy(path = RootAuthUriPath ++ Uri.Path./ ++ path)
 
   def addAuthHeader(request: HttpRequest): HttpRequest =
-    request ~> addHeader("Authorization", s"Bearer ${token}")
+    request ~> addHeader("Authorization", s"Bearer $token")
 }
 
 object AuthenticatedServiceAccessLayer {
