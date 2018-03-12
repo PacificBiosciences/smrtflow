@@ -1937,6 +1937,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
+    // By DataSet Path
+    val qByPath: QOF = { q =>
+      c.path
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringInQueryOperator(values) => q.filter(_.path inSet values)
+        }
+    }
+
     // By NumRecords
     val qByNumRecords: QOF = { q =>
       c.numRecords
@@ -2031,6 +2040,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                                 qOldProjectIds,
                                 qById,
                                 qByName,
+                                qByPath,
                                 qByNumRecords,
                                 qByTotaLength,
                                 qByJobId,

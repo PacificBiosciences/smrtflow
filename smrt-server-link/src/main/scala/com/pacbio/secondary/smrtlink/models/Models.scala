@@ -903,6 +903,8 @@ object QueryOperators {
     override def convertFromString(sx: String): String = sx
 
     /**
+      * NOTE, the string should already be URL Decoded!
+      *
       * foo=bar
       * foo=in:bar,baz
       *
@@ -1072,6 +1074,7 @@ case class DataSetSearchCriteria(
     marker: Option[Int] = None, // offset
     id: Option[QueryOperators.IntQueryOperator] = None,
     uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
     name: Option[QueryOperators.StringQueryOperator] = None,
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
@@ -1090,6 +1093,7 @@ case class DataSetSearchCriteria(
       "id" -> id.map(_.toQueryString),
       "uuid" -> uuid.map(_.toQueryString),
       "name" -> name.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
       "createdAt" -> createdAt.map(_.toQueryString),
       "updatedAt" -> updatedAt.map(_.toQueryString),
       "numRecords" -> numRecords.map(_.toQueryString),
@@ -1127,7 +1131,10 @@ case class DataSetSearchCriteria(
 
     val ms = Seq(operators, m2).map(flattenMap).reduce(_ ++ _)
 
-    Uri.Query(ms)
+    val urlEncodedParmas =
+      ms.mapValues(sx => java.net.URLEncoder.encode(sx, "utf-8"))
+
+    Uri.Query(urlEncodedParmas)
   }
 
 }
