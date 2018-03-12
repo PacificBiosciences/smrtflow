@@ -1069,6 +1069,7 @@ case class DataSetSearchCriteria(
     projectIds: Set[Int],
     isActive: Option[Boolean] = Some(true),
     limit: Int,
+    marker: Option[Int] = None, // offset
     id: Option[QueryOperators.IntQueryOperator] = None,
     uuid: Option[QueryOperators.UUIDQueryOperator] = None,
     name: Option[QueryOperators.StringQueryOperator] = None,
@@ -1118,8 +1119,11 @@ case class DataSetSearchCriteria(
 
     // Need to handle the project ids
     val m2: Map[String, Option[String]] =
-      Map("limit" -> Some(limit.toString),
-          "isActive" -> isActive.map(_.toString))
+      Map(
+        "limit" -> Some(limit.toString),
+        "isActive" -> isActive.map(_.toString),
+        "marker" -> marker.map(_.toString)
+      )
 
     val ms = Seq(operators, m2).map(flattenMap).reduce(_ ++ _)
 

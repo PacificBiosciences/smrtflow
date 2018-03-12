@@ -101,9 +101,6 @@ class DataSetService(dao: JobsDao)
         s"DataSet $shortName not supported. Only BarcodeSets are supported."))
   }
 
-  // Default MAX number of records to return
-  val DS_LIMIT = 2000
-
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL
       .map(_.shortName + "$")
@@ -279,6 +276,7 @@ class DataSetService(dao: JobsDao)
       projectIds: Set[Int],
       isActive: Option[Boolean],
       limit: Int,
+      marker: Option[Int],
       id: Option[String],
       uuid: Option[String],
       name: Option[String],
@@ -291,7 +289,10 @@ class DataSetService(dao: JobsDao)
       projectId: Option[String]): Future[DataSetSearchCriteria] = {
 
     val search =
-      DataSetSearchCriteria(projectIds, isActive = isActive, limit = limit)
+      DataSetSearchCriteria(projectIds,
+                            isActive = isActive,
+                            limit = limit,
+                            marker = marker)
 
     for {
       qId <- parseQueryOperator[IntQueryOperator](id,
@@ -351,20 +352,24 @@ class DataSetService(dao: JobsDao)
       pathPrefix(shortName) {
         pathEnd {
           get {
-            parameters('showAll.?,
-                       'limit.as[Int].?,
-                       'id.?,
-                       'uuid.?,
-                       'name.?,
-                       'createdAt.?,
-                       'updatedAt.?,
-                       'numRecords.?,
-                       'totalLength.?,
-                       'version.?,
-                       'jobId.?,
-                       'projectId.?) {
+            parameters(
+              'showAll.?,
+              'limit.as[Int].?,
+              'marker.as[Int].?,
+              'id.?,
+              'uuid.?,
+              'name.?,
+              'createdAt.?,
+              'updatedAt.?,
+              'numRecords.?,
+              'totalLength.?,
+              'version.?,
+              'jobId.?,
+              'projectId.?
+            ) {
               (showAll,
                limit,
+               marker,
                id,
                uuid,
                name,
@@ -383,7 +388,9 @@ class DataSetService(dao: JobsDao)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
                         Some(showAll.isEmpty),
-                        limit.getOrElse(DS_LIMIT),
+                        limit.getOrElse(
+                          DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
+                        marker,
                         id,
                         uuid,
                         name,
@@ -393,7 +400,8 @@ class DataSetService(dao: JobsDao)
                         totalLength,
                         version,
                         jobId,
-                        projectId)
+                        projectId
+                      )
                       datasets <- GetDataSets(searchCriteria)
                     } yield datasets
                   }
