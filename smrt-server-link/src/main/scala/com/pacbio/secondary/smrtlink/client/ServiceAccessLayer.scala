@@ -32,9 +32,11 @@ import com.pacbio.secondary.smrtlink.auth.JwtUtilsImpl
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
-class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
-    implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem)
+class SmrtLinkServiceClient(
+    host: String,
+    port: Int,
+    authUser: Option[String] = None)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(host, port)(actorSystem)
     with ServiceEndpointConstants
     with LazyLogging {
 
@@ -57,63 +59,106 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     .map(u => RawHeader(JWT_HEADER, jwtUtils.userRecordToJwt(u)))
     .toSeq
 
-  def this(host: String, port: Int, authUser: Option[String] = None)(
-      implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
-  }
-
   private def toP(path: Path) = path.toAbsolutePath.toString
 
-  private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
+  // Perhaps these should be pushed into ServiceEndpoint Constants for consistency
+  // and centralization. Everything in this class should consume and construct
+  /// Uri.Path instances, not raw strings.
 
-  protected def toJobUrl(jobType: String, jobId: IdAble): String =
-    toUrl(jobRoot(jobType) + s"/${jobId.toIdString}")
+  val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SL_PREFIX)
 
-  protected def toJobResourceUrl(jobId: IdAble, resourceType: String): String =
-    toUrl(s"${ROOT_JOBS}/${jobId.toIdString}/$resourceType")
+  val ROOT_JM_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / JOB_MANAGER_PREFIX
+  val ROOT_JOBS_URI_PATH: Uri.Path = ROOT_JM_URI_PATH / JOB_ROOT_PREFIX
+  val ROOT_MULTI_JOBS_URI_PATH
+    : Uri.Path = ROOT_JM_URI_PATH / JOB_MULTI_ROOT_PREFIX
+  val ROOT_DS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "datasets"
+  val ROOT_PB_DATA_BUNDLE_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "bundles"
+  val ROOT_DATASTORE_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / DATASTORE_FILES_PREFIX
+  val ROOT_RUNS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "runs"
+  val ROOT_PROJECTS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "projects"
+  val ROOT_EULA_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "eula"
+  val ROOT_SERVICE_MANIFESTS_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "manifests"
+  val ROOT_ALARMS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "alarms"
+  val ROOT_PT_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "resolved-pipeline-templates"
+  val ROOT_REGISTRY_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "registry-service"
+  // Rules
+  val ROOT_REPORT_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "report-view-rules"
+  val ROOT_PT_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "pipeline-template-view-rules"
+  val ROOT_DS_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "pipeline-datastore-view-rules"
+
+  protected def toJobUriPath(jobType: String,
+                             jobId: Option[IdAble] = None): Uri.Path = {
+    val base = ROOT_JOBS_URI_PATH / jobType
+    jobId.map(i => base / i.toIdString).getOrElse(base)
+  }
+
+  // delete this, use toJobUriPath
+  private def jobRoot(jobType: String): Uri.Path = toJobUriPath(jobType)
+
+  protected def toJobUri(jobType: String, jobId: Option[IdAble]): Uri =
+    toUri(toJobUriPath(jobType, jobId))
+
+  /**
+    * Naked job-type-less call to get a job by IdAble
+    */
+  protected def toJobResourceUriPath(jobId: IdAble,
+                                     resourceType: String): Uri.Path =
+    ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType
+
+  protected def toJobResourceUrl(jobId: IdAble, resourceType: String): Uri =
+    toUri(toJobResourceUriPath(jobId, resourceType))
 
   protected def toJobResourceIdUrl(jobId: IdAble,
                                    resourceType: String,
-                                   resourceId: UUID) =
-    toUrl(s"${ROOT_JOBS}/${jobId.toIdString}/$resourceType/$resourceId")
+                                   resourceId: UUID): Uri =
+    toUri(
+      ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType / resourceId.toString)
 
-  private def dsRoot(dsType: String) = s"${ROOT_DS}/${dsType}"
+  private def dsRoot(dsType: String): Uri.Path = ROOT_DS_URI_PATH / dsType
 
-  protected def toDataSetsUrl(dsType: String): String = toUrl(dsRoot(dsType))
+  protected def toDataSetsUrl(dsType: String): Uri = toUri(dsRoot(dsType))
 
-  protected def toDataSetUrl(dsType: String, dsId: IdAble): String =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}")
+  protected def toDataSetUrl(dsType: String, dsId: IdAble): Uri =
+    toUri(dsRoot(dsType) / dsId.toIdString)
 
   protected def toDataSetResourcesUrl(dsType: String,
                                       dsId: IdAble,
-                                      resourceType: String): String =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType")
+                                      resourceType: String): Uri =
+    toUri(dsRoot(dsType) / dsId.toIdString / resourceType)
 
   protected def toDataSetResourceUrl(dsType: String,
                                      dsId: IdAble,
                                      resourceType: String,
                                      resourceId: UUID) =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType/$resourceId")
+    toUri(
+      dsRoot(dsType) / dsId.toIdString / resourceType / resourceId.toString)
 
-  protected def toPacBioDataBundleUrl(
-      bundleType: Option[String] = None): String = {
-    val segment = bundleType.map(b => s"/$b").getOrElse("")
-    toUrl(ROOT_PB_DATA_BUNDLE + segment)
+  protected def toPacBioDataBundleUrl(bundleType: Option[String] = None): Uri = {
+    val path = bundleType
+      .map(b => ROOT_PB_DATA_BUNDLE_URI_PATH / b)
+      .getOrElse(ROOT_PB_DATA_BUNDLE_URI_PATH)
+
+    toUri(path)
   }
 
-  protected def toUiRootUrl(port: Int): String =
-    new URL(baseUrl.getProtocol, baseUrl.getHost, port, "/").toString
-
-  def serviceStatusEndpoints: Vector[String] =
+  def serviceStatusEndpoints: Vector[Uri.Path] =
     Vector(
       jobRoot(JobTypeIds.IMPORT_DATASET.id),
       jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id),
       jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id),
       jobRoot(JobTypeIds.PBSMRTPIPE.id),
-      ROOT_DS + "/" + DataSetMetaTypes.Subread.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.HdfSubread.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.Reference.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Subread.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.HdfSubread.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Reference.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Barcode.shortName
     )
 
   /**
@@ -122,16 +167,19 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     * @param endpointPath Provided as Relative to the base url in Client.
     * @return
     */
-  def checkServiceEndpoint(endpointPath: String): Int =
-    checkEndpoint(toUrl(endpointPath))
+  def checkServiceEndpoint(endpointPath: Uri.Path): Int =
+    checkEndpoint(toUri(endpointPath))
 
   /**
-    * Check the UI webserver for "Status"
+    * Check the UI webserver for "Status" on a non-https
     *
-    * @param uiPort UI webserver port
+    * @param uiPort UI (e.g., tomcat) webserver port
     * @return
     */
-  def checkUiEndpoint(uiPort: Int): Int = checkEndpoint(toUiRootUrl(uiPort))
+  def checkUiEndpoint(uiPort: Int): Int = {
+    checkEndpoint(
+      RootUri.copy(authority = RootUri.authority.copy(port = uiPort)))
+  }
 
   /**
     * Run over each defined Endpoint (provided as relative segments to the base)
@@ -153,16 +201,23 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] =
     getObject[DataSetMetaDataSet](
-      Get(toUrl(ROOT_DS + "/" + datasetId.toIdString)))
+      Get(toUri(ROOT_DS_URI_PATH / datasetId.toIdString)))
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] =
     getMessageResponse(
-      Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
+      Put(toUri(ROOT_DS_URI_PATH / datasetId.toIdString),
           DataSetUpdateRequest(Some(false))))
 
-  def getSubreadSets: Future[Seq[SubreadServiceDataSet]] =
+  def toDataSetUrlWithQuery(ds: DataSetMetaTypes.DataSetMetaType,
+                            c: Option[DataSetSearchCriteria]): Uri = {
+    val q = c.map(_.toQuery).getOrElse(Uri.Query())
+    toUri(ROOT_DS_URI_PATH / ds.shortName).withQuery(q)
+  }
+
+  def getSubreadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[SubreadServiceDataSet]] =
     getObject[Seq[SubreadServiceDataSet]](
-      Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName)))
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Subread, c)))
 
   def getSubreadSet(dsId: IdAble): Future[SubreadServiceDataSet] =
     getObject[SubreadServiceDataSet](
@@ -332,7 +387,8 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   // FIXME how to convert to String?
   def getDataStoreFile(fileId: UUID): Future[HttpResponse] =
-    http.singleRequest(Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download")))
+    http.singleRequest(
+      Get(toUri(ROOT_DATASTORE_URI_PATH / fileId.toString / "download")))
 
   def updateDataStoreFile(
       fileId: UUID,
@@ -341,7 +397,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       fileSize: Option[Long] = None): Future[MessageResponse] =
     getMessageResponse(
       Put(
-        toUrl(ROOT_DATASTORE + s"/$fileId"),
+        toUri(ROOT_DATASTORE_URI_PATH / fileId.toString),
         DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize)))
 
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
@@ -357,9 +413,12 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
       Get(toJobResourceIdUrl(jobId, JOB_REPORT_PREFIX, reportId)))
 
   def getDataStoreFileResource(fileId: UUID,
-                               relpath: String): Future[HttpResponse] =
-    http.singleRequest(
-      Get(toUrl(ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}")))
+                               relpath: String): Future[HttpResponse] = {
+    val query = Uri.Query("relpath" -> relpath)
+    val uri = toUri(ROOT_DATASTORE_URI_PATH / fileId.toString / "resources")
+      .withQuery(query)
+    http.singleRequest(Get(uri))
+  }
 
   def getJobTasks(jobId: IdAble): Future[Seq[JobTask]] =
     getObject[Seq[JobTask]](Get(toJobResourceUrl(jobId, JOB_TASK_PREFIX)))
@@ -391,21 +450,26 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                 comment: Option[String],
                 tags: Option[String]): Future[EngineJob] =
     getObject[EngineJob](
-      Put(toUrl(ROOT_JOBS + "/" + jobId.toIdString),
+      Put(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString),
           UpdateJobRecord(name, comment, tags)))
 
   // Runs
+  protected def getRunUriPath(runId: UUID): Uri.Path =
+    ROOT_RUNS_URI_PATH / runId.toString
+  protected def getRunCollectionUriPath(runId: UUID,
+                                        collectionId: UUID): Uri.Path =
+    getRunUriPath(runId) / "collections" / collectionId.toString
 
-  protected def getRunUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId")
+  protected def getRunUrl(runId: UUID): Uri = toUri(getRunUriPath(runId))
 
-  protected def getCollectionsUrl(runId: UUID): String =
-    toUrl(s"${ROOT_RUNS}/$runId/collections")
+  protected def getCollectionsUrl(runId: UUID): Uri =
+    toUri(getRunUriPath(runId) / "collections")
 
-  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String =
-    toUrl(s"${ROOT_RUNS}/$runId/collections/$collectionId")
+  protected def getCollectionUrl(runId: UUID, collectionId: UUID): Uri =
+    toUri(getRunCollectionUriPath(runId, collectionId))
 
   def getRuns: Future[Seq[RunSummary]] =
-    getObject[Seq[RunSummary]](Get(toUrl(ROOT_RUNS)))
+    getObject[Seq[RunSummary]](Get(toUri(ROOT_RUNS_URI_PATH)))
 
   def getRun(runId: UUID): Future[Run] =
     getObject[Run](Get(getRunUrl(runId)))
@@ -418,7 +482,8 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     getObject[CollectionMetadata](Get(getCollectionUrl(runId, collectionId)))
 
   def createRun(dataModel: String): Future[RunSummary] =
-    getObject[RunSummary](Post(toUrl(ROOT_RUNS), RunCreate(dataModel)))
+    getObject[RunSummary](
+      Post(toUri(ROOT_RUNS_URI_PATH), RunCreate(dataModel)))
 
   def updateRun(runId: UUID,
                 dataModel: Option[String] = None,
@@ -430,27 +495,29 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     getMessageResponse(Delete(getRunUrl(runId)))
 
   def getProjects: Future[Seq[Project]] =
-    getObject[Seq[Project]](Get(toUrl(ROOT_PROJECTS)).withHeaders(headers: _*))
+    getObject[Seq[Project]](
+      Get(toUri(ROOT_PROJECTS_URI_PATH)).withHeaders(headers: _*))
 
   def getProject(projectId: Int): Future[FullProject] =
     getObject[FullProject](
-      Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers: _*))
+      Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString))
+        .withHeaders(headers: _*))
 
   def createProject(name: String, description: String): Future[FullProject] =
     getObject[FullProject](
-      Post(toUrl(ROOT_PROJECTS),
+      Post(toUri(ROOT_PROJECTS_URI_PATH),
            ProjectRequest(name, description, None, None, None, None))
         .withHeaders(headers: _*))
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
     getObject[FullProject](
-      Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
+      Put(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString), request)
         .withHeaders(headers: _*))
 
   // User agreements (not really a EULA)
   def getEula(version: String): Future[EulaRecord] =
-    getObject[EulaRecord](Get(toUrl(ROOT_EULA + s"/$version")))
+    getObject[EulaRecord](Get(toUri(ROOT_EULA_URI_PATH / version)))
 
   def getEulas: Future[Seq[EulaRecord]] =
     getObject[Seq[EulaRecord]](Get(ROOT_EULA))
@@ -459,11 +526,11 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                  enableInstallMetrics: Boolean = true,
                  enableJobMetrics: Boolean = true): Future[EulaRecord] =
     getObject[EulaRecord](
-      Post(toUrl(ROOT_EULA),
+      Post(toUri(ROOT_EULA_URI_PATH),
            EulaAcceptance(user, enableInstallMetrics, Some(enableJobMetrics))))
 
   def deleteEula(version: String): Future[MessageResponse] =
-    getMessageResponse(Delete(toUrl(ROOT_EULA + s"/$version")))
+    getMessageResponse(Delete(toUri(ROOT_EULA_URI_PATH / version)))
 
   private def toJobQuery(showAll: Boolean, projectId: Option[Int]) = {
     val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
@@ -479,19 +546,22 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                     showAll: Boolean = false,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
-      Get(toUrl(jobRoot(jobType) + toJobQuery(showAll, projectId))))
+      Get(toUri(jobRoot(jobType) + toJobQuery(showAll, projectId))))
 
-  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] =
-    getObject[Seq[EngineJob]](Get(toUrl(ROOT_JOBS + s"?projectId=$projectId")))
+  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = {
+    val q = Uri.Query("projectId" -> projectId.toString)
+    getObject[Seq[EngineJob]](Get(toUri(ROOT_JOBS_URI_PATH).withQuery(q)))
+  }
 
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] =
-    getObject[Seq[PacBioComponentManifest]](Get(toUrl(ROOT_SERVICE_MANIFESTS)))
+    getObject[Seq[PacBioComponentManifest]](
+      Get(toUri(ROOT_SERVICE_MANIFESTS_URI_PATH)))
 
   // Added in smrtflow 0.1.11 and SA > 3.2.0
   def getPacBioComponentManifestById(
       manifestId: String): Future[PacBioComponentManifest] =
     getObject[PacBioComponentManifest](
-      Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId)))
+      Get(toUri(ROOT_SERVICE_MANIFESTS_URI_PATH / manifestId)))
 
   def getAnalysisJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id)
@@ -529,7 +599,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                   projectId = Some(projectId))
 
   def getJob(jobId: IdAble): Future[EngineJob] =
-    getObject[EngineJob](Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString)))
+    getObject[EngineJob](Get(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString)))
 
   def deleteJob(jobId: UUID,
                 removeFiles: Boolean = true,
@@ -537,7 +607,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                 force: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.DELETE_JOB.id)),
+        toUri(jobRoot(JobTypeIds.DELETE_JOB.id)),
         DeleteSmrtLinkJobOptions(jobId,
                                  Some(s"Delete job $jobId name"),
                                  None,
@@ -548,10 +618,10 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
-      Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString + "/children")))
+      Get(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString / "children")))
 
   def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] =
-    getObject[EngineJob](Get(toJobUrl(jobType, jobId)))
+    getObject[EngineJob](Get(toJobUri(jobType, Some(jobId))))
 
   def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
     getJobByTypeAndId(JobTypeIds.PBSMRTPIPE.id, jobId)
@@ -565,17 +635,18 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     getMessageResponse(Post(toJobResourceUrl(jobId, TERMINATE_JOB)))
 
   def getReportViewRules: Future[Seq[ReportViewRule]] =
-    getObject[Seq[ReportViewRule]](Get(toUrl(ROOT_REPORT_RULES)))
+    getObject[Seq[ReportViewRule]](Get(toUri(ROOT_REPORT_RULES_URI_PATH)))
 
   def getReportViewRule(reportId: String): Future[ReportViewRule] =
-    getObject[ReportViewRule](Get(toUrl(ROOT_REPORT_RULES + s"/$reportId")))
+    getObject[ReportViewRule](
+      Get(toUri(ROOT_REPORT_RULES_URI_PATH / reportId)))
 
   def importDataSet(
       path: Path,
       dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
+        toUri(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
         ImportDataSetJobOptions(path.toAbsolutePath, dsMetaType, None, None)))
 
   def importFasta(path: Path,
@@ -584,13 +655,13 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                   ploidy: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
         ImportBarcodeFastaJobOptions(path.toAbsolutePath, Some(name), None)))
 
   def importFastaGmap(path: Path,
@@ -599,19 +670,19 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                       ploidy: String): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
                     name: String) =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.MERGE_DATASETS.id)),
+      Post(toUri(jobRoot(JobTypeIds.MERGE_DATASETS.id)),
            MergeDataSetJobOptions(datasetType, ids, Some(name), None)))
 
   def convertRsMovie(path: Path, name: String) =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.CONVERT_RS_MOVIE.id)),
+      Post(toUri(jobRoot(JobTypeIds.CONVERT_RS_MOVIE.id)),
            RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
@@ -619,7 +690,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      outputPath: Path,
                      deleteAfterExport: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
+      Post(toUri(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
            ExportDataSetsJobOptions(datasetType,
                                     ids,
                                     outputPath.toAbsolutePath,
@@ -630,46 +701,49 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      removeFiles: Boolean = true): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUrl(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
+        toUri(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles)))
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] =
-    getObject[PipelineTemplate](Get(toUrl(ROOT_PT + "/" + pipelineId)))
+    getObject[PipelineTemplate](Get(toUri(ROOT_PT_URI_PATH / pipelineId)))
 
   def getPipelineTemplates: Future[Seq[PipelineTemplate]] =
-    getObject[Seq[PipelineTemplate]](Get(toUrl(ROOT_PT)))
+    getObject[Seq[PipelineTemplate]](Get(toUri(ROOT_PT_URI_PATH)))
 
   def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] =
-    getObject[Seq[PipelineTemplateViewRule]](Get(toUrl(ROOT_PTRULES)))
+    getObject[Seq[PipelineTemplateViewRule]](
+      Get(toUri(ROOT_PT_RULES_URI_PATH)))
 
   def getPipelineTemplateViewRule(
       pipelineId: String): Future[PipelineTemplateViewRule] =
     getObject[PipelineTemplateViewRule](
-      Get(toUrl(ROOT_PTRULES + s"/$pipelineId")))
+      Get(toUri(ROOT_PT_RULES_URI_PATH / pipelineId)))
 
   def getPipelineDataStoreViewRules(
       pipelineId: String): Future[PipelineDataStoreViewRules] =
     getObject[PipelineDataStoreViewRules](
-      Get(toUrl(ROOT_DS_RULES + s"/$pipelineId")))
+      Get(toUri(ROOT_DS_RULES_URI_PATH / pipelineId)))
 
   def runAnalysisPipeline(
       pipelineOptions: PbsmrtpipeJobOptions): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.PBSMRTPIPE.id)), pipelineOptions))
+      Post(toUri(jobRoot(JobTypeIds.PBSMRTPIPE.id)), pipelineOptions))
+
+  def toMultiJobUriPath(ix: Option[IdAble] = None): Uri.Path = {
+    val base = ROOT_MULTI_JOBS_URI_PATH / JobTypeIds.MJOB_MULTI_ANALYSIS.id
+    ix.map(i => base / i.toIdString).getOrElse(base)
+  }
 
   def createMultiAnalysisJob(
       multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
-           multiAnalysisJobOptions))
+      Post(toUri(toMultiJobUriPath()), multiAnalysisJobOptions))
 
   def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] =
-    getMessageResponse(Post(toUrl(
-      s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit")))
+    getMessageResponse(Post(toUri(toMultiJobUriPath(Some(ix)) / "submit")))
 
   def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] =
-    getObject[Seq[EngineJob]](Get(toUrl(
-      s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/jobs")))
+    getObject[Seq[EngineJob]](Get(toUri(toMultiJobUriPath(Some(ix)) / "jobs")))
 
   // PacBio Data Bundle
   def getPacBioDataBundles(): Future[Seq[PacBioDataBundle]] =
@@ -686,7 +760,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
 
   def runTsSystemStatus(user: String, comment: String): Future[EngineJob] = {
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.TS_SYSTEM_STATUS.id)),
+      Post(toUri(jobRoot(JobTypeIds.TS_SYSTEM_STATUS.id)),
            TsSystemStatusServiceOptions(user, comment)))
   }
 
@@ -702,7 +776,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                      user: String,
                      comment: String): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.TS_JOB.id)),
+      Post(toUri(jobRoot(JobTypeIds.TS_JOB.id)),
            TsJobBundleJobServiceOptions(jobId, user, comment)))
 
   /**
@@ -716,7 +790,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     */
   def runDbBackUpJob(user: String, comment: String): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.DB_BACKUP.id)),
+      Post(toUri(jobRoot(JobTypeIds.DB_BACKUP.id)),
            DbBackUpServiceJobOptions(user, comment)))
 
   /**
@@ -728,7 +802,7 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
                  name: Option[String] = None,
                  description: Option[String] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.EXPORT_JOBS.id)),
+      Post(toUri(jobRoot(JobTypeIds.EXPORT_JOBS.id)),
            ExportSmrtLinkJobOptions(jobIds,
                                     outputPath,
                                     includeEntryPoints,
@@ -744,24 +818,24 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
     */
   def importJob(zipPath: Path, mockJobId: Boolean = false): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.IMPORT_JOB.id)),
+      Post(toUri(jobRoot(JobTypeIds.IMPORT_JOB.id)),
            ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId))))
 
   def copyDataSet(dsId: IdAble,
                   filters: Seq[Seq[DataSetFilterProperty]],
                   dsName: Option[String] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(toUrl(jobRoot(JobTypeIds.DS_COPY.id)),
+      Post(toUri(jobRoot(JobTypeIds.DS_COPY.id)),
            CopyDataSetJobOptions(dsId, filters, dsName, None, None)))
 
   def getAlarms(): Future[Seq[AlarmStatus]] =
-    getObject[Seq[AlarmStatus]](Get(toUrl(ROOT_ALARMS)))
+    getObject[Seq[AlarmStatus]](Get(toUri(ROOT_ALARMS_URI_PATH)))
 
   def addRegistryService(host: String,
                          port: Int,
                          resourceId: String): Future[RegistryResource] = {
     getObject[RegistryResource](
-      Post(toUrl(s"/$ROOT_SL_PREFIX/registry-service/resources"),
+      Post(toUri(ROOT_REGISTRY_URI_PATH / "resources"),
            RegistryResourceCreate(host, port, resourceId))
     )
   }
@@ -776,8 +850,9 @@ class SmrtLinkServiceClient(baseUrl: URL, authUser: Option[String])(
   def getRegistryProxy(resource: UUID, path: Uri.Path): Future[HttpResponse] = {
     val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
     getObject[HttpResponse](
-      Get(toUrl(
-        s"/$ROOT_SL_PREFIX/registry-service/resources/${resource.toString}/proxy${px.toString}"))
+      Get(
+        toUri(
+          Uri.Path(s"$ROOT_REGISTRY_URI_PATH/resources/$resource/proxy$px")))
     )
   }
 

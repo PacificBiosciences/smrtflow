@@ -133,7 +133,7 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
       _ <- andLog(s"Starting to run CopyDataSetScenario")
       status <- client.getStatus
       _ <- andLog(
-        s"Successfully connected to SMRT Link Server: ${client.baseUrl}")
+        s"Successfully connected to SMRT Link Server: ${client.RootUri}")
       dsMeta <- Future.successful(getDataSetMiniMeta(subreadsXml))
       importJob <- client.importDataSet(subreadsXml, dsMeta.metatype)
       importJob <- Future.fromTry(client.pollForSuccessfulJob(importJob.id))

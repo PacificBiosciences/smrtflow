@@ -71,7 +71,7 @@ class EventManagerActor(smrtLinkId: UUID,
         }
         .recover({
           case NonFatal(ex) =>
-            s"Failed to connect to External Event Server $c at ${c.baseUrl} ${ex.getMessage}"
+            s"Failed to connect to External Event Server $c at ${c.RootUri} ${ex.getMessage}"
         })
         .map { statusMessage =>
           logger.info(statusMessage)
@@ -100,7 +100,7 @@ class EventManagerActor(smrtLinkId: UUID,
   // Should this spawn a "worker" actor to run this call?
   private def upload(c: EventServerClient,
                      tgz: Path): Future[SmrtLinkSystemEvent] = {
-    logger.info(s"Client ${c.toUploadUrl} Attempting to upload $tgz")
+    logger.info(s"Client ${c.UPLOAD_URI} Attempting to upload $tgz")
     c.upload(tgz)
   }
 

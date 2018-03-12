@@ -4,6 +4,7 @@ import java.net.URL
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -851,6 +852,18 @@ case class TranscriptServiceDataSet(
   */
 object QueryOperators {
 
+  /**
+    * Common Utils to generate a
+    */
+  private def toInQuery(values: Set[String]): String =
+    s"in:${values.toList.reduce(_ + "," + _)}"
+
+  private def toEqQuery(value: String): String = value
+  private def toLtQuery(value: String): String = s"lt:$value"
+  private def toLteQuery(value: String) = s"lte:$value"
+  private def toGtQuery(value: String) = s"gt:$value"
+  private def toGteQuery(value: String) = s"gte:$value"
+
   // This is a bit of a grab bag of utils
   trait QueryOperatorConverter[T] {
 
@@ -867,19 +880,8 @@ object QueryOperators {
 
   }
 
-  trait ToQueryStringOperator {
-
-    /**
-      * Common Utils to generate a
-      */
-    final def toInQuery(values: Set[String]): String =
-      s"in:${values.toList.reduce(_ + "," + _)}"
-
-    final def toEqQuery(value: String): String = value
-    final def toLtQuery(value: String): String = s"lt:$value"
-    final def toLteQuery(value: String) = s"lte:$value"
-    final def toGtQuery(value: String) = s"gt:$value"
-    final def toGteQuery(value: String) = s"gte:$value"
+  // Base Query Interface type
+  trait QuertyOperator {
 
     /**
       * Returns the raw Query string. e.g, in:1,2,3 or gt:12354
@@ -887,7 +889,7 @@ object QueryOperators {
     def toQueryString: String
   }
 
-  sealed trait StringQueryOperator extends ToQueryStringOperator
+  sealed trait StringQueryOperator extends QuertyOperator
   case class StringEqQueryOperator(value: String) extends StringQueryOperator {
     override def toQueryString: String = toEqQuery(value)
   }
@@ -901,6 +903,8 @@ object QueryOperators {
     override def convertFromString(sx: String): String = sx
 
     /**
+      * NOTE, the string should already be URL Decoded!
+      *
       * foo=bar
       * foo=in:bar,baz
       *
@@ -921,9 +925,7 @@ object QueryOperators {
   // For Numeric Types
   sealed trait QueryOperator[T]
 
-  sealed trait IntQueryOperator
-      extends QueryOperator[Int]
-      with ToQueryStringOperator
+  sealed trait IntQueryOperator extends QueryOperator[Int] with QuertyOperator
   case class IntEqQueryOperator(value: Int) extends IntQueryOperator {
     override def toQueryString: String = value.toString
   }
@@ -961,7 +963,7 @@ object QueryOperators {
 
   sealed trait LongQueryOperator
       extends QueryOperator[Long]
-      with ToQueryStringOperator
+      with QuertyOperator
   case class LongEqQueryOperator(value: Long) extends LongQueryOperator {
     override def toQueryString: String = value.toString
   }
@@ -997,7 +999,7 @@ object QueryOperators {
     }
   }
 
-  sealed trait DateTimeQueryOperator extends ToQueryStringOperator {
+  sealed trait DateTimeQueryOperator extends QuertyOperator {
     def dateTimeToString(dt: JodaDateTime): String = dt.toString()
   }
   case class DateTimeEqOperator(dt: JodaDateTime)
@@ -1041,7 +1043,7 @@ object QueryOperators {
     }
   }
 
-  sealed trait UUIDQueryOperator extends ToQueryStringOperator {
+  sealed trait UUIDQueryOperator extends QuertyOperator {
     def uuidToString(uuid: UUID): String = uuid.toString
   }
   case class UUIDEqOperator(uuid: UUID) extends UUIDQueryOperator {
@@ -1069,8 +1071,10 @@ case class DataSetSearchCriteria(
     projectIds: Set[Int],
     isActive: Option[Boolean] = Some(true),
     limit: Int,
+    marker: Option[Int] = None, // offset
     id: Option[QueryOperators.IntQueryOperator] = None,
     uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
     name: Option[QueryOperators.StringQueryOperator] = None,
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
@@ -1079,7 +1083,62 @@ case class DataSetSearchCriteria(
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None) {}
+    projectId: Option[QueryOperators.IntQueryOperator] = None) {
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "numRecords" -> numRecords.map(_.toQueryString),
+      "totalLength" -> totalLength.map(_.toQueryString),
+      "version" -> version.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "jobId" -> jobId.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString)
+    )
+  }
+
+  def toQuery: Uri.Query = {
+
+    // This is a little goofy, Remove Optional values (as keys)
+    def flattenMap(m: Map[String, Option[String]]): Map[String, String] = {
+      m.map {
+          case (k, v) =>
+            v match {
+              case Some(op) => Some((k, op))
+              case _ => None
+            }
+        }
+        .toList
+        .flatten
+        .toMap
+    }
+
+    // Need to handle the project ids
+    val m2: Map[String, Option[String]] =
+      Map(
+        "limit" -> Some(limit.toString),
+        "isActive" -> isActive.map(_.toString),
+        "marker" -> marker.map(_.toString)
+      )
+
+    val ms = Seq(operators, m2).map(flattenMap).reduce(_ ++ _)
+
+    val urlEncodedParmas =
+      ms.mapValues(sx => java.net.URLEncoder.encode(sx, "utf-8"))
+
+    Uri.Query(urlEncodedParmas)
+  }
+
+}
+
 object DataSetSearchCriteria {
   final val DEFAULT_MAX_DATASETS = 10000
   final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)

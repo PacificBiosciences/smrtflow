@@ -63,7 +63,7 @@ trait TsTgzUploadUtils extends LazyLogging {
     val system = ActorSystem("client-upload")
     val client = new EventServerClient(eveUrl, apiSecret)(system)
 
-    val startMsg = s"Client ${client.toUploadUrl} Attempting to upload $tgz"
+    val startMsg = s"Client ${client.UPLOAD_URI} Attempting to upload $tgz"
     logger.info(startMsg)
     writer.writeLine(startMsg)
 

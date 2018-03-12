@@ -84,8 +84,9 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
       case (Some(ux), Some(vx)) =>
         logger.info(
           s"Updating will look for PacBio System Release version $vx updates from $ux")
-        Some(new PacBioDataBundleUpdateServerClient(
-          new URL(ux.getProtocol, ux.getHost, ux.getPort, ""))(context.system))
+        Some(
+          new PacBioDataBundleUpdateServerClient(ux.getHost, ux.getPort)(
+            context.system))
       case _ =>
         logger.warn(
           s"System is NOT configured for accessing PacBio Updates systemVersion:$pacBioSystemVersion URL:$url")
@@ -118,7 +119,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
       val summary =
         bs.map(b => s"${b.typeId}-${b.version}").reduce(_ + "," + _)
       val msg =
-        s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.baseUrl}. All remote Bundles $summary"
+        s"External Bundle Service is OK. Successfully found ${bs.length} bundles from ${c.RootUri}. All remote Bundles $summary"
       logger.info(msg)
       ExternalServerStatus(msg, "UP")
     }
@@ -137,10 +138,11 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
   def downloadBundle(c: PacBioDataBundleUpdateServerClient,
                      b: PacBioDataBundle,
                      rootOutputDir: Path): PacBioDataBundleIO = {
-    val downloadUrl = new URL(
-      c.toV2PacBioBundleDownloadUrl(pacBioSystemVersion.get,
-                                    b.typeId,
-                                    b.version))
+
+    val uri = c.toV2PacBioBundleDownloadUrl(pacBioSystemVersion.get,
+                                            b.typeId,
+                                            b.version)
+    val downloadUrl = new URL(uri.toString())
     logger.info(
       s"Attempting to download Bundle ${b.typeId} ${b.version} from $downloadUrl")
     val bio = PacBioDataBundleIOUtils.downloadAndProcessDataBundle(
@@ -193,10 +195,10 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     */
   def checkAndDownload(c: PacBioDataBundleUpdateServerClient)
     : Future[Seq[PacBioDataBundleIO]] = {
-    logger.info(s"Checking for new bundles to ${c.baseUrl}")
+    logger.info(s"Checking for new bundles to ${c.RootUri}")
     getNewBundles(c).map { bundles =>
       if (bundles.isEmpty) {
-        logger.info(s"No new bundles found for ${c.baseUrl}")
+        logger.info(s"No new bundles found for ${c.RootUri}")
       }
       bundles.map { b =>
         logger.info(s"Found new bundle $b")
@@ -219,7 +221,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
     checkAndDownload(c).map { downloads =>
       if (downloads.isEmpty) {
         logger.debug(
-          s"No '$bundleType' Bundle upgrades found for ${c.baseUrl}")
+          s"No '$bundleType' Bundle upgrades found for ${c.RootUri}")
       }
       downloads.map(bio =>
         (daoActor ? AddBundleIO(bio)).mapTo[PacBioDataBundleIO])
@@ -273,7 +275,7 @@ class PacBioDataBundlePollExternalActor(rootBundleDir: Path,
           getStatus(c).recover {
             case NonFatal(ex) =>
               ExternalServerStatus(
-                s"Unable to connect to ${c.baseUrl} ${ex.getMessage}",
+                s"Unable to connect to ${c.RootUri} ${ex.getMessage}",
                 "DOWN")
         })
         .getOrElse(

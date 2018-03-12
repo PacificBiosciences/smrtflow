@@ -101,9 +101,6 @@ class DataSetService(dao: JobsDao)
         s"DataSet $shortName not supported. Only BarcodeSets are supported."))
   }
 
-  // Default MAX number of records to return
-  val DS_LIMIT = 2000
-
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL
       .map(_.shortName + "$")
@@ -257,13 +254,17 @@ class DataSetService(dao: JobsDao)
     } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
+  /**
+    * Validate and URL decode the raw string.
+    */
   private def parseQueryOperator[T](
       sx: Option[String],
       f: (String) => Option[T]): Future[Option[T]] = {
 
     sx match {
       case Some(v) =>
-        f(v) match {
+        val urlDecodedString = java.net.URLDecoder.decode(v, "UTF-8")
+        f(urlDecodedString) match {
           case Some(op) => Future.successful(Some(op))
           case _ =>
             Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
@@ -274,12 +275,17 @@ class DataSetService(dao: JobsDao)
     }
   }
 
-  // Temporary validation/conversion mechanism
+  /**
+    * URL decode, convert to QueryOperators and
+    * return a DataSet DataSetSearchCriteria.
+    */
   def parseDataSetSearchCriteria(
       projectIds: Set[Int],
       isActive: Option[Boolean],
       limit: Int,
+      marker: Option[Int],
       id: Option[String],
+      path: Option[String],
       uuid: Option[String],
       name: Option[String],
       createdAt: Option[String],
@@ -291,7 +297,10 @@ class DataSetService(dao: JobsDao)
       projectId: Option[String]): Future[DataSetSearchCriteria] = {
 
     val search =
-      DataSetSearchCriteria(projectIds, isActive = isActive, limit = limit)
+      DataSetSearchCriteria(projectIds,
+                            isActive = isActive,
+                            limit = limit,
+                            marker = marker)
 
     for {
       qId <- parseQueryOperator[IntQueryOperator](id,
@@ -323,11 +332,15 @@ class DataSetService(dao: JobsDao)
       qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
         createdAt,
         DateTimeQueryOperator.fromString)
+      qPath <- parseQueryOperator[StringQueryOperator](
+        path,
+        StringQueryOperator.fromString)
     } yield
       search.copy(
         name = qName,
         id = qId,
         uuid = qUUID,
+        path = qPath,
         createdAt = qCreatedAt,
         updatedAt = qUpdatedAt,
         numRecords = qNumRecords,
@@ -351,22 +364,28 @@ class DataSetService(dao: JobsDao)
       pathPrefix(shortName) {
         pathEnd {
           get {
-            parameters('showAll.?,
-                       'limit.as[Int].?,
-                       'id.?,
-                       'uuid.?,
-                       'name.?,
-                       'createdAt.?,
-                       'updatedAt.?,
-                       'numRecords.?,
-                       'totalLength.?,
-                       'version.?,
-                       'jobId.?,
-                       'projectId.?) {
+            parameters(
+              'showAll.?,
+              'limit.as[Int].?,
+              'marker.as[Int].?,
+              'id.?,
+              'uuid.?,
+              'path.?,
+              'name.?,
+              'createdAt.?,
+              'updatedAt.?,
+              'numRecords.?,
+              'totalLength.?,
+              'version.?,
+              'jobId.?,
+              'projectId.?
+            ) {
               (showAll,
                limit,
+               marker,
                id,
                uuid,
+               path,
                name,
                createdAt,
                updatedAt,
@@ -383,8 +402,11 @@ class DataSetService(dao: JobsDao)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
                         Some(showAll.isEmpty),
-                        limit.getOrElse(DS_LIMIT),
+                        limit.getOrElse(
+                          DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
+                        marker,
                         id,
+                        path,
                         uuid,
                         name,
                         createdAt,
@@ -393,7 +415,8 @@ class DataSetService(dao: JobsDao)
                         totalLength,
                         version,
                         jobId,
-                        projectId)
+                        projectId
+                      )
                       datasets <- GetDataSets(searchCriteria)
                     } yield datasets
                   }

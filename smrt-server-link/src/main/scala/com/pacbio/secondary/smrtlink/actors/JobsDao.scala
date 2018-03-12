@@ -1937,6 +1937,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
+    // By DataSet Path
+    val qByPath: QOF = { q =>
+      c.path
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringInQueryOperator(values) => q.filter(_.path inSet values)
+        }
+    }
+
     // By NumRecords
     val qByNumRecords: QOF = { q =>
       c.numRecords
@@ -2031,6 +2040,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                                 qOldProjectIds,
                                 qById,
                                 qByName,
+                                qByPath,
                                 qByNumRecords,
                                 qByTotaLength,
                                 qByJobId,
@@ -2051,7 +2061,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsSubread2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toSds(x._1, x._2)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.take(c.limit).result).map(_.map(x => toSds(x._1, x._2)))
   }
 
   /**
@@ -2087,7 +2098,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[ReferenceServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsReference2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toR(x._1, x._2)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toR(x._1, x._2)))
   }
 
   def getReferenceDataSetById(id: IdAble): Future[ReferenceServiceDataSet] = {
@@ -2135,7 +2147,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[GmapReferenceServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsGmapReference2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toGmapR(x._1, x._2)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toGmapR(x._1, x._2)))
   }
 
   def getGmapReferenceDataSetById(
@@ -2158,7 +2171,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[HdfSubreadServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsHdfSubread2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toHds(x._1, x._2)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toHds(x._1, x._2)))
   }
 
   private def toHds(t1: DataSetMetaDataSet,
@@ -2230,7 +2244,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     // DataSets that don't extend the base model don't really need to do a join.
     val q1 = q0 join dsAlignment2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toA(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toA(x._1)))
   }
 
   def getAlignmentDataSetById(id: IdAble): Future[AlignmentServiceDataSet] = {
@@ -2276,7 +2291,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[ConsensusReadServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsCCSread2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toCCSread(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toCCSread(x._1)))
   }
 
   def getConsensusReadDataSetById(
@@ -2322,7 +2338,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     : Future[Seq[ConsensusAlignmentServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsCCSAlignment2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toCCSA(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toCCSA(x._1)))
   }
 
   def getConsensusAlignmentDataSetById(
@@ -2368,7 +2385,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsTranscript2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toT(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toT(x._1)))
   }
 
   def getTranscriptDataSetById(id: IdAble): Future[TranscriptServiceDataSet] = {
@@ -2413,7 +2431,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[BarcodeServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsBarcode2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toB(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toB(x._1)))
   }
 
   def getBarcodeDataSetById(id: IdAble): Future[BarcodeServiceDataSet] = {
@@ -2457,7 +2476,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c: DataSetSearchCriteria): Future[Seq[ContigServiceDataSet]] = {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsContig2 on (_.id === _.id)
-    db.run(q1.result).map(_.map(x => toCtg(x._1)))
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.result).map(_.map(x => toCtg(x._1)))
   }
 
   def getContigDataSetById(id: IdAble): Future[ContigServiceDataSet] = {

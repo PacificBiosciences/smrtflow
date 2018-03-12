@@ -14,13 +14,11 @@ import scala.language.postfixOps
 import scala.math._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Properties, Success, Try}
-
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 import spray.json._
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ResourceNotFoundError,
@@ -42,6 +40,10 @@ import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
+import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  StringInQueryOperator,
+  StringQueryOperator
+}
 import com.pacbio.secondary.smrtlink.models._
 
 object Modes {
@@ -677,7 +679,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   protected def systemDataSetSummary(): Future[String] = {
     for {
-      numSubreadSets <- sal.getSubreadSets.map(_.length)
+      numSubreadSets <- sal.getSubreadSets().map(_.length)
       numHdfSubreadSets <- sal.getHdfSubreadSets.map(_.length)
       numReferenceSets <- sal.getReferenceSets.map(_.length)
       numGmapReferenceSets <- sal.getGmapReferenceSets.map(_.length)
@@ -787,14 +789,22 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                      asJson: Boolean = false,
                      searchName: Option[String] = None,
                      searchPath: Option[String] = None): Future[String] = {
-    def isMatching(ds: ServiceDataSetMetadata): Boolean = {
-      val qName = searchName.map(n => ds.name contains n).getOrElse(true)
-      val qPath = searchPath.map(p => ds.path contains p).getOrElse(true)
-      qName && qPath
-    }
+
+    DataSetSearchCriteria.default.copy(limit = maxItems)
+
+    val qName = searchName.flatMap(StringQueryOperator.fromString)
+    val qPath = searchPath.flatMap(StringQueryOperator.fromString)
+
+    val searchCriteria =
+      DataSetSearchCriteria.default.copy(limit = maxItems,
+                                         name = qName,
+                                         path = qPath)
+
     def fx: Future[Seq[(ServiceDataSetMetadata, JsValue)]] = dsType match {
       case DataSetMetaTypes.Subread =>
-        sal.getSubreadSets.map(_.map(ds => (ds, ds.toJson)))
+        sal
+          .getSubreadSets(Some(searchCriteria))
+          .map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.HdfSubread =>
         sal.getHdfSubreadSets.map(_.map(ds => (ds, ds.toJson)))
       case DataSetMetaTypes.Barcode =>
@@ -816,12 +826,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     }
     for {
       records <- fx
-      filtered <- Future.successful(records.filter(r => isMatching(r._1)))
       outstr <- Future.successful {
         if (asJson) {
-          filtered.map(_._2).map(_.prettyPrint).mkString(",\n")
+          records.map(_._2).map(_.prettyPrint).mkString(",\n")
         } else {
-          val table = filtered.map(_._1).reverse.take(maxItems).map { ds =>
+          val table = records.map(_._1).reverse.take(maxItems).map { ds =>
             Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
           }
           toTable(table, Seq("ID", "UUID", "Name", "Path"))
