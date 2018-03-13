@@ -8,6 +8,7 @@ import org.specs2.mutable._
 
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   BoundEntryPoint,
+  JobConstants,
   JobResource,
   ServiceTaskOptionBase,
   ServiceTaskStrOption
@@ -38,7 +39,8 @@ class PbSmrtPipeJobSpec
       val envPath: Option[Path] = None
       val job = JobResource(UUID.randomUUID, outputDir)
       val taskOptions = Seq[ServiceTaskOptionBase]()
-      Try(runMockJob(job, writer)) must beSuccessfulTry
+      val logFile = outputDir.resolve(JobConstants.JOB_STDOUT)
+      Try(runMockJob(job, writer, logFile)) must beSuccessfulTry
     }
   }
 }
