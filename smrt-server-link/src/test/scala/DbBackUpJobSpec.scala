@@ -8,6 +8,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   SecondaryJobJsonProtocol
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  DataStoreFile,
   JobConstants,
   JobResource,
   PacBioDataStore
@@ -81,7 +82,7 @@ class DbBackUpJobSpec
                              "test_user",
                              "test_password",
                              "localhost",
-                             logFile)
+                             DataStoreFile.fromMaster(logFile))
       pbJob.isRight must beTrue
 
       val dataStorePath = jobDir.resolve("datastore.json")
