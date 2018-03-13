@@ -133,7 +133,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[HdfSubreadServiceDataSet]] {
     override val name = "GetHdfSubreadSets"
     override def runWith =
-      smrtLinkClient.getHdfSubreadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getHdfSubreadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetHdfSubreadSet(dsId: Var[UUID])
@@ -151,7 +151,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetReferenceSets extends VarStep[Seq[ReferenceServiceDataSet]] {
     override val name = "GetReferenceSets"
     override def runWith =
-      smrtLinkClient.getReferenceSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getReferenceSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetReferenceSet(dsId: Var[UUID])
@@ -169,7 +169,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetBarcodeSets extends VarStep[Seq[BarcodeServiceDataSet]] {
     override val name = "GetBarcodeSets"
     override def runWith =
-      smrtLinkClient.getBarcodeSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getBarcodeSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetBarcodeSet(dsId: Var[UUID])
@@ -188,7 +188,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetAlignmentSets extends VarStep[Seq[AlignmentServiceDataSet]] {
     override val name = "GetAlignmentSets"
     override def runWith =
-      smrtLinkClient.getAlignmentSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getAlignmentSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetAlignmentSet(dsId: Var[UUID])
@@ -207,7 +207,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[ConsensusReadServiceDataSet]] {
     override val name = "GetConsensusReadSets"
     override def runWith =
-      smrtLinkClient.getConsensusReadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getConsensusReadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetConsensusReadSet(dsId: Var[UUID])
@@ -226,7 +226,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[ConsensusAlignmentServiceDataSet]] {
     override val name = "GetConsensusAlignmentSets"
     override def runWith =
-      smrtLinkClient.getConsensusAlignmentSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getConsensusAlignmentSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetConsensusAlignmentSet(dsId: Var[UUID])
@@ -245,7 +245,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetContigSets extends VarStep[Seq[ContigServiceDataSet]] {
     override val name = "GetContigSets"
     override def runWith =
-      smrtLinkClient.getContigSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getContigSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetContigSet(dsId: Var[UUID])
@@ -263,7 +263,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[GmapReferenceServiceDataSet]] {
     override val name = "GetGmapReferenceSets"
     override def runWith =
-      smrtLinkClient.getGmapReferenceSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getGmapReferenceSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetGmapReferenceSet(dsId: Var[UUID])
