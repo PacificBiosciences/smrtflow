@@ -2,30 +2,41 @@ import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
-import akka.testkit.TestActorRef
-import com.pacbio.secondary.smrtlink.auth._
-import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.common.models._
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors
-import com.pacbio.secondary.smrtlink.time.{
-  FakeClockProvider,
-  PacBioDateTimeFormat
-}
-import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
-import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.{RunService, ServiceComposer}
-import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+import com.typesafe.config.Config
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+
+import akka.actor.{ActorRefFactory, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.Specs2RouteTest
+import akka.testkit.TestActorRef
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
+import com.pacbio.common.models._
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.analysis.configloaders._
+import com.pacbio.secondary.smrtlink.auth._
+import com.pacbio.secondary.smrtlink.database.DatabaseRunDaoProvider
+import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, Singleton}
+import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
+import com.pacbio.secondary.smrtlink.services.{
+  RunService,
+  RunServiceProvider,
+  ServiceComposer,
+  PacBioServiceErrors
+}
+import com.pacbio.secondary.smrtlink.time.{
+  FakeClockProvider,
+  PacBioDateTimeFormat
+}
 
 trait RunSpecUtils {
   val RUN_ID = UUID.randomUUID()
@@ -165,10 +176,18 @@ class RunSpec
 
   object TestProviders
       extends ServiceComposer
-      with RunServiceActorProvider
-      with InMemoryRunDaoProvider
+      with RunServiceProvider
+      with RunServiceActorRefProvider
+      with ActorRefFactoryProvider
+      with SmrtLinkTestDalProvider
+      with SmrtLinkConfigProvider
+      with PbsmrtpipeConfigLoader
+      with EngineCoreConfigLoader
+      with DatabaseRunDaoProvider
+      with ActorSystemProvider
       with JwtUtilsProvider
       with FakeClockProvider
+      with ConfigProvider
       with DataModelParserImplProvider {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
@@ -176,26 +195,23 @@ class RunSpec
         override def parse(jwt: String): Option[UserRecord] =
           Some(UserRecord(jwt))
     })
+    override val config: Singleton[Config] = Singleton(testConfig)
+    override val actorSystem: Singleton[ActorSystem] = Singleton(system)
+    override val actorRefFactory: Singleton[ActorRefFactory] = actorSystem
   }
 
   implicit val customExceptionHandler = pacbioExceptionHandler
   implicit val customRejectionHandler = pacBioRejectionHandler
 
-  val actorRef = TestActorRef[RunServiceActor](TestProviders.runServiceActor())
-
-  val routes = new RunService(actorRef).prefixedRoutes
-
-  trait daoSetup extends Scope {
-    TestProviders.runDao().asInstanceOf[InMemoryRunDao].clear()
-    Await.ready(
-      TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
-      10.seconds)
-  }
+  val routes = TestProviders.runService().prefixedRoutes
+  Await.ready(TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
+              10.seconds)
 
   "Run Service" should {
     // TODO(smcclellan): Add more than one run
-    "return a list of all runs" in new daoSetup {
+    "return a list of all runs" in {
       Get("/smrt-link/runs") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+        println(status)
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
@@ -203,7 +219,7 @@ class RunSpec
       }
     }
 
-    "return a subset of all runs" in new daoSetup {
+    "return a subset of all runs" in {
       Get(s"/smrt-link/runs?createdBy=$CREATED_BY") ~> addHeader(
         READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -252,7 +268,7 @@ class RunSpec
       }
     }
 
-    "return a specific run" in new daoSetup {
+    "return a specific run" in {
       Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
@@ -272,13 +288,13 @@ class RunSpec
         run.numLRCells === 1
       }
     }
-    "return a specific run xml" in new daoSetup {
+    "return a specific run xml" in {
       Get(s"/smrt-link/runs/$RUN_ID/datamodel") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
       }
     }
 
-    "return a run set of collections" in new daoSetup {
+    "return a run set of collections" in {
       Get(s"/smrt-link/runs/$RUN_ID/collections") ~> addHeader(
         READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -319,7 +335,7 @@ class RunSpec
       }
     }
 
-    "return a specific collection" in new daoSetup {
+    "return a specific collection" in {
       Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(
         READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
@@ -341,7 +357,7 @@ class RunSpec
       }
     }
 
-    "create a run" in new daoSetup {
+    "create a run" in {
       val newId = UUID.randomUUID()
       val newCreator = "astark"
       val newModel = FAKE_RUN_DATA_MODEL
@@ -366,7 +382,7 @@ class RunSpec
       }
     }
 
-    "create a run where chemistry version is defined" in new daoSetup {
+    "create a run where chemistry version is defined" in {
       val newId = UUID.randomUUID()
       val dataModel = getRunDataModelFromTemplate(
         "/run-data-models/fake_run_data_model2.xml",
@@ -391,7 +407,7 @@ class RunSpec
       }
     }
 
-    "update a run" in new daoSetup {
+    "update a run" in {
       val newStatus = SupportedAcquisitionStates.COMPLETE
       val newModel =
         FAKE_RUN_DATA_MODEL.replace(STATUS_1.value(), newStatus.value())
@@ -444,7 +460,7 @@ class RunSpec
       }
     }
 
-    "delete a run design" in new daoSetup {
+    "delete a run design" in {
       Delete(s"/smrt-link/runs/$RUN_ID") ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.isSuccess must beTrue
       }
@@ -485,7 +501,7 @@ class RunSpec
     //   }
     // }
 
-    "reject malformed xml" in new daoSetup {
+    "reject malformed xml" in {
       val create = RunCreate(<foo id="0" name="X">XXX</foo>.mkString)
       Post("/smrt-link/runs", create) ~> addHeader(ADMIN_CREDENTIALS_1) ~> routes ~> check {
         status.intValue === 422
