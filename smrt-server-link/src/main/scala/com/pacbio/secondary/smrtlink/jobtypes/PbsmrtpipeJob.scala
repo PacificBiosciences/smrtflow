@@ -26,6 +26,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
+import com.pacbio.secondary.smrtlink.analysis.reports.{
+  ReportModels,
+  ReportJsonProtocol
+}
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   EngineJobEntryPointRecord
@@ -80,10 +84,13 @@ object PbsmrtpipeJobUtils {
   * also used by the convert-fasta-reference service.
   *
   */
-trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
-  this: ServiceCoreJob =>
+trait PbsmrtpipeCoreJob
+    extends CoreJobUtils
+    with ExternalToolsUtils
+    with ReportJsonProtocol { this: ServiceCoreJob =>
 
   import PbsmrtpipeConstants._
+  import ReportModels._
 
   protected def runPbsmrtpipe(
       job: JobResourceBase,
@@ -160,16 +167,15 @@ trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
     val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
-    def getPbsmrtpipeError =
+    def getPbsmrtpipeError: String =
       Try {
-        val pbsmrtpipeLog = job.path.resolve("logs/pbsmrtpipe.log").toFile
-        val logOut =
-          FileUtils.readFileToString(pbsmrtpipeLog, "UTF-8").split("\n")
-        logOut
-          .takeRight(
-            logOut.size - logOut.indexWhere(_.startsWith("[ERROR]")) + 1
-          )
-          .mkString("\n")
+        val tasksRpt = job.path.resolve("workflow/report-tasks.json")
+        val logOut = FileUtils.readFileToString(tasksRpt.toFile, "UTF-8")
+        val rpt = logOut.parseJson.convertTo[Report]
+        rpt
+          .getAttributeValue("pbsmrtpipe.error_message")
+          .map(_.asInstanceOf[String])
+          .getOrElse(errorMessage)
       }.getOrElse(errorMessage)
 
     val datastorePath = job.path.resolve("workflow/datastore.json")
