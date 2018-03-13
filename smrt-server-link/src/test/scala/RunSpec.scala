@@ -4,19 +4,16 @@ import java.util.{Calendar, UUID}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
 import com.typesafe.config.Config
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
-
 import akka.actor.{ActorRefFactory, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.Specs2RouteTest
 import akka.testkit.TestActorRef
-
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors._
@@ -28,15 +25,17 @@ import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, Singleton}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
 import com.pacbio.secondary.smrtlink.services.{
+  PacBioServiceErrors,
   RunService,
   RunServiceProvider,
-  ServiceComposer,
-  PacBioServiceErrors
+  ServiceComposer
 }
+import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.time.{
   FakeClockProvider,
   PacBioDateTimeFormat
 }
+import com.pacbio.secondary.smrtlink.tools.SetupMockData
 
 trait RunSpecUtils {
   val RUN_ID = UUID.randomUUID()
@@ -159,7 +158,8 @@ class RunSpec
     with RunSpecUtils
     with Directives
     with Specs2RouteTest
-    with PacBioServiceErrors {
+    with PacBioServiceErrors
+    with TestUtils {
 
   // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
@@ -204,8 +204,13 @@ class RunSpec
   implicit val customRejectionHandler = pacBioRejectionHandler
 
   val routes = TestProviders.runService().prefixedRoutes
-  Await.ready(TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
-              10.seconds)
+
+  step(setupDb(TestProviders.dbConfig))
+
+  step(
+    Await.ready(
+      TestProviders.runDao().createRun(RunCreate(FAKE_RUN_DATA_MODEL)),
+      10.seconds))
 
   "Run Service" should {
     // TODO(smcclellan): Add more than one run
@@ -432,6 +437,7 @@ class RunSpec
 
       Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addHeader(
         ADMIN_CREDENTIALS_2) ~> routes ~> check {
+        println(response)
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.numCellsCompleted === 1
