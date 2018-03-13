@@ -540,21 +540,27 @@ class SmrtLinkServiceClient(
   def deleteEula(version: String): Future[MessageResponse] =
     getMessageResponse(Delete(toUri(ROOT_EULA_URI_PATH / version)))
 
-  private def toJobQuery(showAll: Boolean, projectId: Option[Int]) = {
-    val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
-    val query2 =
-      if (projectId.isDefined) Seq(s"projectId=${projectId.get}")
-      else Seq.empty[String]
-    val queries = query1 ++ query2
-    if (queries.isEmpty) ""
-    else "?" + (query1 ++ query2).reduce(_ + "&" + _)
+  private def toJobQuery(showAll: Boolean, projectId: Option[Int]): Uri.Query = {
+    val ms: Map[String, Option[String]] = Map(
+      "showAll" -> Some(showAll.toString),
+      "projectId" -> projectId.map(_.toString)
+    )
+
+    val params: Map[String, String] = ms
+      .map {
+        case (k, vopt) => vopt.map(v => (k, v))
+      }
+      .flatten
+      .toMap
+
+    Uri.Query(params)
   }
 
   def getJobsByType(jobType: String,
                     showAll: Boolean = false,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
-      Get(toUri(jobRoot(jobType) + toJobQuery(showAll, projectId))))
+      Get(toUri(jobRoot(jobType)).withQuery(toJobQuery(showAll, projectId))))
 
   def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = {
     val q = Uri.Query("projectId" -> projectId.toString)
