@@ -38,54 +38,58 @@ import com.pacbio.secondary.smrtlink.time.{
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 
 trait RunSpecUtils {
-  val RUN_ID = UUID.randomUUID()
-  val RUN_NAME = s"Run-$RUN_ID"
-  val RUN_SUMMARY = "Fake Data Model"
-  val CREATED_AT = new JodaDateTime(
+  lazy val RUN_ID = UUID.randomUUID()
+  def RUN_NAME = s"Run-$RUN_ID"
+  lazy val RUN_SUMMARY = "Fake Data Model"
+  lazy val CREATED_AT = new JodaDateTime(
     2016,
     4,
     15,
     2,
     25,
     PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
-  val CREATED_BY = "jsnow"
+  lazy val CREATED_BY = "jsnow"
 
   def instrumentName(id: String) = s"Inst$id"
 
-  val SUBREAD_ID_1 = UUID.randomUUID()
+  lazy val SUBREAD_ID_1 = UUID.randomUUID()
   val NAME_1 = "WellSample1"
   val SUMMARY_1 = "Well Sample 1"
   val WELL_NAME_1 = "A01"
   val EXTERNAL_RESOURCE_ID_1 = UUID.randomUUID()
   val CONTEXT_ID_1 =
     s"mSim_${new SimpleDateFormat("yyMMdd_HHmmss").format(Calendar.getInstance().getTime)}"
-  val STATUS_1 = SupportedAcquisitionStates.READY
-  val INSTRUMENT_ID_1 = 54001.toString
-  val MOVIE_MINUTES_1 = 600.0
-  val STARTED_AT_1 = new JodaDateTime(
+  lazy val STATUS_1 = SupportedAcquisitionStates.READY
+  lazy val INSTRUMENT_ID_1 = 54001.toString
+  lazy val MOVIE_MINUTES_1 = 600.0
+  lazy val STARTED_AT_1 = new JodaDateTime(
     2016,
     4,
     15,
     2,
     26,
     PacBioDateTimeFormat.TIME_ZONE) // "2016-04-15T02:26:00"
-  val PATH_URI_1 =
+  lazy val PATH_URI_1 =
     Paths.get(s"/pbi/collections/xfer-test/$CONTEXT_ID_1/1_A01/$RUN_ID/")
 
-  val SUBREAD_ID_2 = UUID.randomUUID()
-  val NAME_2 = "WellSample2"
-  val WELL_NAME_2 = "B01"
-  val EXTERNAL_RESOURCE_ID_2 = UUID.randomUUID()
-  val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
-  val MOVIE_MINUTES_2 = 1200.0
+  lazy val SUBREAD_ID_2 = UUID.randomUUID()
+  lazy val NAME_2 = "WellSample2"
+  lazy val WELL_NAME_2 = "B01"
+  lazy val EXTERNAL_RESOURCE_ID_2 = UUID.randomUUID()
+  lazy val STATUS_2 = SupportedAcquisitionStates.READY_TO_CALIBRATE
+  lazy val MOVIE_MINUTES_2 = 1200.0
 
-  val ACQ_1_STARTED_AT = CREATED_AT.plusHours(1)
-  val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(2)
-  val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
-  val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
+  lazy val ACQ_1_STARTED_AT = CREATED_AT.plusHours(1)
+  lazy val ACQ_1_COMPLETED_AT = CREATED_AT.plusHours(2)
+  lazy val RUN_TRANS_COMPLETED_AT = ACQ_1_COMPLETED_AT.plusSeconds(1)
+  lazy val RUN_COMPLETED_AT = RUN_TRANS_COMPLETED_AT.plusSeconds(1)
 
-  protected def getRunDataModelFromTemplate(resourcePath: String,
-                                            runId: UUID = RUN_ID) = {
+  lazy val FAKE_RUN_DATA_MODEL_RESOURCE =
+    "/run-data-models/fake_run_data_model.xml"
+
+  def getRunDataModelFromTemplate(resourcePath: String =
+                                    FAKE_RUN_DATA_MODEL_RESOURCE,
+                                  runId: UUID = RUN_ID) = {
     XmlTemplateReader
       .fromStream(getClass.getResourceAsStream(resourcePath))
       .globally()
@@ -121,8 +125,9 @@ trait RunSpecUtils {
       .mkString
   }
 
-  val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
-    "/run-data-models/fake_run_data_model.xml")
+  lazy val FAKE_RUN_DATA_MODEL = getRunDataModelFromTemplate(
+    FAKE_RUN_DATA_MODEL_RESOURCE)
+
 }
 
 class RunParserSpec extends Specification with RunSpecUtils {
@@ -161,7 +166,6 @@ class RunSpec
     with PacBioServiceErrors
     with TestUtils {
 
-  // Tests must be run in sequence because of shared state in InMemoryHealthDaoComponent
   sequential
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
@@ -216,7 +220,7 @@ class RunSpec
     // TODO(smcclellan): Add more than one run
     "return a list of all runs" in {
       Get("/smrt-link/runs") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
-        println(status)
+        // println(status)
         status.isSuccess must beTrue
         val runs = responseAs[Set[RunSummary]]
         runs.size === 1
@@ -413,38 +417,54 @@ class RunSpec
     }
 
     "update a run" in {
+
+      val newId = UUID.randomUUID()
+      val ssetId = UUID.randomUUID()
       val newStatus = SupportedAcquisitionStates.COMPLETE
+
+      val newRunUtil = new RunSpecUtils {
+        override lazy val RUN_ID = newId
+        override lazy val STATUS_1 = newStatus
+        override lazy val SUBREAD_ID_1 = ssetId
+      }
+
       val newModel =
-        FAKE_RUN_DATA_MODEL.replace(STATUS_1.value(), newStatus.value())
+        newRunUtil.getRunDataModelFromTemplate(
+          newRunUtil.FAKE_RUN_DATA_MODEL_RESOURCE)
 
       val update1 = RunUpdate(dataModel = None, reserved = Some(true))
 
-      Post(s"/smrt-link/runs/$RUN_ID", update1) ~> addHeader(
+      Post("/smrt-link/runs", RunCreate(newModel)) ~> addHeader(
+        ADMIN_CREDENTIALS_2) ~> routes ~> check {
+        status.isSuccess must beTrue
+        val run = responseAs[RunSummary]
+        run.reserved === false
+      }
+
+      Post(s"/smrt-link/runs/$newId", update1) ~> addHeader(
         ADMIN_CREDENTIALS_2) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.reserved === true
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$newId") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         run.reserved === true
-        run.dataModel === FAKE_RUN_DATA_MODEL
       }
 
       val update2 = RunUpdate(dataModel = Some(newModel), reserved = None)
 
-      Post(s"/smrt-link/runs/$RUN_ID", update2) ~> addHeader(
+      Post(s"/smrt-link/runs/$newId", update2) ~> addHeader(
         ADMIN_CREDENTIALS_2) ~> routes ~> check {
-        println(response)
         status.isSuccess must beTrue
         val run = responseAs[RunSummary]
         run.numCellsCompleted === 1
         run.reserved === true
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
+      Get(s"/smrt-link/runs/$newId") ~> addHeader(READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val run = responseAs[Run]
         run.numCellsCompleted === 1
@@ -452,17 +472,18 @@ class RunSpec
         run.dataModel === newModel
       }
 
-      Get(s"/smrt-link/runs/$RUN_ID/collections/$SUBREAD_ID_1") ~> addHeader(
+      Get(s"/smrt-link/runs/$newId/collections/$ssetId") ~> addHeader(
         READ_CREDENTIALS) ~> routes ~> check {
         status.isSuccess must beTrue
         val collection = responseAs[CollectionMetadata]
 
-        collection.uniqueId === SUBREAD_ID_1
-        collection.runId === RUN_ID
-        collection.context === Some(CONTEXT_ID_1)
+        collection.uniqueId === ssetId
+        collection.runId === newId
+        collection.context === Some(newRunUtil.CONTEXT_ID_1)
         collection.status === newStatus
-        collection.instrumentId === Some(INSTRUMENT_ID_1)
-        collection.instrumentName === Some(instrumentName(INSTRUMENT_ID_1))
+        collection.instrumentId === Some(newRunUtil.INSTRUMENT_ID_1)
+        collection.instrumentName === Some(
+          instrumentName(newRunUtil.INSTRUMENT_ID_1))
       }
     }
 
