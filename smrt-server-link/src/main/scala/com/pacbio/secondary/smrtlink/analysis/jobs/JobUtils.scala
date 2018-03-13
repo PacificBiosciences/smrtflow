@@ -331,35 +331,6 @@ trait CoreJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
     r
   }
 
-  /**
-    * Get the fundamental "log" for the job
-    * FIXME(mpkocher)(2016-12-4) Centralizing this duplication. Should reevaluate the fundamental design
-    *
-    * @param path  Path to the Log file
-    * @return
-    */
-  def toSmrtLinkJobLog(path: Path,
-                       description: Option[String] = None): DataStoreFile = {
-
-    val now = JodaDateTime.now()
-    val desc = description.getOrElse(JobConstants.DATASTORE_FILE_MASTER_DESC)
-
-    DataStoreFile(
-      UUID.randomUUID(),
-      JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
-      FileTypes.LOG.fileTypeId,
-      // probably wrong; the file isn't closed yet.  But it won't get
-      // closed until after this method completes.
-      path.toFile.length,
-      now,
-      now,
-      path.toString,
-      isChunked = false,
-      JobConstants.DATASTORE_FILE_MASTER_NAME,
-      desc
-    )
-  }
-
   def toDatastore(jobResources: AnalysisJobResources,
                   files: Seq[DataStoreFile]): PacBioDataStore =
     PacBioDataStore.fromFiles(files)

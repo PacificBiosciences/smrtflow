@@ -72,12 +72,9 @@ class RsConvertMovieToDataSetJob(opts: RsConvertMovieToDataSetJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     val startedAt = JodaDateTime.now()
     val name = opts.name.getOrElse("RS-to-HdfSubreadSet")
-    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile =
-      toSmrtLinkJobLog(
-        logPath,
-        Some(
-          s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the Import Dataset job"))
+
+    val logFile = getStdOutLog(resources, dao)
+
     val dsPath = resources.path.resolve("rs_movie.hdfsubreadset.xml")
     val datastoreJson = resources.path.resolve("datastore.json")
 

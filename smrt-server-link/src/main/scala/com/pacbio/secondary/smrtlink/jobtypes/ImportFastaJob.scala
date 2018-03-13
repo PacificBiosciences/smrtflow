@@ -246,6 +246,7 @@ V <: DataSetIO](opts: ImportFastaBaseJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
     val startedAt = JodaDateTime.now()
+    val logFile = getStdOutLog(resources, dao)
 
     def toLeft(msg: String): Either[ResultFailed, PacBioDataStore] = {
       val runTime = computeTimeDeltaFromNow(startedAt)

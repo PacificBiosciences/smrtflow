@@ -67,6 +67,7 @@ class ImportBarcodeFastaJob(opts: ImportBarcodeFastaJobOptions)
     // Shim layer
     val name = opts.name.getOrElse("Fasta-Barcodes")
     val startedAt = JodaDateTime.now()
+    val logFile = getStdOutLog(resources, dao)
 
     w(s"Converting Fasta to dataset ${opts.path}")
     w(s"Job Options $opts")
@@ -81,12 +82,7 @@ class ImportBarcodeFastaJob(opts: ImportBarcodeFastaJobOptions)
       }
     }
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
-    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
     val datastoreJson = resources.path.resolve("datastore.json")
-    val logFile = toSmrtLinkJobLog(
-      logPath,
-      Some(
-        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} ConvertImportFasta Job"))
 
     val result = Try { validateAndRun(opts.path) }
 

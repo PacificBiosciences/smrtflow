@@ -352,6 +352,10 @@ package object jobtypes {
       extends ServiceCoreJobModel {
     // sugar
     val jobTypeId = opts.jobTypeId
+
+    def getStdOutLog(resources: JobResourceBase, dao: JobsDao) =
+      runAndBlock(addStdOutLogToDataStore(resources, dao, opts.projectId),
+                  opts.DEFAULT_TIMEOUT).get
   }
 
   // Use to encode a multi job type

@@ -35,16 +35,15 @@ case class MockPbsmrtpipeJobOptions(
 
 trait MockPbsmrtpipeUtils extends CoreJobUtils {
 
-  def runMockJob(job: JobResourceBase, resultsWriter: JobResultsWriter) = {
+  def runMockJob(job: JobResourceBase,
+                 resultsWriter: JobResultsWriter,
+                 logFile: DataStoreFile) = {
     //Ignore the entry points provided
     val entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint]
     val envPath: Option[Path] = None
 
     val resources = setupJobResourcesAndCreateDirs(job.path)
     val dsFiles = toMockDataStoreFiles(job.path)
-
-    val logPath = job.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toSmrtLinkJobLog(logPath)
 
     // This must follow the pbreport id format
     val reportId = "smrtflow_mock_job_report"
@@ -92,6 +91,7 @@ class MockPbsmrtpipeJob(opts: MockPbsmrtpipeJobOptions)
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-    Right(runMockJob(job, resultsWriter))
+    val logFile = getStdOutLog(job, dao)
+    Right(runMockJob(job, resultsWriter, logFile))
   }
 }

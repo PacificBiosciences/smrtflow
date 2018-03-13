@@ -158,11 +158,15 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
     val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
-    val fx = resolvePathsAndWriteEntryPoints(dao,
-                                             resources.path,
-                                             opts.datasetType,
-                                             opts.ids)
+    val fx = for {
+      paths <- resolvePathsAndWriteEntryPoints(dao,
+                                               resources.path,
+                                               opts.datasetType,
+                                               opts.ids)
+    } yield paths
+
     val paths: Seq[Path] = Await.result(fx, timeout)
+    val logFile = getStdOutLog(resources, dao)
     val startedAt = JodaDateTime.now()
 
     resultsWriter.writeLine(
@@ -172,13 +176,6 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
     paths.foreach(x => resultsWriter.writeLine(s"File ${x.toString}"))
 
     val datastoreJson = resources.path.resolve("datastore.json")
-
-    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toSmrtLinkJobLog(
-      logPath,
-      Some(
-        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the details of the Export DataSet Job"))
-
     val nbytes = ExportDataSets(paths, opts.datasetType, opts.outputPath)
     resultsWriter.write(
       s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
