@@ -47,7 +47,7 @@ class EventServerClient(
   private val SEGMENT_EVENTS = "events"
   private val SEGMENT_FILES = "files"
 
-  val PREFIX_API_PATH = Uri.Path("api") / "v1"
+  val PREFIX_API_PATH = Uri.Path./ ++ Uri.Path("api") / "v1"
 
   val UPLOAD_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_FILES
   val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_EVENTS
@@ -94,6 +94,7 @@ class EventServerClient(
     val key =
       Signer.generate(apiSecret, s"${method.value}+$segment", Signer.timestamp)
     val authHeader = s"hmac uid:$key"
+    // logger.debug(s"segment '$segment' with key $key")
     RawHeader("Authentication", authHeader)
   }
 
