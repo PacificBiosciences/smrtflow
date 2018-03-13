@@ -14,7 +14,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  CoreJob,
   PrinterJobResultsWriter,
   SecondaryJobJsonProtocol
 }
