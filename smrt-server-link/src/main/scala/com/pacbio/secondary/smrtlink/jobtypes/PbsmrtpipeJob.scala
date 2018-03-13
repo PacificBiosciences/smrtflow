@@ -8,9 +8,11 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
+
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
@@ -29,10 +31,6 @@ import com.pacbio.secondary.smrtlink.models.{
   EngineJobEntryPointRecord
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Created by mkocher on 8/17/17.
@@ -162,6 +160,18 @@ trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
     val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
+    def getPbsmrtpipeError =
+      Try {
+        val pbsmrtpipeLog = job.path.resolve("logs/pbsmrtpipe.log").toFile
+        val logOut =
+          FileUtils.readFileToString(pbsmrtpipeLog, "UTF-8").split("\n")
+        logOut
+          .takeRight(
+            logOut.size - logOut.indexWhere(_.startsWith("[ERROR]")) + 1
+          )
+          .mkString("\n")
+      }.getOrElse(errorMessage)
+
     val datastorePath = job.path.resolve("workflow/datastore.json")
 
     val ds = Try {
@@ -187,13 +197,14 @@ trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
             host
           ))
       case x =>
-        Left(ResultFailed(
-          job.jobId,
-          jobTypeId.toString,
-          s"Pbsmrtpipe job ${job.path} failed with exit code $x. $errorMessage",
-          runTimeSec,
-          AnalysisJobStates.FAILED,
-          host))
+        Left(
+          ResultFailed(
+            job.jobId,
+            jobTypeId.toString,
+            s"Pbsmrtpipe job ${job.path} failed with exit code $x. $getPbsmrtpipeError",
+            runTimeSec,
+            AnalysisJobStates.FAILED,
+            host))
     }
   }
 }
