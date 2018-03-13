@@ -59,7 +59,7 @@ class EventManagerActor(smrtLinkId: UUID,
   override def preStart() = {
     val dns = dnsName.map(n => s"dns name $n").getOrElse("")
     logger.info(
-      s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server URL $externalEveUrl")
+      s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server URL $externalEveUrl with enableExternalEvents=$enableExternalMessages")
     logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
@@ -121,7 +121,8 @@ class EventManagerActor(smrtLinkId: UUID,
     case EnableExternalMessages(enable) =>
       // Unless the system is Configured with a Eve URL, this has no impact
       enableExternalMessages = enable
-      sender ! s"Enabled External Messages to $externalEveUrl"
+      val msx = s"Enabled External Messages to ${client.map(_.RootUri)}"
+      sender ! msx
 
     case CreateEvent(e) =>
       if (enableExternalMessages) {
@@ -129,7 +130,9 @@ class EventManagerActor(smrtLinkId: UUID,
         sender ! systemEvent
         sendSystemEvent(systemEvent)
       } else {
-        logger.warn("Enabling external message sending id disabled.")
+        // This should send a failed message back
+        logger.warn(
+          s"External Event Sending is disabled. Unable to send event $e")
       }
 
     case e: EulaRecord =>
