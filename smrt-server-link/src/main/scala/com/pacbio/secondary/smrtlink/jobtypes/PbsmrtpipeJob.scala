@@ -8,9 +8,11 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
+
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
@@ -24,15 +26,15 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
+import com.pacbio.secondary.smrtlink.analysis.reports.{
+  ReportModels,
+  ReportJsonProtocol
+}
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   EngineJobEntryPointRecord
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Created by mkocher on 8/17/17.
@@ -82,10 +84,13 @@ object PbsmrtpipeJobUtils {
   * also used by the convert-fasta-reference service.
   *
   */
-trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
-  this: ServiceCoreJob =>
+trait PbsmrtpipeCoreJob
+    extends CoreJobUtils
+    with ExternalToolsUtils
+    with ReportJsonProtocol { this: ServiceCoreJob =>
 
   import PbsmrtpipeConstants._
+  import ReportModels._
 
   protected def runPbsmrtpipe(
       job: JobResourceBase,
@@ -162,6 +167,17 @@ trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
     val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
+    def getPbsmrtpipeError: String =
+      Try {
+        val tasksRpt = job.path.resolve("workflow/report-tasks.json")
+        val logOut = FileUtils.readFileToString(tasksRpt.toFile, "UTF-8")
+        val rpt = logOut.parseJson.convertTo[Report]
+        rpt
+          .getAttributeValue("pbsmrtpipe.error_message")
+          .map(_.asInstanceOf[String])
+          .getOrElse(errorMessage)
+      }.getOrElse(errorMessage)
+
     val datastorePath = job.path.resolve("workflow/datastore.json")
 
     val ds = Try {
@@ -187,13 +203,14 @@ trait PbsmrtpipeCoreJob extends CoreJobUtils with ExternalToolsUtils {
             host
           ))
       case x =>
-        Left(ResultFailed(
-          job.jobId,
-          jobTypeId.toString,
-          s"Pbsmrtpipe job ${job.path} failed with exit code $x. $errorMessage",
-          runTimeSec,
-          AnalysisJobStates.FAILED,
-          host))
+        Left(
+          ResultFailed(
+            job.jobId,
+            jobTypeId.toString,
+            s"Pbsmrtpipe job ${job.path} failed with exit code $x. $getPbsmrtpipeError",
+            runTimeSec,
+            AnalysisJobStates.FAILED,
+            host))
     }
   }
 }
@@ -222,8 +239,6 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     resultsWriter.writeLine(
       s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
 
-    val logFile = toSmrtLinkJobLog(logPath)
-
     val rootUpdateURL = new URL(
       s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
@@ -236,7 +251,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
     // Proactively add the datastore file to communicate
     // Resolve Entry Points (with updated paths for SubreadSets)
     val fx: Future[Seq[BoundEntryPoint]] = for {
-      _ <- dao.importDataStoreFile(logFile, resources.jobId)
+      logFile <- addStdOutLogToDataStore(resources, dao, opts.projectId)
       entryPoints <- opts.resolver(opts.entryPoints, dao).map(_.map(_._2))
       epUpdated <- Future.sequence {
         entryPoints.map { ep =>

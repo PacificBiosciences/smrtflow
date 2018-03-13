@@ -94,13 +94,7 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
           Nil
       }
 
-      val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-      val logFile =
-        toSmrtLinkJobLog(
-          logPath,
-          Some(
-            s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the Import Dataset job"))
-
+      val logFile = getStdOutLog(resources, dao)
       val dsFiles = Seq(dsFile, logFile) ++ reportFiles
       val datastore = PacBioDataStore(startedAt, createdAt, "0.1.0", dsFiles)
       val datastorePath = resources.path.resolve("datastore.json")

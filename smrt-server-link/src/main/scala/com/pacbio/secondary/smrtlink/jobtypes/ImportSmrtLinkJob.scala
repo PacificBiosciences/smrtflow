@@ -200,6 +200,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
     val startedAt = JodaDateTime.now()
     val manifest = getManifest(opts.zipPath)
+    val logFile = getStdOutLog(resources, dao)
     // for testing we need to be able to swap in a new UUID
     val exportedJob = manifest.job.copy(
       uuid = getUuid(manifest.job.uuid, opts.mockJobId.getOrElse(false)))
@@ -227,6 +228,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       .zip(entryPointDatasets)
       .filter(_._2.jobId == job.id)
       .map(_._1.dataStoreFile) ++ Seq(
+      logFile,
       DataStoreFile(
         uniqueId = UUID.randomUUID(),
         sourceId = "import-job",
@@ -237,7 +239,8 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
         path = importPath.resolve("export-job-manifest.json").toString,
         name = "Imported job manifest",
         description = "Imported job manifest"
-      ))
+      )
+    )
     val endedAt = JodaDateTime.now()
     val ds = PacBioDataStore(startedAt, endedAt, "0.1.0", dsFiles)
     val datastoreJson = resources.path.resolve("datastore.json")

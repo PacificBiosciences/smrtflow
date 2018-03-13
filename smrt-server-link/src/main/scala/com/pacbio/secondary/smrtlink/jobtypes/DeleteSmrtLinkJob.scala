@@ -91,6 +91,7 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
                          dao: JobsDao,
                          config: SystemJobConfig): Try[Report] = {
     val startedAt = JodaDateTime.now()
+    val logFile = getStdOutLog(job, dao)
 
     // DB interaction timeout
     val timeOut = 10.seconds

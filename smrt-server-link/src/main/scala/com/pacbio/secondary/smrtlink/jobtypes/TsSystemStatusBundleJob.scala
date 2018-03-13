@@ -186,10 +186,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
     )
 
     val tx = for {
-      stdoutDsFile <- addStdOutLogToDataStore(resources.jobId,
-                                              dao,
-                                              stdoutLog,
-                                              opts.projectId)
+      stdoutDsFile <- addStdOutLogToDataStore(resources, dao, opts.projectId)
       eveUrl <- validateEveUrl(config.externalEveUrl)
       systemRoot <- validateSmrtLinkSystemRoot(config.smrtLinkSystemRoot)
       (dataStore, tgzPath) <- Future.fromTry(

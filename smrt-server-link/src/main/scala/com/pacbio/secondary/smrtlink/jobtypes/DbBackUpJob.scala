@@ -1,7 +1,7 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import scala.util.{Failure, Success, Try}
@@ -220,14 +220,12 @@ trait DbBackUpBase extends CoreJobUtils with timeUtils {
                  dbPort: Int,
                  dbUser: String,
                  dbPasswd: String,
-                 jobHost: String) = {
+                 jobHost: String,
+                 logFile: DataStoreFile) = {
     val createdAt = JodaDateTime.now()
 
     val outputDs = resources.path.resolve("datastore.json")
     val reportPath = resources.path.resolve("smrtlink_db_backup_report.json")
-
-    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    val logDsFile = toSmrtLinkJobLog(logPath)
 
     val pattern = "yyyy_MM_dd-HH_mm_ss"
     val formatter = DateTimeFormat.forPattern(pattern)
@@ -243,8 +241,8 @@ trait DbBackUpBase extends CoreJobUtils with timeUtils {
         port = dbPort,
         user = dbUser,
         password = dbPasswd,
-        stdout = logPath,
-        stderr = logPath
+        stdout = Paths.get(logFile.path),
+        stderr = Paths.get(logFile.path)
       )
       datastore <- Try {
         postProcess(outputDs,
@@ -252,7 +250,7 @@ trait DbBackUpBase extends CoreJobUtils with timeUtils {
                     backUpPath,
                     reportPath,
                     message,
-                    Seq(logDsFile))
+                    Seq(logFile))
       }
       deletedBackups <- Try {
         deleteMaxBackups(rootBackUpDir, MAX_NUM_BACKUPS, BACKUP_EXT)
@@ -291,6 +289,7 @@ class DbBackUpJob(opts: DbBackUpJobOptions)
     // SHIM
     // Assume that validate has already been called.
     val rootBackUp = config.rootDbBackUp.get
+    val logFile = getStdOutLog(resources, dao)
     resultsWriter.writeLine(s"Starting Db Backup with Options $opts")
     runCoreJob(
       resources,
@@ -300,7 +299,8 @@ class DbBackUpJob(opts: DbBackUpJobOptions)
       dbPort = config.dbConfig.port,
       dbUser = config.dbConfig.username,
       dbPasswd = config.dbConfig.password,
-      jobHost = host
+      jobHost = host,
+      logFile = logFile
     )
   }
 }
