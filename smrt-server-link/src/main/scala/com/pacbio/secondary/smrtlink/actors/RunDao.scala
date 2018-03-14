@@ -259,13 +259,11 @@ class RunDao(val db: Database, val parser: DataModelParser)
     db.run(action.transactionally)
   }
 
-  def getCollectionMetadatas(
-      runId: UUID): Future[Seq[CollectionMetadata]] =
+  def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
     db.run(collectionMetadata.filter(_.runId === runId).result)
 
-  def getCollectionMetadata(
-      runId: UUID,
-      uniqueId: UUID): Future[CollectionMetadata] = {
+  def getCollectionMetadata(runId: UUID,
+                            uniqueId: UUID): Future[CollectionMetadata] = {
     db.run {
         collectionMetadata
           .filter(_.runId === runId)
@@ -282,9 +280,8 @@ class RunDao(val db: Database, val parser: DataModelParser)
 /**
   * Provides a RunDao.
   */
-trait RunDaoProvider {
-  this: DalProvider with DataModelParserProvider =>
+trait RunDaoProvider { this: DalProvider with DataModelParserProvider =>
 
-  override val runDao: Singleton[RunDao] =
+  val runDao: Singleton[RunDao] =
     Singleton(() => new RunDao(db(), dataModelParser()))
 }
