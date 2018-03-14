@@ -20,7 +20,6 @@ import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders._
 import com.pacbio.secondary.smrtlink.auth._
-import com.pacbio.secondary.smrtlink.database.DatabaseRunDaoProvider
 import com.pacbio.secondary.smrtlink.dependency.{ConfigProvider, Singleton}
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
@@ -187,7 +186,7 @@ class RunSpec
       with SmrtLinkConfigProvider
       with PbsmrtpipeConfigLoader
       with EngineCoreConfigLoader
-      with DatabaseRunDaoProvider
+      with RunDaoProvider
       with ActorSystemProvider
       with JwtUtilsProvider
       with FakeClockProvider
