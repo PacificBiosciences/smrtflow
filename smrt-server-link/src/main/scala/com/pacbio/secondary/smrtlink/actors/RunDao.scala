@@ -14,6 +14,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
   JobEvent
 }
+import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates
 import com.typesafe.scalalogging.LazyLogging
