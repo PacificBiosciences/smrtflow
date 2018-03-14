@@ -7,731 +7,576 @@ import java.util.UUID
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import scalaj.http.Base64
 import akka.actor.ActorSystem
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.client.RequestBuilding._
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.common.models._
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetJsonProtocols
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetFilterProperty
+}
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
+import com.pacbio.secondary.smrtlink.jsonprotocols._
 import com.pacbio.secondary.smrtlink.analysis.reports._
+import com.pacbio.secondary.smrtlink.auth.JwtUtils._
 import com.pacbio.secondary.smrtlink.JobServiceConstants
+import com.pacbio.secondary.smrtlink.auth.JwtUtilsImpl
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
 
-class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
-    implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem)
+class SmrtLinkServiceClient(
+    host: String,
+    port: Int,
+    authUser: Option[String] = None)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(host, port)(actorSystem)
     with ServiceEndpointConstants
     with LazyLogging {
 
   import CommonModelImplicits._
   import CommonModels._
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
+  import SmrtLinkJsonProtocols._
 
-  val headers = authUser
-    .map(u =>
-      "{\"" + USERNAME_CLAIM + "\":\"" + u + "\",\"" + ROLES_CLAIM + "\":[]}")
-    .map(c =>
-      Base64.encodeString("{}") + "." + Base64.encodeString(c) + ".abc")
-    .map(j => HttpHeaders.RawHeader(JWT_HEADER, j))
+  protected def getMessageResponse(
+      request: HttpRequest): Future[MessageResponse] =
+    getObject[MessageResponse](request)
+
+  // To reuse the current models, we need an email address of the user.
+  private val userRecord: Option[UserRecord] =
+    authUser.map(u => UserRecord(u, Some(s"$u/domain.com")))
+
+  private val jwtUtils = new JwtUtilsImpl
+
+  val headers = userRecord
+    .map(u => RawHeader(JWT_HEADER, jwtUtils.userRecordToJwt(u)))
     .toSeq
-
-  def this(host: String, port: Int, authUser: Option[String] = None)(
-      implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port), authUser)(actorSystem)
-  }
 
   private def toP(path: Path) = path.toAbsolutePath.toString
 
-  private def jobRoot(jobType: String) = s"${ROOT_JOBS}/${jobType}"
+  // Perhaps these should be pushed into ServiceEndpoint Constants for consistency
+  // and centralization. Everything in this class should consume and construct
+  /// Uri.Path instances, not raw strings.
 
-  protected def toJobUrl(jobType: String, jobId: IdAble): String =
-    toUrl(jobRoot(jobType) + s"/${jobId.toIdString}")
+  // FIXME. The Convention is for the RootUri to prepend the leading slash
+  val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SL_PREFIX)
 
-  protected def toJobResourceUrl(jobType: String,
-                                 jobId: IdAble,
-                                 resourceType: String): String =
-    toUrl(jobRoot(jobType) + s"/${jobId.toIdString}/$resourceType")
+  val ROOT_JM_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / JOB_MANAGER_PREFIX
+  val ROOT_JOBS_URI_PATH: Uri.Path = ROOT_JM_URI_PATH / JOB_ROOT_PREFIX
+  val ROOT_MULTI_JOBS_URI_PATH
+    : Uri.Path = ROOT_JM_URI_PATH / JOB_MULTI_ROOT_PREFIX
+  val ROOT_DS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "datasets"
+  val ROOT_PB_DATA_BUNDLE_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "bundles"
+  val ROOT_DATASTORE_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / DATASTORE_FILES_PREFIX
+  val ROOT_RUNS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "runs"
+  val ROOT_PROJECTS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "projects"
+  val ROOT_EULA_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "eula"
+  val ROOT_SERVICE_MANIFESTS_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "manifests"
+  val ROOT_ALARMS_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / "alarms"
+  val ROOT_PT_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "resolved-pipeline-templates"
+  val ROOT_REGISTRY_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "registry-service"
+  // Rules
+  val ROOT_REPORT_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "report-view-rules"
+  val ROOT_PT_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "pipeline-template-view-rules"
+  val ROOT_DS_RULES_URI_PATH
+    : Uri.Path = ROOT_SL_PREFIX_URI_PATH / "pipeline-datastore-view-rules"
 
-  protected def toJobResourceIdUrl(jobType: String,
-                                   jobId: IdAble,
+  protected def toJobUriPath(jobType: String,
+                             jobId: Option[IdAble] = None): Uri.Path = {
+    val base = ROOT_JOBS_URI_PATH / jobType
+    jobId.map(i => base / i.toIdString).getOrElse(base)
+  }
+
+  // delete this, use toJobUriPath
+  private def jobRoot(jobType: String): Uri.Path = toJobUriPath(jobType)
+
+  protected def toJobUri(jobType: String, jobId: Option[IdAble]): Uri =
+    toUri(toJobUriPath(jobType, jobId))
+
+  /**
+    * Naked job-type-less call to get a job by IdAble
+    */
+  protected def toJobResourceUriPath(jobId: IdAble,
+                                     resourceType: String): Uri.Path =
+    ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType
+
+  protected def toJobResourceUrl(jobId: IdAble, resourceType: String): Uri =
+    toUri(toJobResourceUriPath(jobId, resourceType))
+
+  protected def toJobResourceIdUrl(jobId: IdAble,
                                    resourceType: String,
-                                   resourceId: UUID) =
-    toUrl(jobRoot(jobType) + s"/${jobId.toIdString}/$resourceType/$resourceId")
+                                   resourceId: UUID): Uri =
+    toUri(
+      ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType / resourceId.toString)
 
-  private def dsRoot(dsType: String) = s"${ROOT_DS}/${dsType}"
+  private def dsRoot(dsType: String): Uri.Path = ROOT_DS_URI_PATH / dsType
 
-  protected def toDataSetsUrl(dsType: String): String = toUrl(dsRoot(dsType))
+  protected def toDataSetsUrl(dsType: String): Uri = toUri(dsRoot(dsType))
 
-  protected def toDataSetUrl(dsType: String, dsId: IdAble): String =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}")
+  protected def toDataSetUrl(dsType: String, dsId: IdAble): Uri =
+    toUri(dsRoot(dsType) / dsId.toIdString)
 
   protected def toDataSetResourcesUrl(dsType: String,
                                       dsId: IdAble,
-                                      resourceType: String): String =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType")
+                                      resourceType: String): Uri =
+    toUri(dsRoot(dsType) / dsId.toIdString / resourceType)
 
   protected def toDataSetResourceUrl(dsType: String,
                                      dsId: IdAble,
                                      resourceType: String,
                                      resourceId: UUID) =
-    toUrl(dsRoot(dsType) + s"/${dsId.toIdString}/$resourceType/$resourceId")
+    toUri(
+      dsRoot(dsType) / dsId.toIdString / resourceType / resourceId.toString)
 
-  protected def toPacBioDataBundleUrl(
-      bundleType: Option[String] = None): String = {
-    val segment = bundleType.map(b => s"/$b").getOrElse("")
-    toUrl(ROOT_PB_DATA_BUNDLE + segment)
+  protected def toPacBioDataBundleUrl(bundleType: Option[String] = None): Uri = {
+    val path = bundleType
+      .map(b => ROOT_PB_DATA_BUNDLE_URI_PATH / b)
+      .getOrElse(ROOT_PB_DATA_BUNDLE_URI_PATH)
+
+    toUri(path)
   }
 
-  override def serviceStatusEndpoints: Vector[String] =
+  def serviceStatusEndpoints: Vector[Uri.Path] =
     Vector(
-      ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id,
-      ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id,
-      ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id,
-      ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE,
-      ROOT_DS + "/" + DataSetMetaTypes.Subread.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.HdfSubread.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.Reference.shortName,
-      ROOT_DS + "/" + DataSetMetaTypes.Barcode.shortName
+      jobRoot(JobTypeIds.IMPORT_DATASET.id),
+      jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id),
+      jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id),
+      jobRoot(JobTypeIds.PBSMRTPIPE.id),
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Subread.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.HdfSubread.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Reference.shortName,
+      ROOT_DS_URI_PATH / DataSetMetaTypes.Barcode.shortName
     )
 
-  // Pipelines and serialization
-  protected def getDataSetMetaDataPipeline
-    : HttpRequest => Future[DataSetMetaDataSet] =
-    requestPipe ~> unmarshal[DataSetMetaDataSet]
+  /**
+    * Check an endpoint for status 200
+    *
+    * @param endpointPath Provided as Relative to the base url in Client.
+    * @return
+    */
+  def checkServiceEndpoint(endpointPath: Uri.Path): Int =
+    checkEndpoint(toUri(endpointPath))
 
-  private def getDataSetPipeline[T <: ServiceDataSetMetadata](
-      implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
-    requestPipe ~> unmarshal[T]
+  /**
+    * Check the UI webserver for "Status" on a non-https
+    *
+    * @param uiPort UI (e.g., tomcat) webserver port
+    * @return
+    */
+  def checkUiEndpoint(uiPort: Int): Int = {
+    checkEndpoint(
+      RootUri.copy(authority = RootUri.authority.copy(port = uiPort)))
+  }
 
-  protected def getSubreadSetPipeline =
-    getDataSetPipeline[SubreadServiceDataSet]
-
-  protected def getHdfSubreadSetPipeline =
-    getDataSetPipeline[HdfSubreadServiceDataSet]
-
-  protected def getReferenceSetPipeline =
-    getDataSetPipeline[ReferenceServiceDataSet]
-
-  protected def getGmapReferenceSetPipeline =
-    getDataSetPipeline[GmapReferenceServiceDataSet]
-
-  protected def getBarcodeSetPipeline =
-    getDataSetPipeline[BarcodeServiceDataSet]
-
-  protected def getAlignmentSetPipeline =
-    getDataSetPipeline[AlignmentServiceDataSet]
-
-  protected def getConsensusReadSetPipeline =
-    getDataSetPipeline[ConsensusReadServiceDataSet]
-
-  protected def getConsensusAlignmentSetPipeline =
-    getDataSetPipeline[ConsensusAlignmentServiceDataSet]
-
-  protected def getContigSetPipeline = getDataSetPipeline[ContigServiceDataSet]
-
-  // DATASET DETAILS (full object parsed from XML)
-  private def getDataSetDetailsPipeline[T <: DataSetType](
-      implicit fmt: FromResponseUnmarshaller[T]): HttpRequest => Future[T] =
-    requestPipe ~> unmarshal[T]
-
-  protected def getSubreadSetDetailsPipeline =
-    getDataSetDetailsPipeline[SubreadSet]
-
-  protected def getHdfSubreadSetDetailsPipeline =
-    getDataSetDetailsPipeline[HdfSubreadSet]
-
-  protected def getReferenceSetDetailsPipeline =
-    getDataSetDetailsPipeline[ReferenceSet]
-
-  protected def getGmapReferenceSetDetailsPipeline =
-    getDataSetDetailsPipeline[GmapReferenceSet]
-
-  protected def getBarcodeSetDetailsPipeline =
-    getDataSetDetailsPipeline[BarcodeSet]
-
-  protected def getAlignmentSetDetailsPipeline =
-    getDataSetDetailsPipeline[AlignmentSet]
-
-  protected def getConsensusReadSetDetailsPipeline =
-    getDataSetDetailsPipeline[ConsensusReadSet]
-
-  protected def getConsensusAlignmentSetDetailsPipeline =
-    getDataSetDetailsPipeline[ConsensusAlignmentSet]
-
-  protected def getContigSetDetailsPipeline =
-    getDataSetDetailsPipeline[ContigSet]
-
-  private def getDataSetsPipeline[T <: ServiceDataSetMetadata](
-      implicit fmt: FromResponseUnmarshaller[Seq[T]])
-    : HttpRequest => Future[Seq[T]] = requestPipe ~> unmarshal[Seq[T]]
-
-  protected def getSubreadSetsPipeline =
-    getDataSetsPipeline[SubreadServiceDataSet]
-
-  protected def getHdfSubreadSetsPipeline =
-    getDataSetsPipeline[HdfSubreadServiceDataSet]
-
-  protected def getReferenceSetsPipeline =
-    getDataSetsPipeline[ReferenceServiceDataSet]
-
-  protected def getGmapReferenceSetsPipeline =
-    getDataSetsPipeline[GmapReferenceServiceDataSet]
-
-  protected def getBarcodeSetsPipeline =
-    getDataSetsPipeline[BarcodeServiceDataSet]
-
-  protected def getAlignmentSetsPipeline =
-    getDataSetsPipeline[AlignmentServiceDataSet]
-
-  protected def getConsensusReadSetsPipeline =
-    getDataSetsPipeline[ConsensusReadServiceDataSet]
-
-  protected def getConsensusAlignmentSetsPipeline =
-    getDataSetsPipeline[ConsensusAlignmentServiceDataSet]
-
-  protected def getContigSetsPipeline =
-    getDataSetsPipeline[ContigServiceDataSet]
-
-  protected def getDataStorePipeline
-    : HttpRequest => Future[Seq[DataStoreServiceFile]] =
-    requestPipe ~> unmarshal[Seq[DataStoreServiceFile]]
-
-  protected def getEntryPointsPipeline
-    : HttpRequest => Future[Seq[EngineJobEntryPoint]] =
-    requestPipe ~> unmarshal[Seq[EngineJobEntryPoint]]
-
-  protected def getReportsPipeline
-    : HttpRequest => Future[Seq[DataStoreReportFile]] =
-    requestPipe ~> unmarshal[Seq[DataStoreReportFile]]
-
-  protected def getReportPipeline: HttpRequest => Future[Report] =
-    requestPipe ~> unmarshal[Report]
-
-  protected def getJobTasksPipeline: HttpRequest => Future[Seq[JobTask]] =
-    requestPipe ~> unmarshal[Seq[JobTask]]
-
-  protected def getJobTaskPipeline: HttpRequest => Future[JobTask] =
-    requestPipe ~> unmarshal[JobTask]
-
-  protected def getJobEventsPipeline: HttpRequest => Future[Seq[JobEvent]] =
-    requestPipe ~> unmarshal[Seq[JobEvent]]
-
-  protected def getJobOptionsPipeline
-    : HttpRequest => Future[PipelineTemplatePreset] =
-    requestPipe ~> unmarshal[PipelineTemplatePreset]
-
-  protected def getRunsPipeline: HttpRequest => Future[Seq[RunSummary]] =
-    requestPipe ~> unmarshal[Seq[RunSummary]]
-
-  protected def getRunSummaryPipeline: HttpRequest => Future[RunSummary] =
-    requestPipe ~> unmarshal[RunSummary]
-
-  protected def getRunPipeline: HttpRequest => Future[Run] =
-    requestPipe ~> unmarshal[Run]
-
-  protected def getCollectionsPipeline
-    : HttpRequest => Future[Seq[CollectionMetadata]] =
-    requestPipe ~> unmarshal[Seq[CollectionMetadata]]
-
-  protected def getCollectionPipeline
-    : HttpRequest => Future[CollectionMetadata] =
-    requestPipe ~> unmarshal[CollectionMetadata]
-
-  protected def getProjectsPipeline: HttpRequest => Future[Seq[Project]] =
-    requestPipe ~> unmarshal[Seq[Project]]
-
-  protected def getProjectPipeline: HttpRequest => Future[FullProject] =
-    requestPipe ~> unmarshal[FullProject]
-
-  protected def getEulaPipeline: HttpRequest => Future[EulaRecord] =
-    requestPipe ~> unmarshal[EulaRecord]
-
-  protected def getEulasPipeline: HttpRequest => Future[Seq[EulaRecord]] =
-    requestPipe ~> unmarshal[Seq[EulaRecord]]
-
-  protected def getMessageResponsePipeline
-    : HttpRequest => Future[MessageResponse] =
-    requestPipe ~> unmarshal[MessageResponse]
-
-  def getJobPipeline: HttpRequest => Future[EngineJob] =
-    requestPipe ~> unmarshal[EngineJob]
-
-  // XXX this fails when createdBy is an object instead of a string
-  def getJobsPipeline: HttpRequest => Future[Seq[EngineJob]] =
-    requestPipe ~> unmarshal[Seq[EngineJob]]
-
-  def runJobPipeline: HttpRequest => Future[EngineJob] =
-    requestPipe ~> unmarshal[EngineJob]
-
-  def getReportViewRulesPipeline: HttpRequest => Future[Seq[ReportViewRule]] =
-    requestPipe ~> unmarshal[Seq[ReportViewRule]]
-
-  def getReportViewRulePipeline: HttpRequest => Future[ReportViewRule] =
-    requestPipe ~> unmarshal[ReportViewRule]
-
-  def getPipelineTemplatePipeline: HttpRequest => Future[PipelineTemplate] =
-    requestPipe ~> unmarshal[PipelineTemplate]
-
-  def getPipelineTemplatesPipeline
-    : HttpRequest => Future[Seq[PipelineTemplate]] =
-    requestPipe ~> unmarshal[Seq[PipelineTemplate]]
-
-  def getPipelineTemplateViewRulesPipeline
-    : HttpRequest => Future[Seq[PipelineTemplateViewRule]] =
-    requestPipe ~> unmarshal[Seq[PipelineTemplateViewRule]]
-
-  def getPipelineTemplateViewRulePipeline
-    : HttpRequest => Future[PipelineTemplateViewRule] =
-    requestPipe ~> unmarshal[PipelineTemplateViewRule]
-
-  def getPipelineDataStoreViewRulesPipeline
-    : HttpRequest => Future[PipelineDataStoreViewRules] =
-    requestPipe ~> unmarshal[PipelineDataStoreViewRules]
-
-  def getPacBioDataBundlesPipeline
-    : HttpRequest => Future[Seq[PacBioDataBundle]] =
-    requestPipe ~> unmarshal[Seq[PacBioDataBundle]]
-
-  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] =
-    requestPipe ~> unmarshal[PacBioDataBundle]
-
-  def getServiceManifestsPipeline
-    : HttpRequest => Future[Seq[PacBioComponentManifest]] =
-    requestPipe ~> unmarshal[Seq[PacBioComponentManifest]]
-
-  def getServiceManifestPipeline
-    : HttpRequest => Future[PacBioComponentManifest] =
-    requestPipe ~> unmarshal[PacBioComponentManifest]
-
-  def getAlarmsPipeline: HttpRequest => Future[Seq[AlarmStatus]] =
-    requestPipe ~> unmarshal[Seq[AlarmStatus]]
+  /**
+    * Run over each defined Endpoint (provided as relative segments to the base)
+    *
+    * Will NOT fail early. It will run over all endpoints and return non-zero
+    * if the any of the results have failed.
+    *
+    * Note, this is blocking.
+    *
+    * @return
+    */
+  def checkServiceEndpoints: Int = {
+    serviceStatusEndpoints
+      .map(checkServiceEndpoint)
+      .foldLeft(0) { (a, v) =>
+        Seq(a, v).max
+      }
+  }
 
   def getDataSet(datasetId: IdAble): Future[DataSetMetaDataSet] =
-    getDataSetMetaDataPipeline {
-      logger.debug(s"Retrieving metadata for dataset ${datasetId.toIdString}")
-      Get(toUrl(ROOT_DS + "/" + datasetId.toIdString))
-    }
+    getObject[DataSetMetaDataSet](
+      Get(toUri(ROOT_DS_URI_PATH / datasetId.toIdString)))
 
   def deleteDataSet(datasetId: IdAble): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      logger.debug(s"Soft-deleting dataset ${datasetId.toIdString}")
-      Put(toUrl(ROOT_DS + "/" + datasetId.toIdString),
-          DataSetUpdateRequest(Some(false)))
-    }
+    getMessageResponse(
+      Put(toUri(ROOT_DS_URI_PATH / datasetId.toIdString),
+          DataSetUpdateRequest(Some(false))))
 
-  def getSubreadSets: Future[Seq[SubreadServiceDataSet]] =
-    getSubreadSetsPipeline {
-      logger.debug(s"Retrieving all active SubreadSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Subread.shortName))
-    }
+  def toDataSetUrlWithQuery(ds: DataSetMetaTypes.DataSetMetaType,
+                            c: Option[DataSetSearchCriteria]): Uri = {
+    val q = c.map(_.toQuery).getOrElse(Uri.Query())
+    toUri(ROOT_DS_URI_PATH / ds.shortName).withQuery(q)
+  }
+
+  def getSubreadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[SubreadServiceDataSet]] =
+    getObject[Seq[SubreadServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Subread, c)))
 
   def getSubreadSet(dsId: IdAble): Future[SubreadServiceDataSet] =
-    getSubreadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId))
-    }
+    getObject[SubreadServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId)))
 
   def getSubreadSetDetails(dsId: IdAble): Future[SubreadSet] =
-    getSubreadSetDetailsPipeline {
+    getObject[SubreadSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
   def getSubreadSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] =
-    getReportsPipeline {
+    getObject[Seq[DataStoreReportFile]](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Subread.shortName,
                               dsId,
-                              JOB_REPORT_PREFIX))
-    }
+                              JOB_REPORT_PREFIX)))
 
-  def updateSubreadSetDetails(dsId: IdAble,
-                              isActive: Option[Boolean] = None,
-                              bioSampleName: Option[String] = None,
-                              wellSampleName: Option[String] = None) =
-    getMessageResponsePipeline {
+  def updateSubreadSetDetails(
+      dsId: IdAble,
+      isActive: Option[Boolean] = None,
+      bioSampleName: Option[String] = None,
+      wellSampleName: Option[String] = None): Future[MessageResponse] =
+    getMessageResponse(
       Put(toDataSetUrl(DataSetMetaTypes.Subread.shortName, dsId),
-          DataSetUpdateRequest(isActive, bioSampleName, wellSampleName))
-    }
+          DataSetUpdateRequest(isActive, bioSampleName, wellSampleName)))
 
-  def getHdfSubreadSets: Future[Seq[HdfSubreadServiceDataSet]] =
-    getHdfSubreadSetsPipeline {
-      logger.debug(s"Retrieving all active HdfSubreadSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.HdfSubread.shortName))
-    }
+  def getHdfSubreadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[HdfSubreadServiceDataSet]] =
+    getObject[Seq[HdfSubreadServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.HdfSubread, c)))
 
   def getHdfSubreadSet(dsId: IdAble): Future[HdfSubreadServiceDataSet] =
-    getHdfSubreadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.HdfSubread.shortName, dsId))
-    }
+    getObject[HdfSubreadServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.HdfSubread.shortName, dsId)))
 
   def getHdfSubreadSetDetails(dsId: IdAble): Future[HdfSubreadSet] =
-    getHdfSubreadSetDetailsPipeline {
+    getObject[HdfSubreadSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.HdfSubread.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getBarcodeSets: Future[Seq[BarcodeServiceDataSet]] =
-    getBarcodeSetsPipeline {
-      logger.debug(s"Retrieving all active BarcodeSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Barcode.shortName))
-    }
+  def getBarcodeSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[BarcodeServiceDataSet]] =
+    getObject[Seq[BarcodeServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Barcode, c)))
 
   def getBarcodeSet(dsId: IdAble): Future[BarcodeServiceDataSet] =
-    getBarcodeSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Barcode.shortName, dsId))
-    }
+    getObject[BarcodeServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Barcode.shortName, dsId)))
 
   def getBarcodeSetDetails(dsId: IdAble): Future[BarcodeSet] =
-    getBarcodeSetDetailsPipeline {
+    getObject[BarcodeSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Barcode.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getReferenceSets: Future[Seq[ReferenceServiceDataSet]] =
-    getReferenceSetsPipeline {
-      logger.debug(s"Retrieving all active ReferenceSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Reference.shortName))
-    }
+  def getReferenceSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ReferenceServiceDataSet]] =
+    getObject[Seq[ReferenceServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Reference, c)))
 
   def getReferenceSet(dsId: IdAble): Future[ReferenceServiceDataSet] =
-    getReferenceSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Reference.shortName, dsId))
-    }
+    getObject[ReferenceServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Reference.shortName, dsId)))
 
   def getReferenceSetDetails(dsId: IdAble): Future[ReferenceSet] =
-    getReferenceSetDetailsPipeline {
+    getObject[ReferenceSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Reference.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getGmapReferenceSets: Future[Seq[GmapReferenceServiceDataSet]] =
-    getGmapReferenceSetsPipeline {
-      logger.debug(s"Retrieving all active GmapReferenceSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.GmapReference.shortName))
-    }
+  def getGmapReferenceSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[GmapReferenceServiceDataSet]] =
+    getObject[Seq[GmapReferenceServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.GmapReference, c)))
 
   def getGmapReferenceSet(dsId: IdAble): Future[GmapReferenceServiceDataSet] =
-    getGmapReferenceSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.GmapReference.shortName, dsId))
-    }
+    getObject[GmapReferenceServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.GmapReference.shortName, dsId)))
 
   def getGmapReferenceSetDetails(dsId: IdAble): Future[GmapReferenceSet] =
-    getGmapReferenceSetDetailsPipeline {
+    getObject[GmapReferenceSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.GmapReference.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getAlignmentSets: Future[Seq[AlignmentServiceDataSet]] =
-    getAlignmentSetsPipeline {
-      logger.debug(s"Retrieving all active AlignmentSet records")
-      Get(toDataSetsUrl(DataSetMetaTypes.Alignment.shortName))
-    }
+  def getAlignmentSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[AlignmentServiceDataSet]] =
+    getObject[Seq[AlignmentServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Alignment, c)))
 
   def getAlignmentSet(dsId: IdAble): Future[AlignmentServiceDataSet] =
-    getAlignmentSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Alignment.shortName, dsId))
-    }
+    getObject[AlignmentServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Alignment.shortName, dsId)))
 
   def getAlignmentSetDetails(dsId: IdAble): Future[AlignmentSet] =
-    getAlignmentSetDetailsPipeline {
+    getObject[AlignmentSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Alignment.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getConsensusReadSets: Future[Seq[ConsensusReadServiceDataSet]] =
-    getConsensusReadSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.CCS.shortName))
-    }
+  def getConsensusReadSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ConsensusReadServiceDataSet]] =
+    getObject[Seq[ConsensusReadServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.CCS, c)))
 
   def getConsensusReadSet(dsId: IdAble): Future[ConsensusReadServiceDataSet] =
-    getConsensusReadSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.CCS.shortName, dsId))
-    }
+    getObject[ConsensusReadServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.CCS.shortName, dsId)))
 
   def getConsensusReadSetDetails(dsId: IdAble): Future[ConsensusReadSet] =
-    getConsensusReadSetDetailsPipeline {
-      Get(
-        toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName, dsId, "details"))
-    }
+    getObject[ConsensusReadSet](Get(
+      toDataSetResourcesUrl(DataSetMetaTypes.CCS.shortName, dsId, "details")))
 
-  def getConsensusAlignmentSets
+  def getConsensusAlignmentSets(c: Option[DataSetSearchCriteria] = None)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    getConsensusAlignmentSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.AlignmentCCS.shortName))
-    }
+    getObject[Seq[ConsensusAlignmentServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.AlignmentCCS, c)))
 
   def getConsensusAlignmentSet(
       dsId: IdAble): Future[ConsensusAlignmentServiceDataSet] =
-    getConsensusAlignmentSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId))
-    }
+    getObject[ConsensusAlignmentServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.AlignmentCCS.shortName, dsId)))
 
   def getConsensusAlignmentSetDetails(
       dsId: IdAble): Future[ConsensusAlignmentSet] =
-    getConsensusAlignmentSetDetailsPipeline {
+    getObject[ConsensusAlignmentSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.AlignmentCCS.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  def getContigSets: Future[Seq[ContigServiceDataSet]] =
-    getContigSetsPipeline {
-      Get(toDataSetsUrl(DataSetMetaTypes.Contig.shortName))
-    }
+  def getTranscriptSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[TranscriptServiceDataSet]] =
+    getObject[Seq[TranscriptServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Transcript, c)))
+
+  def getTranscriptSet(dsId: IdAble): Future[TranscriptServiceDataSet] =
+    getObject[TranscriptServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Transcript.shortName, dsId)))
+
+  def getTranscriptSetDetails(dsId: IdAble): Future[TranscriptSet] =
+    getObject[TranscriptSet](
+      Get(
+        toDataSetResourcesUrl(DataSetMetaTypes.Transcript.shortName,
+                              dsId,
+                              "details")))
+
+  def getContigSets(c: Option[DataSetSearchCriteria] = None)
+    : Future[Seq[ContigServiceDataSet]] =
+    getObject[Seq[ContigServiceDataSet]](
+      Get(toDataSetUrlWithQuery(DataSetMetaTypes.Contig, c)))
 
   def getContigSet(dsId: IdAble): Future[ContigServiceDataSet] =
-    getContigSetPipeline {
-      Get(toDataSetUrl(DataSetMetaTypes.Contig.shortName, dsId))
-    }
+    getObject[ContigServiceDataSet](
+      Get(toDataSetUrl(DataSetMetaTypes.Contig.shortName, dsId)))
 
   def getContigSetDetails(dsId: IdAble): Future[ContigSet] =
-    getContigSetDetailsPipeline {
+    getObject[ContigSet](
       Get(
         toDataSetResourcesUrl(DataSetMetaTypes.Contig.shortName,
                               dsId,
-                              "details"))
-    }
+                              "details")))
 
-  protected def getJobDataStore(
-      jobType: String,
-      jobId: IdAble): Future[Seq[DataStoreServiceFile]] =
-    getDataStorePipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_DATASTORE_PREFIX))
-    }
-
-  def getImportDatasetJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.IMPORT_DATASET.id, jobId)
-
-  def getMergeDatasetJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.MERGE_DATASETS.id, jobId)
+  def getJobDataStore(jobId: IdAble): Future[Seq[DataStoreServiceFile]] =
+    getObject[Seq[DataStoreServiceFile]](
+      Get(toJobResourceUrl(jobId, JOB_DATASTORE_PREFIX)))
 
   // FIXME how to convert to String?
-  def getDataStoreFile(fileId: UUID): Future[HttpResponse] = respPipeline {
-    Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
-  }
+  def getDataStoreFile(fileId: UUID): Future[HttpResponse] =
+    http.singleRequest(
+      Get(toUri(ROOT_DATASTORE_URI_PATH / fileId.toString / "download")))
 
-  def updateDataStoreFile(fileId: UUID,
-                          isActive: Boolean = true,
-                          path: Option[Path] = None,
-                          fileSize: Option[Long] = None) =
-    getMessageResponsePipeline {
-      Put(toUrl(ROOT_DATASTORE + s"/$fileId"),
-          DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize))
-    }
+  def updateDataStoreFile(
+      fileId: UUID,
+      isActive: Boolean = true,
+      path: Option[Path] = None,
+      fileSize: Option[Long] = None): Future[MessageResponse] =
+    getMessageResponse(
+      Put(
+        toUri(ROOT_DATASTORE_URI_PATH / fileId.toString),
+        DataStoreFileUpdateRequest(isActive, path.map(_.toString), fileSize)))
 
   /*def getDataStoreFileBinary(fileId: UUID): Future[Array[Byte]] = rawDataPipeline {
     Get(toUrl(ROOT_DATASTORE + s"/${fileId}/download"))
   }*/
 
-  def getReport(reportId: UUID): Future[Report] = getReportPipeline {
-    Get(toUrl(ROOT_DATASTORE + s"/${reportId}/download"))
-  }
+  def getJobReports(jobId: IdAble): Future[Seq[DataStoreReportFile]] =
+    getObject[Seq[DataStoreReportFile]](
+      Get(toJobResourceUrl(jobId, JOB_REPORT_PREFIX)))
 
-  protected def getJobReports(
-      jobId: IdAble,
-      jobType: String): Future[Seq[DataStoreReportFile]] = getReportsPipeline {
-    logger.debug(s"Getting reports for job ${jobId.toIdString}")
-    Get(toJobResourceUrl(jobType, jobId, JOB_REPORT_PREFIX))
-  }
-
-  def getImportJobReports(jobId: IdAble) =
-    getJobReports(jobId, JobTypeIds.IMPORT_DATASET.id)
+  def getJobReport(jobId: IdAble, reportId: UUID) =
+    getObject[Report](
+      Get(toJobResourceIdUrl(jobId, JOB_REPORT_PREFIX, reportId)))
 
   def getDataStoreFileResource(fileId: UUID,
-                               relpath: String): Future[HttpResponse] =
-    respPipeline {
-      Get(toUrl(ROOT_DATASTORE + s"/${fileId}/resources?relpath=${relpath}"))
-    }
+                               relpath: String): Future[HttpResponse] = {
+    val query = Uri.Query("relpath" -> relpath)
+    val uri = toUri(ROOT_DATASTORE_URI_PATH / fileId.toString / "resources")
+      .withQuery(query)
+    http.singleRequest(Get(uri))
+  }
 
-  protected def getJobTasks(jobType: String,
-                            jobId: IdAble): Future[Seq[JobTask]] =
-    getJobTasksPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX))
-    }
+  def getJobTasks(jobId: IdAble): Future[Seq[JobTask]] =
+    getObject[Seq[JobTask]](Get(toJobResourceUrl(jobId, JOB_TASK_PREFIX)))
 
-  protected def getJobTask(jobType: String,
-                           jobId: IdAble,
-                           taskId: UUID): Future[JobTask] =
-    getJobTaskPipeline {
-      Get(
-        toJobResourceUrl(jobType,
-                         jobId,
-                         JOB_TASK_PREFIX + "/" + taskId.toString))
-    }
+  def getJobTask(jobId: IdAble, taskId: UUID): Future[JobTask] =
+    getObject[JobTask](
+      Get(toJobResourceUrl(jobId, JOB_TASK_PREFIX + "/" + taskId.toString)))
 
-  protected def getJobEvents(jobType: String,
-                             jobId: Int): Future[Seq[JobEvent]] =
-    getJobEventsPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_EVENT_PREFIX))
-    }
+  def getJobEvents(jobId: Int): Future[Seq[JobEvent]] =
+    getObject[Seq[JobEvent]](Get(toJobResourceUrl(jobId, JOB_EVENT_PREFIX)))
 
-  protected def getJobOptions(jobType: String,
-                              jobId: Int): Future[PipelineTemplatePreset] =
-    getJobOptionsPipeline {
-      Get(toJobResourceUrl(jobType, jobId, JOB_OPTIONS))
-    }
+  def getJobOptions(jobId: Int): Future[PipelineTemplatePreset] =
+    getObject[PipelineTemplatePreset](
+      Get(toJobResourceUrl(jobId, JOB_OPTIONS)))
 
-  protected def createJobTask(jobType: String,
-                              jobId: IdAble,
-                              task: CreateJobTaskRecord): Future[JobTask] =
-    getJobTaskPipeline {
-      Post(toJobResourceUrl(jobType, jobId, JOB_TASK_PREFIX), task)
-    }
+  def createJobTask(jobId: IdAble,
+                    task: CreateJobTaskRecord): Future[JobTask] =
+    getObject[JobTask](Post(toJobResourceUrl(jobId, JOB_TASK_PREFIX), task))
 
-  protected def updateJobTask(jobType: String,
-                              jobId: IdAble,
-                              update: UpdateJobTaskRecord): Future[JobTask] =
-    getJobTaskPipeline {
-      Put(toJobResourceUrl(jobType,
-                           jobId,
-                           JOB_TASK_PREFIX + "/" + update.uuid.toString),
-          update)
-    }
+  def updateJobTask(jobId: IdAble,
+                    update: UpdateJobTaskRecord): Future[JobTask] =
+    getObject[JobTask](
+      Put(
+        toJobResourceUrl(jobId, JOB_TASK_PREFIX + "/" + update.uuid.toString),
+        update))
+
+  def updateJob(jobId: IdAble,
+                name: Option[String],
+                comment: Option[String],
+                tags: Option[String]): Future[EngineJob] =
+    getObject[EngineJob](
+      Put(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString),
+          UpdateJobRecord(name, comment, tags)))
 
   // Runs
+  protected def getRunUriPath(runId: UUID): Uri.Path =
+    ROOT_RUNS_URI_PATH / runId.toString
+  protected def getRunCollectionUriPath(runId: UUID,
+                                        collectionId: UUID): Uri.Path =
+    getRunUriPath(runId) / "collections" / collectionId.toString
 
-  protected def getRunUrl(runId: UUID): String = toUrl(s"${ROOT_RUNS}/$runId")
+  protected def getRunUrl(runId: UUID): Uri = toUri(getRunUriPath(runId))
 
-  protected def getCollectionsUrl(runId: UUID): String =
-    toUrl(s"${ROOT_RUNS}/$runId/collections")
+  protected def getCollectionsUrl(runId: UUID): Uri =
+    toUri(getRunUriPath(runId) / "collections")
 
-  protected def getCollectionUrl(runId: UUID, collectionId: UUID): String =
-    toUrl(s"${ROOT_RUNS}/$runId/collections/$collectionId")
+  protected def getCollectionUrl(runId: UUID, collectionId: UUID): Uri =
+    toUri(getRunCollectionUriPath(runId, collectionId))
 
-  def getRuns: Future[Seq[RunSummary]] = getRunsPipeline {
-    Get(toUrl(ROOT_RUNS))
-  }
+  def getRuns: Future[Seq[RunSummary]] =
+    getObject[Seq[RunSummary]](Get(toUri(ROOT_RUNS_URI_PATH)))
 
-  def getRun(runId: UUID): Future[Run] = getRunPipeline {
-    Get(getRunUrl(runId))
-  }
+  def getRun(runId: UUID): Future[Run] =
+    getObject[Run](Get(getRunUrl(runId)))
 
   def getCollections(runId: UUID): Future[Seq[CollectionMetadata]] =
-    getCollectionsPipeline {
-      Get(getCollectionsUrl(runId))
-    }
+    getObject[Seq[CollectionMetadata]](Get(getCollectionsUrl(runId)))
 
   def getCollection(runId: UUID,
                     collectionId: UUID): Future[CollectionMetadata] =
-    getCollectionPipeline {
-      Get(getCollectionUrl(runId, collectionId))
-    }
+    getObject[CollectionMetadata](Get(getCollectionUrl(runId, collectionId)))
 
   def createRun(dataModel: String): Future[RunSummary] =
-    getRunSummaryPipeline {
-      Post(toUrl(ROOT_RUNS), RunCreate(dataModel))
-    }
+    getObject[RunSummary](
+      Post(toUri(ROOT_RUNS_URI_PATH), RunCreate(dataModel)))
 
   def updateRun(runId: UUID,
                 dataModel: Option[String] = None,
                 reserved: Option[Boolean] = None): Future[RunSummary] =
-    getRunSummaryPipeline {
-      Post(getRunUrl(runId), RunUpdate(dataModel, reserved))
-    }
+    getObject[RunSummary](
+      Post(getRunUrl(runId), RunUpdate(dataModel, reserved)))
 
   def deleteRun(runId: UUID): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      Delete(getRunUrl(runId))
-    }
+    getMessageResponse(Delete(getRunUrl(runId)))
 
-  def getProjects: Future[Seq[Project]] = getProjectsPipeline {
-    Get(toUrl(ROOT_PROJECTS)).withHeaders(headers: _*)
-  }
+  def getProjects: Future[Seq[Project]] =
+    getObject[Seq[Project]](
+      Get(toUri(ROOT_PROJECTS_URI_PATH)).withHeaders(headers: _*))
 
-  def getProject(projectId: Int): Future[FullProject] = getProjectPipeline {
-    Get(toUrl(ROOT_PROJECTS + s"/$projectId")).withHeaders(headers: _*)
-  }
+  def getProject(projectId: Int): Future[FullProject] =
+    getObject[FullProject](
+      Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString))
+        .withHeaders(headers: _*))
 
   def createProject(name: String, description: String): Future[FullProject] =
-    getProjectPipeline {
-      Post(toUrl(ROOT_PROJECTS),
+    getObject[FullProject](
+      Post(toUri(ROOT_PROJECTS_URI_PATH),
            ProjectRequest(name, description, None, None, None, None))
-        .withHeaders(headers: _*)
-    }
+        .withHeaders(headers: _*))
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
-    getProjectPipeline {
-      Put(toUrl(ROOT_PROJECTS + s"/$projectId"), request)
-        .withHeaders(headers: _*)
-    }
+    getObject[FullProject](
+      Put(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString), request)
+        .withHeaders(headers: _*))
 
   // User agreements (not really a EULA)
-  def getEula(version: String): Future[EulaRecord] = getEulaPipeline {
-    Get(toUrl(ROOT_EULA + s"/$version"))
-  }
+  def getEula(version: String): Future[EulaRecord] =
+    getObject[EulaRecord](Get(toUri(ROOT_EULA_URI_PATH / version)))
 
-  def getEulas: Future[Seq[EulaRecord]] = getEulasPipeline {
-    Get(toUrl(ROOT_EULA))
-  }
+  def getEulas: Future[Seq[EulaRecord]] =
+    getObject[Seq[EulaRecord]](Get(ROOT_EULA))
 
-  def acceptEula(user: String, enableInstallMetrics: Boolean = true) =
-    getEulaPipeline {
-      Post(toUrl(ROOT_EULA), EulaAcceptance(user, enableInstallMetrics))
-    }
+  def acceptEula(user: String,
+                 enableInstallMetrics: Boolean = true,
+                 enableJobMetrics: Boolean = true): Future[EulaRecord] =
+    getObject[EulaRecord](
+      Post(toUri(ROOT_EULA_URI_PATH),
+           EulaAcceptance(user, enableInstallMetrics, Some(enableJobMetrics))))
 
-  def deleteEula(version: String) = getMessageResponsePipeline {
-    Delete(toUrl(ROOT_EULA + s"/$version"))
+  def deleteEula(version: String): Future[MessageResponse] =
+    getMessageResponse(Delete(toUri(ROOT_EULA_URI_PATH / version)))
+
+  private def toJobQuery(showAll: Boolean, projectId: Option[Int]): Uri.Query = {
+    val ms: Map[String, Option[String]] = Map(
+      "showAll" -> Some(showAll.toString),
+      "projectId" -> projectId.map(_.toString)
+    )
+
+    val params: Map[String, String] = ms
+      .map {
+        case (k, vopt) => vopt.map(v => (k, v))
+      }
+      .flatten
+      .toMap
+
+    Uri.Query(params)
   }
 
   def getJobsByType(jobType: String,
                     showAll: Boolean = false,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
-    getJobsPipeline {
-      val query1 = if (showAll) Seq("showAll") else Seq.empty[String]
-      val query2 =
-        if (projectId.isDefined) Seq(s"projectId=${projectId.get}")
-        else Seq.empty[String]
-      val queries = query1 ++ query2
-      val queryString =
-        if (queries.isEmpty) ""
-        else "?" + (query1 ++ query2).reduce(_ + "&" + _)
-      Get(toUrl(ROOT_JOBS + "/" + jobType + queryString))
-    }
+    getObject[Seq[EngineJob]](
+      Get(toUri(jobRoot(jobType)).withQuery(toJobQuery(showAll, projectId))))
 
-  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] =
-    getJobsPipeline {
-      Get(toUrl(ROOT_JOBS + s"?projectId=$projectId"))
-    }
+  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = {
+    val q = Uri.Query("projectId" -> projectId.toString)
+    getObject[Seq[EngineJob]](Get(toUri(ROOT_JOBS_URI_PATH).withQuery(q)))
+  }
 
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] =
-    getServiceManifestsPipeline {
-      Get(toUrl(ROOT_SERVICE_MANIFESTS))
-    }
+    getObject[Seq[PacBioComponentManifest]](
+      Get(toUri(ROOT_SERVICE_MANIFESTS_URI_PATH)))
 
   // Added in smrtflow 0.1.11 and SA > 3.2.0
   def getPacBioComponentManifestById(
       manifestId: String): Future[PacBioComponentManifest] =
-    getServiceManifestPipeline {
-      Get(toUrl(ROOT_SERVICE_MANIFESTS + "/" + manifestId))
-    }
+    getObject[PacBioComponentManifest](
+      Get(toUri(ROOT_SERVICE_MANIFESTS_URI_PATH / manifestId)))
 
   def getAnalysisJobs: Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id)
@@ -768,245 +613,170 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id,
                   projectId = Some(projectId))
 
-  def getJob(jobId: IdAble): Future[EngineJob] = getJobPipeline {
-    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString))
-  }
+  def getJob(jobId: IdAble): Future[EngineJob] =
+    getObject[EngineJob](Get(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString)))
 
   def deleteJob(jobId: UUID,
                 removeFiles: Boolean = true,
                 dryRun: Boolean = false,
-                force: Boolean = false): Future[EngineJob] = getJobPipeline {
-    logger.debug(s"Deleting job $jobId")
-    Post(toUrl(ROOT_JOBS + "/delete-job"),
-         DeleteSmrtLinkJobOptions(jobId,
-                                  Some(s"Delete job $jobId name"),
-                                  None,
-                                  removeFiles,
-                                  dryRun = Some(dryRun),
-                                  force = Some(force)))
-  }
+                force: Boolean = false): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.DELETE_JOB.id)),
+        DeleteSmrtLinkJobOptions(jobId,
+                                 Some(s"Delete job $jobId name"),
+                                 None,
+                                 removeFiles,
+                                 dryRun = Some(dryRun),
+                                 force = Some(force))
+      ))
 
-  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] = getJobsPipeline {
-    Get(toUrl(ROOT_JOBS + "/" + jobId.toIdString + "/children"))
-  }
+  def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] =
+    getObject[Seq[EngineJob]](
+      Get(toUri(ROOT_JOBS_URI_PATH / jobId.toIdString / "children")))
 
   def getJobByTypeAndId(jobType: String, jobId: IdAble): Future[EngineJob] =
-    getJobPipeline {
-      Get(toJobUrl(jobType, jobId))
-    }
+    getObject[EngineJob](Get(toJobUri(jobType, Some(jobId))))
 
   def getAnalysisJob(jobId: IdAble): Future[EngineJob] = {
     getJobByTypeAndId(JobTypeIds.PBSMRTPIPE.id, jobId)
   }
 
-  def getAnalysisJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.PBSMRTPIPE.id, jobId)
-
-  def getImportFastaJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.CONVERT_FASTA_REFERENCE.id, jobId)
-
-  def getImportBarcodesJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.CONVERT_FASTA_BARCODES.id, jobId)
-
-  def getConvertRsMovieJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.CONVERT_RS_MOVIE.id, jobId)
-
-  def getExportDataSetsJobDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.EXPORT_DATASETS.id, jobId)
-
-  def getExportJobsDataStore(jobId: IdAble) =
-    getJobDataStore(JobTypeIds.EXPORT_JOBS.id, jobId)
-
-  def getAnalysisJobReports(jobId: IdAble) =
-    getJobReports(jobId, JobTypeIds.PBSMRTPIPE.id)
-
-  // FIXME I think this still only works with Int
-  def getAnalysisJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
-    getEntryPointsPipeline {
-      Get(
-        toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, ENTRY_POINTS_PREFIX))
-    }
-
-  protected def getJobReport(jobType: String,
-                             jobId: IdAble,
-                             reportId: UUID): Future[Report] =
-    getReportPipeline {
-      logger.debug(s"Getting report $reportId for job ${jobId.toIdString}")
-      Get(toJobResourceIdUrl(jobType, jobId, JOB_REPORT_PREFIX, reportId))
-    }
-
-  // FIXME there is some degeneracy in the URLs - this actually works just fine
-  // for import-dataset and merge-dataset jobs too
-  def getAnalysisJobReport(jobId: IdAble, reportId: UUID): Future[Report] =
-    getJobReport(JobTypeIds.PBSMRTPIPE.id, jobId, reportId)
-
-  def getAnalysisJobTasks(jobId: Int): Future[Seq[JobTask]] =
-    getJobTasks(JobTypeIds.PBSMRTPIPE.id, jobId)
-
-  def getAnalysisJobTask(jobId: Int, taskId: UUID): Future[JobTask] =
-    getJobTask(JobTypeIds.PBSMRTPIPE.id, jobId, taskId)
-
-  def getAnalysisJobEvents(jobId: Int): Future[Seq[JobEvent]] =
-    getJobEvents(JobTypeIds.PBSMRTPIPE.id, jobId)
-
-  def getAnalysisJobOptions(jobId: Int): Future[PipelineTemplatePreset] =
-    getJobOptions(JobTypeIds.PBSMRTPIPE.id, jobId)
+  def getJobEntryPoints(jobId: IdAble): Future[Seq[EngineJobEntryPoint]] =
+    getObject[Seq[EngineJobEntryPoint]](
+      Get(toJobResourceUrl(jobId, ENTRY_POINTS_PREFIX)))
 
   def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
-    getMessageResponsePipeline {
-      Post(toJobResourceUrl(JobTypeIds.PBSMRTPIPE.id, jobId, TERMINATE_JOB))
-    }
+    getMessageResponse(Post(toJobResourceUrl(jobId, TERMINATE_JOB)))
 
   def getReportViewRules: Future[Seq[ReportViewRule]] =
-    getReportViewRulesPipeline {
-      Get(toUrl(ROOT_REPORT_RULES))
-    }
+    getObject[Seq[ReportViewRule]](Get(toUri(ROOT_REPORT_RULES_URI_PATH)))
 
   def getReportViewRule(reportId: String): Future[ReportViewRule] =
-    getReportViewRulePipeline {
-      Get(toUrl(ROOT_REPORT_RULES + s"/$reportId"))
-    }
+    getObject[ReportViewRule](
+      Get(toUri(ROOT_REPORT_RULES_URI_PATH / reportId)))
 
   def importDataSet(
       path: Path,
       dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Submitting import-dataset job for $path")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_DATASET.id),
-           ImportDataSetOptions(path.toAbsolutePath, dsMetaType))
-    }
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
+        ImportDataSetJobOptions(path.toAbsolutePath, dsMetaType, None, None)))
 
   def importFasta(path: Path,
                   name: String,
                   organism: String,
-                  ploidy: String): Future[EngineJob] = runJobPipeline {
-    logger.debug(s"Importing reference $name from FASTA file $path")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_REFERENCE.id),
-         ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None))
-  }
+                  ploidy: String): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
+        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Importing barcodes $name from FASTA file $path")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_FASTA_BARCODES.id),
-           ConvertImportFastaBarcodesOptions(toP(path), name))
-    }
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
+        ImportBarcodeFastaJobOptions(path.toAbsolutePath, Some(name), None)))
+
+  def importFastaGmap(path: Path,
+                      name: String,
+                      organism: String,
+                      ploidy: String): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
+        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
-                    name: String) = runJobPipeline {
-    logger.debug(s"Submitting merge-datasets job for ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.MERGE_DATASETS.id),
-         MergeDataSetJobOptions(datasetType, ids, Some(name), None))
-  }
+                    name: String) =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.MERGE_DATASETS.id)),
+           MergeDataSetJobOptions(datasetType, ids, Some(name), None)))
 
-  def convertRsMovie(path: Path, name: String) = runJobPipeline {
-    logger.debug(s"Importing RS II metadata from $path")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.CONVERT_RS_MOVIE.id),
-         MovieMetadataToHdfSubreadOptions(toP(path), name))
-  }
+  def convertRsMovie(path: Path, name: String) =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.CONVERT_RS_MOVIE.id)),
+           RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
-                     ids: Seq[Int],
+                     ids: Seq[IdAble],
                      outputPath: Path,
-                     deleteAfterExport: Boolean = false) = runJobPipeline {
-    logger.debug(s"Exporting ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_DATASETS.id),
-         DataSetExportServiceOptions(datasetType.toString,
-                                     ids,
-                                     toP(outputPath),
-                                     Some(deleteAfterExport)))
-  }
+                     deleteAfterExport: Boolean = false): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
+           ExportDataSetsJobOptions(datasetType,
+                                    ids,
+                                    outputPath.toAbsolutePath,
+                                    Some(deleteAfterExport))))
 
   def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[Int],
-                     removeFiles: Boolean = true) = runJobPipeline {
-    logger.debug(s"Deleting ${ids.size} datasets")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DELETE_DATASETS.id),
-         DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles))
-  }
+                     removeFiles: Boolean = true): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(
+        toUri(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
+        DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles)))
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] =
-    getPipelineTemplatePipeline {
-      Get(toUrl(ROOT_PT + "/" + pipelineId))
-    }
+    getObject[PipelineTemplate](Get(toUri(ROOT_PT_URI_PATH / pipelineId)))
 
   def getPipelineTemplates: Future[Seq[PipelineTemplate]] =
-    getPipelineTemplatesPipeline {
-      Get(toUrl(ROOT_PT))
-    }
+    getObject[Seq[PipelineTemplate]](Get(toUri(ROOT_PT_URI_PATH)))
 
   def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] =
-    getPipelineTemplateViewRulesPipeline {
-      Get(toUrl(ROOT_PTRULES))
-    }
+    getObject[Seq[PipelineTemplateViewRule]](
+      Get(toUri(ROOT_PT_RULES_URI_PATH)))
 
   def getPipelineTemplateViewRule(
       pipelineId: String): Future[PipelineTemplateViewRule] =
-    getPipelineTemplateViewRulePipeline {
-      Get(toUrl(ROOT_PTRULES + s"/$pipelineId"))
-    }
+    getObject[PipelineTemplateViewRule](
+      Get(toUri(ROOT_PT_RULES_URI_PATH / pipelineId)))
 
   def getPipelineDataStoreViewRules(
       pipelineId: String): Future[PipelineDataStoreViewRules] =
-    getPipelineDataStoreViewRulesPipeline {
-      Get(toUrl(ROOT_DS_RULES + s"/$pipelineId"))
-    }
+    getObject[PipelineDataStoreViewRules](
+      Get(toUri(ROOT_DS_RULES_URI_PATH / pipelineId)))
 
   def runAnalysisPipeline(
-      pipelineOptions: PbSmrtPipeServiceOptions): Future[EngineJob] =
-    runJobPipeline {
-      logger.debug(s"Submitting analysis job '${pipelineOptions.name}'")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.PBSMRTPIPE.id), pipelineOptions)
-    }
+      pipelineOptions: PbsmrtpipeJobOptions): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.PBSMRTPIPE.id)), pipelineOptions))
+
+  def toMultiJobUriPath(ix: Option[IdAble] = None): Uri.Path = {
+    val base = ROOT_MULTI_JOBS_URI_PATH / JobTypeIds.MJOB_MULTI_ANALYSIS.id
+    ix.map(i => base / i.toIdString).getOrElse(base)
+  }
 
   def createMultiAnalysisJob(
-      multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] = {
-    runJobPipeline {
-      logger.info(
-        s"Submitting $JOB_MULTI_ROOT_PREFIX name:${multiAnalysisJobOptions.name
-          .getOrElse("")}")
-      Post(toUrl(s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}"),
-           multiAnalysisJobOptions)
-    }
-  }
+      multiAnalysisJobOptions: MultiAnalysisJobOptions): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(toMultiJobUriPath()), multiAnalysisJobOptions))
 
-  def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] = {
-    getMessageResponsePipeline {
-      logger.info(
-        s"Attempting to change MultiJob ${ix.toIdString} state to SUBMITTED")
-      Post(toUrl(
-        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/submit"))
-    }
-  }
+  def updateMultiAnalysisJobToSubmit(ix: IdAble): Future[MessageResponse] =
+    getMessageResponse(Post(toUri(toMultiJobUriPath(Some(ix)) / "submit")))
 
-  def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] = {
-    getJobsPipeline {
-      Get(toUrl(
-        s"$ROOT_MULTI_JOBS/${JobTypeIds.MJOB_MULTI_ANALYSIS.id}/${ix.toIdString}/jobs"))
-    }
-  }
+  def getMultiAnalysisChildrenJobs(ix: IdAble): Future[Seq[EngineJob]] =
+    getObject[Seq[EngineJob]](Get(toUri(toMultiJobUriPath(Some(ix)) / "jobs")))
 
   // PacBio Data Bundle
-  def getPacBioDataBundles() = getPacBioDataBundlesPipeline {
-    Get(toPacBioDataBundleUrl())
-  }
+  def getPacBioDataBundles(): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl()))
 
-  def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlesPipeline {
-      Get(toPacBioDataBundleUrl(Some(typeId)))
-    }
+  def getPacBioDataBundleByTypeId(
+      typeId: String): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl(Some(typeId))))
 
   def getPacBioDataBundleByTypeAndVersionId(typeId: String,
                                             versionId: String) =
-    getPacBioDataBundlePipeline {
-      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))
-    }
+    getObject[PacBioDataBundle](
+      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId"))))
 
-  def runTsSystemStatus(user: String, comment: String) = runJobPipeline {
-    logger.debug("Submitting tech support status job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_SYSTEM_STATUS.id),
-         TsSystemStatusServiceOptions(user, comment))
+  def runTsSystemStatus(user: String, comment: String): Future[EngineJob] = {
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.TS_SYSTEM_STATUS.id)),
+           TsSystemStatusServiceOptions(user, comment)))
   }
 
   /**
@@ -1017,12 +787,12 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param comment Comment
     * @return
     */
-  def runTsJobBundle(jobId: Int, user: String, comment: String) =
-    runJobPipeline {
-      logger.debug("Submitting tech support job bundle")
-      Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.TS_JOB.id),
-           TsJobBundleJobServiceOptions(jobId, user, comment))
-    }
+  def runTsJobBundle(jobId: Int,
+                     user: String,
+                     comment: String): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.TS_JOB.id)),
+           TsJobBundleJobServiceOptions(jobId, user, comment)))
 
   /**
     * Submit a request to create a DB BackUp Job
@@ -1033,11 +803,10 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param comment A comment from the user
     * @return
     */
-  def runDbBackUpJob(user: String, comment: String) = runJobPipeline {
-    logger.debug("Submitting database backup job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.DB_BACKUP.id),
-         DbBackUpServiceJobOptions(user, comment))
-  }
+  def runDbBackUpJob(user: String, comment: String): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.DB_BACKUP.id)),
+           DbBackUpServiceJobOptions(user, comment)))
 
   /**
     * Start export of SMRT Link job(s)
@@ -1046,15 +815,14 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
                  outputPath: Path,
                  includeEntryPoints: Boolean = false,
                  name: Option[String] = None,
-                 description: Option[String] = None) = runJobPipeline {
-    logger.debug("Submitting export-jobs job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.EXPORT_JOBS.id),
-         ExportSmrtLinkJobOptions(jobIds,
-                                  outputPath,
-                                  includeEntryPoints,
-                                  name,
-                                  description))
-  }
+                 description: Option[String] = None): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.EXPORT_JOBS.id)),
+           ExportSmrtLinkJobOptions(jobIds,
+                                    outputPath,
+                                    includeEntryPoints,
+                                    name,
+                                    description)))
 
   /**
     * Start import of SMRT Link job from zip file
@@ -1063,14 +831,44 @@ class SmrtLinkServiceAccessLayer(baseUrl: URL, authUser: Option[String])(
     * @param mockJobId if true, job UUID will be re-generated
     * @return new EngineJob object
     */
-  def importJob(zipPath: Path, mockJobId: Boolean = false) = runJobPipeline {
-    logger.debug("Submitting import-job job")
-    Post(toUrl(ROOT_JOBS + "/" + JobTypeIds.IMPORT_JOB.id),
-         ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId)))
+  def importJob(zipPath: Path, mockJobId: Boolean = false): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.IMPORT_JOB.id)),
+           ImportSmrtLinkJobOptions(zipPath, mockJobId = Some(mockJobId))))
+
+  def copyDataSet(dsId: IdAble,
+                  filters: Seq[Seq[DataSetFilterProperty]],
+                  dsName: Option[String] = None): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.DS_COPY.id)),
+           CopyDataSetJobOptions(dsId, filters, dsName, None, None)))
+
+  def getAlarms(): Future[Seq[AlarmStatus]] =
+    getObject[Seq[AlarmStatus]](Get(toUri(ROOT_ALARMS_URI_PATH)))
+
+  def addRegistryService(host: String,
+                         port: Int,
+                         resourceId: String): Future[RegistryResource] = {
+    getObject[RegistryResource](
+      Post(toUri(ROOT_REGISTRY_URI_PATH / "resources"),
+           RegistryResourceCreate(host, port, resourceId))
+    )
   }
 
-  def getAlarms() = getAlarmsPipeline {
-    Get(toUrl(ROOT_ALARMS))
+  /**
+    * Simple access of only GET
+    *
+    * @param resource UUID of the registry Proxy Resource
+    * @param path Segment to get from Proxy Service
+    * @return
+    */
+  def getRegistryProxy(resource: UUID, path: Uri.Path): Future[HttpResponse] = {
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
+    getObject[HttpResponse](
+      Get(
+        toUri(
+          Uri.Path(s"$ROOT_REGISTRY_URI_PATH/resources/$resource/proxy$px")))
+    )
   }
 
   /**

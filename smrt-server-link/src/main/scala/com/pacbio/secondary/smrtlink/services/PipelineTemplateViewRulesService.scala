@@ -6,7 +6,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateVie
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
 import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
 import spray.json._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 /**
   *
@@ -47,12 +47,10 @@ class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule])
         path(Segment) { sx =>
           get {
             complete {
-              ok {
-                ptvrs
-                  .find(_.id == sx)
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find Pipeline Template View Rule $sx"))
-              }
+              ptvrs
+                .find(_.id == sx)
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find Pipeline Template View Rule $sx"))
             }
           }
         }

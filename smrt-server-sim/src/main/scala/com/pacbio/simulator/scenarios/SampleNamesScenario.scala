@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -19,7 +18,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobModels,
   OptionTypes
 }
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -52,7 +52,7 @@ class SampleNamesScenario(host: String, port: Int)
 
   override val name = "SampleNamesScenario"
   override val requirements = Seq.empty[String]
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   private val EXIT_SUCCESS: Var[Int] = Var(0)
   private val EXIT_FAILURE: Var[Int] = Var(1)
@@ -80,11 +80,14 @@ class SampleNamesScenario(host: String, port: Int)
                          ServiceTaskStrOption(toI("well_sample_name"),
                                               wellName,
                                               STR.optionTypeId))
-      PbSmrtPipeServiceOptions(s"Test sample name propagation with $dsName",
-                               PIPELINE_ID,
-                               Seq(ep),
-                               taskOpts,
-                               Seq.empty[ServiceTaskOptionBase])
+      PbsmrtpipeJobOptions(
+        Some(s"Test sample name propagation with $dsName"),
+        Some("scenario-runner SampleNamesScenario"),
+        PIPELINE_ID,
+        Seq(ep),
+        taskOpts,
+        Seq.empty[ServiceTaskOptionBase]
+      )
     }
   }
 
@@ -114,25 +117,25 @@ class SampleNamesScenario(host: String, port: Int)
   private val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   private val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
 
-  private val singleSampleSteps = Seq("subreads-sequel",
-                                      "subreads-biosample-1",
-                                      "subreads-biosample-2").map { dsId =>
-    val path = testdata.getTempDataSet(dsId)
-    val uuid = getDataSetMiniMeta(path).uuid
-    Seq(
-      jobStatus := GetStatus,
-      fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-      jobId := ImportDataSet(Var(path), FT_SUBREADS),
-      WaitForSuccessfulJob(jobId),
-      updateSubreadSet(Var(uuid)),
-      subreads := GetSubreadSet(Var(uuid)),
-      failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),
-      failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
-      // test propagation of sampe names to pbsmrtpipe
-      jobId := RunAnalysisPipeline(toPbsmrtpipeOpts(dsId, Var(uuid))),
-      WaitForSuccessfulJob(jobId)
-    )
-  }.flatten
+  private val singleSampleSteps =
+    Seq("subreads-sequel", "subreads-biosample-1", "subreads-biosample-2")
+      .flatMap { dsId =>
+        val path = testdata.getTempDataSet(dsId)
+        val uuid = getDataSetMiniMeta(path).uuid
+        Seq(
+          jobStatus := GetStatus,
+          fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
+          jobId := ImportDataSet(Var(path), FT_SUBREADS),
+          WaitForSuccessfulJob(jobId),
+          updateSubreadSet(Var(uuid)),
+          subreads := GetSubreadSet(Var(uuid)),
+          failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),
+          failIfWrongBioSampleName(subreads, BIO_SAMPLE_NAME),
+          // test propagation of sampe names to pbsmrtpipe
+          jobId := RunAnalysisPipeline(toPbsmrtpipeOpts(dsId, Var(uuid))),
+          WaitForSuccessfulJob(jobId)
+        )
+      }
 
   private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
   private val sampleDsTmp = sampleDsIds.map(id => testdata.getTempDataSet(id))
@@ -144,7 +147,7 @@ class SampleNamesScenario(host: String, port: Int)
   private val sampleDsUuids =
     sampleDs.map(ds => UUID.fromString(ds.getUniqueId))
   private val mergedDataSetSteps =
-    sampleDsTmp.zipWithIndex.map {
+    sampleDsTmp.zipWithIndex.flatMap {
       case (path, idx) =>
         // import and merge two related samples
         Seq(
@@ -155,7 +158,7 @@ class SampleNamesScenario(host: String, port: Int)
           failIfWrongBioSampleName(subreads, sampleBioNames(idx)),
           failIfWrongWellSampleName(subreads, sampleWellNames(idx))
         )
-    }.flatten ++ Seq(
+    } ++ Seq(
       subreadSets := GetSubreadSets,
       subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
       // merging the two inputs should result in name = '[multiple]', which we
@@ -167,13 +170,13 @@ class SampleNamesScenario(host: String, port: Int)
       WaitForSuccessfulJob(jobId),
       // we will use the existing subreadSets again below, so we get the new
       // SubreadSet from the job datastore
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, MULTIPLE_SAMPLES_NAME),
       failIfWrongBioSampleName(subreads, MULTIPLE_SAMPLES_NAME),
       updateSubreadSet(subreads.mapWith(_.uuid)) SHOULD_RAISE classOf[
-        UnsuccessfulResponseException],
+        Exception],
       // the individual sample names should still be propagated to pbsmrtpipe
       jobId := RunAnalysisPipeline(
         toPbsmrtpipeOpts("merged-bio-samples",
@@ -190,7 +193,7 @@ class SampleNamesScenario(host: String, port: Int)
         Var("merge-bio-samples-renamed")),
       WaitForSuccessfulJob(jobId),
       // the new merged dataset should have the single names, which we can edit
-      dataStore := GetMergeJobDataStore(jobId),
+      dataStore := GetJobDataStore(jobId),
       subreads := GetSubreadSet(
         dataStore.mapWith(files => getSubreadsFile(files).uuid)),
       failIfWrongWellSampleName(subreads, WELL_SAMPLE_NAME),

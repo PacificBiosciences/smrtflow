@@ -3,7 +3,7 @@ import java.io.File
 import java.util.UUID
 
 import scala.util.Try
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
@@ -15,7 +15,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateSubreadSet
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
@@ -133,20 +132,6 @@ class DataSetExportSpec extends Specification with LazyLogging {
       val n = ExportDataSets(datasets, dsType, zipPath)
       n must beGreaterThan(0L)
     }
-    "Run via jobs API" in {
-      val url = getClass.getResource(ds)
-      val datasets = Seq(Paths.get(url.getPath))
-      val zipPath = Files.createTempFile("referencesets", ".zip")
-      val outputDir = Files.createTempDirectory("export-job-test")
-      val dsType = DataSetMetaTypes.Reference
-      val opts = ExportDataSetsOptions(dsType, datasets, zipPath)
-      val job = JobResource(UUID.randomUUID, outputDir)
-      val j = opts.toJob
-      val jobResult = j.run(job, writer)
-      jobResult.isRight must beTrue
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      datastore.files(0).fileTypeId must beEqualTo(FileTypes.ZIP.fileTypeId)
-    }
     "Failure mode: resource does not exist" in {
       val startPath = Paths.get(getClass.getResource(ds).getPath)
       val tmpPath = Files.createTempFile("referenceset", ".xml")
@@ -193,15 +178,16 @@ class DataSetExportSpecAdvanced
     val uuid = getDataSetMiniMeta(ds).uuid
     FileUtils.deleteDirectory(ds.getParent.toFile)
     val dest = Files.createTempDirectory("subreads-extracted")
-    runSimpleCmd(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
+    runCheckCall(Seq("unzip", zipPath.toString, "-d", dest.toString)) must beNone
     val basename = FilenameUtils.getName(ds.toString)
     val dsUnzip = dest.resolve(s"${uuid}/${basename}")
     val subreads = DataSetLoader.loadSubreadSet(dsUnzip)
     val resPaths =
-      subreads.getExternalResources.getExternalResource.map(_.getResourceId)
+      subreads.getExternalResources.getExternalResource.asScala
+        .map(_.getResourceId)
     resPaths.forall(Paths.get(_).isAbsolute) must beFalse
     val subreads2 = DataSetLoader.loadAndResolveSubreadSet(dsUnzip)
-    ValidateSubreadSet.validator(subreads2).isSuccess must beTrue
+    ValidateSubreadSet.validator(subreads2).toEither.isRight must beTrue
   }
 
   private def exportDataSets(dsIds: Seq[String],

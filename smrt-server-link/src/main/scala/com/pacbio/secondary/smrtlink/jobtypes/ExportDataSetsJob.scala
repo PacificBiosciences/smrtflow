@@ -6,26 +6,28 @@ import java.util.UUID
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.ExportDataSetsOptions
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
-  DataSetExportServiceOptions,
   EngineJobEntryPointRecord,
   EngineJobEntryPoint
 }
-import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
+import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
 
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
+import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -69,8 +71,8 @@ case class ExportDataSetsJobOptions(
     ids: Seq[IdAble],
     outputPath: Path,
     deleteAfterExport: Option[Boolean],
-    name: Option[String],
-    description: Option[String],
+    name: Option[String] = None,
+    description: Option[String] = None,
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
     extends ServiceJobOptions
     with ValidateJobUtils {
@@ -106,10 +108,11 @@ case class ExportDataSetsJobOptions(
 }
 
 class ExportDataSetJob(opts: ExportDataSetsJobOptions)
-    extends ServiceCoreJob(opts) {
+    extends ServiceCoreJob(opts)
+    with CoreJobUtils {
   type Out = PacBioDataStore
 
-  import SmrtLinkJsonProtocols._
+  import ServiceJobTypeJsonProtocols._
   import com.pacbio.common.models.CommonModelImplicits._
 
   private def createDeleteJob(resources: JobResourceBase,
@@ -155,23 +158,50 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
 
     val timeout: FiniteDuration = opts.ids.length * opts.TIMEOUT_PER_RECORD
-    val paths: Seq[Path] = resolvePathsAndWriteEntryPoints(dao,
-                                                           resources.path,
-                                                           timeout,
-                                                           opts.datasetType,
-                                                           opts.ids)
+    val fx = for {
+      paths <- resolvePathsAndWriteEntryPoints(dao,
+                                               resources.path,
+                                               opts.datasetType,
+                                               opts.ids)
+    } yield paths
 
-    val oldOpts = ExportDataSetsOptions(opts.datasetType,
-                                        paths,
-                                        opts.outputPath,
-                                        opts.getProjectId())
-    val job = oldOpts.toJob
-    val result = job.run(resources, resultsWriter)
-    if (result.isRight && opts.deleteAfterExport.getOrElse(false)) {
+    val paths: Seq[Path] = Await.result(fx, timeout)
+    val logFile = getStdOutLog(resources, dao)
+    val startedAt = JodaDateTime.now()
+
+    resultsWriter.writeLine(
+      s"Starting export of ${paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
+
+    resultsWriter.writeLine(s"DataSet Export options: $opts")
+    paths.foreach(x => resultsWriter.writeLine(s"File ${x.toString}"))
+
+    val datastoreJson = resources.path.resolve("datastore.json")
+    val nbytes = ExportDataSets(paths, opts.datasetType, opts.outputPath)
+    resultsWriter.write(
+      s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
+    val now = JodaDateTime.now()
+    val dataStoreFile = DataStoreFile(
+      UUID.randomUUID(),
+      s"pbscala::${jobTypeId.id}",
+      FileTypes.ZIP.fileTypeId,
+      opts.outputPath.toFile.length,
+      now,
+      now,
+      opts.outputPath.toAbsolutePath.toString,
+      isChunked = false,
+      "ZIP file",
+      s"ZIP file containing ${paths.length} datasets"
+    )
+
+    val ds = PacBioDataStore.fromFiles(Seq(dataStoreFile, logFile))
+    writeDataStore(ds, datastoreJson)
+    resultsWriter.write(
+      s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
+    if (opts.deleteAfterExport.getOrElse(false)) {
       resultsWriter.writeLine("Export succeeded - creating delete job")
       val deleteJob = createDeleteJob(resources, dao)
       resultsWriter.writeLine(s"Dataset delete job ${deleteJob.id} started")
     }
-    result
+    Right(ds)
   }
 }

@@ -10,12 +10,12 @@
 
 name := "smrtflow"
 
-version in ThisBuild := "0.11.1-SNAPSHOT"
+version in ThisBuild := "0.13.0-SNAPSHOT"
 
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
 // Seeing a lot of evicted calls
-scalaVersion in ThisBuild := "2.11.8"
+scalaVersion in ThisBuild := "2.12.4"
 
 // This is useful, but is really chattery. "-Ywarn-dead-code"
 scalacOptions in ThisBuild := Seq(
@@ -57,11 +57,15 @@ val makeVersionProperties = taskKey[Seq[File]](
 val makePacBioComponentManifest =
   taskKey[Seq[File]]("Creates a pacbio-manifest.json as a managed resource")
 
-val akkaV = "2.3.6"
+val akkaV = "2.4.20"
+
+val akkaHttpV = "10.0.11"
 
 val sprayV = "1.3.3"
 
 val slickV = "3.2.1"
+
+val specs2V = "4.0.2"
 
 val bambooBuildNumberEnv = "bamboo_globalBuildNumber"
 
@@ -80,43 +84,40 @@ publishTo in ThisBuild := {
   else Some("Nexus releases" at nexus + "maven-releases")
 }
 
-// Common settings/definitions for the build
 lazy val baseSettings = Seq(
   "ch.qos.logback" % "logback-classic" % "1.1.7",
-  "com.enragedginger" %% "akka-quartz-scheduler" % "1.4.0-akka-2.3.x",
+  "com.typesafe.akka" %% "akka-http" % akkaHttpV,
+  "com.typesafe.akka" %% "akka-http-core" % akkaHttpV,
+  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpV,
+  "com.typesafe.akka" %% "akka-http-xml" % akkaHttpV,
+  "ch.megard" %% "akka-http-cors" % "0.2.2",
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV % "test",
+  "com.enragedginger" %% "akka-quartz-scheduler" % "1.6.0-akka-2.4.x",
   "com.github.samtools" % "htsjdk" % "1.129",
-  "com.github.fge" % "json-schema-validator" % "2.2.5",
-  "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
-  "com.github.nscala-time" %% "nscala-time" % "1.4.0",
-  "com.github.scopt" %% "scopt" % "3.5.0",
-  "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
-  "com.github.tototoshi" %% "slick-joda-mapper" % "2.2.0",
-  "com.jason-goodwin" %% "authentikat-jwt" % "0.4.1",
-  "com.jsuereth" %% "scala-arm" % "1.4",
-  "com.lihaoyi" % "ammonite" % "0.8.4" cross CrossVersion.full,
-  "com.lihaoyi" %% "scalatags" % "0.6.5",
+  "com.google.guava" % "guava" % "23.5-jre", // this is only added for the VisibleForTesting annotation. We should consider removing this
+  "com.github.nscala-time" %% "nscala-time" % "2.18.0",
+  "com.github.scopt" %% "scopt" % "3.5.0", // Explicitly use this version to be bin compat with ammonite
+  "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
+  "com.github.tototoshi" %% "slick-joda-mapper" % "2.3.0",
+  "com.jason-goodwin" %% "authentikat-jwt" % "0.4.5",
+  // "com.pauldijou" %% "jwt-core" % "0.14.0", // We should use this. https://github.com/pauldijou/jwt-scala
+  "com.jsuereth" %% "scala-arm" % "2.0",
+  "com.lihaoyi" % "ammonite" % "1.0.3" cross CrossVersion.full,
+  "com.lihaoyi" %% "scalatags" % "0.6.7",
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-  "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
   "com.typesafe.slick" %% "slick" % slickV,
-  "com.typesafe.slick" % "slick-hikaricp_2.11" % slickV,
-  "com.chuusai" %% "shapeless" % "2.3.1",
+  "com.typesafe.slick" %% "slick-hikaricp" % slickV,
   "io.underscore" %% "slickless" % "0.3.2",
   "commons-cli" % "commons-cli" % "1.2",
   "commons-io" % "commons-io" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-compress" % "1.13",
-  "io.spray" % "spray-can_2.11" % sprayV,
-  "io.spray" % "spray-client_2.11" % sprayV,
-  "io.spray" % "spray-http_2.11" % sprayV,
-  "io.spray" % "spray-io_2.11" % sprayV,
-  "io.spray" % "spray-routing-shapeless2_2.11" % sprayV,
-  "io.spray" % "spray-testkit_2.11" % sprayV % "test",
-  "io.spray" % "spray-util_2.11" % sprayV,
   "io.spray" %% "spray-json" % "1.3.2",
-  "joda-time" % "joda-time" % "2.4",
+  "com.github.fommil" %% "spray-json-shapeless" % "1.4.0", // Is this still necessary for 2.12?
+  "joda-time" % "joda-time" % "2.9.9",
   "net.sourceforge.saxon" % "saxon" % "9.1.0.8",
   "org.apache.avro" % "avro" % "1.8.0",
   "org.apache.commons" % "commons-dbcp2" % "2.1.1",
@@ -125,22 +126,27 @@ lazy val baseSettings = Seq(
   "org.flywaydb" % "flyway-core" % "4.0.3",
   "org.ini4j" % "ini4j" % "0.5.4",
   "org.joda" % "joda-convert" % "1.6",
-  "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-  "org.scalaj" %% "scalaj-http" % "2.3.0",
-  "org.scalaz" % "scalaz-core_2.11" % "7.0.6",
-  "org.specs2" % "specs2_2.11" % "2.4.1-scalaz-7.0.6" % "test,it",
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
+  "org.typelevel" %% "cats-core" % "1.0.1",
+  "org.specs2" %% "specs2-core" % specs2V % "test,it", // this is the new group for specs2
+  "org.specs2" %% "specs2-mock" % specs2V % "test,it",
+  "com.novocode" % "junit-interface" % "0.11" % "test,it",
+  "org.specs2" %% "specs2-junit" % specs2V % "test,it",
+  "org.specs2" %% "specs2-html" % specs2V % "test,it",
   "org.postgresql" % "postgresql" % "42.1.4",
   "org.utgenome.thirdparty" % "picard" % "1.86.0",
   "log4j" % "log4j" % "1.2.17",
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.6.0.201612231935-r",
   "com.github.zafarkhaja" % "java-semver" % "0.9.0",
-  "mbilski" % "spray-hmac_2.11" % "1.0.1",
-  "ch.lightshed" % "courier_2.11" % "0.1.4",
+//  "mbilski" %% "spray-hmac" % "1.0.1", This probably should just be copied. It's only a few lines of code
+  "ch.lightshed" %% "courier" % "0.1.4",
   "javax.mail" % "mail" % "1.4.7"
-).map(_.exclude("io.spray", "spray-routing_2.11")) // Only spray routing shapeless or spray routing can be used. We'll use the shapeless version for everything
-  .map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
+).map(_.exclude("javax.mail", "mailapi")) // The mailapi is only the interface. This will cause dedupe issues with assembly
 
-gitHeadCommitSha in ThisBuild := Process("git rev-parse HEAD").lines.head
+gitHeadCommitSha in ThisBuild := scala.sys.process
+  .Process("git rev-parse HEAD")
+  .lineStream
+  .head
 
 def getBuildNumber(): Option[Int] =
   sys.env.get(bambooBuildNumberEnv).map(_.toInt)
@@ -207,7 +213,7 @@ def toPacBioProject(name: String): Project =
   Project(name, file(name))
     .settings(Defaults.itSettings: _*)
     .settings(libraryDependencies ++= baseSettings)
-    .settings(coverageEnabled := false)
+//    .settings(coverageEnabled := false)
     .settings(fork in Test := true)
     .settings(fork in IntegrationTest := true)
     .settings(testOptions in Test += Tests
@@ -228,7 +234,7 @@ lazy val smrtflow = project
   .settings(javaOptions in (Test, console) += "-Xmx4G") // Bump for repl usage
   .settings(libraryDependencies ++= baseSettings)
   .settings(exportJars := true)
-  .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
+  // .settings(coverageEnabled := false) // ammonite will disable it because <dataDir> is not defined
   //.settings(parallelExecution in Test := false) // run each Spec sequentially
   .settings(initialCommands in (Test, console) := """ammonite.Main().run()""")
   .settings(Defaults.itSettings: _*)
@@ -278,5 +284,10 @@ lazy val smrtServerSim =
 
 lazy val smrtServerBundle =
   toPacBioProject("smrt-server-bundle")
+    .dependsOn(common, smrtServerLink)
+    .settings()
+
+lazy val smrtServerEve =
+  toPacBioProject("smrt-server-eve")
     .dependsOn(common, smrtServerLink)
     .settings()

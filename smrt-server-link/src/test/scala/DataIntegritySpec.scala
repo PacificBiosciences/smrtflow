@@ -2,6 +2,7 @@ import java.net.URI
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import org.joda.time.{DateTime => JodaDataTime}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
@@ -20,8 +21,6 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -29,7 +28,6 @@ import scala.concurrent.duration._
 class DataIntegritySpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with SmrtLinkTestDalProvider
     with TestUtils
     with LazyLogging {

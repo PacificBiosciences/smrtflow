@@ -70,6 +70,8 @@ WSO2_DIR="$__dir/../wso2am-2.0.0"
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${SL_SERVICES_CONF})
 logStartFile=${logDir}/start.log
 
+pbTmpDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.realpath(d['pacBioSystem']['tmpDir'])" ${SL_SERVICES_CONF})
+export TMPDIR="${pbTmpDir}"
 
 echo "Step #2 Checking system requirements (e.g., ulimits)"
 ${__dir}/check-system-limits
@@ -171,7 +173,7 @@ echo "Completed check of sub-components; SLA, Tomcat and WSO2 API Manager. No su
 
 # Fire up the services
 echo "Step #5 Attempting to Start SMRTLink Analysis services daemon..."
-env "JAVA_OPTS=${JAVA_OPTS:-} ${SL_SERVICES_JVM_ARGS} -XX:+UseConcMarkSweepGC -Dconfig.file=${SL_SERVICES_APP_CONF}" \
+env "JAVA_OPTS=${JAVA_OPTS:-} ${SL_SERVICES_JVM_ARGS} -XX:+UseConcMarkSweepGC -Dconfig.file=${SL_SERVICES_APP_CONF} -Djava.io.tmpdir=${pbTmpDir}" \
     ${SL_SERVICES_TOOLS_DIR}/bin/smrt-server-link-analysis ${SL_SERVICES_LOG_ARGS} \
      > ${SL_SERVICES_STDOUT} \
      2> ${SL_SERVICES_STDERR} &
@@ -198,7 +200,7 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 # The scala code will block here and wait for wso2 to startup. Need to make this
 # configurable to have the same level of MAX_RETRIES interface
 echo "Attempting to configure API Manager for SL Analysis backend..."
-client_env="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF}"
+client_env="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF} -Djava.io.tmpdir=${pbTmpDir}"
 
 echo "Attempting to connect to WSO2"
 # Do this as a separate call for clarity

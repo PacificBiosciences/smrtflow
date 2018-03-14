@@ -95,9 +95,9 @@ trait AlarmRunnerLoaderProvider {
   val alarmRunners: Singleton[Seq[AlarmRunner]] = Singleton { () =>
     implicit val system = actorSystem()
 
-    val tmpDirAlarmRunner =
+    val tmpDirDiskSpaceAlarmRunner =
       new TmpDirectoryAlarmRunner(smrtLinkTempDir(), fileSystemUtil())
-    val jobDirAlarmRunner =
+    val jobDirDiskSpaceAlarmRunner =
       new JobDirectoryAlarmRunner(jobEngineConfig().pbRootJobDir,
                                   fileSystemUtil())
 
@@ -106,8 +106,8 @@ trait AlarmRunnerLoaderProvider {
     val eveAlarmRunner = externalEveUrl().map(url =>
       new ExternalEveServerAlarmRunner(url, apiSecret()))
 
-    Seq(Some(tmpDirAlarmRunner),
-        Some(jobDirAlarmRunner),
+    Seq(Some(tmpDirDiskSpaceAlarmRunner),
+        Some(jobDirDiskSpaceAlarmRunner),
         chemistryAlarmRunner,
         eveAlarmRunner).flatten
   }

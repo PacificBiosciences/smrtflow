@@ -9,7 +9,8 @@ import spray.json._
 // This common model should not be defined here
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates
+  SupportedRunStates,
+  SupportedChipTypes
 }
 import com.pacbio.common.models._
 import com.pacbio.common.semver.SemVersion
@@ -29,6 +30,17 @@ trait SupportedRunStatesProtocols extends DefaultJsonProtocol {
     def read(v: JsValue): SupportedRunStates = v match {
       case JsString(s) => SupportedRunStates.fromValue(s)
       case _ => deserializationError("Expected SupportedRunStates as JsString")
+    }
+  }
+}
+
+trait SupportedChipTypesProtocols extends DefaultJsonProtocol {
+  implicit object SupportedChipTypesFormat
+      extends RootJsonFormat[SupportedChipTypes] {
+    def write(s: SupportedChipTypes): JsValue = JsString(s.value())
+    def read(v: JsValue): SupportedChipTypes = v match {
+      case JsString(s) => SupportedChipTypes.fromValue(s)
+      case _ => deserializationError("Expected SupportedChipTypes as JsString")
     }
   }
 }
@@ -89,56 +101,6 @@ trait BoundServiceEntryPointJsonProtocol
   implicit val idAbleFormat = IdAbleJsonProtocol.IdAbleFormat
   implicit val serviceBoundEntryPointFormat = jsonFormat3(
     BoundServiceEntryPoint)
-}
-
-trait PbSmrtPipeServiceOptionsProtocol
-    extends DefaultJsonProtocol
-    with PipelineTemplateOptionProtocol
-    with BoundServiceEntryPointJsonProtocol {
-  import JobModels._
-
-  //implicit val idAbleFormat = IdAbleJsonProtocol.IdAbleFormat
-
-  implicit object PbSmrtPipeServiceOptionsFormat
-      extends RootJsonFormat[PbSmrtPipeServiceOptions] {
-    def write(o: PbSmrtPipeServiceOptions): JsValue = JsObject(
-      "name" -> o.name.toJson,
-      "pipelineId" -> o.pipelineId.toJson,
-      "entryPoints" -> o.entryPoints.toJson,
-      "taskOptions" -> o.taskOptions.toJson,
-      "workflowOptions" -> o.workflowOptions.toJson,
-      "projectId" -> o.projectId.toJson
-    )
-
-    def read(v: JsValue): PbSmrtPipeServiceOptions = {
-      val jsObj = v.asJsObject
-      jsObj.getFields("name",
-                      "pipelineId",
-                      "entryPoints",
-                      "taskOptions",
-                      "workflowOptions") match {
-        case Seq(JsString(name),
-                 JsString(pipelineId),
-                 JsArray(entryPoints),
-                 JsArray(taskOptions),
-                 JsArray(workflowOptions)) =>
-          val projectId = jsObj.getFields("projectId") match {
-            case Seq(JsNumber(pid)) => pid.toInt
-            case _ => JobConstants.GENERAL_PROJECT_ID
-          }
-          PbSmrtPipeServiceOptions(
-            name,
-            pipelineId,
-            entryPoints.map(_.convertTo[BoundServiceEntryPoint]),
-            taskOptions.map(_.convertTo[ServiceTaskOptionBase]),
-            workflowOptions.map(_.convertTo[ServiceTaskOptionBase]),
-            projectId
-          )
-        case x =>
-          deserializationError(s"Expected PbSmrtPipeServiceOptions, got $x")
-      }
-    }
-  }
 }
 
 trait ReportViewRuleProtocol extends DefaultJsonProtocol {
@@ -239,13 +201,13 @@ trait SmrtLinkJsonProtocols
     with JobStatesJsonProtocol
     with PipelineTemplateOptionProtocol
     with SupportedRunStatesProtocols
+    with SupportedChipTypesProtocols
     with SupportedAcquisitionStatesProtocols
     with PathProtocols
     with UrlProtocol
     with ProjectEnumProtocols
     with LogLevelProtocol
     with DataSetMetaTypesProtocol
-    with PbSmrtPipeServiceOptionsProtocol
     with BoundServiceEntryPointJsonProtocol
     with ReportViewRuleProtocol
     with ReportJsonProtocol
@@ -271,23 +233,22 @@ trait SmrtLinkJsonProtocols
 
   // TODO(smcclellan): We should fix this by having pacbio-secondary import formats from base-smrt-server.
   // These should be acquired by mixing in SecondaryJobJsonProtocol, but we can't because of JodaDateTimeFormat collisions.
-  implicit val engineJobFormat = SecondaryJobProtocols.engineJobFormat
+  implicit val engineJobFormat = EngineJobJsonSupport.EngineJobJsonFormat
   implicit val engineConfigFormat = SecondaryJobProtocols.engineConfigFormat
   implicit val datastoreFileFormat = SecondaryJobProtocols.datastoreFileFormat
   implicit val datastoreFormat = SecondaryJobProtocols.datastoreFormat
   implicit val entryPointFormat = SecondaryJobProtocols.entryPointFormat
   implicit val jobEventFormat = SecondaryJobProtocols.jobEventFormat
-  implicit val simpleDevJobOptionsFormat =
-    SecondaryJobProtocols.simpleDevJobOptionsFormat
 
   implicit val jobTypeFormat = jsonFormat4(JobTypeEndPoint)
 
   // Jobs
   implicit val pbSimpleStatusFormat = jsonFormat3(SimpleStatus)
   implicit val engineJobEntryPointsFormat = jsonFormat3(EngineJobEntryPoint)
+  implicit val jobUpdateFormat = jsonFormat3(UpdateJobRecord)
 
   // DataSet
-  implicit val dataSetMetadataFormat = jsonFormat17(DataSetMetaDataSet)
+  implicit val dataSetMetadataFormat = jsonFormat18(DataSetMetaDataSet)
   implicit val datasetTypeFormat = jsonFormat6(ServiceDataSetMetaType)
   implicit val subreadDataSetFormat: RootJsonFormat[SubreadServiceDataSet] =
     cachedImplicit
@@ -326,7 +287,7 @@ trait SmrtLinkJsonProtocols
     cachedImplicit
 
   implicit val eulaFormat = jsonFormat6(EulaRecord)
-  implicit val eulaAcceptanceFormat = jsonFormat2(EulaAcceptance)
+  implicit val eulaAcceptanceFormat = jsonFormat3(EulaAcceptance)
 
   implicit val datasetUpdateFormat = jsonFormat3(DataSetUpdateRequest)
   implicit val datastoreUpdateFormat = jsonFormat3(DataStoreFileUpdateRequest)
@@ -355,25 +316,18 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportJobRecordFormat = jsonFormat3(
     TechSupportJobRecord.apply)
 
+  implicit val engineJobMetricsFormat = jsonFormat12(EngineJobMetrics)
+
   // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
   // of namespace conflicts.
   implicit val pipelineTemplateFormat =
-    SecondaryJobProtocols.PipelineTemplateFormat
+    SecondaryJobProtocols.pipelineTemplateFormat
   implicit val pipelineTemplateViewRule =
     SecondaryJobProtocols.pipelineTemplateViewRule
-  implicit val movieMetadataToHdfSubreadOptionsFormat =
-    SecondaryJobProtocols.MovieMetadataToHdfSubreadOptionsFormat
-  implicit val mergeDataSetOptionsFormat =
-    SecondaryJobProtocols.MergeDataSetOptionsFormat
-  implicit val importConvertFastaBarcodeOptionsFormat =
-    SecondaryJobProtocols.ConvertImportFastaBarcodesOptionsFormat
-  implicit val importDataSetOptionsFormat =
-    SecondaryJobProtocols.ImportDataSetOptionsFormat
 
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
 
-  implicit val exportOptions = jsonFormat4(DataSetExportServiceOptions)
   implicit val deleteDataSetsOptions = jsonFormat3(DataSetDeleteServiceOptions)
 
   implicit val pbThrowableResponseFormat = jsonFormat3(ThrowableResponse)

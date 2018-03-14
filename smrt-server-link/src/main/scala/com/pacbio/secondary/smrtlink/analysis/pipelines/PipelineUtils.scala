@@ -3,12 +3,11 @@ package com.pacbio.secondary.smrtlink.analysis.pipelines
 import java.nio.file.{Paths, Path}
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.PipelineTemplateJsonProtocol
+import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobJsonProtocol
 import org.apache.commons.io.FileUtils
 
 import scala.util.Random
@@ -89,8 +88,8 @@ trait PipelineUtils extends LazyLogging {
     }
 
     val mergedPresets =
-      (p.presets ++ processedPresets).map(t => (t.presetId, t)).toMap
-    p.copy(presets = mergedPresets.values.toList)
+      (p.getPresets ++ processedPresets).map(t => (t.presetId, t)).toMap
+    p.copy(presets = Some(mergedPresets.values.toList))
   }
 
   def updatePipelinePresets(ps: Seq[PipelineTemplate],
@@ -115,13 +114,13 @@ trait Loader[T] {
     */
   def loadFromDir(path: Path): Seq[T] = {
     val files = FileUtils.listFiles(path.toFile, extFilter.toArray, false)
-    files.map(x => loadFrom(Paths.get(x.getAbsolutePath))).toList
+    files.asScala.map(x => loadFrom(Paths.get(x.getAbsolutePath))).toList
   }
 }
 
 trait JsonPipelineTemplatesLoader
     extends Loader[PipelineTemplate]
-    with PipelineTemplateJsonProtocol {
+    with SecondaryJobJsonProtocol {
 
   val extFilter = Seq("json")
 

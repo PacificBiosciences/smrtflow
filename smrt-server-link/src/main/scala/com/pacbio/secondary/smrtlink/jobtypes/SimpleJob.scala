@@ -4,9 +4,10 @@ import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobResultsWriter
+  JobResultsWriter,
+  CoreJobUtils
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.SimpleDevJobOptions
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 /**
@@ -23,16 +24,32 @@ case class SimpleJobOptions(n: Int,
   override def toJob() = new SimpleJob(this)
 }
 
-class SimpleJob(opts: SimpleJobOptions) extends ServiceCoreJob(opts) {
+trait SimpleDevJob extends CoreJobUtils {
+  protected def runDevJob(job: JobResourceBase,
+                          resultsWriter: JobResultsWriter,
+                          n: Int): PacBioDataStore = {
+    // Just to have Data to import back into the system
+    val resources = setupJobResourcesAndCreateDirs(job.path)
+    val dsFiles = toMockDataStoreFiles(job.path)
+    val ds = toDatastore(resources, dsFiles)
+    writeDataStore(ds, resources.datastoreJson)
+    val report =
+      ReportUtils.toMockTaskReport("smrtflow_dev_simple", "smrtflow Report")
+    ReportUtils.writeReport(report, resources.jobReportJson)
+    resultsWriter.write(s"Simple job ${n}")
+    ds
+  }
+}
+
+class SimpleJob(opts: SimpleJobOptions)
+    extends ServiceCoreJob(opts)
+    with SimpleDevJob {
   type Out = PacBioDataStore
   override def run(
       resources: JobResourceBase,
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-    // shim
-    val oldOpts = SimpleDevJobOptions(1, 2, opts.getProjectId())
-    val job = oldOpts.toJob
-    job.run(resources, resultsWriter)
+    Right(runDevJob(resources, resultsWriter, opts.n))
   }
 }

@@ -9,76 +9,77 @@ import scala.util.Try
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
+import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.{
-  DataSetFileUtils,
-  DataSetMetaTypes
-}
+import com.pacificbiosciences.pacbiodatasets.DataSetType
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
+import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetExporter
 import JobModels._
 
 trait JobUtils extends SecondaryJobJsonProtocol {
 
+  private def writeDataStore(ds: PacBioDataStore, out: Path): Path = {
+    FileUtils.writeStringToFile(out.toFile, ds.toJson.prettyPrint, "UTF-8")
+    out
+  }
+
+  private def processDataStore(f: (PacBioDataStore => PacBioDataStore),
+                               dataStorePath: Path,
+                               dsOutPath: Path): Path = {
+    val ds = FileUtils
+      .readFileToString(dataStorePath.toFile, "UTF-8")
+      .parseJson
+      .convertTo[PacBioDataStore]
+
+    writeDataStore(f(ds), dsOutPath)
+  }
+
   /**
-    * Load a datastore JSON and convert all paths to relative, writing it to a
-    * temporary file (or optional output path)
-    * @param rootPath   base job directory to which all paths should be relative
-    * @param dataStorePath   path to datastore JSON
-    * @param dsOutPath  optional path to write to (default: new tmp file)
+    * Load a datastore JSON and convert all paths to relative to rootPath
+    *
+    * @param rootPath      base job directory to which all paths should be relative
+    * @param dataStorePath input path to datastore JSON
+    * @param dsOutPath     output datastore
     */
   protected def relativizeDataStore(rootPath: Path,
                                     dataStorePath: Path,
-                                    dsOutPath: Option[Path] = None): Path = {
-    val ds = FileUtils
-      .readFileToString(dataStorePath.toFile, "UTF-8")
-      .parseJson
-      .convertTo[PacBioDataStore]
-      .relativize(rootPath)
-    val dsOut =
-      dsOutPath.getOrElse(Files.createTempFile(s"datastore-relpaths", ".json"))
-    FileUtils.writeStringToFile(dsOut.toFile, ds.toJson.prettyPrint, "UTF-8")
-    dsOut
+                                    dsOutPath: Path): Path = {
+
+    processDataStore((ds: PacBioDataStore) => ds.relativize(rootPath),
+                     dataStorePath,
+                     dsOutPath)
   }
 
   /**
-    * Load a datastore JSON and convert paths to absolute, writing it to a
-    * temporary file (or optional output path)
-    * @param rootPath   base job directory to which input paths are relative
-    * @param dataStorePath   path to datastore JSON
-    * @param dsOutPath  optional path to write to (default: new tmp file)
+    * Load a datastore JSON and convert paths to absolute
+    *
+    * @param rootPath      base job directory to which input paths are relative
+    * @param dataStorePath in path to datastore JSON
+    * @param dsOutPath     output Path to datastore JSON
     */
   protected def absolutizeDataStore(rootPath: Path,
                                     dataStorePath: Path,
-                                    dsOutPath: Option[Path] = None): Path = {
-    val ds = FileUtils
-      .readFileToString(dataStorePath.toFile, "UTF-8")
-      .parseJson
-      .convertTo[PacBioDataStore]
-      .absolutize(rootPath)
-    val dsOut =
-      dsOutPath.getOrElse(Files.createTempFile(s"datastore-abspaths", ".json"))
-    FileUtils.writeStringToFile(dsOut.toFile, ds.toJson.prettyPrint, "UTF-8")
-    dsOut
+                                    dsOutPath: Path): Path = {
+    processDataStore((ds: PacBioDataStore) => ds.absolutize(rootPath),
+                     dataStorePath,
+                     dsOutPath)
   }
 
   protected def getDataStore(rootPath: Path): Option[PacBioDataStore] = {
-    val p1 = rootPath.resolve("datastore.json")
-    val p2 = rootPath.resolve("workflow/datastore.json")
-    val dataStorePath = if (p1.toFile.exists) {
-      Some(p1)
-    } else if (p2.toFile.exists) {
-      Some(p2)
-    } else {
-      None
-    }
-    dataStorePath.map { p =>
-      FileUtils
-        .readFileToString(p.toFile, "UTF-8")
-        .parseJson
-        .convertTo[PacBioDataStore]
-        .relativize(rootPath)
-    }
+
+    Seq("datastore.json", "workflow/datastore.json")
+      .map(n => rootPath.resolve(n))
+      .find(_.toFile.exists())
+      .map { p =>
+        FileUtils
+          .readFileToString(p.toFile, "UTF-8")
+          .parseJson
+          .convertTo[PacBioDataStore]
+          .relativize(rootPath)
+      }
   }
 }
 
@@ -94,7 +95,6 @@ class JobExporter(job: EngineJob, zipPath: Path)
   /**
     * Recursively export the contents of an arbitrary directory, relative to a
     * base path (defaults to the starting path)
-    * @param out  open ZipOutputStream object
     * @param path  directory path to export
     * @param basePath  root path, archive paths will be relative to this
     */
@@ -102,8 +102,11 @@ class JobExporter(job: EngineJob, zipPath: Path)
     val f = path.toFile
     if (f.isFile) {
       if (FilenameUtils.getName(path.toString) == "datastore.json") {
-        val ds = relativizeDataStore(basePath, path)
-        exportFile(path, basePath, Some(ds))
+        val tmpOutPath = Files.createTempFile(s"datastore-tmp", ".json")
+        val ds = relativizeDataStore(basePath, path, tmpOutPath)
+        val n = exportFile(path, basePath, Some(ds))
+        FileUtils.deleteQuietly(tmpOutPath.toFile)
+        n
       } else if (path.toString.endsWith("set.xml")) {
         Try { getDataSetMiniMeta(path) }.toOption
           .map { m =>
@@ -130,16 +133,19 @@ class JobExporter(job: EngineJob, zipPath: Path)
     }
   }
 
+  private def convertEntryPointPath(entryPoint: BoundEntryPoint,
+                                    jobPath: Path): BoundEntryPoint = {
+    val dsMeta = getDataSetMiniMeta(entryPoint.path)
+    val ext = dsMeta.metatype.fileType.fileExt
+    // this is consistent with how SubreadSet entry points are written
+    // in upstream jobs
+    val outputPath = Paths.get(s"entry-points/${dsMeta.uuid.toString}.$ext")
+    entryPoint.copy(path = outputPath)
+  }
+
   private def convertEntryPointPaths(entryPoints: Seq[BoundEntryPoint],
                                      jobPath: Path): Seq[BoundEntryPoint] = {
-    entryPoints.map { e =>
-      val dsMeta = getDataSetMiniMeta(e.path)
-      val ext = dsMeta.metatype.fileType.fileExt
-      // this is consistent with how SubreadSet entry points are written
-      // in upstream jobs
-      val outputPath = Paths.get(s"entry-points/${dsMeta.uuid.toString}.$ext")
-      e.copy(path = outputPath)
-    }
+    entryPoints.map(e => convertEntryPointPath(e, jobPath))
   }
 
   /**
@@ -162,7 +168,7 @@ class JobExporter(job: EngineJob, zipPath: Path)
             Try { getDataSetMiniMeta(e.path) }.toOption
               .map { m =>
                 if (haveFiles contains o.path.toString) {
-                  logger.warn(s"Skipping duplicate entry ${o.path.toString}");
+                  logger.warn(s"Skipping duplicate entry ${o.path.toString}")
                   0L
                 } else {
                   val epRootPath = e.path.getParent
@@ -198,12 +204,13 @@ class JobExporter(job: EngineJob, zipPath: Path)
     FileUtils.writeStringToFile(manifestFile.toFile,
                                 manifest.toJson.prettyPrint,
                                 "UTF-8")
-    var nBytes: Long = exportPath(jobPath, jobPath) +
+    val nBytes: Long = exportPath(jobPath, jobPath) +
       exportEntryPoints(entryPoints, jobPath) +
       exportFile(jobPath.resolve("export-job-manifest.json"),
                  jobPath,
                  Some(manifestFile))
     out.close
+    FileUtils.deleteQuietly(manifestFile.toFile)
     Try { JobExportSummary(nBytes) }
   }
 }
@@ -228,7 +235,7 @@ trait JobImportUtils
     * Decompress a zip file containing a job
     */
   def expandJob(zipFile: Path, jobPath: Path): Try[JobImportSummary] = Try {
-    var zis = new ZipInputStream(new FileInputStream(zipFile.toFile))
+    val zis = new ZipInputStream(new FileInputStream(zipFile.toFile))
     //get the zipped file list entry
     var ze = Option(zis.getNextEntry())
     var nFiles = 0
@@ -238,15 +245,16 @@ trait JobImportUtils
       logger.debug(s"Deflating ${newFile.getAbsoluteFile}")
       Paths.get(newFile.getParent).toFile.mkdirs
       val fos = new FileOutputStream(newFile)
-      var buffer = new Array[Byte](BUFFER_SIZE)
+      val buffer = new Array[Byte](BUFFER_SIZE)
       var len = 0
       while ({ len = zis.read(buffer); len > 0 }) {
         fos.write(buffer, 0, len)
       }
       fos.close()
-      if (FilenameUtils.getName(fileName) == "datastore.json") {
+      if (FilenameUtils
+            .getName(fileName) == JobConstants.OUTPUT_DATASTORE_JSON) {
         logger.info(s"Updating paths in ${fileName}")
-        absolutizeDataStore(jobPath, newFile.toPath, Some(newFile.toPath))
+        absolutizeDataStore(jobPath, newFile.toPath, newFile.toPath)
       }
       ze = Option(zis.getNextEntry())
       nFiles += 1
@@ -260,7 +268,7 @@ trait JobImportUtils
     * Retrieve the manifest from an exported job ZIP file.
     */
   def getManifest(zipFile: Path): ExportJobManifest = {
-    var zf = new ZipFile(zipFile.toFile)
+    val zf = new ZipFile(zipFile.toFile)
     Option(zf.getEntry("export-job-manifest.json"))
       .map { ze =>
         val buffer = new Array[Byte](ze.getSize().toInt)
@@ -271,7 +279,124 @@ trait JobImportUtils
       }
       .getOrElse {
         throw new IllegalArgumentException(
-          "Can't read export-job-manifest.json in $zipFile.  Only jobs exported through the SMRT Link export-jobs service may be imported.")
+          s"Can't read export-job-manifest.json in $zipFile.  Only jobs exported through the SMRT Link export-jobs service may be imported.")
       }
+  }
+}
+
+// Put all the general utils for writing a mock pbsmrtpipe jobOptions, then refactor
+// into real "jobOptions" level utils (e.g., progress updating, writing entry points, settings, options, etc...)
+trait CoreJobUtils extends LazyLogging with SecondaryJobJsonProtocol {
+
+  def setupJobResourcesAndCreateDirs(outputDir: Path): AnalysisJobResources = {
+
+    if (!Files.isDirectory(outputDir)) {
+      logger.error(s"output dir is not a Dir ${outputDir.toString}")
+    }
+
+    def toPx(x: Path, name: String): Path = {
+      val p = x.resolve(name)
+      if (!Files.exists(p)) {
+        logger.info(s"Creating dir $p")
+        Files.createDirectories(p)
+      }
+      p
+    }
+
+    val toP = toPx(outputDir, _: String)
+
+    // This is where the datastore.json will be written. Keep this
+    val workflowPath = toP("workflow")
+
+    def relToWorkflow(sx: String): Path = workflowPath.resolve(sx)
+
+    // Don't create these for non-pbsmrtpipe jobs. This makes little sense to try to adhere to this interface
+    val tasksPath = outputDir.resolve("tasks")
+    val htmlPath = outputDir.resolve("html")
+    val logPath = outputDir.resolve("logs")
+
+    logger.debug(s"creating resources in ${outputDir.toAbsolutePath}")
+    val r = AnalysisJobResources(
+      outputDir,
+      tasksPath,
+      workflowPath,
+      logPath,
+      htmlPath,
+      relToWorkflow("datastore.json"),
+      relToWorkflow("entry-points.json"),
+      relToWorkflow("jobOptions-report.json")
+    )
+
+    logger.info(s"Successfully created resources")
+    r
+  }
+
+  def toDatastore(jobResources: AnalysisJobResources,
+                  files: Seq[DataStoreFile]): PacBioDataStore =
+    PacBioDataStore.fromFiles(files)
+
+  def writeStringToFile(s: String, path: Path): Path = {
+    // for backward compatibility
+    FileUtils.writeStringToFile(path.toFile, s)
+    path
+  }
+
+  def writeDataStore(ds: PacBioDataStore, path: Path): Path = {
+    FileUtils.writeStringToFile(path.toFile, ds.toJson.prettyPrint.toString)
+    path
+  }
+
+  def toDataStoreFile[T <: DataSetType](ds: T,
+                                        output: Path,
+                                        description: String,
+                                        sourceId: String): DataStoreFile = {
+    val uuid = UUID.fromString(ds.getUniqueId)
+    val createdAt = JodaDateTime.now()
+    val modifiedAt = createdAt
+    DataStoreFile(
+      uuid,
+      sourceId,
+      ds.getMetaType,
+      output.toFile.length,
+      createdAt,
+      modifiedAt,
+      output.toAbsolutePath.toString,
+      isChunked = false,
+      Option(ds.getName).getOrElse("PacBio DataSet"),
+      description
+    )
+  }
+
+  /**
+    * This will a real fasta file that can be used
+    *
+    * @return
+    */
+  def toMockFastaDataStoreFile(rootDir: Path): DataStoreFile = {
+    val createdAt = JodaDateTime.now()
+    val uuid = UUID.randomUUID()
+    val nrecords = 100
+    val p = rootDir.resolve(s"mock-${uuid.toString}.fasta")
+    MockFileUtils.writeMockFastaFile(nrecords, p)
+    DataStoreFile(
+      uuid,
+      "mock-pbsmrtpipe",
+      FileTypes.FASTA.fileTypeId,
+      p.toFile.length(),
+      createdAt,
+      createdAt,
+      p.toAbsolutePath.toString,
+      isChunked = false,
+      "Mock Fasta",
+      s"Mock Fasta file generated with $nrecords records"
+    )
+  }
+
+  def toMockDataStoreFiles(rootDir: Path): Seq[DataStoreFile] = {
+    (0 until 4).map(x => toMockFastaDataStoreFile(rootDir))
+  }
+
+  def writeEntryPoints(entryPoints: Seq[BoundEntryPoint], path: Path): Path = {
+    writeStringToFile(entryPoints.toJson.toString, path)
   }
 }

@@ -32,14 +32,15 @@ object Sim extends App with LazyLogging {
     "ProjectsScenario" -> ProjectsScenarioLoader,
     "PbsmrtpipeScenario" -> PbsmrtpipeScenarioLoader,
     "StressTest" -> StressTestScenarioLoader,
-    "RunDesignWithICSScenario" -> RunDesignWithICSScenarioLoader,
     "UpgradeScenario" -> UpgradeScenarioLoader,
     "ChemistryBundleScenario" -> ChemistryBundleScenarioLoader,
     "LargeMergeScenario" -> LargeMergeScenarioLoader,
     "TechSupportScenario" -> TechSupportScenarioLoader,
     "DbBackUpScenario" -> DbBackUpScenarioLoader,
     "MultiAnalysisScenario" -> MultiAnalysisScenarioLoader,
-    "SampleNamesScenario" -> SampleNamesScenarioLoader
+    "SampleNamesScenario" -> SampleNamesScenarioLoader,
+    "RegistryScenario" -> RegistryScenarioLoader,
+    "CopyDataSetScenario" -> CopyDataSetScenarioLoader
   )
 
   final val DESCRIPTION =
@@ -156,9 +157,9 @@ object Sim extends App with LazyLogging {
   }
 
   def printConfig(config: Config): Unit = {
-    import scala.collection.JavaConversions.asScalaSet
+    import scala.collection.JavaConverters._
     println("\nConfigs:")
-    config.entrySet().foreach { e =>
+    config.entrySet().asScala.foreach { e =>
       println(s"${e.getKey}: ${e.getValue.render()}")
     }
     println()
@@ -213,7 +214,7 @@ object Sim extends App with LazyLogging {
   private def exitError(msg: String) = {
     logger.error(msg)
     System.err.println(msg + "\n")
-    system.shutdown()
+    system.terminate()
     System.exit(1)
   }
 

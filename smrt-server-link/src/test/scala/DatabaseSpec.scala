@@ -2,6 +2,7 @@ import java.nio.file.Paths
 import java.util.UUID
 import java.sql
 
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
@@ -13,14 +14,13 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
+  SupportedChipTypes,
   SupportedRunStates
 }
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.meta.MTable
-import spray.testkit.Specs2RouteTest
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent.Await
@@ -43,7 +43,6 @@ import scala.concurrent.duration._
 class DatabaseSpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with SmrtLinkTestDalProvider
     with TestUtils {
   import PacBioDateTimeFormat.TIME_ZONE
@@ -75,6 +74,7 @@ class DatabaseSpec
         "job-comment",
         createdAt = now,
         updatedAt = now,
+        jobUpdatedAt = now,
         AnalysisJobStates.CREATED,
         "job-type-id",
         "/job/path",
@@ -110,6 +110,7 @@ class DatabaseSpec
         "/dataset/path",
         createdAt = now,
         updatedAt = now,
+        importedAt = now,
         numRecords = 1,
         totalLength = 1,
         "tags",
@@ -161,6 +162,7 @@ class DatabaseSpec
       val barcode = BarcodeServiceSet(id = -1, UUID.randomUUID())
       val ccs = ConsensusReadServiceSet(id = -1, UUID.randomUUID())
       val consensus = ConsensusAlignmentServiceSet(id = -1, UUID.randomUUID())
+      val transcript = TranscriptServiceSet(id = -1, UUID.randomUUID())
       val contig = ContigServiceSet(id = -1, UUID.randomUUID())
       val datastoreFile = DataStoreServiceFile(
         UUID.randomUUID(),
@@ -186,6 +188,7 @@ class DatabaseSpec
         transfersCompletedAt = Some(now),
         completedAt = Some(now),
         SupportedRunStates.COMPLETE,
+        SupportedChipTypes.ONE_M_CHIP,
         totalCells = 1,
         numCellsCompleted = 1,
         numCellsFailed = 0,
@@ -248,6 +251,7 @@ class DatabaseSpec
           _ <- dataModels += runDataModel
           _ <- collectionMetadata += collection
           _ <- samples += sample
+          _ <- dsTranscript2 += transcript
         } yield ()
       )
 
@@ -273,10 +277,6 @@ class DatabaseSpec
         testdb.run(projects.filter(_.name === projectName).result.head),
         1.second)
       val pu = Await.result(testdb.run(projectsUsers.result.head), 1.second)
-      val rt = Await.result(
-        testdb.run(
-          datasetMetaTypes.filter(_.shortName === "references").result.head),
-        1.second)
       val ds = Await.result(
         testdb.run(engineJobsDataSets.filter(_.jobId === ej.id).result.head),
         1.second)
@@ -315,6 +315,10 @@ class DatabaseSpec
       val co = Await.result(
         testdb.run(dsContig2.filter(_.uuid === contig.uuid).result.head),
         1.second)
+      val to = Await.result(
+        testdb.run(
+          dsTranscript2.filter(_.uuid === transcript.uuid).result.head),
+        1.second)
       val df = Await.result(
         testdb.run(
           datastoreServiceFiles.filter(_.jobId === ej.id).result.head),
@@ -349,13 +353,13 @@ class DatabaseSpec
       val ccsId = cc.id
       val consensusId = ca.id
       val contigId = co.id
+      val transcriptId = to.id
 
       ej === job.copy(id = jobId, projectId = projectId)
       je === event.copy(jobId = jobId)
       //gp.description === "General Project"
       //pr === project.copy(id = projectId)
       //pu === projectUser.copy(projectId = projectId)
-      rt.id === "PacBio.DataSet.ReferenceSet"
       ds === dataset.copy(jobId = jobId)
       md === metadata.copy(id = metadataId,
                            jobId = jobId,
@@ -374,6 +378,7 @@ class DatabaseSpec
       dm === runDataModel
       cm === collection
       sa === sample
+      to === transcript.copy(id = transcriptId)
     }
 
     "Match TableModels" in {

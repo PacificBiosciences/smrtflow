@@ -31,6 +31,9 @@ ${rootBundleDir}/bin/apply-config
 logDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.abspath(d['pacBioSystem']['logDir'])" ${config})
 logFile=${logDir}/upgrade.log
 
+pbTmpDir=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print os.path.realpath(d['pacBioSystem']['tmpDir'])" ${config})
+export TMPDIR="${pbTmpDir}"
+
 # To enable tools called from dbctrl
 export PATH=${rootBundleDir}/tools/bin:${rootBundleDir}/bin:$PATH
 
@@ -75,7 +78,7 @@ function cleanUp {
     waitThenKill ${wso2Pid}
 }
 
-clientEnv="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${config}"
+clientEnv="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${config} -Djava.io.tmpdir=${pbTmpDir}"
 
 amClient=${rootBundleDir}/tools/bin/amclient
 amClientArgs="--creds-json ${adminCreds} --host localhost --log-file ${logFile}"

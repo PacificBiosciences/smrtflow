@@ -2,11 +2,10 @@ import com.pacbio.secondary.smrtlink.app.{BaseApi, CoreProviders}
 import com.pacbio.secondary.smrtlink.models.ServiceStatus
 import org.specs2.mutable.Specification
 import spray.json._
-import spray.http._
-import spray.routing._
-import spray.client.pipelining._
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.testkit.Specs2RouteTest
 
 class SanityBaseServiceSpec
     extends Specification

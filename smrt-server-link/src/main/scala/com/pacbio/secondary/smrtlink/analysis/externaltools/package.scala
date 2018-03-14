@@ -1,14 +1,14 @@
 package com.pacbio.secondary.smrtlink.analysis
 
-import java.io.FileWriter
-import java.nio.file.{Path, Paths, Files}
+import java.io.{File, FileWriter}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import org.apache.commons.io.FileUtils
 
 import scala.sys.process._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -37,20 +37,52 @@ package object externaltools {
 
   trait ExternalToolsUtils extends LazyLogging with timeUtils {
 
-    def runSimpleCmd(cmd: Seq[String]): Option[ExternalCmdFailure] = {
-      runCmd(cmd) match {
-        case Right(_) => None
-        case Left(ex) => Some(ex)
+    val SUFFIX_STDOUT = "stdout"
+    val SUFFIX_STDERR = "stderr"
+
+    private def toTmp(suffix: String, uuid: Option[UUID]): Path = {
+      val ix = uuid.getOrElse(UUID.randomUUID())
+      Files.createTempFile(s"cmd-$ix", suffix).toAbsolutePath
+    }
+
+    /**
+      * This is a similar model to python's checkcall in Popen.
+      *
+      * This will ignore writing to stderr, stdout, or
+      * logging.
+      *
+      * @param cmd Command to run
+      * @return
+      */
+    def runCheckCall(cmd: Seq[String]): Option[ExternalCmdFailure] = {
+      val startedAt = JodaDateTime.now()
+      Process(cmd).! match {
+        case 0 => None
+        case x =>
+          val msg = s"Failed to run cmd with exit code $x"
+          Some(
+            ExternalCmdFailure(cmd, computeTimeDeltaFromNow(startedAt), msg))
       }
     }
 
+    /**
+      * Run External Command and cleanup (deleted) stderr and stdout
+      *
+      * This should be used very sparingly as the stdout and stderr are deleted.
+      *
+      */
     def runCmd(
         cmd: Seq[String]): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
-      val jobId = UUID.randomUUID()
-      // Add a cleanup if the cmd was successful
-      val fout = Files.createTempFile(s"cmd-$jobId", "stdout")
-      val ferr = Files.createTempFile(s"cmd-$jobId", "stderr")
-      runCmd(cmd, fout.toAbsolutePath, ferr.toAbsolutePath)
+      val cmdId = UUID.randomUUID()
+      val stdout = toTmp(SUFFIX_STDOUT, Some(cmdId))
+      val stderr = toTmp(SUFFIX_STDERR, Some(cmdId))
+      val tmpFiles = Seq(stdout, stderr)
+
+      val results = runCmd(cmd,
+                           toTmp(SUFFIX_STDOUT, Some(cmdId)),
+                           toTmp(SUFFIX_STDERR, Some(cmdId)))
+      tmpFiles.map(_.toFile).foreach(FileUtils.deleteQuietly)
+      results
     }
 
     /**
@@ -62,11 +94,11 @@ package object externaltools {
       * @param extraEnv Env to be added to the process env
       * @return
       */
-    def runUnixCmd(
-        cmd: Seq[String],
-        stdout: Path,
-        stderr: Path,
-        extraEnv: Option[Map[String, String]] = None): (Int, String) = {
+    def runUnixCmd(cmd: Seq[String],
+                   stdout: Path,
+                   stderr: Path,
+                   extraEnv: Option[Map[String, String]] = None,
+                   cwd: Option[File] = None): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
       val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
@@ -90,7 +122,7 @@ package object externaltools {
 
       val px = extraEnv
         .map(x => Process(cmd, cwd = None, extraEnv = x.toSeq: _*))
-        .getOrElse(Process(cmd))
+        .getOrElse(Process(cmd, cwd = None))
 
       val rcode = px.!(pxl)
 
@@ -114,16 +146,17 @@ package object externaltools {
 
     }
 
-    def runCmd(
-        cmd: Seq[String],
-        stdout: Path,
-        stderr: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+    def runCmd(cmd: Seq[String],
+               stdout: Path,
+               stderr: Path,
+               cwd: Option[File] = None)
+      : Either[ExternalCmdFailure, ExternalCmdSuccess] = {
       val startedAt = JodaDateTime.now()
-      val (exitCode, errorMessage) = runUnixCmd(cmd, stdout, stderr)
+      val (exitCode, errorMessage) = runUnixCmd(cmd, stdout, stderr, cwd = cwd)
       val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
       exitCode match {
         case 0 => Right(ExternalCmdSuccess(cmd, runTime))
-        case x => Left(ExternalCmdFailure(cmd, runTime, errorMessage))
+        case _ => Left(ExternalCmdFailure(cmd, runTime, errorMessage))
       }
     }
 
@@ -147,7 +180,7 @@ package object externaltools {
     }
 
     def isExeAvailable(args: Seq[String]): Boolean =
-      Try { runCmd(args).isRight }.getOrElse(false)
+      Try { runCheckCall(args).isEmpty }.getOrElse(false)
   }
 
   object ExternalToolsUtils extends ExternalToolsUtils

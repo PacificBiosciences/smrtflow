@@ -4,21 +4,31 @@ import java.net.URL
 
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.models.PacBioDataBundle
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model.Uri
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-// This is largely duplicated between ServiceAccessLayer
-// The Service AccessLayer needs to extend a base trait
-// to enable better extensibility. This should be able
-// to be mixed-in to SAL and define toPacBioDataBundleUrl
-// and everything should work as expected.
-trait PacBioDataBundleClientTrait extends ClientBase {
+/**
+  * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
+  * @param actorSystem Actor System
+  */
+class PacBioDataBundleClient(
+    host: String,
+    port: Int,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem) {
+
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+
+  val BUNDLES_PATH = Uri.Path("smrt-link") / "bundles"
 
   /**
     * This will resolve the URL to bundle root service.
@@ -26,60 +36,40 @@ trait PacBioDataBundleClientTrait extends ClientBase {
     * @param bundleType
     * @return
     */
-  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String
+  def toPacBioDataBundleUriPath(bundleType: Option[String] = None): Uri.Path =
+    bundleType.map(b => BUNDLES_PATH / b).getOrElse(BUNDLES_PATH)
 
-  def sendReceiveAuthenticated: HttpRequest ⇒ Future[HttpResponse]
+  def toPacBioDataBundleUrl(bundleType: Option[String] = None): Uri =
+    toUri(toPacBioDataBundleUriPath(bundleType))
 
-  def getPacBioDataBundlesPipeline
-    : HttpRequest => Future[Seq[PacBioDataBundle]] =
-    sendReceiveAuthenticated ~> unmarshal[Seq[PacBioDataBundle]]
-  def getPacBioDataBundlePipeline: HttpRequest => Future[PacBioDataBundle] =
-    sendReceiveAuthenticated ~> unmarshal[PacBioDataBundle]
+  def toPacBioBundleDownloadUrl(bundleType: String,
+                                bundleVersion: String): Uri = {
+    val path = BUNDLES_PATH / bundleType / bundleVersion / "download"
+    toUri(path)
+  }
 
   /**
     * Get Bundles of All Types
     */
-  def getPacBioDataBundles() = getPacBioDataBundlesPipeline {
-    Get(toPacBioDataBundleUrl())
-  }
+  def getPacBioDataBundles(): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl()))
 
   /**
     * Get Bundles of a specific Type
     */
-  def getPacBioDataBundleByTypeId(typeId: String) =
-    getPacBioDataBundlesPipeline { Get(toPacBioDataBundleUrl(Some(typeId))) }
+  def getPacBioDataBundleByTypeId(
+      typeId: String): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](Get(toPacBioDataBundleUrl(Some(typeId))))
 
   /**
     * Get a Specific Bundle by Type and Version
     */
-  def getPacBioDataBundleByTypeAndVersionId(typeId: String,
-                                            versionId: String) =
-    getPacBioDataBundlePipeline {
-      Get(toPacBioDataBundleUrl(Some(s"$typeId/$versionId")))
-    }
-}
+  def getPacBioDataBundleByTypeAndVersionId(
+      typeId: String,
+      versionId: String): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](
+      Get(toUri(toPacBioDataBundleUriPath(Some(s"$typeId")) / versionId)))
 
-/**
-  * The Bundle Client to ONLY access PacBio Data Bundles on SMRT Link.
-  *
-  *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
-  * @param actorSystem Actor System
-  */
-class PacBioDataBundleClient(override val baseUrl: URL)(
-    implicit val actorSystem: ActorSystem)
-    extends PacBioDataBundleClientTrait {
-
-  override def sendReceiveAuthenticated = sendReceive
-
-  def toPacBioDataBundleUrl(bundleType: Option[String] = None): String = {
-    val segment = bundleType.map(b => s"/$b").getOrElse("")
-    toUrl(segment)
-  }
-  def toPacBioBundleDownloadUrl(bundleType: String, bundleVersion: String) = {
-    val segment = s"/$bundleType/$bundleVersion/download"
-    toUrl(segment)
-  }
 }
 
 /**
@@ -87,39 +77,44 @@ class PacBioDataBundleClient(override val baseUrl: URL)(
   *
   * This client can access the legacy "V1" routes, or the new "V2" routes.
   *
-  * @param baseUrl     Root Base URL of the bundle services (e.g, smrt-link/bundles)
   * @param actorSystem Actor System
   */
-class PacBioDataBundleUpdateServerClient(override val baseUrl: URL)(
-    implicit override val actorSystem: ActorSystem)
-    extends PacBioDataBundleClient(baseUrl)(actorSystem) {
+class PacBioDataBundleUpdateServerClient(
+    host: String,
+    port: Int,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends PacBioDataBundleClient(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem) {
 
-  val V2_PREFIX = "/api/v2/updates"
+  import SprayJsonSupport._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  override def sendReceiveAuthenticated = sendReceive
+  val V2_PREFIX_PATH: Uri.Path = Uri.Path("api") / "v2" / "updates"
 
   def toV2PacBioDataBundleUrl(pacBioSystemVersion: String,
-                              bundleType: Option[String] = None): String = {
-    val segment = bundleType
-      .map(b => s"$V2_PREFIX/$pacBioSystemVersion/bundles/$b")
-      .getOrElse(s"$V2_PREFIX/$pacBioSystemVersion/bundles")
-    toUrl(segment)
+                              bundleType: Option[String] = None): Uri = {
+
+    val base = V2_PREFIX_PATH / pacBioSystemVersion / "bundles"
+
+    toUri(bundleType.map(b => base / b).getOrElse(base))
   }
+
   def toV2PacBioBundleDownloadUrl(pacBioSystemVersion: String,
                                   bundleType: String,
-                                  bundleVersion: String) = {
-    val segment =
-      s"$V2_PREFIX/$pacBioSystemVersion/bundles/$bundleType/$bundleVersion/download"
-    toUrl(segment)
+                                  bundleVersion: String): Uri = {
+    val path = V2_PREFIX_PATH / pacBioSystemVersion / "bundles" / bundleType / bundleVersion / "download"
+    toUri(path)
   }
 
   /**
     * Get Bundles of a specific Type
     */
-  def getV2PacBioDataBundleByTypeId(pacBioSystemVersion: String,
-                                    bundleType: String) =
-    getPacBioDataBundlesPipeline {
-      Get(toV2PacBioDataBundleUrl(pacBioSystemVersion, Some(bundleType)))
-    }
+  def getV2PacBioDataBundleByTypeId(
+      pacBioSystemVersion: String,
+      bundleType: String): Future[Seq[PacBioDataBundle]] =
+    getObject[Seq[PacBioDataBundle]](
+      Get(toV2PacBioDataBundleUrl(pacBioSystemVersion, Some(bundleType))))
 
 }

@@ -1,18 +1,15 @@
 package com.pacbio.secondary.smrtlink.services
 
 import akka.util.Timeout
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
-import spray.httpx.SprayJsonSupport._
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
 
-class UserService(authenticator: Authenticator) extends PacBioService {
+class UserService() extends PacBioService {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -25,12 +22,10 @@ class UserService(authenticator: Authenticator) extends PacBioService {
 
   val userRoute =
     path("user") {
-      authenticate(authenticator.wso2Auth) { user =>
+      SmrtDirectives.extractRequiredUserRecord { user =>
         get {
           complete {
-            ok {
-              user
-            }
+            user
           }
         }
       }
@@ -43,17 +38,15 @@ class UserService(authenticator: Authenticator) extends PacBioService {
   * Provides a singleton UserService, and also binds it to the set of total services. Concrete providers must mixin a
   * {{{StatusServiceActorRefProvider}}}.
   */
-trait UserServiceProvider { this: AuthenticatorProvider =>
+trait UserServiceProvider {
 
   val userService: Singleton[UserService] =
-    Singleton(() => new UserService(authenticator())).bindToSet(AllServices)
+    Singleton(() => new UserService()).bindToSet(AllServices)
 }
 
-trait UserServiceProviderx {
-  this: AuthenticatorProvider with ServiceComposer =>
+trait UserServiceProviderx { this: ServiceComposer =>
 
-  val userService: Singleton[UserService] = Singleton(
-    () => new UserService(authenticator()))
+  val userService: Singleton[UserService] = Singleton(() => new UserService())
 
   addService(userService)
 }

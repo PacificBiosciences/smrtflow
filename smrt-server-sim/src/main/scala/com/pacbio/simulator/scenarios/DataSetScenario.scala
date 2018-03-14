@@ -13,11 +13,14 @@ package com.pacbio.simulator.scenarios
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
+import scala.util.Try
+
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
+import org.apache.commons.io.FileUtils
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.common.models.CommonModels
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
@@ -30,7 +33,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceAccessLayer,
+  SmrtLinkServiceClient,
   ClientUtils
 }
 import com.pacbio.secondary.smrtlink.models._
@@ -47,11 +50,13 @@ object DataSetScenarioLoader extends ScenarioLoader {
       s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
     val c: Config = config.get
 
-    new DataSetScenario(getHost(c), getPort(c))
+    val gmapAvailable = Try { c.getBoolean("gmapAvailable") }.toOption
+      .getOrElse(false)
+    new DataSetScenario(getHost(c), getPort(c), gmapAvailable)
   }
 }
 
-class DataSetScenario(host: String, port: Int)
+class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -61,8 +66,9 @@ class DataSetScenario(host: String, port: Int)
 
   override val name = "DataSetScenario"
   override val requirements = Seq("SL-1303")
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
+  import CommonModels._
   import CommonModelImplicits._
 
   val MSG_DS_ERR = "DataSet database should be initially empty"
@@ -74,6 +80,8 @@ class DataSetScenario(host: String, port: Int)
   val HAVE_SAWRITER = CallSaWriterIndex.isAvailable()
   val N_SUBREAD_REPORTS = if (HAVE_PBREPORTS) 3 else 1
   val N_SUBREAD_MERGE_REPORTS = if (HAVE_PBREPORTS) 5 else 3
+  val FAKE_REF =
+    ">lambda_NEB3011\nGGGCGGCGACCTCGCGGGTTTTCGCTATTTATGAAAATTTTCCGGTTTAAGGCGTTTCCG\nTTCTTCTTCGTCATAACTTAATGTTTTTATTTAAAATACCCTCTGAAAAGAAAGGAAACG"
 
   // various Report model identifiers
   val RPT_NBASES = "raw_data_report.nbases"
@@ -91,6 +99,9 @@ class DataSetScenario(host: String, port: Int)
   val referenceSets: Var[Seq[ReferenceServiceDataSet]] = Var()
   val referenceSet: Var[ReferenceServiceDataSet] = Var()
   val referenceSetDetails: Var[ReferenceSet] = Var()
+  val gmapReferenceSets: Var[Seq[GmapReferenceServiceDataSet]] = Var()
+  val gmapReferenceSet: Var[GmapReferenceServiceDataSet] = Var()
+  val gmapReferenceSetDetails: Var[GmapReferenceSet] = Var()
   val barcodeSets: Var[Seq[BarcodeServiceDataSet]] = Var()
   val barcodeSetDetails: Var[BarcodeSet] = Var()
   val hdfSubreadSets: Var[Seq[HdfSubreadServiceDataSet]] = Var()
@@ -139,7 +150,6 @@ class DataSetScenario(host: String, port: Int)
   val subreads3 = Var(testdata.getTempDataSet("subreads-sequel"))
   val subreadsUuid2 = Var(getDataSetMiniMeta(subreads2.get).uuid)
   val reference1 = Var(testdata.getTempDataSet("lambdaNEB"))
-  val refFasta = Var(testdata.getFile("lambda-fasta"))
   val hdfSubreads = Var(testdata.getTempDataSet("hdfsubreads"))
   val barcodes = Var(testdata.getTempDataSet("barcodeset"))
   val bcFasta = Var(testdata.getFile("barcode-fasta"))
@@ -159,6 +169,8 @@ class DataSetScenario(host: String, port: Int)
   val tmpSubreads2 = Var(
     MockDataSetUtils
       .makeTmpDataset(subreads1.get, DataSetMetaTypes.Subread, false))
+  val refFasta = Var(Files.createTempFile("lambda", ".fasta"))
+  FileUtils.writeStringToFile(refFasta.get.toFile, FAKE_REF, "UTF-8")
 
   private def getReportUuid(reports: Var[Seq[DataStoreReportFile]],
                             reportId: String): Var[UUID] = {
@@ -188,7 +200,6 @@ class DataSetScenario(host: String, port: Int)
     subreadSets := GetSubreadSets,
     jobId := ImportDataSet(subreads1, ftSubreads),
     job := WaitForSuccessfulJob(jobId),
-    job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     dsMeta := GetDataSet(subreadsUuid1),
@@ -197,9 +208,9 @@ class DataSetScenario(host: String, port: Int)
     fail(s"Wrong UUID") IF subreadSetDetails
       .mapWith(_.getUniqueId) !=? subreadsUuid1.get.toString,
     dsReports := GetSubreadSetReports(subreadsUuid1),
-    fail(s"Expected one report") IF dsReports.mapWith(_.size) !=? 1,
-    dataStore := GetImportJobDataStore(jobId),
-    fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 3,
+    fail(s"Expected no reports") IF dsReports.mapWith(_.size) !=? 0,
+    dataStore := GetJobDataStore(jobId),
+    fail("Expected three datastore files") IF dataStore.mapWith(_.size) !=? 2,
     fail("Wrong UUID in datastore") IF dataStore.mapWith { dss =>
       dss.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
     } !=? subreadsUuid1.get,
@@ -210,7 +221,8 @@ class DataSetScenario(host: String, port: Int)
     dsReports := GetSubreadSetReports(subreadsUuid2),
     fail(s"Expected $N_SUBREAD_REPORTS reports") IF dsReports
       .mapWith(_.size) !=? N_SUBREAD_REPORTS,
-    dsReport := GetReport(dsReports.mapWith(_(0).dataStoreFile.uuid)),
+    dsReport := GetJobReport(dsMeta.mapWith(_.jobId),
+                             dsReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF dsReports.mapWith(
       _(0).dataStoreFile.uuid) !=? dsReport.mapWith(_.uuid),
     // merge SubreadSets
@@ -223,7 +235,7 @@ class DataSetScenario(host: String, port: Int)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     subreadSets := GetSubreadSets,
-    dataStore := GetMergeJobDataStore(jobId),
+    dataStore := GetJobDataStore(jobId),
     fail(s"Expected $N_SUBREAD_MERGE_REPORTS datastore files") IF dataStore
       .mapWith(_.size) !=? N_SUBREAD_MERGE_REPORTS,
     subreadSet := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
@@ -240,10 +252,8 @@ class DataSetScenario(host: String, port: Int)
     job := GetJobById(subreadSets.mapWith(_.takeRight(3).head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
     fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
-    DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
-    DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+    DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[Exception],
+    DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[Exception],
     childJobs := GetJobChildren(jobId),
     fail("Expected 0 children for merge job") IF childJobs
       .mapWith(_.size) !=? 0,
@@ -259,7 +269,7 @@ class DataSetScenario(host: String, port: Int)
     fail(s"Expected isActive=false for $dsMeta") IF dsMeta
       .mapWith(_.isActive) !=? false,
     job := GetJobById(subreadSets.mapWith(_.last.jobId)),
-    dataStore := GetMergeJobDataStore(job.mapWith(_.uuid)),
+    dataStore := GetJobDataStore(job.mapWith(_.uuid)),
     fail("Expected isActive=false") IF dataStore.mapWith(
       _.filter(f => f.isActive).size) !=? 0,
     // export SubreadSets
@@ -270,16 +280,17 @@ class DataSetScenario(host: String, port: Int)
       subreadsZip),
     job := WaitForSuccessfulJob(jobId),
     // attempt to export to already existing .zip file
-    ExportDataSets(
-      ftSubreads,
-      subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
-      subreadsZip) SHOULD_RAISE classOf[UnsuccessfulResponseException]
+    ExportDataSets(ftSubreads,
+                   subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
+                   subreadsZip) SHOULD_RAISE classOf[Exception]
   ) ++ (if (!HAVE_PBREPORTS) Seq()
         else
           Seq(
             // RUN QC FUNCTIONS (see run-qc-service.ts)
+            dsMeta := GetDataSet(subreadsUuid2),
             dsReports := GetSubreadSetReports(subreadsUuid2),
-            dsReport := GetReport(
+            dsReport := GetJobReport(
+              dsMeta.mapWith(_.jobId),
               getReportUuid(dsReports,
                             "pbreports.tasks.filter_stats_report_xml")),
             fail("Wrong report ID") IF dsReport
@@ -294,7 +305,8 @@ class DataSetScenario(host: String, port: Int)
               dsReport.mapWith(_.uuid),
               dsReport.mapWith(_.getPlot(RPT_PLOT_GROUP, RPT_PLOT).get.image)),
             fail("Image has no content") IF nBytes ==? 0,
-            dsReport := GetReport(
+            dsReport := GetJobReport(
+              dsMeta.mapWith(_.jobId),
               getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
             fail("Wrong report ID") IF dsReport
               .mapWith(_.id) !=? "loading_xml_report",
@@ -322,7 +334,6 @@ class DataSetScenario(host: String, port: Int)
             // FASTA import tests (require sawriter)
             jobId := ImportFasta(refFasta, Var("import_fasta")),
             job := WaitForSuccessfulJob(jobId),
-            job := GetJob(jobId),
             fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
               _.smrtlinkVersion) ==? None,
             referenceSets := GetReferenceSets,
@@ -340,11 +351,35 @@ class DataSetScenario(host: String, port: Int)
             fail("Wrong name") IF referenceSet
               .mapWith(_.name) !=? "import_fasta"
           ))
+  // GmapReferenceSet import tests (require gmap_build)
+  val gmapReferenceTests =
+    if (!gmapAvailable) Seq()
+    else {
+      Seq(
+        jobId := ImportFastaGmap(refFasta, Var("import_fasta_gmap")),
+        job := WaitForSuccessfulJob(jobId),
+        fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
+          _.smrtlinkVersion) ==? None,
+        gmapReferenceSets := GetGmapReferenceSets,
+        gmapReferenceSetDetails := GetGmapReferenceSetDetails(
+          gmapReferenceSets.mapWith(_.last.uuid)),
+        fail("Wrong UUID") IF gmapReferenceSetDetails
+          .mapWith(_.getUniqueId) !=? gmapReferenceSets.mapWith(
+          _.last.uuid.toString),
+        gmapReferenceSet := GetGmapReferenceSet(
+          gmapReferenceSets.mapWith(_.last.uuid)),
+        fail("Wrong ploidy") IF gmapReferenceSet
+          .mapWith(_.ploidy) !=? "haploid",
+        fail("Wrong organism") IF gmapReferenceSet
+          .mapWith(_.organism) !=? "lambda",
+        fail("Wrong name") IF gmapReferenceSet
+          .mapWith(_.name) !=? "import_fasta_gmap"
+      )
+    }
   val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     jobId := ImportDataSet(barcodes, ftBarcodes),
     job := WaitForSuccessfulJob(jobId),
-    job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     barcodeSets := GetBarcodeSets,
@@ -457,8 +492,7 @@ class DataSetScenario(host: String, port: Int)
   // FAILURE MODES
   val failureTests = Seq(
     // not a dataset
-    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+    ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[Exception],
     // wrong ds metatype
     // FIXME to be removed since we can get the metatype from the XML instead
     // of making it a POST parameter
@@ -493,10 +527,9 @@ class DataSetScenario(host: String, port: Int)
     // TODO check report?
     // failure modes
     referenceSets := GetReferenceSets,
-    DeleteDataSets(
-      ftReference,
-      referenceSets.mapWith(rs => Seq(rs.last.id)),
-      Var(true)) SHOULD_RAISE classOf[UnsuccessfulResponseException],
+    DeleteDataSets(ftReference,
+                   referenceSets.mapWith(rs => Seq(rs.last.id)),
+                   Var(true)) SHOULD_RAISE classOf[Exception],
     // already deleted
     jobId := DeleteDataSets(ftSubreads,
                             subreadSets.mapWith(ss => Seq(ss.last.id)),
@@ -551,5 +584,5 @@ class DataSetScenario(host: String, port: Int)
       ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
-  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
+  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
 }

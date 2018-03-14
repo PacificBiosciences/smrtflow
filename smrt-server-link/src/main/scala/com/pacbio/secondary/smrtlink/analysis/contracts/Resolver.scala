@@ -1,10 +1,10 @@
 package com.pacbio.secondary.smrtlink.analysis.contracts
 
 import java.nio.file.Path
+import java.util
 
 import com.pacbio.common.models.contracts._
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 /**
@@ -32,14 +32,19 @@ object Resolver {
     val driver =
       Driver.newBuilder().setExe(toolContract.getDriver.getExe).build()
 
+    val javaFiles: java.util.List[CharSequence] =
+      new util.ArrayList[CharSequence](inputFiles.asJavaCollection)
+    val resources: java.util.List[CharSequence] =
+      new util.ArrayList[CharSequence]()
+
     val task = ResolvedToolContractTask
       .newBuilder()
-      .setInputFiles(inputFiles)
+      .setInputFiles(javaFiles)
       .setNproc(resolvedNproc)
       .setIsDistributed(isDistributed)
       .setToolContractId(toolContract.getToolContract.getToolContractId)
       .setTaskType(toolContract.getToolContract.getTaskType)
-      .setResources(List[String]())
+      .setResources(resources)
       .build()
     ResolvedToolContract
       .newBuilder()

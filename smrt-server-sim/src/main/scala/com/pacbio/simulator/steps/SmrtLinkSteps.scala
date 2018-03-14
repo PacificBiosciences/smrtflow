@@ -3,30 +3,35 @@ package com.pacbio.simulator.steps
 import java.util.UUID
 import java.nio.file.Path
 
-import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
-import com.pacbio.common.models._
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+
+import com.typesafe.scalalogging.LazyLogging
+
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.common.models._
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetFilterProperty
+}
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
-import com.typesafe.scalalogging.LazyLogging
 
 trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
 
   import CommonModelImplicits._
   import ReportModels._
 
-  val smrtLinkClient: SmrtLinkServiceAccessLayer
+  val smrtLinkClient: SmrtLinkServiceClient
 
   def andLog(sx: String): Future[String] = Future {
     logger.info(sx)
@@ -109,7 +114,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetSubreadSets extends VarStep[Seq[SubreadServiceDataSet]] {
     override val name = "GetSubreadSets"
     override def runWith =
-      smrtLinkClient.getSubreadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getSubreadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetSubreadSet(dsId: Var[UUID])
@@ -128,7 +133,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[HdfSubreadServiceDataSet]] {
     override val name = "GetHdfSubreadSets"
     override def runWith =
-      smrtLinkClient.getHdfSubreadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getHdfSubreadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetHdfSubreadSet(dsId: Var[UUID])
@@ -146,7 +151,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetReferenceSets extends VarStep[Seq[ReferenceServiceDataSet]] {
     override val name = "GetReferenceSets"
     override def runWith =
-      smrtLinkClient.getReferenceSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getReferenceSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetReferenceSet(dsId: Var[UUID])
@@ -164,7 +169,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetBarcodeSets extends VarStep[Seq[BarcodeServiceDataSet]] {
     override val name = "GetBarcodeSets"
     override def runWith =
-      smrtLinkClient.getBarcodeSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getBarcodeSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetBarcodeSet(dsId: Var[UUID])
@@ -183,7 +188,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetAlignmentSets extends VarStep[Seq[AlignmentServiceDataSet]] {
     override val name = "GetAlignmentSets"
     override def runWith =
-      smrtLinkClient.getAlignmentSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getAlignmentSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetAlignmentSet(dsId: Var[UUID])
@@ -202,7 +207,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[ConsensusReadServiceDataSet]] {
     override val name = "GetConsensusReadSets"
     override def runWith =
-      smrtLinkClient.getConsensusReadSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getConsensusReadSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetConsensusReadSet(dsId: Var[UUID])
@@ -221,7 +226,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[ConsensusAlignmentServiceDataSet]] {
     override val name = "GetConsensusAlignmentSets"
     override def runWith =
-      smrtLinkClient.getConsensusAlignmentSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getConsensusAlignmentSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetConsensusAlignmentSet(dsId: Var[UUID])
@@ -240,7 +245,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetContigSets extends VarStep[Seq[ContigServiceDataSet]] {
     override val name = "GetContigSets"
     override def runWith =
-      smrtLinkClient.getContigSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getContigSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetContigSet(dsId: Var[UUID])
@@ -258,7 +263,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       extends VarStep[Seq[GmapReferenceServiceDataSet]] {
     override val name = "GetGmapReferenceSets"
     override def runWith =
-      smrtLinkClient.getGmapReferenceSets.map(sx => sx.sortBy(_.id))
+      smrtLinkClient.getGmapReferenceSets().map(sx => sx.sortBy(_.id))
   }
 
   case class GetGmapReferenceSet(dsId: Var[UUID])
@@ -279,34 +284,24 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     override def runWith = smrtLinkClient.getSubreadSetReports(dsId.get)
   }
 
-  case class GetReport(reportId: Var[UUID]) extends VarStep[Report] {
-    override val name = "GetReport"
-    override def runWith = smrtLinkClient.getReport(reportId.get)
-  }
-
-  case class GetImportJobDataStore(jobId: Var[UUID])
-      extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetImportJobDataStore"
-    override def runWith =
-      smrtLinkClient.getImportDatasetJobDataStore(jobId.get)
-  }
-
-  case class GetMergeJobDataStore(jobId: Var[UUID])
-      extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetMergeJobDataStore"
-    override def runWith =
-      smrtLinkClient.getMergeDatasetJobDataStore(jobId.get)
+  case class GetJobReport(jobId: Var[Int], reportId: Var[UUID])
+      extends VarStep[Report] {
+    override val name = "GetJobReport"
+    override def runWith = smrtLinkClient.getJobReport(jobId.get, reportId.get)
   }
 
   case class GetDataStoreFileResource(fileId: Var[UUID], relpath: Var[String])
       extends VarStep[Int] {
     override val name = "GetDataStoreFileResource"
     override def runWith =
-      smrtLinkClient.getDataStoreFileResource(fileId.get, relpath.get).map {
-        a =>
+      smrtLinkClient
+        .getDataStoreFileResource(fileId.get, relpath.get)
+        .flatMap { a =>
           // 'a' is Array[Byte], all we test for is the size
-          a.entity.data.toByteArray.size
-      }
+          a.entity
+            .toStrict(5.seconds)(smrtLinkClient.materializer)
+            .map(_.data.length)
+        }
   }
 
   case object GetProjects extends VarStep[Seq[Project]] {
@@ -398,6 +393,15 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         .map(_.uuid)
   }
 
+  case class ImportFastaGmap(path: Var[Path], dsName: Var[String])
+      extends VarStep[UUID] {
+    override val name = "ImportFastaGmap"
+    override def runWith =
+      smrtLinkClient
+        .importFastaGmap(path.get, dsName.get, "lambda", "haploid")
+        .map(_.uuid)
+  }
+
   case class ImportFastaBarcodes(path: Var[Path], dsName: Var[String])
       extends VarStep[UUID] {
     override val name = "ImportFastaBarcodes"
@@ -445,7 +449,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     override def runWith =
       smrtLinkClient
         .exportDataSets(dsType.get,
-                        ids.get,
+                        ids.get.map(IntIdAble),
                         outputPath.get,
                         deleteAfterExport.get)
         .map(_.uuid)
@@ -469,8 +473,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         .map(_.uuid)
   }
 
-  case class RunAnalysisPipeline(
-      pipelineOptions: Var[PbSmrtPipeServiceOptions])
+  case class RunAnalysisPipeline(pipelineOptions: Var[PbsmrtpipeJobOptions])
       extends VarStep[UUID] {
     override val name = "RunAnalysisPipeline"
     override def runWith =
@@ -520,41 +523,38 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.getPipelineDataStoreViewRules(pipelineId.get)
   }
 
-  case class GetAnalysisJobDataStore(jobId: Var[UUID])
+  case class GetJobDataStore(jobId: Var[UUID])
       extends VarStep[Seq[DataStoreServiceFile]] {
-    override val name = "GetAnalysisJobDataStore"
-    override def runWith = smrtLinkClient.getAnalysisJobDataStore(jobId.get)
+    override val name = "GetJobDataStore"
+    override def runWith = smrtLinkClient.getJobDataStore(jobId.get)
   }
 
-  case class GetAnalysisJobReports(jobId: Var[UUID])
+  case class GetJobReports(jobId: Var[UUID])
       extends VarStep[Seq[DataStoreReportFile]] {
-    override val name = "GetAnalysisJobReports"
-    override def runWith = smrtLinkClient.getAnalysisJobReports(jobId.get)
+    override val name = "GetJobReports"
+    override def runWith = smrtLinkClient.getJobReports(jobId.get)
   }
 
-  // XXX this only works with Int
-  case class GetAnalysisJobEntryPoints(jobId: Var[Int])
+  case class GetJobEntryPoints(jobId: Var[Int])
       extends VarStep[Seq[EngineJobEntryPoint]] {
-    override val name = "GetAnalysisJobEntryPoints"
-    override def runWith = smrtLinkClient.getAnalysisJobEntryPoints(jobId.get)
+    override val name = "GetJobEntryPoints"
+    override def runWith = smrtLinkClient.getJobEntryPoints(jobId.get)
   }
 
-  case class GetAnalysisJobEvents(jobId: Var[Int])
-      extends VarStep[Seq[JobEvent]] {
-    override val name = "GetAnalysisJobEvents"
-    override def runWith = smrtLinkClient.getAnalysisJobEvents(jobId.get)
+  case class GetJobEvents(jobId: Var[Int]) extends VarStep[Seq[JobEvent]] {
+    override val name = "GetJobEvents"
+    override def runWith = smrtLinkClient.getJobEvents(jobId.get)
   }
 
-  case class GetAnalysisJobTasks(jobId: Var[Int])
-      extends VarStep[Seq[JobTask]] {
-    override val name = "GetAnalysisJobTasks"
-    override def runWith = smrtLinkClient.getAnalysisJobTasks(jobId.get)
+  case class GetJobTasks(jobId: Var[Int]) extends VarStep[Seq[JobTask]] {
+    override val name = "GetJobTasks"
+    override def runWith = smrtLinkClient.getJobTasks(jobId.get)
   }
 
-  case class GetAnalysisJobOptions(jobId: Var[Int])
+  case class GetJobOptions(jobId: Var[Int])
       extends VarStep[PipelineTemplatePreset] {
-    override val name = "GetAnalysisJobOptions"
-    override def runWith = smrtLinkClient.getAnalysisJobOptions(jobId.get)
+    override val name = "GetJobOptions"
+    override def runWith = smrtLinkClient.getJobOptions(jobId.get)
   }
 
   case class GetJobChildren(jobId: Var[UUID]) extends VarStep[Seq[EngineJob]] {
@@ -680,5 +680,4 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.runDbBackUpJob(user, comment).map(_.uuid)
 
   }
-
 }

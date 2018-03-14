@@ -4,23 +4,22 @@ import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorRef
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.pattern.ask
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import shapeless.HNil
-import spray.httpx.marshalling.Marshaller
-import spray.routing.{PathMatcher1, Route}
-import spray.http.MediaTypes
+//import shapeless.HNil
+
 import spray.json._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import SprayJsonSupport._
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.server.Route
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
@@ -43,13 +42,14 @@ import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 
-import collection.JavaConversions._
+//
+import collection.JavaConverters._
 
 /**
   * Accessing DataSets by type. Currently several datasets types are
   * not completely supported (ContigSet, CCSreads, CCS Alignments)
   */
-class DataSetService(dao: JobsDao, authenticator: Authenticator)
+class DataSetService(dao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
     with SmrtLinkConstants {
   // For all the Message types
@@ -81,7 +81,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
     val bs = DataSetLoader.loadAndResolveBarcodeSet(barcodeSet)
 
-    bs.getExternalResources.getExternalResource
+    bs.getExternalResources.getExternalResource.asScala
       .find(_.getMetaType == FileTypes.FASTA_BC.fileTypeId)
       .map(_.getResourceId)
       .map(p => new FastaIterator(Paths.get(p).toFile))
@@ -100,9 +100,6 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       Future.failed(new UnprocessableEntityError(
         s"DataSet $shortName not supported. Only BarcodeSets are supported."))
   }
-
-  // Default MAX number of records to return
-  val DS_LIMIT = 2000
 
   val shortNameRx = {
     val xs = DataSetMetaTypes.ALL
@@ -131,10 +128,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // SubreadSet
   def getSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[SubreadServiceDataSet]] =
-    dao.getSubreadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[SubreadServiceDataSet]] =
+    dao.getSubreadDataSets(c)
   def getSubreadSetById(i: IdAble): Future[SubreadServiceDataSet] =
     dao.getSubreadDataSetById(i)
   def getSubreadSetDetailsById(i: IdAble): Future[String] =
@@ -142,10 +137,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // HdfSubreadSet
   def getHdfSubreadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[HdfSubreadServiceDataSet]] =
-    dao.getHdfDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[HdfSubreadServiceDataSet]] =
+    dao.getHdfDataSets(c)
   def getHdfSubreadById(i: IdAble): Future[HdfSubreadServiceDataSet] =
     dao.getHdfDataSetById(i)
   def getHdfSubreadDetailsById(i: IdAble): Future[String] =
@@ -153,10 +146,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // AlignmentSets
   def getAlignmentSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[AlignmentServiceDataSet]] =
-    dao.getAlignmentDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[AlignmentServiceDataSet]] =
+    dao.getAlignmentDataSets(c)
   def getAlignmentSetById(i: IdAble): Future[AlignmentServiceDataSet] =
     dao.getAlignmentDataSetById(i)
   def getAlignmentSetDetails(i: IdAble): Future[String] =
@@ -164,10 +155,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // ReferenceSets
   def getReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ReferenceServiceDataSet]] =
-    dao.getReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ReferenceServiceDataSet]] =
+    dao.getReferenceDataSets(c)
   def getReferenceSetById(i: IdAble): Future[ReferenceServiceDataSet] =
     dao.getReferenceDataSetById(i)
   def getReferenceSetDetails(i: IdAble): Future[String] =
@@ -175,10 +164,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // GmapReferenceSet
   def getGmapReferenceSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[GmapReferenceServiceDataSet]] =
-    dao.getGmapReferenceDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[GmapReferenceServiceDataSet]] =
+    dao.getGmapReferenceDataSets(c)
   def getGmapReferenceSetById(i: IdAble): Future[GmapReferenceServiceDataSet] =
     dao.getGmapReferenceDataSetById(i)
   def getGmapReferenceSetDetails(i: IdAble): Future[String] =
@@ -186,10 +173,8 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   /// BarcodeSet
   def getBarcodeSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[BarcodeServiceDataSet]] =
-    dao.getBarcodeDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[BarcodeServiceDataSet]] =
+    dao.getBarcodeDataSets(c)
   def getBarcodeSetById(i: IdAble): Future[BarcodeServiceDataSet] =
     dao.getBarcodeDataSetById(i)
   def getBarcodeSetDetails(i: IdAble): Future[String] =
@@ -197,21 +182,17 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // Consensus Reads
   def getConsensusReadSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ConsensusReadServiceDataSet]] =
-    dao.getConsensusReadDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ConsensusReadServiceDataSet]] =
+    dao.getConsensusReadDataSets(c)
   def getConsensusReadSetById(i: IdAble): Future[ConsensusReadServiceDataSet] =
     dao.getConsensusReadDataSetById(i)
   def getConsensusReadSetDetails(i: IdAble): Future[String] =
     dao.getConsensusReadDataSetDetailsById(i)
 
   // Consensus AlignmentSets
-  def getConsensusAlignmentSet(limit: Int,
-                               includeInactive: Boolean = false,
-                               projectIds: Seq[Int] = Nil)
+  def getConsensusAlignmentSet(c: DataSetSearchCriteria)
     : Future[Seq[ConsensusAlignmentServiceDataSet]] =
-    dao.getConsensusAlignmentDataSets(limit, includeInactive, projectIds)
+    dao.getConsensusAlignmentDataSets(c)
   def getConsensusAlignmentSetById(
       i: IdAble): Future[ConsensusAlignmentServiceDataSet] =
     dao.getConsensusAlignmentDataSetById(i)
@@ -220,34 +201,47 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
 
   // ContigSets
   def getContigDataSet(
-      limit: Int,
-      includeInactive: Boolean = false,
-      projectIds: Seq[Int] = Nil): Future[Seq[ContigServiceDataSet]] =
-    dao.getContigDataSets(limit, includeInactive, projectIds)
+      c: DataSetSearchCriteria): Future[Seq[ContigServiceDataSet]] =
+    dao.getContigDataSets(c)
   def getContigDataSetById(i: IdAble): Future[ContigServiceDataSet] =
     dao.getContigDataSetById(i)
   def getContigDataSetDetails(i: IdAble): Future[String] =
     dao.getContigDataSetDetailsById(i)
 
-  def updateDataSet(id: IdAble, sopts: DataSetUpdateRequest) = {
-    val f1 = sopts.isActive
-      .map { setIsActive =>
-        dao.deleteDataSetById(id, setIsActive = setIsActive)
-      }
-      .getOrElse(Future.successful(MessageResponse("")))
+  // TranscriptSets
+  def getTranscriptSet(
+      c: DataSetSearchCriteria): Future[Seq[TranscriptServiceDataSet]] =
+    dao.getTranscriptDataSets(c)
 
-    val f2 =
+  def getTranscriptSetById(i: IdAble): Future[TranscriptServiceDataSet] =
+    dao.getTranscriptDataSetById(i)
+
+  def getTranscriptSetDetails(i: IdAble): Future[String] =
+    dao.getTranscriptDataSetDetailsById(i)
+
+  def updateDataSet(id: IdAble,
+                    sopts: DataSetUpdateRequest): Future[MessageResponse] = {
+    def f1 =
+      sopts.isActive
+        .map { setIsActive =>
+          dao.deleteDataSetById(id, setIsActive = setIsActive)
+        }
+        .getOrElse(Future.successful(MessageResponse("")))
+
+    def mapError(opt: Option[String]): Future[MessageResponse] = {
+      opt
+        .map(msg => Future.failed(UnprocessableEntityError(msg)))
+        .getOrElse(Future.successful(MessageResponse("Successfully Updated")))
+    }
+
+    def f2 =
       if (sopts.bioSampleName.isDefined || sopts.wellSampleName.isDefined) {
         for {
           ds <- dao.getDataSetMetaData(id)
-          _ <- DataSetUpdateUtils
-            .testApplyEdits(Paths.get(ds.path),
-                            sopts.bioSampleName,
-                            sopts.wellSampleName)
-            .map { err =>
-              Future.failed(new UnprocessableEntityError(err))
-            }
-            .getOrElse(Future.successful("no errors"))
+          _ <- mapError(
+            DataSetUpdateUtils.testApplyEdits(Paths.get(ds.path),
+                                              sopts.bioSampleName,
+                                              sopts.wellSampleName))
           msg <- dao.updateSubreadSetDetails(id,
                                              sopts.bioSampleName,
                                              sopts.wellSampleName)
@@ -260,26 +254,171 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
     } yield MessageResponse(s"${resp1.message} ${resp2.message}")
   }
 
+  /**
+    * Validate and URL decode the raw string.
+    */
+  private def parseQueryOperator[T](
+      sx: Option[String],
+      f: (String) => Option[T]): Future[Option[T]] = {
+
+    sx match {
+      case Some(v) =>
+        val urlDecodedString = java.net.URLDecoder.decode(v, "UTF-8")
+        f(urlDecodedString) match {
+          case Some(op) => Future.successful(Some(op))
+          case _ =>
+            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+        }
+      case _ =>
+        // Nothing was provided
+        Future.successful(None)
+    }
+  }
+
+  /**
+    * URL decode, convert to QueryOperators and
+    * return a DataSet DataSetSearchCriteria.
+    */
+  def parseDataSetSearchCriteria(
+      projectIds: Set[Int],
+      isActive: Option[Boolean],
+      limit: Int,
+      marker: Option[Int],
+      id: Option[String],
+      path: Option[String],
+      uuid: Option[String],
+      name: Option[String],
+      createdAt: Option[String],
+      updatedAt: Option[String],
+      numRecords: Option[String],
+      totalLength: Option[String],
+      version: Option[String],
+      jobId: Option[String],
+      projectId: Option[String]): Future[DataSetSearchCriteria] = {
+
+    val search =
+      DataSetSearchCriteria(projectIds,
+                            isActive = isActive,
+                            limit = limit,
+                            marker = marker)
+
+    for {
+      qId <- parseQueryOperator[IntQueryOperator](id,
+                                                  IntQueryOperator.fromString)
+      qUUID <- parseQueryOperator[UUIDQueryOperator](
+        uuid,
+        UUIDQueryOperator.fromString)
+      qName <- parseQueryOperator[StringQueryOperator](
+        name,
+        StringQueryOperator.fromString)
+      qNumRecords <- parseQueryOperator[LongQueryOperator](
+        numRecords,
+        LongQueryOperator.fromString)
+      qTotalLength <- parseQueryOperator[LongQueryOperator](
+        totalLength,
+        LongQueryOperator.fromString)
+      qVersion <- parseQueryOperator[StringQueryOperator](
+        version,
+        StringQueryOperator.fromString)
+      qJobId <- parseQueryOperator[IntQueryOperator](
+        jobId,
+        IntQueryOperator.fromString)
+      qProjectId <- parseQueryOperator[IntQueryOperator](
+        projectId,
+        IntQueryOperator.fromString)
+      qCreatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        createdAt,
+        DateTimeQueryOperator.fromString)
+      qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        createdAt,
+        DateTimeQueryOperator.fromString)
+      qPath <- parseQueryOperator[StringQueryOperator](
+        path,
+        StringQueryOperator.fromString)
+    } yield
+      search.copy(
+        name = qName,
+        id = qId,
+        uuid = qUUID,
+        path = qPath,
+        createdAt = qCreatedAt,
+        updatedAt = qUpdatedAt,
+        numRecords = qNumRecords,
+        totalLength = qTotalLength,
+        version = qVersion,
+        jobId = qJobId,
+        projectId = qProjectId
+      )
+
+  }
+
   def datasetRoutes[R <: ServiceDataSetMetadata](
       shortName: String,
-      GetDataSets: (Int, Boolean, Seq[Int]) => Future[Seq[R]],
+      GetDataSets: (DataSetSearchCriteria) => Future[Seq[R]],
       GetDataSetById: IdAble => Future[R],
       GetDetailsById: IdAble => Future[String])(
       implicit ct: ClassTag[R],
-      ma: Marshaller[R],
-      sm: Marshaller[Seq[R]]): Route =
-    optionalAuthenticate(authenticator.wso2Auth) { user =>
+      ma: ToEntityMarshaller[R],
+      sm: ToEntityMarshaller[Seq[R]]): Route =
+    SmrtDirectives.extractOptionalUserRecord { user =>
       pathPrefix(shortName) {
         pathEnd {
           get {
-            parameters('showAll.?, 'projectId.as[Int].?) {
-              (showAll, projectId) =>
-                complete {
-                  ok {
-                    getProjectIds(projectId, user)
-                      .map { ids =>
-                        GetDataSets(DS_LIMIT, showAll.isDefined, ids)
-                      }
+            parameters(
+              'showAll.?,
+              'limit.as[Int].?,
+              'marker.as[Int].?,
+              'id.?,
+              'uuid.?,
+              'path.?,
+              'name.?,
+              'createdAt.?,
+              'updatedAt.?,
+              'numRecords.?,
+              'totalLength.?,
+              'version.?,
+              'jobId.?,
+              'projectId.?
+            ) {
+              (showAll,
+               limit,
+               marker,
+               id,
+               uuid,
+               path,
+               name,
+               createdAt,
+               updatedAt,
+               numRecords,
+               totalLength,
+               version,
+               jobId,
+               projectId) =>
+                encodeResponse {
+                  complete {
+                    for {
+                      // workaround for this project id oddness in the API
+                      ids <- getProjectIds(projectId.map(_.toInt), user)
+                      searchCriteria <- parseDataSetSearchCriteria(
+                        ids.toSet,
+                        Some(showAll.isEmpty),
+                        limit.getOrElse(
+                          DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
+                        marker,
+                        id,
+                        path,
+                        uuid,
+                        name,
+                        createdAt,
+                        updatedAt,
+                        numRecords,
+                        totalLength,
+                        version,
+                        jobId,
+                        projectId
+                      )
+                      datasets <- GetDataSets(searchCriteria)
+                    } yield datasets
                   }
                 }
             }
@@ -289,29 +428,21 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
             pathEnd {
               get {
                 complete {
-                  ok {
-                    GetDataSetById(id)
-                  }
+                  GetDataSetById(id)
                 }
               } ~
                 put {
                   entity(as[DataSetUpdateRequest]) { sopts =>
                     complete {
-                      ok {
-                        updateDataSet(id, sopts)
-                      }
+                      updateDataSet(id, sopts)
                     }
                   }
                 }
             } ~
               path(DETAILS_PREFIX) {
                 get {
-                  respondWithMediaType(MediaTypes.`application/json`) {
-                    complete {
-                      ok {
-                        GetDetailsById(id)
-                      }
-                    }
+                  complete {
+                    GetDetailsById(id).map(_.parseJson) // To get the correct mime-type
                   }
                 }
               } ~
@@ -319,14 +450,12 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
                 pathEndOrSingleSlash {
                   get {
                     complete {
-                      ok {
-                        for {
-                          _ <- validateBarcodeShortName(shortName)
-                          dataset <- GetDataSetById(id)
-                          recordNames <- Future.successful(
-                            loadBarcodeNames(Paths.get(dataset.path)))
-                        } yield recordNames
-                      }
+                      for {
+                        _ <- validateBarcodeShortName(shortName)
+                        dataset <- GetDataSetById(id)
+                        recordNames <- Future.successful(
+                          loadBarcodeNames(Paths.get(dataset.path)))
+                      } yield recordNames
                     }
                   }
                 }
@@ -334,13 +463,11 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
               path(JOB_REPORT_PREFIX) {
                 get {
                   complete {
-                    ok {
-                      for {
-                        dataset <- GetDataSetById(id)
-                        reports <- dao.getDataStoreReportFilesByJobId(
-                          dataset.jobId)
-                      } yield reports
-                    }
+                    for {
+                      dataset <- GetDataSetById(id)
+                      reports <- dao.getDataStoreReportFilesByJobId(
+                        dataset.jobId)
+                    } yield reports
                   }
                 }
               }
@@ -353,22 +480,14 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
       pathEnd {
         get {
           complete {
-            ok {
-              dao.getDataSetTypes
-            }
+            dao.getDataSetTypes
           }
         }
       } ~
         path(shortNameRx) { shortName =>
           get {
             complete {
-              ok {
-                DataSetMetaTypes
-                  .fromShortName(shortName)
-                  .map(t => dao.getDataSetTypeById(t.dsId))
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find dataset type Id '$shortName"))
-              }
+              dao.getDataSetTypeById(shortName)
             }
           }
         }
@@ -377,17 +496,13 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
         path(IdAbleMatcher) { id =>
           get {
             complete {
-              ok {
-                dao.getDataSetById(id)
-              }
+              dao.getDataSetById(id)
             }
           } ~
             put {
               entity(as[DataSetUpdateRequest]) { sopts =>
                 complete {
-                  ok {
-                    updateDataSet(id, sopts)
-                  }
+                  updateDataSet(id, sopts)
                 }
               }
             }
@@ -395,9 +510,7 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
           path(JavaUUID / "jobs") { uuid =>
             get {
               complete {
-                ok {
-                  dao.getDataSetJobsByUUID(uuid)
-                }
+                dao.getDataSetJobsByUUID(uuid)
               }
             }
           } ~
@@ -445,15 +558,19 @@ class DataSetService(dao: JobsDao, authenticator: Authenticator)
             DataSetMetaTypes.Contig.shortName,
             getContigDataSet,
             getContigDataSetById,
-            getContigDataSetDetails)
+            getContigDataSetDetails) ~
+          datasetRoutes[TranscriptServiceDataSet](
+            DataSetMetaTypes.Transcript.shortName,
+            getTranscriptSet,
+            getTranscriptSetById,
+            getTranscriptSetDetails)
       }
 }
 
-trait DataSetServiceProvider {
-  this: JobsDaoProvider with AuthenticatorProvider with ServiceComposer =>
+trait DataSetServiceProvider { this: JobsDaoProvider with ServiceComposer =>
 
   val dataSetService: Singleton[DataSetService] =
-    Singleton(() => new DataSetService(jobsDao(), authenticator()))
+    Singleton(() => new DataSetService(jobsDao()))
 
   addService(dataSetService)
 }

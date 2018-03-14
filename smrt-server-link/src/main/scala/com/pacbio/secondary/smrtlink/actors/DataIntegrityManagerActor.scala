@@ -17,6 +17,8 @@ import com.pacbio.secondary.smrtlink.dataintegrity.{
   JobStateIntegrityRunner
 }
 
+import scala.util.{Failure, Success}
+
 object DataIntegrityManagerActor {
   case object RunIntegrityChecks
   // Run an explicit Runner by id
@@ -57,11 +59,10 @@ class DataIntegrityManagerActor(dao: JobsDao,
       }
     } yield MessageResponse(s"${result.message} $message")
 
-    f.onSuccess {
-      case MessageResponse(m) => s"Successfully ran ${runner.runnerId} $m"
-    }
-    f.onFailure {
-      case ex =>
+    f onComplete {
+      case Success(m) =>
+        s"Successfully ran ${runner.runnerId} $m"
+      case Failure(ex) =>
         logger.error(
           s"Failed run Integrity Runner ${runner.runnerId}. ${ex.getMessage}")
     }

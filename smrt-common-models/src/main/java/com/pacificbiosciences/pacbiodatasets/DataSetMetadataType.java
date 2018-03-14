@@ -73,10 +73,11 @@ import com.pacificbiosciences.pacbiobasedatamodel.StrictEntityType;
     "provenance"
 })
 @XmlSeeAlso({
-    ContigSetMetadataType.class,
     ReadSetMetadataType.class,
+    ContigSetMetadataType.class,
     BarcodeSetMetadataType.class,
     AlignmentSetMetadataType.class,
+    TranscriptSetMetadataType.class,
     SubreadSetMetadataType.class
 })
 public class DataSetMetadataType {

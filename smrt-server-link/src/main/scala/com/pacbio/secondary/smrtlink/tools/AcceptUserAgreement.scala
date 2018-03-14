@@ -5,7 +5,7 @@ import akka.actor.ActorSystem
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.tools._
-import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceAccessLayer
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models.{
   EulaRecord,
   PacBioComponentManifest
@@ -79,14 +79,16 @@ object AcceptUserAgreement
         throw new Exception("Can't determine SMRT Link version")))
   }
 
-  def getOrAcceptEula(sal: SmrtLinkServiceAccessLayer,
+  def getOrAcceptEula(sal: SmrtLinkServiceClient,
                       user: String,
                       smrtLinkVersion: String,
-                      enableInstallMetrics: Boolean): Future[EulaRecord] = {
+                      enableInstallMetrics: Boolean,
+                      enableJobMetrics: Boolean): Future[EulaRecord] = {
     sal
       .getEula(smrtLinkVersion)
       .recoverWith {
-        case NonFatal(_) => sal.acceptEula(user, enableInstallMetrics)
+        case NonFatal(_) =>
+          sal.acceptEula(user, enableInstallMetrics, enableJobMetrics)
       }
   }
 
@@ -94,7 +96,7 @@ object AcceptUserAgreement
 
     implicit val actorSystem = ActorSystem("get-status")
 
-    val sal = new SmrtLinkServiceAccessLayer(c.host, c.port)(actorSystem)
+    val sal = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
 
     val fx = for {
       manifests <- sal.getPacBioComponentManifests
@@ -102,11 +104,12 @@ object AcceptUserAgreement
       eula <- getOrAcceptEula(sal,
                               c.user,
                               smrtLinkVersion,
-                              enableInstallMetrics = true)
+                              enableInstallMetrics = true,
+                              enableJobMetrics = true)
     } yield s"Accepted Eula $eula"
 
     fx.onComplete { _ =>
-      actorSystem.shutdown()
+      actorSystem.terminate()
     }
 
     Try { Await.result(fx, TIMEOUT) }

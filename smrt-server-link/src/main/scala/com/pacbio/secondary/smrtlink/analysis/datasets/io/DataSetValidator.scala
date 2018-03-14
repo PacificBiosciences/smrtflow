@@ -10,7 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 import com.pacificbiosciences.pacbiobasedatamodel.IndexedDataType.FileIndices
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
+import collection.JavaConverters._
 
 import com.pacificbiosciences.pacbiodatasets.{
   SubreadSet,
@@ -68,7 +68,7 @@ object DataSetValidator extends LazyLogging {
         s"Root level external resources is null. No external resources to validate for $dataset")
       Right(dataset)
     } else {
-      val rs = dataset.getExternalResources.getExternalResource
+      val rs = dataset.getExternalResources.getExternalResource.asScala
       if (rs.nonEmpty) {
         //validateExternalResources(dataset.getExternalResources, rootDir)
         Right(dataset)
@@ -88,7 +88,7 @@ object DataSetValidator extends LazyLogging {
 
   private def summarizeFileIndices(fileIndices: FileIndices) = {
     if (fileIndices != null) {
-      fileIndices.getFileIndex
+      fileIndices.getFileIndex.asScala
         .map(i => entitySummary(i))
         .reduceOption(_ + "\n" + _)
         .getOrElse("")
@@ -101,7 +101,7 @@ object DataSetValidator extends LazyLogging {
     val outs = mutable.MutableList.empty[String]
 
     if (externalResources != null) {
-      val ers = externalResources.getExternalResource
+      val ers = externalResources.getExternalResource.asScala
       outs += s" Number of external resources ${ers.length}"
       ers
         .filter(_ != null)

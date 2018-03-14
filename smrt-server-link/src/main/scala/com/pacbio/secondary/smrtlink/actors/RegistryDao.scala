@@ -15,10 +15,8 @@ import com.pacbio.secondary.smrtlink.models.{
   RegistryResource
 }
 
-import scala.collection.mutable
 import scala.language.postfixOps
-import scala.util.control.NonFatal
-import scalaj.http.{BaseHttp, HttpResponse, Http}
+import scala.collection.concurrent.TrieMap
 
 // TODO(smcclellan): Add scaladoc
 
@@ -29,19 +27,21 @@ trait RegistryDao {
   def updateResource(uuid: UUID,
                      update: RegistryResourceUpdate): RegistryResource
   def deleteResource(uuid: UUID): MessageResponse
-  def proxyRequest(uuid: UUID,
-                   req: RegistryProxyRequest): HttpResponse[Array[Byte]]
 }
 
 trait RegistryDaoProvider {
   val registryDao: Singleton[RegistryDao]
 }
 
-class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
-  val resources: mutable.HashMap[UUID, RegistryResource] =
-    new mutable.HashMap[UUID, RegistryResource]
-  val resourcesById: mutable.HashMap[String, RegistryResource] =
-    new mutable.HashMap[String, RegistryResource]
+class InMemoryRegistryDao(clock: Clock) extends RegistryDao {
+  // This is perhaps not the greatest design.
+  // If either of these get out of sync with the other (e.g., raised exception)
+  // there's fundamental issues
+  val resources: TrieMap[UUID, RegistryResource] =
+    new TrieMap[UUID, RegistryResource]
+
+  val resourcesById: TrieMap[String, RegistryResource] =
+    new TrieMap[String, RegistryResource]
 
   override def getResources(id: Option[String]): Set[RegistryResource] =
     id match {
@@ -54,12 +54,12 @@ class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
     if (resources contains uuid)
       resources(uuid)
     else
-      throw new ResourceNotFoundError(s"Unable to find resource $uuid")
+      throw ResourceNotFoundError(s"Unable to find resource $uuid")
 
   override def createResource(
       create: RegistryResourceCreate): RegistryResource =
     if (resourcesById contains create.resourceId)
-      throw new UnprocessableEntityError(
+      throw UnprocessableEntityError(
         s"Resource with id ${create.resourceId} already exists")
     else {
       val now = clock.dateNow()
@@ -86,7 +86,7 @@ class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
       resources(uuid) = newResource
       newResource
     } else
-      throw new ResourceNotFoundError(s"Unable to find resource $uuid")
+      throw ResourceNotFoundError(s"Unable to find resource $uuid")
 
   override def deleteResource(uuid: UUID): MessageResponse =
     if (resources contains uuid) {
@@ -94,25 +94,7 @@ class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
       resources -= uuid
       MessageResponse(s"Successfully deleted resource $uuid")
     } else
-      throw new ResourceNotFoundError(s"Unable to find resource $uuid")
-
-  override def proxyRequest(
-      uuid: UUID,
-      req: RegistryProxyRequest): HttpResponse[Array[Byte]] = {
-    if (resources contains uuid) {
-      val url =
-        new URL("http", resources(uuid).host, resources(uuid).port, req.path)
-
-      var request = http(url toExternalForm)
-      if (req.data isDefined) request = request.postData(req.data.get)
-      if (req.params isDefined) request = request.params(req.params.get)
-      if (req.headers isDefined) request = request.headers(req.headers.get)
-      request = request.method(req.method)
-
-      request.asBytes
-    } else
-      throw new ResourceNotFoundError(s"Unable to find resource $uuid")
-  }
+      throw ResourceNotFoundError(s"Unable to find resource $uuid")
 
   @VisibleForTesting
   def clear(): Unit = {
@@ -124,8 +106,6 @@ class InMemoryRegistryDao(clock: Clock, http: BaseHttp) extends RegistryDao {
 trait InMemoryRegistryDaoProvider extends RegistryDaoProvider {
   this: ClockProvider =>
 
-  val registryProxyHttp: Singleton[BaseHttp] = Singleton(Http)
-
   override val registryDao: Singleton[RegistryDao] =
-    Singleton(() => new InMemoryRegistryDao(clock(), registryProxyHttp()))
+    Singleton(() => new InMemoryRegistryDao(clock()))
 }

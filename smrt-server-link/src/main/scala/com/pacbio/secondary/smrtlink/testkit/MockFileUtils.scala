@@ -94,6 +94,7 @@ object MockFileUtils extends FastaWriter {
       "comment",
       now,
       now,
+      now,
       AnalysisJobStates.CREATED,
       jobTypeId.id,
       "",

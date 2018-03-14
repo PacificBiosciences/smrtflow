@@ -164,10 +164,12 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       .getOrElse(Future.successful(None)) // The job was NOT create yet
   }
 
-  private def fetchJobStates(dao: JobsDao, jobIds: Seq[Option[Int]])
+  private def fetchJobStates(dao: JobsDao,
+                             jobIds: Seq[Option[Int]],
+                             maxConcurrentItems: Int = 10)
     : Future[Seq[Option[AnalysisJobStates.JobStates]]] = {
     val fetcher = fetchJobState(dao, _: Option[Int])
-    runFuturesSequentially(jobIds)(fetcher)
+    runBatch(maxConcurrentItems, jobIds, fetcher)
   }
 
   /**
@@ -254,6 +256,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       dao: JobsDao,
       config: SystemJobConfig): Future[MessageResponse] = {
 
+    // Max number of items per batch that will processed concurrently
+    val maxConcurrentItems: Int = 10
     val workflow = loadWorkflowOrInitialize(engineJob)
 
     val noJobId: Option[Int] = None
@@ -324,7 +328,7 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
       for {
         _ <- andLogWithWriter(
           s"Starting to process MultiJob ${engineJob.id} state:${engineJob.state} workflow:${workflow.jobIds}")
-        updatedJobIds <- runFuturesSequentially(items)(runner)
+        updatedJobIds <- runBatch(maxConcurrentItems, items, runner)
         _ <- andJobLog(s"Job Ids $updatedJobIds")
         updatedWorkflow <- Future.successful(
           MultiAnalysisWorkflow(updatedJobIds))

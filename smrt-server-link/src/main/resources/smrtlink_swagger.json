@@ -6,7 +6,7 @@
   "info": {
     "version": "1.0.0",
     "description": "SMRTLink Services Swagger 2.0 specification",
-    "title": "SMRT Link Services for SMRT Link 5.1.0"
+    "title": "SMRT Link Services for SMRT Link 5.2.0"
   },
   "host": "localhost:8081",
   "basePath": "/SMRTLink/1.0.0",
@@ -68,8 +68,9 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/user": {
+    "/smrt-link/user": {
       "get": {
+        "description": "From the header JWT, convert to a UserRecord",
         "produces": [
           "application/json"
         ],
@@ -88,7 +89,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/services/manifests": {
+    "/smrt-link/manifests": {
       "get": {
         "description": "Returns a list of all installed components with version information",
         "produces": [
@@ -109,7 +110,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/services/manifests/{resourceId}": {
+    "/smrt-link/manifests/{resourceId}": {
       "get": {
         "description": "Returns an object describing a specific installed component",
         "produces": [
@@ -139,7 +140,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/files/*": {
+    "/smrt-link/files/*": {
       "get": {
         "description": "Return a list of files in specified server path",
         "x-scope": "data-management",
@@ -161,7 +162,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/files-diskspace/*": {
+    "/smrt-link/files-diskspace/*": {
       "get": {
         "x-scope": "data-management",
         "produces": [
@@ -179,7 +180,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/disk-space": {
+    "/smrt-link/disk-space": {
       "get": {
         "description": "Retrieve information about available disk space",
         "produces": [
@@ -200,7 +201,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/disk-space/{resourceId}": {
+    "/smrt-link/disk-space/{resourceId}": {
       "get": {
         "description": "Retrieve information about available disk space for specified resource",
         "produces": [
@@ -229,7 +230,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/eula": {
+    "/smrt-link/eula": {
       "post": {
         "description": "Record user acceptance of tech support agreement",
         "responses": {
@@ -285,7 +286,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/smrt-base/eula/{version}": {
+    "/smrt-link/eula/{version}": {
       "get": {
         "description": "Retrieve user agreement acceptance record for specified version",
         "x-scope": "analysis",
@@ -472,6 +473,12 @@
             "required": false,
             "type": "string",
             "name": "createdBy",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "chipType",
             "in": "query"
           },
           {
@@ -1229,7 +1236,7 @@
       }
     },
 
-    "/secondary-analysis/dataset-types": {
+    "/smrt-link/dataset-types": {
       "get": {
         "description": "Get a Summary of each DataSet MetaType. Each model will have the 'short' name of the DataSet MetaType that is accessible at datasets/{ds-metatype}",
         "x-scope": "data-management",
@@ -1251,7 +1258,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/datasets/{typeOrId}": {
+    "/smrt-link/datasets/{typeOrId}": {
       "get": {
         "description": "Either the DataSet Metatype (e.g, subreads to return a list of Datasets by metadata type) or Int or UUID for DataSet to get a DataSet Service MetaData for the requested dataset.",
         "responses": {
@@ -1269,7 +1276,99 @@
             "type": "string",
             "name": "typeOrId",
             "in": "path"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "limit",
+            "description": "The maximum number of datasets returned",
+            "default": 10000
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "marker",
+            "description": "The offset of the number of records to return"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "id",
+            "description": "DataSet id Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "uuid",
+            "description": "DataSet UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "name",
+            "description": "DataSet name String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "path",
+            "description": "DataSet path String QueryFilter e.g., '/path/to/dataset.xml' or 'in:/alpha.xml,/beta.xml' Note, these need to be URL encoded"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "numRecords",
+            "description": "DataSet numRecord Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "totalLength",
+            "description": "DataSet totalLength Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "version",
+            "description": "DataSet version String QueryFilter e.g., '3.0.1' or 'in:3.0.1,4.1.0'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "createdBy",
+            "description": "DataSet createdBy String QueryFilter e.g., 'ralph' or 'in:Steve,ralph'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "jobId",
+            "description": "DataSet jobId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "projectId",
+            "description": "DataSet projectId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "createdAt",
+            "description": "DataSet createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "updatedAt",
+            "description": "DataSet createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "isActive",
+            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft) deleted datasets are returned"
           }
+
         ],
         "produces": [
           "application/json"
@@ -1320,7 +1419,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/dataset-types/{type}": {
+    "/smrt-link/dataset-types/{type}": {
       "get": {
         "description": "Get DataSet Meta Type",
         "responses": {
@@ -1350,7 +1449,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/details": {
+    "/smrt-link/datasets/{type}/{dataset-id}/details": {
       "get": {
         "description": "Returns JSON converted from the DataSet XML. See the PacBio DataSet XSDs for details",
         "responses": {
@@ -1383,7 +1482,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/alignments/{dataset-id}": {
+    "/smrt-link/datasets/alignments/{dataset-id}": {
       "get": {
         "description": "Get the Service AlignmentSet Metadata",
         "responses": {
@@ -1413,7 +1512,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/hdfsubreads/{dataset-id}": {
+    "/smrt-link/datasets/hdfsubreads/{dataset-id}": {
       "get": {
         "description": "Get the Service HdfSubreadSet Metadata",
         "responses": {
@@ -1443,7 +1542,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/subreads/{dataset-id}": {
+    "/smrt-link/datasets/subreads/{dataset-id}": {
       "get": {
         "description": "Get the Service SubreadSet Metadata",
         "responses": {
@@ -1473,7 +1572,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/barcodes/{dataset-id}": {
+    "/smrt-link/datasets/barcodes/{dataset-id}": {
       "get": {
         "description": "Get the Service BarcodeSet Metadata",
         "responses": {
@@ -1503,7 +1602,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/barcodes/{dataset-id}/record-names": {
+    "/smrt-link/datasets/barcodes/{dataset-id}/record-names": {
       "get": {
         "description": "Get a list of Barcode Id/Names from the BarcodeSet external resources",
         "responses": {
@@ -1536,7 +1635,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/ccsalignments/{dataset-id}": {
+    "/smrt-link/datasets/ccsalignments/{dataset-id}": {
       "get": {
         "description": "Get the Service ConsensusAlignmentSet Metadata",
         "responses": {
@@ -1566,7 +1665,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/contigs/{dataset-id}": {
+    "/smrt-link/datasets/contigs/{dataset-id}": {
       "get": {
         "description": "Get the Service ContigSet Metadata",
         "responses": {
@@ -1596,7 +1695,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/ccsreads/{dataset-id}": {
+    "/smrt-link/datasets/ccsreads/{dataset-id}": {
       "get": {
         "description": "Get the Service CCS ReadSet Metadata",
         "responses": {
@@ -1626,7 +1725,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/references/{dataset-id}": {
+    "/smrt-link/datasets/references/{dataset-id}": {
       "get": {
         "description": "Get the Service ReferenceSet Metadata",
         "responses": {
@@ -1656,7 +1755,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/gmapreferences/{dataset-id}": {
+    "/smrt-link/datasets/gmapreferences/{dataset-id}": {
       "get": {
         "description": "Get the Service GmapReferenceSet Metadata",
         "responses": {
@@ -1686,7 +1785,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/datasets/{type}/{dataset-id}/reports": {
+    "/smrt-link/datasets/{type}/{dataset-id}/reports": {
       "get": {
         "description": "Get the reports associated with a PacBio DataSet. These will often contain num records, total length and filter stats. The reports generated are dependent on the DataSet MetaType (e.g., SubreadSet)",
         "responses": {
@@ -1722,7 +1821,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/projects": {
+    "/smrt-link/projects": {
       "post": {
         "description": "Create a Project",
         "parameters": [
@@ -1777,7 +1876,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/projects/{id}": {
+    "/smrt-link/projects/{id}": {
       "put": {
         "description": "Update the project with the given ID; omitted attributes result in no change to that attribute's value",
         "responses": {
@@ -1871,7 +1970,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates": {
+    "/smrt-link/resolved-pipeline-templates": {
       "get": {
         "description": "Get a list of Resolved Pipeline Templates registered to SMRT Link",
         "x-scope": "data-management",
@@ -1893,7 +1992,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}": {
+    "/smrt-link/resolved-pipeline-templates/{template-id}": {
       "get": {
         "description": "Get a Resolved Pipeline Template by Ids",
         "responses": {
@@ -1923,7 +2022,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/resolved-pipeline-templates/{template-id}/presets": {
+    "/smrt-link/resolved-pipeline-templates/{template-id}/presets": {
       "get": {
         "description": "Get a List of Presets for a specific Resolved Pipeline Template",
         "responses": {
@@ -1950,7 +2049,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/pipeline-template-view-rules": {
+    "/smrt-link/pipeline-template-view-rules": {
       "get": {
         "description": "Return a list of analysis option view rules specifications for individual pipelines",
         "x-scope": "data-management",
@@ -1972,7 +2071,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/pipeline-template-view-rules/{rule-id}": {
+    "/smrt-link/pipeline-template-view-rules/{rule-id}": {
       "get": {
         "description": "Get a Pipeline Template View Rule by id",
         "responses": {
@@ -2002,7 +2101,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/report-view-rules": {
+    "/smrt-link/report-view-rules": {
       "get": {
         "description": "Report View Rules that override the default view rule for report by type id",
         "x-scope": "data-management",
@@ -2021,7 +2120,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/report-view-rules/{rule-id}": {
+    "/smrt-link/report-view-rules/{rule-id}": {
       "get": {
         "description": "Retrieve report view rules for a specific report ID",
         "responses": {
@@ -2048,7 +2147,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/pipeline-datastore-view-rules": {
+    "/smrt-link/pipeline-datastore-view-rules": {
       "get": {
         "description": "Get a list of pipeline datastore view rule definitions",
         "x-scope": "data-management",
@@ -2070,7 +2169,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/pipeline-datastore-view-rules/{pipelineId}": {
+    "/smrt-link/pipeline-datastore-view-rules/{pipelineId}": {
       "get": {
         "description": "Get a datastore view rule definitions for a specific pipeline (with optional version)",
         "x-scope": "data-management",
@@ -2108,7 +2207,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/job-types": {
+    "/smrt-link/job-manager/job-types": {
       "get": {
         "description": "Get a list of job types registered to the SMRT Link System. This can be accessible at job-managers/jobs/{job-type}",
         "x-scope": "data-management",
@@ -2130,7 +2229,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/pbsmrtpipe": {
+    "/smrt-link/job-manager/jobs/pbsmrtpipe": {
       "post": {
         "description": "Start a pbsmrtpipe job using one or more dataset entry points",
         "responses": {
@@ -2166,7 +2265,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-dataset": {
+    "/smrt-link/job-manager/jobs/import-dataset": {
       "post": {
         "description": "Import a PacBio DataSet XML and generate associated reports",
         "responses": {
@@ -2202,7 +2301,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-fasta-reference": {
+    "/smrt-link/job-manager/jobs/convert-fasta-reference": {
       "post": {
         "description": "Generate a PacBio ReferenceSet XML (including required index files) from a FASTA file",
         "responses": {
@@ -2238,7 +2337,43 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-fasta-barcodes": {
+    "/smrt-link/job-manager/jobs/convert-fasta-gmapreference": {
+      "post": {
+        "description": "Generate a PacBio GmapReferenceSet XML (including required index files) from a FASTA file",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import GMAP reference FASTA job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertImportFastaOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/job-manager/jobs/convert-fasta-barcodes": {
       "post": {
         "description": "Generate a PacBio BarcodeSet XML from a FASTA file",
         "responses": {
@@ -2274,7 +2409,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/convert-rs-movie": {
+    "/smrt-link/job-manager/jobs/convert-rs-movie": {
       "post": {
         "description": "Convert RS II movie metadata XML to an HdfSubreadSet suitable for pbsmrtpipe input",
         "responses": {
@@ -2310,7 +2445,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/merge-datasets": {
+    "/smrt-link/job-manager/jobs/merge-datasets": {
       "post": {
         "description": "Combine two or more SubreadSets (or HdfSubreadSets) into a single dataset",
         "responses": {
@@ -2346,7 +2481,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/export-datasets": {
+    "/smrt-link/job-manager/jobs/export-datasets": {
       "post": {
         "description": "Create a ZIP file containing the contents of one or more datasets, including external resource files",
         "responses": {
@@ -2382,7 +2517,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/export-jobs": {
+    "/smrt-link/job-manager/jobs/export-jobs": {
       "post": {
         "description": "Create ZIP files from the outputs (and optionally the entry points) of one or more jobs.  These will be listed individually in the job datastore with sourceId 'pbscala::export-jobs' and fileTypeId 'PacBio.FileTypes.zip'.",
         "responses": {
@@ -2418,7 +2553,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-job": {
+    "/smrt-link/job-manager/jobs/import-job": {
       "post": {
         "description": "Import a SMRT Link job from a ZIP file previously generated by the export-jobs service",
         "responses": {
@@ -2454,7 +2589,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/delete-datasets": {
+    "/smrt-link/job-manager/jobs/delete-datasets": {
       "post": {
         "description": "Remove a dataset from the database and delete external resource files",
         "responses": {
@@ -2490,7 +2625,43 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/delete-job": {
+    "/smrt-link/job-manager/jobs/copy-dataset": {
+      "post": {
+        "description": "Copy a dataset and apply optional filters",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dataset delete job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CopyDataSetJobOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/smrt-link/job-manager/jobs/delete-job": {
       "post": {
         "description": "Remove a job from the database and delete output directory contents",
         "responses": {
@@ -2526,7 +2697,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/import-datastore": {
+    "/smrt-link/job-manager/jobs/import-datastore": {
       "post": {
         "description": "Import all files in a datastore JSON",
         "responses": {
@@ -2562,7 +2733,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/tech-support-job": {
+    "/smrt-link/job-manager/jobs/tech-support-job": {
       "post": {
         "description": "Send a request to PacBio Tech Support for assistance with a failed job (request will include job details and log files)",
         "responses": {
@@ -2598,7 +2769,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/tech-support-status": {
+    "/smrt-link/job-manager/jobs/tech-support-status": {
       "post": {
         "description": "Send a summary of SMRT Link system status to PacBio Tech Support",
         "responses": {
@@ -2634,7 +2805,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/db-backup": {
+    "/smrt-link/job-manager/jobs/db-backup": {
       "post": {
         "description": "Save a local backup copy of the SMRT Link Postgres database",
         "responses": {
@@ -2670,7 +2841,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}": {
+    "/smrt-link/job-manager/jobs/{type}": {
       "get": {
         "description": "Return a list of jobs of the specified type",
         "responses": {
@@ -2713,7 +2884,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore/{uuid}/download": {
       "get": {
         "description": "Download the job datastore file with the given UUID",
         "x-scope": "data-management",
@@ -2749,7 +2920,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore": {
       "get": {
         "description": "Get the PacBio DataStore associated with a specific Job by Job Id or UUID",
         "responses": {
@@ -2786,7 +2957,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/datastore/{uuid}": {
       "get": {
         "description": "Get a Service DataStore File by DataStoreFile UUID",
         "responses": {
@@ -2828,7 +2999,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/events": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/events": {
       "get": {
         "description": "Get a list of Events associated with a specific Job",
         "responses": {
@@ -2864,7 +3035,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/tasks": {
       "post": {
         "description": "Add a task for the specified job",
         "parameters": [
@@ -2947,14 +3118,14 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/tasks/{task-uuid}": {
       "put": {
         "description": "Update the state of Job subtask",
         "responses": {
           "default": {
             "description": "Return value"
           },
-          "201": {
+          "200": {
             "description": "Return updated JobTask",
             "schema": {
               "$ref": "#/definitions/JobTask"
@@ -3044,7 +3215,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/options": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/options": {
       "get": {
         "description": "Get the options used to created the Job. The returned model will depend on job-type",
         "responses": {
@@ -3070,49 +3241,14 @@
           }
         ],
         "produces": [
-          "text/plain; charset=UTF-8"
+          "application/json"
         ],
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/resources": {
-      "get": {
-        "x-scope": "data-management",
-        "x-throttling-tier": "Unlimited",
-        "responses": {
-          "default": {
-            "description": "Return value"
-          },
-          "200": {
-            "description": "Return value"
-          }
-        },
-        "parameters": [
-          {
-            "required": true,
-            "type": "string",
-            "name": "type",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "job-id",
-            "in": "path"
-          },
-          {
-            "required": true,
-            "type": "string",
-            "name": "id",
-            "in": "query"
-          }
-        ],
-        "x-auth-type": "Application & Application User"
-      }
-    },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/children": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/children": {
       "get": {
         "description": "Get a list of Children jobs of this parent job",
         "x-scope": "data-management",
@@ -3151,7 +3287,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports": {
       "get": {
         "description": "Get a list of ServiceReport files generated from a job",
         "responses": {
@@ -3187,7 +3323,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports/{uuid}": {
       "get": {
         "description": "Get a PacBio Report by UUID from a SMRT Link Job. If the Job type or job id doesn't exist, a 404 will be returned",
         "responses": {
@@ -3226,7 +3362,52 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/reports/{uuid}/resources": {
+      "get": {
+        "description": "Get a Report resource (png) using the (relative path) file name of the resource",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Return the Report Resource"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "uuid",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "type": "string",
+            "name": "relpath",
+            "in": "query"
+          }
+        ],
+        "produces": [
+          "image/png"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
+      }
+    },
+    "/smrt-link/job-manager/jobs/{type}/{job-id}": {
       "get": {
         "description": "Get a job by Integer ID or UUID",
         "responses": {
@@ -3270,9 +3451,62 @@
         "x-scope": "data-management",
         "x-auth-type": "Application & Application User",
         "x-throttling-tier": "Unlimited"
+      },
+      "put": {
+        "description": "Update a job",
+        "responses": {
+          "default": {
+            "schema": {
+              "$ref": "#/definitions/SmrtServerError"
+            },
+            "examples": {
+              "httpCode": 404,
+              "message": "Unable to find JobId 66666",
+              "errorType": "Not Found"
+            },
+            "description": "Error Message. Unable to find job or job type is invalid"
+          },
+          "200": {
+            "description": "Returns a SMRT Link Service Job",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "description": "Job type (e.g., pbsmrtpipe, import-dataset, merge-dataset",
+            "required": true,
+            "type": "string",
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "description": "Job id and Integer or UUID",
+            "required": true,
+            "type": "string",
+            "name": "job-id",
+            "in": "path"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job update object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateJobRecord"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "data-management",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
+    "/smrt-link/job-manager/jobs/pbsmrtpipe/{job-id}/terminate": {
       "post": {
         "description": "Terminate a running pbsmrtpipe analysis job",
         "responses": {
@@ -3303,7 +3537,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/jobs/{type}/{job-id}/entry-points": {
+    "/smrt-link/job-manager/jobs/{type}/{job-id}/entry-points": {
       "get": {
         "description": "Get the DataSet Entry Points used as inputs to the Job (if any were provided)",
         "responses": {
@@ -3339,7 +3573,7 @@
         "x-throttling-tier": "Unlimited"
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis": {
       "get": {
         "description": "Returns a list of EngineMultiJobs for the `multi-analysis` Multi-Job type.",
         "x-scope": "data-management",
@@ -3395,7 +3629,7 @@
         ]
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis/{job-id}": {
       "get": {
         "description": "Get a EngineMultiJob for the `multi-analysis` Multi-Job type by job Id",
         "x-scope": "data-management",
@@ -3481,7 +3715,7 @@
         "x-auth-type": "Application & Application User"
       }
     },
-    "/secondary-analysis/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
+    "/smrt-link/job-manager/multi-jobs/multi-analysis/{job-id}/jobs": {
       "get": {
         "description": "Get the Child Core Jobs that are generated from the Multi-Job",
         "x-scope": "data-management",
@@ -3513,7 +3747,7 @@
     },
 
 
-    "/secondary-analysis/datastore-files/{uuid}/download": {
+    "/smrt-link/datastore-files/{uuid}/download": {
       "get": {
         "description": "Download the datastore file with the specified UUID",
         "x-scope": "data-management",
@@ -3537,7 +3771,7 @@
         "x-auth-type": "None"
       }
     },
-    "/secondary-analysis/datastore-files/{uuid}/resources": {
+    "/smrt-link/datastore-files/{uuid}/resources": {
       "get": {
         "description": "Retrieve a resource associated with a datastore file (e.g. images accompanying reports) by relative path",
         "x-scope": "data-management",
@@ -3827,6 +4061,11 @@
           "title": "Updated At",
           "description": ""
         },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
@@ -3840,7 +4079,7 @@
         "tags": {
           "type": "string",
           "title": "Tags",
-          "description": ""
+          "description": "Tags for the dataset. These should be ',' separated values"
         },
         "version": {
           "type": "string",
@@ -3949,6 +4188,11 @@
           "title": "Created At",
           "description": ""
         },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
@@ -3968,6 +4212,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -3986,6 +4231,7 @@
       "example": {
         "name": "pacbio_dataset_alignmentset-160202_223320635",
         "updatedAt": "2016-02-02T22:34:38.534Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/000/000003/tasks/pbsmrtpipe.tasks.gather_alignmentset-1/file.alignmentset.xml",
         "tags": "",
         "uuid": "ee7d9225-d834-01b0-0488-b0bda263e085",
@@ -4017,6 +4263,11 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4126,6 +4377,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "instrumentName",
@@ -4151,6 +4403,7 @@
       "example": {
         "name": "Convert-movie",
         "updatedAt": "2016-03-04T14:15:00.653Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/home/UNIXHOME/ckonig/Cologne_CCS2_201603/B01_1/m160119_004643_42207_c100947812550000001823211506101611_s1_p0.hdfsubreadset.xml",
         "tags": "pacbio.secondary.instrument=RS",
         "instrumentName": "42207",
@@ -4189,10 +4442,21 @@
                "title": "Updated At",
                "description": ""
              },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Path of the dataset"
         },
         "tags": {
                "type": "string",
@@ -4308,6 +4572,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "instrumentName",
@@ -4328,11 +4593,13 @@
         "metadataContextId",
         "runName",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
         "updatedAt": "2016-12-02T23:34:58.660Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/collections/315/3150315/r54011_20160727_001907/1_A01/m54011_160727_002259.subreadset.xml",
         "tags": "subreadset",
         "instrumentName": "Alpha11",
@@ -4353,7 +4620,8 @@
         "metadataContextId": "m54011_160727_002259",
         "runName": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
         "datasetType": "PacBio.DataSet.SubreadSet",
-        "comments": " "
+        "comments": " ",
+        "isActive": true
       }
     },
     "BarcodeSetDetails": {
@@ -4371,6 +4639,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4445,6 +4724,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4458,11 +4738,13 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_barcode_adapters_96",
         "updatedAt": "2016-07-13T20:32:48.349Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/dept/secondary/siv/barcodes/pacbio_barcodes_96_revcomp/pacbio_barcodes_96_revcomp.barcodeset.xml",
         "tags": "",
         "uuid": "bee0488f-49a6-0505-e89a-2579411804b8",
@@ -4476,7 +4758,8 @@
         "createdAt": "2016-07-13T20:32:48.349Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.BarcodeSet",
-        "comments": "Barcode  imported"
+        "comments": "Barcode  imported",
+        "isActive": true
       }
     },
     "ConsensusAlignmentSet": {
@@ -4494,6 +4777,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4568,6 +4862,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4581,7 +4876,8 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
@@ -4599,7 +4895,8 @@
         "createdAt": "2016-11-04T06:32:04.982Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
-        "comments": "ccs alignment dataset converted"
+        "comments": "ccs alignment dataset converted",
+        "isActive": true
       }
     },
     "ContigSetDetails": {
@@ -4617,6 +4914,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4691,6 +4999,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4704,11 +5013,13 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
         "updatedAt": "2017-01-23T23:43:43.521Z",
+        "importedAt": "2017-02-02T06:56:46.940Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003805/tasks/pbcoretools.tasks.gather_contigset-1/file.contigset.xml",
         "tags": "",
         "uuid": "776bbba8-cb83-e46d-5228-ff02e449e3c4",
@@ -4722,7 +5033,8 @@
         "createdAt": "2017-01-23T23:43:43.521Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ContigSet",
-        "comments": "contig dataset comments"
+        "comments": "contig dataset comments",
+        "isActive": true
       }
     },
     "ConsensusReadDetails": {
@@ -4740,6 +5052,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4814,6 +5137,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "tags",
         "uuid",
@@ -4827,11 +5151,13 @@
         "createdAt",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
         "updatedAt": "2017-02-02T06:56:46.940Z",
+        "importedAt": "2017-02-02T06:56:46.940Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/userdata/jobs_root/003/003943/tasks/pbcoretools.tasks.gather_ccsset-1/file.consensusreadset.xml",
         "tags": "",
         "uuid": "0e4cb148-7a5e-c98b-c204-a5ac47378e14",
@@ -4845,7 +5171,8 @@
         "createdAt": "2017-02-02T06:56:46.940Z",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusReadSet",
-        "comments": "ccs dataset converted"
+        "comments": "ccs dataset converted",
+        "isActive": true
       }
     },
     "ReferenceSetDetails": {
@@ -4863,6 +5190,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -4947,6 +5285,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "ploidy",
         "tags",
@@ -4962,11 +5301,13 @@
         "organism",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "lambdaNEB",
         "updatedAt": "2016-02-02T22:26:22.168Z",
+        "importedAt": "2016-02-02T22:34:38.534Z",
         "path": "/pbi/analysis/smrtlink/release/smrtsuite/current/bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
         "ploidy": "haploid",
         "tags": "",
@@ -4982,7 +5323,8 @@
         "organism": "lambdaNEB",
         "userId": 1,
         "datasetType": "PacBio.DataSet.ReferenceSet",
-        "comments": "reference dataset comments"
+        "comments": "reference dataset comments",
+        "isActive": true
       }
     },
     "GmapReferenceSetDetails": {
@@ -5000,6 +5342,17 @@
                "title": "Updated At",
                "description": ""
              },
+        "importedAt": {
+          "type": "string",
+          "title": "Imported At",
+          "description": "Date the dataset was imported into SMRT Link"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean",
+          "title": "Is Active",
+          "description": "Flag to communicate if the DataSet is active. Soft-deleted DataSets will be marked as in active. In Active datasets will not be returned by default."
+        },
         "path": {
           "type": "string",
           "title": "Path",
@@ -5084,6 +5437,7 @@
       "required": [
         "name",
         "updatedAt",
+        "importedAt",
         "path",
         "ploidy",
         "tags",
@@ -5099,7 +5453,8 @@
         "organism",
         "userId",
         "datasetType",
-        "comments"
+        "comments",
+        "isActive"
       ],
       "example": {
         "name": "hg38",
@@ -5119,7 +5474,8 @@
         "organism": "hg38",
         "userId": 1,
         "datasetType": "PacBio.DataSet.GmapReferenceSet",
-        "comments": "reference dataset comments"
+        "comments": "reference dataset comments",
+        "isActive": true
       }
     },
     "Manifests": {
@@ -5303,6 +5659,7 @@
         "totalCells": 2,
         "primaryAnalysisSwVersion": "String",
         "status": "Ready",
+        "chipType": "1mChip",
         "createdAt": "2016-12-13T19:11:54.086Z",
         "createdBy": "unknown",
         "numCellsFailed": 0,
@@ -5538,6 +5895,11 @@
           "title": "Updated At",
           "description": "Datetime of when the job was last updated."
         },
+        "jobUpdatedAt": {
+          "type": "string",
+          "title": "Job Execution Last Updated At",
+          "description": "Datetime of when the job execution was last updated."
+        },
         "importedAt": {
           "type": ["null", "string"],
           "title": "Imported At",
@@ -5575,14 +5937,6 @@
           ],
           "title": "SMRT Link System Version",
           "description": "SMRT Link System Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
-        },
-        "smrtlinkToolsVersion": {
-          "type": [
-            "null",
-            "string"
-          ],
-          "title": "SMRT Tools Version",
-          "description": "SMRT Tools Version used to run the SMRT Link job. For 'old' SMRT Link instances, the job version will be set to 0.0.0"
         },
         "comment": {
           "type": "string",
@@ -5653,23 +6007,32 @@
           "type": "string",
           "title": "MultiJob Workflow State",
           "description": "If a MultiJOb, this is the workflow state of the MultiJob that is persisted"
+        },
+        "tags": {
+          "type": "string",
+          "title": "Tags",
+          "description": "Tags for the dataset. These should be ',' separated values"
         }
       },
       "required": [
         "name",
         "updatedAt",
+        "jobUpdatedAt",
         "path",
         "state",
         "uuid",
-        "smrtlinkToolsVersion",
         "jobTypeId",
         "id",
         "smrtlinkVersion",
         "comment",
         "createdAt",
+        "createdByEmail",
         "isActive",
         "createdBy",
-        "jsonSettings"
+        "jsonSettings",
+        "isMultiJob",
+        "workflow",
+        "tags"
       ],
       "example": {
         "name": "Job import-dataset",
@@ -5990,45 +6353,6 @@
       "example": {
         "url": "file:///home/UNIXHOME/mkocher/chemistry-tests/chemistry-9.8.7.tar.gz"
       }
-    },
-    "TechSupportJobRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "jobId": {
-          "description": "SMRT Link Job Id",
-          "title": "Job Id",
-          "type": "integer"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "jobId", "comment"],
-      "type": "object"
-    },
-    "TechSupportSystemStatusRecord": {
-      "properties": {
-        "comment": {
-          "description": "User Comment",
-          "title": "User Comment",
-          "type": "string"
-        },
-        "name": {
-          "default": "A green door",
-          "description": "An explanation about the purpose of this instance.",
-          "title": "The Name Schema",
-          "type": "string"
-        }
-      },
-      "required": ["name", "comment"],
-      "type": "object"
     },
     "PipelineOption": {
       "type": "object",
@@ -6481,6 +6805,69 @@
           "default": true,
           "title": "Remove files",
           "description": "Remove dataset XML and external resource files"
+        }
+      }
+    },
+    "DataSetFilterProperty": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Property name",
+          "example": "length"
+        },
+        "operator": {
+          "type": "string",
+          "title": "Operator",
+          "description": "Comparison operator",
+          "example": ">="
+        },
+        "value": {
+          "type": "string",
+          "title": "Value",
+          "description": "Comparison value",
+          "example": "1000"
+        }
+      }
+    },
+    "DataSetFilter": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DataSetFilterProperty"
+      }
+    },
+    "CopyDataSetJobOptions": {
+      "type": "object",
+      "properties": {
+        "datasetId": {
+          "type": ["integer", "string"],
+          "title": "Dataset ID",
+          "description": "Dataset ID"
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DataSetFilter"
+          },
+          "description": "List of dataset filters"
+        },
+        "name": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Output dataset name",
+          "description": "Output dataset name"
+        },
+        "description": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Output description (unused)",
+          "description": "Output dataset description (unused)"
+        },
+        "projectId": {
+          "type": ["integer", "null"],
+          "default": 1,
+          "title": "Project ID",
+          "description": "Project ID"
         }
       }
     },
@@ -7067,7 +7454,7 @@
         "enableJobMetrics": {
           "type": "boolean",
           "title": "Enable Job Metrics",
-          "description": "If true, permits collection of non-proprietary information about analysis jobs"
+          "description": "If true, permits collection of non-proprietary information about all new and previously run analysis jobs"
         }
       }
     },
@@ -7090,7 +7477,12 @@
         "enableInstallMetrics": {
           "type": "boolean",
           "title": "Enable Install Metrics",
-          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation"
+          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation. This enables users to trigger Tech Support system status and failed jobs to PacBio."
+        },
+        "enableJobMetrics": {
+          "type": "boolean",
+          "title": "Enable Job Metrics",
+          "description": "If true, permits collection of non-proprietary information about previously run analysis jobs and newly created analysis jobs to automatically be sent to PacBio upon job completion."
         }
       }
     },
@@ -7274,6 +7666,24 @@
           "type": "string",
           "title": "Event type",
           "description": "Event type"
+        }
+      }
+    },
+    "UpdateJobRecord": {
+      "type": "object",
+      "description": "Update job record fields",
+      "properties": {
+        "name": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Job name",
+          "description": "New job name (optional)"
+        },
+        "comment": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Job comments",
+          "description": "New job comments (optional)"
         }
       }
     }

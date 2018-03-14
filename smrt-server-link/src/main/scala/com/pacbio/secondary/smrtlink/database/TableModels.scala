@@ -13,7 +13,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates
+  SupportedRunStates,
+  SupportedChipTypes
 }
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -156,6 +157,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def jobUpdatedAt: Rep[JodaDateTime] =
+      column[JodaDateTime]("job_updated_at")
+
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
@@ -194,6 +198,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def importedAt: Rep[Option[JodaDateTime]] =
       column[Option[JodaDateTime]]("imported_at", O.Default(None))
 
+    def tags: Rep[String] = column[String]("tags")
+
     def * =
       (id,
        uuid,
@@ -201,6 +207,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        comment,
        createdAt,
        updatedAt,
+       jobUpdatedAt,
        state,
        jobTypeId,
        path,
@@ -214,7 +221,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        isMultiJob,
        workflow,
        parentMultiJobId,
-       importedAt) <> (EngineJob.tupled, EngineJob.unapply)
+       importedAt,
+       tags) <> (EngineJob.tupled, EngineJob.unapply)
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 
@@ -368,6 +376,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    def importedAt: Rep[JodaDateTime] = column[JodaDateTime]("imported_at")
+
     def numRecords: Rep[Long] = column[Long]("num_records")
 
     def totalLength: Rep[Long] = column[Long]("total_length")
@@ -401,6 +411,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        path,
        createdAt,
        updatedAt,
+       importedAt,
        numRecords,
        totalLength,
        tags,
@@ -553,6 +564,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def * = (id, uuid) <> (ContigServiceSet.tupled, ContigServiceSet.unapply)
   }
 
+  class TranscriptDataSetT(tag: Tag)
+      extends IdAbleTable[TranscriptServiceSet](tag, "datasets_transcripts") {
+    def * =
+      (id, uuid) <> (TranscriptServiceSet.tupled, TranscriptServiceSet.unapply)
+  }
+
   /**
     * The general metadata container for DataStoreFile(s) produced by an EngineJob.
     *
@@ -616,12 +633,14 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   implicit val runStatusType =
     MappedColumnType.base[SupportedRunStates, String](
-      { s =>
-        s.value()
-      }, { s =>
-        SupportedRunStates.fromValue(s)
-      }
-    )
+      _.value(),
+      SupportedRunStates.fromValue)
+
+  implicit val chipTypeType =
+    MappedColumnType.base[SupportedChipTypes, String](
+      _.value(),
+      SupportedChipTypes.fromValue)
+
   class RunSummariesT(tag: Tag)
       extends Table[RunSummary](tag, "run_summaries") {
 
@@ -646,6 +665,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
       column[Option[JodaDateTime]]("completed_at")
 
     def status: Rep[SupportedRunStates] = column[SupportedRunStates]("status")
+
+    def chipType: Rep[SupportedChipTypes] =
+      column[SupportedChipTypes]("chip_type")
 
     def totalCells: Rep[Int] = column[Int]("total_cells")
 
@@ -692,6 +714,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         transfersCompletedAt ::
         completedAt ::
         status ::
+        chipType ::
         totalCells ::
         numCellsCompleted ::
         numCellsFailed ::
@@ -852,6 +875,7 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
   lazy val dsGmapReference2 = TableQuery[GmapReferenceDataSetT]
   lazy val dsCCSAlignment2 = TableQuery[ConsensusAlignmentDataSetT]
   lazy val dsContig2 = TableQuery[ContigDataSetT]
+  lazy val dsTranscript2 = TableQuery[TranscriptDataSetT]
 
   lazy val datastoreServiceFiles = TableQuery[PacBioDataStoreFileT]
 
@@ -899,7 +923,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     dsCCSAlignment2,
     dsContig2,
     datastoreServiceFiles,
-    eulas
+    eulas,
+    dsTranscript2
   )
 
   lazy val runTables: Set[SlickTable] =

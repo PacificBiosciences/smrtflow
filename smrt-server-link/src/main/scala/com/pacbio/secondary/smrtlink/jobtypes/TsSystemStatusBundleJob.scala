@@ -13,7 +13,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.techsupport.{
   TechSupportConstants,
   TechSupportUtils
@@ -66,7 +66,7 @@ case class TsSystemStatusBundleJobOptions(user: String,
 
 class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with TsTgzUploadUtils
     with TsJobValidationUtils {
   type Out = PacBioDataStore
@@ -186,10 +186,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
     )
 
     val tx = for {
-      stdoutDsFile <- addStdOutLogToDataStore(resources.jobId,
-                                              dao,
-                                              stdoutLog,
-                                              opts.projectId)
+      stdoutDsFile <- addStdOutLogToDataStore(resources, dao, opts.projectId)
       eveUrl <- validateEveUrl(config.externalEveUrl)
       systemRoot <- validateSmrtLinkSystemRoot(config.smrtLinkSystemRoot)
       (dataStore, tgzPath) <- Future.fromTry(

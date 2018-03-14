@@ -3,12 +3,7 @@ import java.nio.file.Paths
 import akka.pattern._
 import akka.util.Timeout
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorImplProvider,
-  JwtUtils,
-  JwtUtilsProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{
   DefaultConfigProvider,
   StringConfigProvider
@@ -34,13 +29,11 @@ import com.pacbio.secondary.smrtlink.services.{
 }
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.typesafe.scalalogging.LazyLogging
-import org.specs2.mock._
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
-import spray.routing._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.testkit.Specs2RouteTest
+import org.specs2.mock._
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -50,12 +43,10 @@ class AlarmSpec
     with Mockito
     with Directives
     with Specs2RouteTest
-    with NoTimeConversions
     with LazyLogging {
 
   sequential
 
-  import Authenticator._
   import AlarmSeverity._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
@@ -150,7 +141,7 @@ class AlarmSpec
       Get("/smrt-link/alarms") ~> routes ~> check {
         status.isSuccess must beTrue
         val alarms = responseAs[Seq[AlarmStatus]]
-        alarms.size === 2
+        alarms.isEmpty must beFalse
         alarms.find(_.id == tmpId) must beSome
         alarms.find(_.id == jobId) must beSome
       }

@@ -21,11 +21,12 @@ cp /path/to/xsd-datamodels/*.xsd smrt-common-models/src/main/resources/pb-common
 bash update-java-classes.sh
 ````
 
+NOTE: If you have enum values are not valid java variable names, e.g. containing special characters or starting with numbers, you will first have to update [bindings.xml](/src/main/resources/bindings.xml)
 
 ## Step #2
 
 Update Constants.scala in smrt-common-models with the git SHA of the xsd-datamodels repo.
 
-Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L13) and [DATASET_VERSION](src/main/scala/com/pacbio/common/models/Constants.scala#L11).
+Make sure to update update [com.pacbio.common.pbmodels.Constants.CHANGELIST](src/main/scala/com/pacbio/common/models/Constants.scala#L13)
 
-# FIXME(mpkocher)(2016-12-6) This needs to be automated. 
+**FIXME(mpkocher)(2016-12-6)** This still needs to be automated. 

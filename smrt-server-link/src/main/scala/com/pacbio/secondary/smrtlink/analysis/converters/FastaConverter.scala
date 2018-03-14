@@ -6,12 +6,18 @@ import java.text.SimpleDateFormat
 import java.util.{UUID, Calendar}
 import javax.xml.datatype.DatatypeFactory
 
+import scala.util.{Try, Success, Failure}
+
 // this is included in smrt-analysis
 import org.broad.igv.feature.genome.FastaUtils
 
 import com.pacbio.common.models.{Constants => CommonConstants}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.DatasetIndexFile
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DatasetIndexFile,
+  DataSetIO,
+  ContigSetIO
+}
 
 // auto-generated Java modules
 import com.pacificbiosciences.pacbiobasedatamodel.{
@@ -46,7 +52,8 @@ trait FastaIndexWriter {
 /**
   * Base functions for converting a FASTA file to a DataSet
   */
-trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType]
+trait FastaConverterBase[
+    T <: DataSetType, U <: DataSetMetadataType, V <: DataSetIO]
     extends LazyLogging
     with FastaIndexWriter {
 
@@ -171,19 +178,32 @@ trait FastaConverterBase[T <: DataSetType, U <: DataSetMetadataType]
     val ofn = outputDir.resolve(s"${sanitizedName}/${dsName.toLowerCase}.xml")
     TargetInfo(sanitizedName, targetDir, fastaFinal, ofn)
   }
-
 }
 
-// XXX This is just a stub right now.
-object FastaContigsConverter
-    extends FastaConverterBase[ContigSet, ContigSetMetadataType] {
-  protected val baseName: String = "contigs"
-  protected val dsName: String = "ContigSet"
-  protected val programName: String = "unknown"
-  protected val metatype: String = FileTypes.DS_CONTIG.fileTypeId
-  protected val fastaMetatype: String = FileTypes.FASTA_CONTIG.fileTypeId
+trait ReferenceConverterBase[
+    T <: DataSetType, U <: DataSetMetadataType, V <: DataSetIO]
+    extends FastaConverterBase[T, U, V] {
 
-  override protected def setMetadata(ds: ContigSet,
-                                     metadata: ContigSetMetadataType): Unit =
-    ds.setDataSetMetadata(metadata)
+  def apply(name: String,
+            organism: Option[String],
+            ploidy: Option[String],
+            fastaPath: Path,
+            outputDir: Path,
+            inPlace: Boolean,
+            mkdir: Boolean): Either[DatasetConvertError, V]
+
+  def toTry(name: String,
+            organism: Option[String],
+            ploidy: Option[String],
+            fastaPath: Path,
+            outputDir: Path,
+            mkdir: Boolean = false): Try[V] = {
+    apply(name,
+          organism,
+          ploidy,
+          fastaPath,
+          outputDir,
+          inPlace = false,
+          mkdir = mkdir).toTry
+  }
 }

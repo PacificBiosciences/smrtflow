@@ -2,9 +2,9 @@ import org.specs2.mutable.Specification
 import java.util.UUID
 
 import org.joda.time.{DateTime => JodaDateTime}
-import spray.testkit.Specs2RouteTest
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.{ActorRef, ActorRefFactory}
+import akka.http.scaladsl.testkit.Specs2RouteTest
 import akka.util.Timeout
 import akka.pattern._
 import spray.json._
@@ -56,7 +56,6 @@ class SmrtLinkEventSpec
       with SmrtLinkEventServiceProvider
       with JobsDaoProvider
       with SmrtLinkTestDalProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings

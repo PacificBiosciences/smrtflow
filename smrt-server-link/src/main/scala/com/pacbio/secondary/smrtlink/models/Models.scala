@@ -4,20 +4,24 @@ import java.net.URL
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.semver.SemVersion
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
+  SupportedChipTypes,
   SupportedRunStates
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import spray.json.JsObject
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Try
 
 object Models
 
@@ -33,7 +37,17 @@ object PacBioNamespaces {
 
 }
 
-case class ThrowableResponse(httpCode: Int, message: String, errorType: String)
+/**
+  * Core SMRT Server Error model that is returned in failed requests
+  *
+  * @param httpCode  HTTP Code
+  * @param message   detail message
+  * @param errorType Terse error message type description
+  */
+case class ThrowableResponse(httpCode: Int, message: String, errorType: String) {
+  def toLogMessage(): String =
+    s"Request rejected: $httpCode - $errorType - $message"
+}
 
 object LogLevels {
 
@@ -120,7 +134,7 @@ case class LogMessageRecord(message: String,
   * User data model
   *
   * @param userId  User "Id" Example: mskinner This this user primary key that is used in the SL db.
-  * @param userEmail User email address
+  * @param userEmail User email address (This is a bit odd. The CLAIM is required, but it's optional here)
   * @param firstName User first name
   * @param lastName  User last name
   * @param roles     Roles of the specific user
@@ -190,6 +204,7 @@ case class RunSummary(uniqueId: UUID,
                       transfersCompletedAt: Option[JodaDateTime],
                       completedAt: Option[JodaDateTime],
                       status: SupportedRunStates,
+                      chipType: SupportedChipTypes,
                       totalCells: Int,
                       numCellsCompleted: Int,
                       numCellsFailed: Int,
@@ -217,6 +232,7 @@ case class RunSummary(uniqueId: UUID,
       transfersCompletedAt,
       completedAt,
       status,
+      chipType,
       totalCells,
       numCellsCompleted,
       numCellsFailed,
@@ -244,6 +260,7 @@ case class Run(dataModel: String,
                transfersCompletedAt: Option[JodaDateTime],
                completedAt: Option[JodaDateTime],
                status: SupportedRunStates,
+               chipType: SupportedChipTypes,
                totalCells: Int,
                numCellsCompleted: Int,
                numCellsFailed: Int,
@@ -270,6 +287,7 @@ case class Run(dataModel: String,
       transfersCompletedAt,
       completedAt,
       status,
+      chipType,
       totalCells,
       numCellsCompleted,
       numCellsFailed,
@@ -386,18 +404,12 @@ case class UpdateJobTaskRecord(uuid: UUID,
                                message: String,
                                errorMessage: Option[String])
 
+case class UpdateJobRecord(name: Option[String],
+                           comment: Option[String],
+                           tags: Option[String])
+
 case class JobCompletedMessage(job: EngineJob)
 case class MultiJobSubmitted(jobId: Int)
-
-// "Resolvable" Service Job Options. These will get transformed into PbSmrtPipeOptions
-// These are also used by the mock-pbsmrtpipe job options
-case class PbSmrtPipeServiceOptions(
-    name: String,
-    pipelineId: String,
-    entryPoints: Seq[BoundServiceEntryPoint],
-    taskOptions: Seq[ServiceTaskOptionBase],
-    workflowOptions: Seq[ServiceTaskOptionBase],
-    projectId: Int = JobConstants.GENERAL_PROJECT_ID)
 
 // New DataSet Service Models
 trait UniqueIdAble {
@@ -418,6 +430,7 @@ case class DataSetMetaDataSet(id: Int,
                               path: String,
                               createdAt: JodaDateTime,
                               updatedAt: JodaDateTime,
+                              importedAt: JodaDateTime,
                               numRecords: Long,
                               totalLength: Long,
                               tags: String,
@@ -509,6 +522,10 @@ case class ContigServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
 case class ContigServiceMetaDataSet(metadata: DataSetMetaDataSet,
                                     dataset: ContigServiceSet)
 
+case class TranscriptServiceSet(id: Int, uuid: UUID) extends UniqueIdAble
+case class TranscriptServiceMetaDataSet(metadata: DataSetMetaDataSet,
+                                        dataset: TranscriptServiceSet)
+
 // This is essentially just a flattening of the DataStoreJobFile + metadata specific to the
 // /datastore-files endpoint
 case class DataStoreServiceFile(uuid: UUID,
@@ -558,6 +575,7 @@ trait ServiceDataSetMetadata {
   val path: String
   val createdAt: JodaDateTime
   val updatedAt: JodaDateTime
+  val importedAt: JodaDateTime
   val numRecords: Long
   val totalLength: Long
   val version: String
@@ -569,6 +587,7 @@ trait ServiceDataSetMetadata {
   val jobId: Int
   val projectId: Int
   val parentUuid: Option[UUID]
+  val isActive: Boolean
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -594,6 +613,7 @@ case class SubreadServiceDataSet(
     path: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
     numRecords: Long,
     totalLength: Long,
     version: String,
@@ -614,6 +634,7 @@ case class SubreadServiceDataSet(
     projectId: Int,
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
+    isActive: Boolean = true,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -624,6 +645,7 @@ case class HdfSubreadServiceDataSet(
     path: String,
     createdAt: JodaDateTime,
     updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
     numRecords: Long,
     totalLength: Long,
     version: String,
@@ -641,6 +663,7 @@ case class HdfSubreadServiceDataSet(
     jobId: Int,
     projectId: Int,
     parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -650,6 +673,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    path: String,
                                    createdAt: JodaDateTime,
                                    updatedAt: JodaDateTime,
+                                   importedAt: JodaDateTime,
                                    numRecords: Long,
                                    totalLength: Long,
                                    version: String,
@@ -662,6 +686,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    ploidy: String,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -671,6 +696,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    path: String,
                                    createdAt: JodaDateTime,
                                    updatedAt: JodaDateTime,
+                                   importedAt: JodaDateTime,
                                    numRecords: Long,
                                    totalLength: Long,
                                    version: String,
@@ -681,6 +707,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    jobId: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
+                                   isActive: Boolean = true,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -690,6 +717,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        path: String,
                                        createdAt: JodaDateTime,
                                        updatedAt: JodaDateTime,
+                                       importedAt: JodaDateTime,
                                        numRecords: Long,
                                        totalLength: Long,
                                        version: String,
@@ -700,6 +728,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        jobId: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -709,6 +738,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             path: String,
                                             createdAt: JodaDateTime,
                                             updatedAt: JodaDateTime,
+                                            importedAt: JodaDateTime,
                                             numRecords: Long,
                                             totalLength: Long,
                                             version: String,
@@ -719,6 +749,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             jobId: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
+                                            isActive: Boolean = true,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -729,6 +760,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  path: String,
                                  createdAt: JodaDateTime,
                                  updatedAt: JodaDateTime,
+                                 importedAt: JodaDateTime,
                                  numRecords: Long,
                                  totalLength: Long,
                                  version: String,
@@ -739,6 +771,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  jobId: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
+                                 isActive: Boolean = true,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -748,6 +781,7 @@ case class ContigServiceDataSet(id: Int,
                                 path: String,
                                 createdAt: JodaDateTime,
                                 updatedAt: JodaDateTime,
+                                importedAt: JodaDateTime,
                                 numRecords: Long,
                                 totalLength: Long,
                                 version: String,
@@ -758,6 +792,7 @@ case class ContigServiceDataSet(id: Int,
                                 jobId: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
+                                isActive: Boolean = true,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -767,6 +802,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        path: String,
                                        createdAt: JodaDateTime,
                                        updatedAt: JodaDateTime,
+                                       importedAt: JodaDateTime,
                                        numRecords: Long,
                                        totalLength: Long,
                                        version: String,
@@ -779,9 +815,340 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        ploidy: String,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
+                                       isActive: Boolean = true,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
+
+case class TranscriptServiceDataSet(
+    id: Int,
+    uuid: UUID,
+    name: String,
+    path: String,
+    createdAt: JodaDateTime,
+    updatedAt: JodaDateTime,
+    importedAt: JodaDateTime,
+    numRecords: Long,
+    totalLength: Long,
+    version: String,
+    comments: String,
+    tags: String,
+    md5: String,
+    createdBy: Option[String],
+    jobId: Int,
+    projectId: Int,
+    parentUuid: Option[UUID] = None,
+    isActive: Boolean = true,
+    datasetType: String = Transcript.toString())
+    extends ServiceDataSetMetadata
+
+/**
+  * Subset of Grammar defined here: https://specs.openstack.org/openstack/api-wg/guidelines/pagination_filter_sort.html
+  *
+  * GET /app/items?foo=buzz
+  * GET /app/items?foo=in:buzz,bar
+  * GET /app/items?size=gt:8
+  *
+  */
+object QueryOperators {
+
+  /**
+    * Common Utils to generate a
+    */
+  private def toInQuery(values: Set[String]): String =
+    s"in:${values.toList.reduce(_ + "," + _)}"
+
+  private def toEqQuery(value: String): String = value
+  private def toLtQuery(value: String): String = s"lt:$value"
+  private def toLteQuery(value: String) = s"lte:$value"
+  private def toGtQuery(value: String) = s"gt:$value"
+  private def toGteQuery(value: String) = s"gte:$value"
+
+  // This is a bit of a grab bag of utils
+  trait QueryOperatorConverter[T] {
+
+    /**
+      * Convert the raw string to the specific type of Query Operator
+      */
+    def convertFromString(sx: String): T
+    def convertFromStringToSet(sx: String): Set[T] =
+      sx.split(",").map(convertFromString).toSet
+
+    def toValue(sx: String): Option[T] = Try(convertFromString(sx)).toOption
+    def toSetValue(sx: String): Option[Set[T]] =
+      Try(convertFromStringToSet(sx)).toOption
+
+  }
+
+  // Base Query Interface type
+  trait QuertyOperator {
+
+    /**
+      * Returns the raw Query string. e.g, in:1,2,3 or gt:12354
+      */
+    def toQueryString: String
+  }
+
+  sealed trait StringQueryOperator extends QuertyOperator
+  case class StringEqQueryOperator(value: String) extends StringQueryOperator {
+    override def toQueryString: String = toEqQuery(value)
+  }
+  case class StringInQueryOperator(value: Set[String])
+      extends StringQueryOperator {
+    override def toQueryString: String = toInQuery(value)
+  }
+
+  object StringQueryOperator extends QueryOperatorConverter[String] {
+
+    override def convertFromString(sx: String): String = sx
+
+    /**
+      * NOTE, the string should already be URL Decoded!
+      *
+      * foo=bar
+      * foo=in:bar,baz
+      *
+      * @param value raw Query String
+      * @return
+      */
+    def fromString(value: String): Option[StringQueryOperator] = {
+      value.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(StringInQueryOperator)
+        case head :: Nil => toValue(head).map(StringEqQueryOperator)
+        case _ =>
+          // Invalid or unsupported String Query Operator
+          None
+      }
+    }
+  }
+
+  // For Numeric Types
+  sealed trait QueryOperator[T]
+
+  sealed trait IntQueryOperator extends QueryOperator[Int] with QuertyOperator
+  case class IntEqQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class IntGtQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toGtQuery(value.toString)
+  }
+  case class IntGteQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toGteQuery(value.toString)
+  }
+  case class IntLtQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = toLtQuery(value.toString)
+  }
+  case class IntLteQueryOperator(value: Int) extends IntQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class IntInQueryOperator(value: Set[Int]) extends IntQueryOperator {
+    override def toQueryString: String = toInQuery(value.map(_.toString))
+  }
+
+  object IntQueryOperator extends QueryOperatorConverter[Int] {
+    def convertFromString(sx: String): Int = sx.toInt
+
+    def fromString(value: String): Option[IntQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(IntEqQueryOperator)
+        case "in" :: tail :: Nil => toSetValue(tail).map(IntInQueryOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(IntGtQueryOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(IntGteQueryOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(IntLtQueryOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(IntLteQueryOperator)
+        case _ => None
+      }
+    }
+  }
+
+  sealed trait LongQueryOperator
+      extends QueryOperator[Long]
+      with QuertyOperator
+  case class LongEqQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = value.toString
+  }
+  case class LongGtQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toGtQuery(value.toString)
+  }
+  case class LongGteQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toGteQuery(value.toString)
+  }
+  case class LongLtQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toLtQuery(value.toString)
+  }
+  case class LongLteQueryOperator(value: Long) extends LongQueryOperator {
+    override def toQueryString: String = toLteQuery(value.toString)
+  }
+  case class LongInQueryOperator(value: Set[Long]) extends LongQueryOperator {
+    override def toQueryString: String = toInQuery(value.map(_.toString))
+  }
+
+  object LongQueryOperator extends QueryOperatorConverter[Long] {
+    def convertFromString(sx: String): Long = sx.toLong
+
+    def fromString(value: String): Option[LongQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(LongEqQueryOperator)
+        case "in" :: tail :: Nil => toSetValue(tail).map(LongInQueryOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(LongGtQueryOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(LongGteQueryOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(LongLtQueryOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(LongLteQueryOperator)
+        case _ => None
+      }
+    }
+  }
+
+  sealed trait DateTimeQueryOperator extends QuertyOperator {
+    def dateTimeToString(dt: JodaDateTime): String = dt.toString()
+  }
+  case class DateTimeEqOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = dateTimeToString(dt)
+  }
+  case class DateTimeGtOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toGteQuery(dateTimeToString(dt))
+  }
+  case class DateTimeGteOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toGteQuery(dateTimeToString(dt))
+  }
+  case class DateTimeLtOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toLtQuery(dateTimeToString(dt))
+  }
+  case class DateTimeLteOperator(dt: JodaDateTime)
+      extends DateTimeQueryOperator {
+    override def toQueryString: String = toLteQuery(dateTimeToString(dt))
+  }
+
+  object DateTimeQueryOperator extends QueryOperatorConverter[JodaDateTime] {
+    def convertFromString(sx: String): JodaDateTime = JodaDateTime.parse(sx)
+
+    // "in" doesn't really make sense here. It would be better
+    // to define an interval of "createdAt=range:start,end"
+    // For now, the core gt, gte, lt, lte the core usecases.
+    // A user could make a query with one then filter client side,
+    // or make two queries and filter
+    def fromString(value: String): Option[DateTimeQueryOperator] = {
+      value.split(":", 2).toList match {
+        case head :: Nil => toValue(head).map(DateTimeEqOperator)
+        case "gt" :: tail :: Nil => toValue(tail).map(DateTimeGtOperator)
+        case "gte" :: tail :: Nil => toValue(tail).map(DateTimeGteOperator)
+        case "lt" :: tail :: Nil => toValue(tail).map(DateTimeLtOperator)
+        case "lte" :: tail :: Nil => toValue(tail).map(DateTimeLteOperator)
+        case _ => None
+      }
+    }
+  }
+
+  sealed trait UUIDQueryOperator extends QuertyOperator {
+    def uuidToString(uuid: UUID): String = uuid.toString
+  }
+  case class UUIDEqOperator(uuid: UUID) extends UUIDQueryOperator {
+    override def toQueryString: String = uuidToString(uuid)
+  }
+  case class UUIDInOperator(uuids: Set[UUID]) extends UUIDQueryOperator {
+    override def toQueryString: String = toInQuery(uuids.map(uuidToString))
+  }
+
+  object UUIDQueryOperator extends QueryOperatorConverter[UUID] {
+    override def convertFromString(sx: String): UUID = UUID.fromString(sx)
+
+    def fromString(sx: String): Option[UUIDQueryOperator] = {
+      sx.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(UUIDInOperator)
+        case head :: Nil => toValue(head).map(UUIDEqOperator)
+        case _ => None
+      }
+    }
+  }
+
+}
+
+case class DataSetSearchCriteria(
+    projectIds: Set[Int],
+    isActive: Option[Boolean] = Some(true),
+    limit: Int,
+    marker: Option[Int] = None, // offset
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    numRecords: Option[QueryOperators.LongQueryOperator] = None,
+    totalLength: Option[QueryOperators.LongQueryOperator] = None,
+    version: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    jobId: Option[QueryOperators.IntQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None) {
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "numRecords" -> numRecords.map(_.toQueryString),
+      "totalLength" -> totalLength.map(_.toQueryString),
+      "version" -> version.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "jobId" -> jobId.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString)
+    )
+  }
+
+  def toQuery: Uri.Query = {
+
+    // This is a little goofy, Remove Optional values (as keys)
+    def flattenMap(m: Map[String, Option[String]]): Map[String, String] = {
+      m.map {
+          case (k, v) =>
+            v match {
+              case Some(op) => Some((k, op))
+              case _ => None
+            }
+        }
+        .toList
+        .flatten
+        .toMap
+    }
+
+    // Need to handle the project ids
+    val m2: Map[String, Option[String]] =
+      Map(
+        "limit" -> Some(limit.toString),
+        "isActive" -> isActive.map(_.toString),
+        "marker" -> marker.map(_.toString)
+      )
+
+    val ms = Seq(operators, m2).map(flattenMap).reduce(_ ++ _)
+
+    val urlEncodedParmas =
+      ms.mapValues(sx => java.net.URLEncoder.encode(sx, "utf-8"))
+
+    Uri.Query(urlEncodedParmas)
+  }
+
+}
+
+object DataSetSearchCriteria {
+  final val DEFAULT_MAX_DATASETS = 10000
+  final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
+
+  def default =
+    DataSetSearchCriteria(Set.empty[Int],
+                          isActive = DEFAULT_IS_ACTIVE,
+                          name = None,
+                          limit = DEFAULT_MAX_DATASETS)
+}
 
 // Options used for Merging Datasets
 // FIXME. This should use a DataSetMetaType, not String!
@@ -838,6 +1205,10 @@ case class ImportAbleReferenceSet(ds: DsServiceJobFile,
 
 case class ImportAbleGmapReferenceSet(ds: DsServiceJobFile,
                                       file: GmapReferenceServiceDataSet)
+    extends ImportAbleServiceFile
+
+case class ImportAbleTranscriptSet(ds: DsServiceJobFile,
+                                   file: TranscriptServiceDataSet)
     extends ImportAbleServiceFile
 
 // Project models
@@ -996,7 +1367,10 @@ case class EulaRecord(user: String,
                       enableInstallMetrics: Boolean,
                       enableJobMetrics: Boolean)
 
-case class EulaAcceptance(user: String, enableInstallMetrics: Boolean)
+// Making this backward compatible, but this should be removed
+case class EulaAcceptance(user: String,
+                          enableInstallMetrics: Boolean,
+                          enableJobMetrics: Option[Boolean])
 
 case class DataSetUpdateRequest(isActive: Option[Boolean] = None,
                                 bioSampleName: Option[String] = None,
@@ -1080,6 +1454,7 @@ object EventTypes {
   val SERVER_STARTUP = "sl_smrt_server_startup"
   val IMPORT_BUNDLE = "sl_ts_import_bundle"
   val CHEMISTRY_ACTIVATE_BUNDLE = "sl_chemistry_activate_bundle"
+  val JOB_METRICS = "sl_job_metrics"
   // A Test Event. This should be used by any testing related code.
   val TEST = "sl_test_event"
 }
@@ -1103,11 +1478,6 @@ case class JobEventRecord(state: String, message: String)
 
 case class ReportViewRule(id: String, rules: JsObject)
 
-case class DataSetExportServiceOptions(datasetType: String,
-                                       ids: Seq[Int],
-                                       outputPath: String,
-                                       deleteAfterExport: Option[Boolean] =
-                                         Some(false))
 case class DataSetDeleteServiceOptions(datasetType: String,
                                        ids: Seq[Int],
                                        removeFiles: Boolean = true)
@@ -1138,3 +1508,18 @@ case class DeferredJob(entryPoints: Seq[DeferredEntryPoint],
                        name: Option[String],
                        description: Option[String],
                        projectId: Option[Int])
+
+// If this model/schema changes, the event type schema version needs
+// to be incremented
+case class EngineJobMetrics(id: Int,
+                            uuid: UUID,
+                            createdAt: JodaDateTime,
+                            updatedAt: JodaDateTime,
+                            state: AnalysisJobStates.JobStates,
+                            jobTypeId: String,
+                            pipelineId: Option[String],
+                            smrtlinkVersion: Option[String],
+                            movieIds: Set[String],
+                            isActive: Boolean = true,
+                            isMultiJob: Boolean = false,
+                            importedAt: Option[JodaDateTime] = None)

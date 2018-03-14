@@ -4,8 +4,9 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.FileType
 import com.pacificbiosciences.pacbiodatasets.BarcodeSet
 
-import scalaz._
-import Scalaz._
+import cats.data._
+import cats.data.Validated._
+import cats.implicits._
 
 /**
   * Created by mkocher on 12/1/15.
@@ -22,7 +23,7 @@ object ValidateBarcodeSet extends ValidateDataSet {
     * @param ds
     * @return
     */
-  override def validateCustom(ds: BarcodeSet): ValidateDataSetE = {
-    ds.successNel
+  override def validateCustom(ds: BarcodeSet): ValidationResult[DsType] = {
+    ds.validNel
   }
 }

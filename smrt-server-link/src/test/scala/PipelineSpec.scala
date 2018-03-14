@@ -30,7 +30,7 @@ class PipelineSpec
                  FileTypes.DS_REFERENCE.fileTypeId,
                  "Reference"))
     val tags = Seq("dev", "example")
-    val presets = Seq[PipelineTemplatePreset]()
+    val presets = Some(Seq.empty[PipelineTemplatePreset])
     PipelineTemplate("pbsmrtpipe.pipelines.sa3_resequencing",
                      "Name",
                      "Desc",

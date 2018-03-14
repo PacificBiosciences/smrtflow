@@ -15,7 +15,7 @@ trait SmrtLinkServerRunner {
   */
 class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logger) extends SmrtLinkServerRunner {
 
-  var serverProcess: Option[Process] = None
+  var serverProcess: Option[scala.sys.process.Process] = None
 
   val serverArgs = Seq("-jar", assemblyJarName.getAbsolutePath, "--log-level", "INFO", "--log-file", "integration-test-server.log")
   val mainClass = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"
@@ -30,11 +30,17 @@ class SmrtLinkAnalysisServerRunner(assemblyJarName: File, override val log: Logg
     val p = Fork.java.fork(forkOptions, serverArgs)
     serverProcess = Some(p)
     // Calling p.exitCode will BLOCK
-    log.info(s"process '$p'")
+    log.info(s"Created forked process '$p'")
   }
 
   override def stop():Unit = {
     log.info(s"Stopping SMRT Link Analysis Server at ${LocalDateTime.now()}")
-    serverProcess.foreach(_.destroy())
+    serverProcess match {
+      case Some(p) =>
+        log.info(s"Destroying process $p (isAlive:${p.isAlive()})")
+        p.destroy()
+      case _ =>
+        log.info("No running SMRT Link process to destroy")
+    }
   }
 }

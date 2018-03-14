@@ -19,7 +19,8 @@ import scala.util.control.NonFatal
 class ExternalChemistryServerAlarmRunner(url: URL)(
     implicit actorSystem: ActorSystem)
     extends AlarmRunner {
-  val client = new PacBioDataBundleClient(url)(actorSystem)
+  val client =
+    new PacBioDataBundleClient(url.getHost, url.getPort)(actorSystem)
 
   def getStatus(maxRetries: Int): Future[AlarmUpdate] =
     client
@@ -38,7 +39,7 @@ class ExternalChemistryServerAlarmRunner(url: URL)(
             AlarmSeverity.ERROR)
       }
 
-  override val alarm = Alarm("smrtlink.alarms.chemistry_update_server",
+  override val alarm = Alarm(AlarmTypeIds.SERVER_CHEM,
                              "Chemistry Update Server Status",
                              "Monitor External Chemistry Update Server Status")
 

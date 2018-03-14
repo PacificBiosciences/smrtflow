@@ -2,27 +2,25 @@ package com.pacbio.secondary.smrtlink.client
 
 import java.net.URL
 import java.nio.file.Path
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import javax.xml.bind.DatatypeConverter
 
 import spray.json._
-import spray.client.pipelining._
-import spray.http.HttpRequest
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.model._
 import akka.actor.ActorSystem
-import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
+import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.model.Multipart._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.scaladsl.{FileIO, Source}
 import com.typesafe.scalalogging.LazyLogging
+
+import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
+import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import mbilski.spray.hmac.{
-  Authentication,
-  DefaultSigner,
-  Directives,
-  SignerConfig
-}
+import scala.collection.immutable
 
 /**
   * Create a Client for the Eve Server.
@@ -30,42 +28,46 @@ import mbilski.spray.hmac.{
   * There's some friction here with the current EventURL defined in the config, versus only defining a
   * host, port or URL, then determining the relative endpoints.
   *
-  * @param baseUrl note, this is the base URL of the system, not http://my-server:8080/my-events.
   * @param actorSystem
   */
-class EventServerClient(baseUrl: URL, apiSecret: String)(
-    implicit actorSystem: ActorSystem)
-    extends ServiceAccessLayer(baseUrl)(actorSystem)
-    with DefaultSigner
-    with SignerConfig
+class EventServerClient(
+    host: String,
+    port: Int,
+    apiSecret: String,
+    securedConnection: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends ServiceAccessLayer(
+      host,
+      port,
+      securedConnection = securedConnection)(actorSystem)
     with LazyLogging {
 
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  private val SEGMENT_EVENTS = "events"
-  private val SEGMENT_FILES = "files"
+  val PREFIX_API_PATH = Uri.Path("api") / "v1"
 
-  val PREFIX_BASE = "/api/v1"
-  val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
-  val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
+  val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / "events"
+  val FILES_URI_PATH: Uri.Path = PREFIX_API_PATH / "files"
+
+  val FILES_URI = toUri(FILES_URI_PATH)
+  val UPLOAD_URI = FILES_URI
+  val EVENTS_URI = toUri(EVENTS_URI_PATH)
 
   /**
     * Create an Eve Client
     *
     * Note, the default protocol will be set to http if not explicitly provided.
     *
-    * @param host        Host name
-    * @param port        Port
     * @param apiSecret   API Secret used in the auth hashing algo
     * @param actorSystem Actor System
     */
-  def this(host: String, port: Int, apiSecret: String)(
+  def this(baseUrl: URL, apiSecret: String)(
       implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port), apiSecret)(actorSystem)
+    this(baseUrl.getHost,
+         baseUrl.getPort,
+         apiSecret,
+         securedConnection = baseUrl.getProtocol == "https")(actorSystem)
   }
-
-  val sender = sendReceive
 
   // Useful for debugging
   val logRequest: HttpRequest => HttpRequest = { r =>
@@ -75,54 +77,34 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
     println(r.toString); r
   }
 
-  /**
-    * Add the HMAC auth key
-    *
-    * @param method HTTP method
-    * @param segment Segment of the URL
-    * @return
-    */
-  def sendReceiveAuthenticated(
-      method: String,
-      segment: String): HttpRequest => Future[HttpResponse] = {
-    val key = generate(apiSecret, s"$method+$segment", timestamp)
+  private def generateAuthHeader(method: HttpMethod,
+                                 path: Uri.Path): HttpHeader = {
+
+    // There's an inconsistency here because of the how the
+    // the auth needs the path that begins with the a slash
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
+    val key =
+      Signer.generate(apiSecret,
+                      s"${method.value}+${px.toString}",
+                      Signer.timestamp)
     val authHeader = s"hmac uid:$key"
-    // addHeader("Authentication", s"hmac uid:$key") ~> logRequest ~> sender ~> logResponse
-    addHeader("Authentication", authHeader) ~> sender
+    // logger.info(s"segment '$px' with key $key")
+    RawHeader("Authentication", authHeader)
   }
-
-  /**
-    * Create URL relative to the base prefix segment
-    *
-    * wtf does super.toUrl return a String?
-    *
-    * @param segment relative segment to the base '/api/vi/' prefix
-    * @return
-    */
-  def toApiUrl(segment: String): URL = {
-    new URL(baseUrl.getProtocol,
-            baseUrl.getHost,
-            baseUrl.getPort,
-            s"$PREFIX_BASE/$segment")
-  }
-
-  val toUploadUrl: URL = new URL(baseUrl.getProtocol,
-                                 baseUrl.getHost,
-                                 baseUrl.getPort,
-                                 PREFIX_FILES)
-
-  val eventsUrl = toApiUrl(SEGMENT_EVENTS)
-  val filesUrl = toApiUrl(SEGMENT_FILES)
 
   def smrtLinkSystemEventPipeline(
-      method: String,
-      segment: String): HttpRequest => Future[SmrtLinkSystemEvent] =
-    sendReceiveAuthenticated(method, segment) ~> unmarshal[SmrtLinkSystemEvent]
+      method: HttpMethod,
+      segment: Uri.Path): HttpRequest => Future[SmrtLinkSystemEvent] = {
+    httpRequest =>
+      getObject[SmrtLinkSystemEvent](
+        httpRequest.withHeaders(
+          immutable.Seq(generateAuthHeader(method, segment))))
+  }
 
   def sendSmrtLinkSystemEvent(
       event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline("POST", PREFIX_EVENTS) {
-      Post(eventsUrl.toString, event)
+    smrtLinkSystemEventPipeline(HttpMethods.POST, EVENTS_URI.path) {
+      Post(EVENTS_URI, event)
     }
 
   def sendSmrtLinkSystemEventWithBlockingRetry(
@@ -144,16 +126,28 @@ class EventServerClient(baseUrl: URL, apiSecret: String)(
       numRetries)
   }
 
-  def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
-    val multiForm = MultipartFormData(
-      Seq(
-        BodyPart(pathTgz.toFile,
-                 "techsupport_tgz",
-                 ContentType(MediaTypes.`application/octet-stream`)))
-    )
+  private def createUploadEntity(path: Path): Future[RequestEntity] = {
 
-    smrtLinkSystemEventPipeline("POST", PREFIX_FILES) {
-      Post(toUploadUrl.toString, multiForm)
+    // the chunk size here is currently critical for performance
+    val chunkSize = 100000
+    val fx = path.toFile
+    val formData =
+      Multipart.FormData(
+        Source.single(
+          Multipart.FormData.BodyPart(
+            "techsupport_tgz",
+            HttpEntity(MediaTypes.`application/octet-stream`,
+                       fx.length(),
+                       FileIO.fromPath(path, chunkSize = chunkSize)),
+            Map("filename" -> fx.getName)
+          )))
+    Marshal(formData).to[RequestEntity]
+  }
+
+  def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
+
+    smrtLinkSystemEventPipeline(HttpMethods.POST, FILES_URI.path) {
+      Post(FILES_URI, createUploadEntity(pathTgz))
     }
   }
 

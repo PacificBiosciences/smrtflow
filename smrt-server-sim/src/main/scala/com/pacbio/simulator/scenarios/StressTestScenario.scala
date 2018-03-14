@@ -21,8 +21,9 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -59,7 +60,7 @@ class StressTestScenario(host: String,
   override val name = "StressTestScenario"
   override val requirements = Seq("SL-41", "SL-1295")
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val TIMEOUT_ERR = s"Job did not complete within $maxTime seconds"
   val EXIT_SUCCESS: Var[Int] = Var(0)
@@ -71,9 +72,10 @@ class StressTestScenario(host: String,
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Reference)
   val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
-  val pipelineOpts: Var[PbSmrtPipeServiceOptions] = Var(
-    PbSmrtPipeServiceOptions(
-      "stress-test",
+  val pipelineOpts: Var[PbsmrtpipeJobOptions] = Var(
+    PbsmrtpipeJobOptions(
+      Some("stress-test"),
+      Some("scenario-runner StressTestScenario"),
       "pbsmrtpipe.pipelines.dev_diagnostic_stress",
       Seq(
         BoundServiceEntryPoint("eid_ref_dataset",

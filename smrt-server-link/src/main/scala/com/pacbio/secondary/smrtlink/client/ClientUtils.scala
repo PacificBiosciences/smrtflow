@@ -3,12 +3,16 @@ package com.pacbio.secondary.smrtlink.client
 import java.io.File
 
 import scala.math._
-import spray.httpx.SprayJsonSupport
-import spray.json._
-
-import scala.concurrent.Future
+import scala.util.{Try, Failure, Success}
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import spray.json._
+import com.typesafe.scalalogging.LazyLogging
+
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -77,10 +81,12 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
         |     is active: ${job.isActive}
         |     createdAt: ${job.createdAt}
         |     updatedAt: ${job.updatedAt}
+        |  jobUpdatedAt: ${job.jobUpdatedAt}
         |      run time: $runTimeSec sec
         |    SL version: ${job.smrtlinkVersion.getOrElse("Unknown")}
         |    created by: ${job.createdBy.getOrElse("none")}
         |       comment: ${job.comment}
+        |          tags: ${job.tags}
         |          path: ${job.path}
       """.stripMargin
 
@@ -92,28 +98,40 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     Seq(header, body, errorMessage).reduce(_ + "\n" + _)
   }
 
+  def formatJobInfo(job: EngineJob,
+                    asJson: Boolean = false,
+                    dumpJobSettings: Boolean = false): String = {
+    if (dumpJobSettings) {
+      job.jsonSettings.parseJson.prettyPrint
+    } else if (asJson) {
+      job.toJson.prettyPrint
+    } else {
+      toJobSummary(job)
+    }
+  }
+
   def printJobInfo(job: EngineJob,
                    asJson: Boolean = false,
                    dumpJobSettings: Boolean = false): Int = {
-    if (dumpJobSettings) {
-      println(job.jsonSettings.parseJson.prettyPrint)
-    } else if (asJson) {
-      println(job.toJson.prettyPrint)
-    } else {
-      println(toJobSummary(job))
-    }
+    println(formatJobInfo(job, asJson, dumpJobSettings))
     0
   }
 
+  def formatProjectInfo(project: FullProject): String = {
+    s"""
+      |PROJECT SUMMARY:
+      |  id: ${project.id}
+      |  name: ${project.name}
+      |  description: ${project.description}
+      |  createdAt: ${project.createdAt}
+      |  updatedAt: ${project.updatedAt}
+      |  datasets: ${project.datasets.size}
+      |  members: ${project.members.size}
+     """.stripMargin
+  }
+
   def printProjectInfo(project: FullProject): Int = {
-    println("PROJECT SUMMARY:")
-    println(s"  id: ${project.id}")
-    println(s"  name: ${project.name}")
-    println(s"  description: ${project.description}")
-    println(s"  createdAt: ${project.createdAt}")
-    println(s"  updatedAt: ${project.updatedAt}")
-    println(s"  datasets: ${project.datasets.size}")
-    println(s"  members: ${project.members.size}")
+    println(formatProjectInfo(project))
     0
   }
 
@@ -142,11 +160,14 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     0
   }
 
+  def formatReportAttributes(r: Report, prefix: String = ""): String = {
+    (Seq(s"${prefix}${r.title}:") ++ r.attributes.map { a =>
+      s"  ${prefix}${a.name} = ${a.value}"
+    }).mkString("\n")
+  }
+
   def showReportAttributes(r: Report, prefix: String = ""): Int = {
-    println(s"${prefix}${r.title}:")
-    r.attributes.foreach { a =>
-      println(s"  ${prefix}${a.name} = ${a.value}")
-    }
+    println(formatReportAttributes(r, prefix))
     0
   }
 
@@ -175,4 +196,25 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   def isVersionGteSystemVersion(status: ServiceStatus): Future[SemVersion] =
     isVersionGte(status, SemVersion.fromString(Constants.SMRTFLOW_VERSION))
 
+}
+
+trait ClientAppUtils extends DaoFutureUtils with LazyLogging {
+  // These are the ONLY place that should have a blocking call
+  // and explicit case match to Success/Failure handing for Try
+  def executeBlockAndSummary(fx: Future[String],
+                             timeout: FiniteDuration): Int = {
+    executeAndSummary(Try(Await.result(fx, timeout)))
+  }
+
+  def executeAndSummary(tx: Try[String]): Int = {
+    tx match {
+      case Success(sx) =>
+        println(sx)
+        0
+      case Failure(ex) =>
+        logger.error(s"${ex.getMessage}")
+        System.err.println(s"${ex.getMessage} $ex")
+        1
+    }
+  }
 }

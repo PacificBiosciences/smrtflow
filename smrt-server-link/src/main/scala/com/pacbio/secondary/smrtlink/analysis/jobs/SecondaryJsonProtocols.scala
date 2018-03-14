@@ -4,9 +4,11 @@ import java.net.{URI, URL}
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFilterProperty,
+  DataSetMetaTypes
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobtypes._
 import com.pacbio.common.models.{
   JodaDateTimeProtocol,
   PathProtocols,
@@ -16,6 +18,8 @@ import com.pacbio.common.models.{
 import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+
+import scala.util.{Failure, Success, Try}
 
 /**
   * Custom SecondaryJsonProtocols for spray.json
@@ -265,71 +269,6 @@ trait PipelineTemplateOptionProtocol extends DefaultJsonProtocol {
   }
 }
 
-trait PipelineTemplateJsonProtocol
-    extends DefaultJsonProtocol
-    with PipelineTemplateOptionProtocol {
-
-  implicit object PipelineTemplateFormat
-      extends RootJsonFormat[PipelineTemplate] {
-    def write(p: PipelineTemplate): JsObject = {
-
-      implicit val entryPointFormat = jsonFormat3(EntryPoint)
-
-      val jobOpts = JsArray(p.options.map(_.toJson).toVector)
-      val taskOpts = JsArray(p.taskOptions.map(_.toJson).toVector)
-      val entryPoints = p.entryPoints.toJson
-      val tags = p.tags.toJson
-
-      JsObject(
-        "id" -> JsString(p.id),
-        "name" -> JsString(p.name),
-        "description" -> JsString(p.description),
-        "version" -> JsString(p.version),
-        "entryPoints" -> entryPoints,
-        "options" -> jobOpts,
-        "taskOptions" -> taskOpts,
-        "tags" -> tags
-      )
-    }
-
-    def read(value: JsValue) = {
-      implicit val entryPointFormat = jsonFormat3(EntryPoint)
-
-      value.asJsObject.getFields("id",
-                                 "name",
-                                 "description",
-                                 "version",
-                                 "tags",
-                                 "taskOptions",
-                                 "entryPoints",
-                                 "options") match {
-        case Seq(JsString(id),
-                 JsString(name),
-                 JsString(description),
-                 JsString(version),
-                 JsArray(jtags),
-                 JsArray(jtaskOptions),
-                 JsArray(entryPoints),
-                 JsArray(joptions)) =>
-          val tags = jtags.map(_.convertTo[String])
-          val epoints = entryPoints.map(_.convertTo[EntryPoint])
-          val taskOptions = jtaskOptions.map(_.convertTo[PipelineBaseOption])
-          val engineOptions = joptions.map(_.convertTo[PipelineBaseOption])
-          PipelineTemplate(id,
-                           name,
-                           description,
-                           version,
-                           engineOptions,
-                           taskOptions,
-                           epoints,
-                           tags,
-                           Seq[PipelineTemplatePreset]())
-        case x => deserializationError(s"Expected Pipeline template Got $x")
-      }
-    }
-  }
-}
-
 trait PipelineTemplatePresetJsonProtocol
     extends DefaultJsonProtocol
     with PipelineTemplateOptionProtocol {
@@ -422,92 +361,85 @@ trait JsonProjectSupport {
   }
 }
 
+/**
+  * Custom JSON parser to handle backward compatibility
+  *
+  * Note, only Official SL releases are supported. (e.g. 5.1.0)
+  */
+trait EngineJobJsonSupport
+    extends DefaultJsonProtocol
+    with JodaDateTimeProtocol
+    with UUIDJsonProtocol
+    with JobStatesJsonProtocol {
+
+  case class SmrtLink510EngineJob(id: Int,
+                                  uuid: UUID,
+                                  name: String,
+                                  comment: String,
+                                  createdAt: JodaDateTime,
+                                  updatedAt: JodaDateTime,
+                                  state: AnalysisJobStates.JobStates,
+                                  jobTypeId: String,
+                                  path: String,
+                                  jsonSettings: String,
+                                  createdBy: Option[String],
+                                  createdByEmail: Option[String],
+                                  smrtlinkVersion: Option[String],
+                                  isActive: Boolean = true,
+                                  errorMessage: Option[String] = None,
+                                  projectId: Int =
+                                    JobConstants.GENERAL_PROJECT_ID,
+                                  isMultiJob: Boolean = false,
+                                  workflow: String = "{}",
+                                  parentMultiJobId: Option[Int] = None,
+                                  importedAt: Option[JodaDateTime] = None) {
+    def toEngineJob() =
+      EngineJob(
+        id,
+        uuid,
+        name,
+        comment,
+        createdAt,
+        updatedAt,
+        updatedAt,
+        state,
+        jobTypeId,
+        path,
+        jsonSettings,
+        createdBy,
+        createdByEmail,
+        smrtlinkVersion,
+        isActive,
+        errorMessage,
+        projectId,
+        isMultiJob,
+        workflow,
+        parentMultiJobId,
+        importedAt
+      )
+  }
+
+  val engineJobJsonNewestFormat = jsonFormat22(EngineJob)
+  val smrtLink510engineJobJson = jsonFormat20(SmrtLink510EngineJob)
+
+  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
+    override def read(json: JsValue): EngineJob =
+      Try(engineJobJsonNewestFormat.read(json)) match {
+        case Success(engineJob) => engineJob
+        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
+      }
+
+    override def write(obj: EngineJob): JsValue =
+      engineJobJsonNewestFormat.write(obj)
+  }
+}
+
+object EngineJobJsonSupport extends EngineJobJsonSupport
+
 case class ExampleServiceJobOption(name: String,
                                    private val projectId: Option[Int]) {
   val DEFAULT_PROJECT_ID = 1
   val projId: Int = projectId.getOrElse(DEFAULT_PROJECT_ID)
-}
-
-trait JobOptionsProtocols
-    extends DefaultJsonProtocol
-    with DataSetMetaTypesProtocol
-    with PathProtocols
-    with JsonProjectSupport {
-
-  implicit object ImportDataSetOptionsFormat
-      extends RootJsonFormat[ImportDataSetOptions] {
-    def write(o: ImportDataSetOptions) =
-      JsObject("path" -> o.path.toJson,
-               "datasetType" -> o.datasetType.toJson,
-               "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): ImportDataSetOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("path", "datasetType") match {
-        case Seq(JsString(path), JsString(dsType)) =>
-          ImportDataSetOptions(Paths.get(path),
-                               DataSetMetaTypes.toDataSetType(dsType).get,
-                               getProjectId(jsObj))
-        case x =>
-          deserializationError(s"Expected ImportDataSetOptions, got $x")
-      }
-    }
-  }
-
-  implicit object ConvertImportFastaBarcodesOptionsFormat
-      extends RootJsonFormat[ConvertImportFastaBarcodesOptions] {
-    def write(o: ConvertImportFastaBarcodesOptions) =
-      JsObject("path" -> o.path.toJson,
-               "name" -> o.name.toJson,
-               "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): ConvertImportFastaBarcodesOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("path", "name") match {
-        case Seq(JsString(path), JsString(name)) =>
-          ConvertImportFastaBarcodesOptions(path, name, getProjectId(jsObj))
-        case x =>
-          deserializationError(
-            s"Expected ConvertImportFastaBarcodesOptions, got $x")
-      }
-    }
-  }
-
-  implicit object MergeDataSetOptionsFormat
-      extends RootJsonFormat[MergeDataSetOptions] {
-    def write(o: MergeDataSetOptions) =
-      JsObject("datasetType" -> o.datasetType.toJson,
-               "paths" -> o.paths.toJson,
-               "name" -> o.name.toJson,
-               "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): MergeDataSetOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("datasetType", "paths", "name") match {
-        case Seq(JsString(datasetType), JsArray(paths), JsString(name)) =>
-          MergeDataSetOptions(datasetType,
-                              paths.map(_.convertTo[Path]),
-                              name,
-                              getProjectId(jsObj))
-        case x => deserializationError(s"Expected MergeDataSetOptions, got $x")
-      }
-    }
-  }
-
-  implicit object MovieMetadataToHdfSubreadOptionsFormat
-      extends RootJsonFormat[MovieMetadataToHdfSubreadOptions] {
-    def write(o: MovieMetadataToHdfSubreadOptions) =
-      JsObject("path" -> o.path.toJson,
-               "name" -> o.name.toJson,
-               "projectId" -> o.projectId.toJson)
-    def read(value: JsValue): MovieMetadataToHdfSubreadOptions = {
-      val jsObj = value.asJsObject
-      jsObj.getFields("path", "name") match {
-        case Seq(JsString(path), JsString(name)) =>
-          MovieMetadataToHdfSubreadOptions(path, name, getProjectId(jsObj))
-        case x =>
-          deserializationError(
-            s"Expected MovieMetadataToHdfSubreadOptions, got $x")
-      }
-    }
-  }
 }
 
 trait JobTypeSettingProtocol
@@ -516,22 +448,20 @@ trait JobTypeSettingProtocol
     with UUIDJsonProtocol
     with JobStatesJsonProtocol
     with DataSetMetaTypesProtocol
-    with PipelineTemplateJsonProtocol
     with PipelineTemplatePresetJsonProtocol
     with URIJsonProtocol
-    with JobOptionsProtocols
-    with PathProtocols {
+    with PathProtocols
+    with EngineJobJsonSupport {
 
   import JobModels._
-
-  implicit val engineJobFormat = jsonFormat20(EngineJob)
 
   //implicit val pacBioJobFormat = jsonFormat3(JobResource)
   implicit val datastoreFileFormat = jsonFormat10(DataStoreFile.apply)
   implicit val datastoreFormat = jsonFormat4(PacBioDataStore.apply)
   implicit val boundEntryPointFormat = jsonFormat2(BoundEntryPoint)
-  implicit val entryPointFormat = jsonFormat3(EntryPoint)
   implicit val jobEventFormat = jsonFormat6(JobEvent)
+  implicit val entryPointFormat = jsonFormat3(EntryPoint)
+  implicit val pipelineTemplateFormat = jsonFormat9(PipelineTemplate)
 
   // Job results
   implicit val jobResultSuccesFormat = jsonFormat6(ResultSuccess)
@@ -546,7 +476,6 @@ trait JobTypeSettingProtocol
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(
     PbsmrtpipeDirectJobOptions)
-  implicit val simpleDevJobOptionsFormat = jsonFormat3(SimpleDevJobOptions)
 
   // Engine Config
   implicit val engineConfigFormat = jsonFormat5(EngineConfig)
@@ -559,6 +488,7 @@ trait JobTypeSettingProtocol
   implicit val tsSystemStatusManifest = jsonFormat9(
     TsSystemStatusManifest.apply)
   implicit val tsJobManifestFormat = jsonFormat11(TsJobManifest.apply)
+  implicit val tsJobMetricHistoryFormat = jsonFormat10(TsJobMetricHistory)
   implicit val exportJobManifestFormat = jsonFormat3(ExportJobManifest)
 }
 

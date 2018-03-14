@@ -11,27 +11,23 @@ import com.pacbio.secondary.smrtlink.analysis.converters.IndexCreationError
 object CallGmapBuild extends ExternalToolsUtils {
 
   val EXE = "gmap_build"
-  lazy val CWD = Paths.get(".")
 
-  def apply(fastaPath: Path,
-            outputDir: Path = CWD,
-            gmapBuildExePath: String = EXE): Option[ExternalCmdFailure] = {
+  def run(fastaPath: Path,
+          outputDir: Path,
+          gmapBuildExePath: String = EXE): Either[ExternalCmdFailure, Path] = {
+    // the output directory will be $refName in $PWD
+
     val cmd = Seq(gmapBuildExePath,
                   "-D",
                   outputDir.toAbsolutePath.toString,
                   "-d",
                   "gmap_db",
                   fastaPath.toAbsolutePath.toString)
-    runSimpleCmd(cmd)
-  }
 
-  def run(fastaPath: Path,
-          outputDir: Path = CWD,
-          gmapBuildExePath: String = EXE): Either[ExternalCmdFailure, Path] = {
-    // the output directory will be $refName in $PWD
-    apply(fastaPath, outputDir, gmapBuildExePath) match {
-      case Some(e) => Left(e)
-      case _ => Right(outputDir.resolve("gmap_db"))
-    }
+    // Write the output for debugging
+    val cmdOut = outputDir.resolve("gmap.stdout")
+    val cmdErr = outputDir.resolve("gmap.stderr")
+    runCmd(cmd, cmdOut, cmdErr, cwd = Some(outputDir.toFile))
+      .map(_ => outputDir.resolve("gmap_db"))
   }
 }

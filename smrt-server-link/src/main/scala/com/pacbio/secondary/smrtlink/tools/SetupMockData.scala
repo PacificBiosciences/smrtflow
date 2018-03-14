@@ -134,14 +134,16 @@ trait MockUtils extends LazyLogging {
 
     def toJob = {
 
+      val now = JodaDateTime.now()
       val uuid = UUID.randomUUID()
       EngineJob(
         -1,
         uuid,
         s"$MOCK_JOB_NAME_PREFIX Job name $uuid",
         s"Comment for job $uuid",
-        JodaDateTime.now(),
-        JodaDateTime.now(),
+        now,
+        now,
+        now,
         getRandomState,
         jobType,
         "path",
@@ -184,6 +186,7 @@ trait MockUtils extends LazyLogging {
       UUID.randomUUID(),
       "Mock Job",
       "Mock Job Comment",
+      now,
       now,
       now,
       AnalysisJobStates.SUCCESSFUL,
@@ -236,6 +239,7 @@ trait MockUtils extends LazyLogging {
       UUID.randomUUID(),
       "Mock Job",
       "Mock Job Comment",
+      now,
       now,
       now,
       AnalysisJobStates.SUCCESSFUL,
@@ -306,6 +310,7 @@ trait MockUtils extends LazyLogging {
       UUID.randomUUID(),
       "Mock Job",
       "Mock Job Comment",
+      now,
       now,
       now,
       AnalysisJobStates.SUCCESSFUL,

@@ -329,15 +329,10 @@ object ApplyConfigUtils extends LazyLogging {
                        tomcatPort: Int,
                        smrtLinkStaticDir: String): File = {
 
-    // Not really clear how to use this API
-    def a(): String = smrtLinkStaticDir.toString
-    def b(): String = tomcatPort.toString
-    def c(): String = host
-
-    val subs: Map[String, () => Any] =
-      Map("${STATIC_FILE_DIR}" -> a,
-          "${TOMCAT_PORT}" -> b,
-          "${TOMCAT_HOST}" -> c)
+    val subs: Map[String, () => String] =
+      Map("${STATIC_FILE_DIR}" -> (() => smrtLinkStaticDir),
+          "${TOMCAT_PORT}" -> (() => tomcatPort.toString),
+          "${TOMCAT_HOST}" -> (() => host))
 
     val xmlNode = XmlTemplateReader
       .fromFile(smrtLinkStaticUITemplateXml)

@@ -4,12 +4,13 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.actor.Status.Success
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
 import spray.json._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._
@@ -30,6 +31,7 @@ object EventManagerActor {
   case object CheckExternalServerStatus
   case class CreateEvent(event: SmrtLinkEvent)
   case class EnableExternalMessages(enable: Boolean)
+  case class UploadTechSupportTgz(path: Path)
 }
 
 class EventManagerActor(smrtLinkId: UUID,
@@ -57,7 +59,7 @@ class EventManagerActor(smrtLinkId: UUID,
   override def preStart() = {
     val dns = dnsName.map(n => s"dns name $n").getOrElse("")
     logger.info(
-      s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server URL $externalEveUrl")
+      s"Starting $self with smrtLinkID $smrtLinkId $dns and External Event Server URL $externalEveUrl with enableExternalEvents=$enableExternalMessages")
     logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
@@ -69,7 +71,7 @@ class EventManagerActor(smrtLinkId: UUID,
         }
         .recover({
           case NonFatal(ex) =>
-            s"Failed to connect to External Event Server $c at ${c.baseUrl} ${ex.getMessage}"
+            s"Failed to connect to External Event Server $c at ${c.RootUri} ${ex.getMessage}"
         })
         .map { statusMessage =>
           logger.info(statusMessage)
@@ -98,20 +100,17 @@ class EventManagerActor(smrtLinkId: UUID,
   // Should this spawn a "worker" actor to run this call?
   private def upload(c: EventServerClient,
                      tgz: Path): Future[SmrtLinkSystemEvent] = {
-    logger.info(s"Client ${c.toUploadUrl} Attempting to upload $tgz")
+    logger.info(s"Client ${c.UPLOAD_URI} Attempting to upload $tgz")
+    c.upload(tgz)
+  }
 
-    val f = c.upload(tgz)
-
-    f.onSuccess {
-      case e: SmrtLinkSystemEvent =>
-        logger.info(s"Upload successful. Event $e")
+  def uploadIfConfigured(path: Path): Unit = {
+    client match {
+      case Some(c) =>
+        upload(c, path)
+      case _ =>
+        logger.info("System is not configured to upload files")
     }
-    f.onFailure {
-      case NonFatal(e) =>
-        logger.error(s"Failed to upload $tgz Error ${e.getMessage}")
-    }
-
-    f
   }
 
   override def receive: Receive = {
@@ -120,7 +119,10 @@ class EventManagerActor(smrtLinkId: UUID,
       checkExternalServerStatus()
 
     case EnableExternalMessages(enable) =>
+      // Unless the system is Configured with a Eve URL, this has no impact
       enableExternalMessages = enable
+      val msx = s"Enabled External Messages to ${client.map(_.RootUri)}"
+      sender ! msx
 
     case CreateEvent(e) =>
       if (enableExternalMessages) {
@@ -128,7 +130,9 @@ class EventManagerActor(smrtLinkId: UUID,
         sender ! systemEvent
         sendSystemEvent(systemEvent)
       } else {
-        logger.warn("Enabling external message sending id disabled.")
+        // This should send a failed message back
+        logger.warn(
+          s"External Event Sending is disabled. Unable to send event $e")
       }
 
     case e: EulaRecord =>
@@ -153,6 +157,9 @@ class EventManagerActor(smrtLinkId: UUID,
         // the message isn't sent. Should clarify this interface
         sender ! systemEvent
       }
+
+    case UploadTechSupportTgz(path) =>
+      uploadIfConfigured(path)
 
     case x => logger.debug(s"Event Manager got unknown handled message $x")
   }

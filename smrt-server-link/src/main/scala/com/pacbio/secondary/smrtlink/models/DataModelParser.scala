@@ -14,7 +14,8 @@ import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableE
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeFormat
 import com.pacificbiosciences.pacbiobasedatamodel.{
   RecordedEventType,
-  SupportedAcquisitionStates
+  SupportedAcquisitionStates,
+  SupportedChipTypes
 }
 import com.pacificbiosciences.pacbiodatamodel.PacBioDataModel
 import com.pacificbiosciences.pacbiocollectionmetadata.{
@@ -23,7 +24,7 @@ import com.pacificbiosciences.pacbiocollectionmetadata.{
 
 import org.joda.time.{DateTime => JodaDateTime}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 // TODO(smcclellan): Add scaladoc, unittests
@@ -70,7 +71,7 @@ object DataModelParserImpl extends DataModelParser {
 
       require(runModels.size() == 1, "expected exactly one <Run> element.")
 
-      val runModel = runModels.head
+      val runModel = runModels.asScala.head
 
       // Validate the Run state to have a better error message. Does jaxb silently fail for invalid enum values?
       // Doing this here to catch the error earlier, otherwise it will fail at the db level
@@ -93,7 +94,7 @@ object DataModelParserImpl extends DataModelParser {
         eventTimeByName(events, "RunTransfersCompletion")
 
       val subreadModels =
-        runModel.getOutputs.getSubreadSets.getSubreadSet.toSeq
+        runModel.getOutputs.getSubreadSets.getSubreadSet.asScala.toSeq
 
       require(subreadModels.nonEmpty,
               "expected at least one <SubreadSet> element.")
@@ -109,7 +110,7 @@ object DataModelParserImpl extends DataModelParser {
           collectionMetadataModels.size() == 1,
           "expected exactly one <CollectionMetadata> element per <SubreadSet> element.")
 
-        val collectionMetadataModel = collectionMetadataModels.head
+        val collectionMetadataModel = collectionMetadataModels.asScala.head
 
         require(collectionMetadataModel.getWellSample != null,
                 "expected a <WellSample> element.")
@@ -121,7 +122,7 @@ object DataModelParserImpl extends DataModelParser {
 //          s"Collection ${collectionMetadataModel.getUniqueId} invalid state.")
 
         val movieMinutes =
-          collectionMetadataModel.getAutomation.getAutomationParameters.getAutomationParameter
+          collectionMetadataModel.getAutomation.getAutomationParameters.getAutomationParameter.asScala
             .find(_.getName == "MovieLength")
             .get
             .getSimpleValue
@@ -176,12 +177,12 @@ object DataModelParserImpl extends DataModelParser {
       // There are some values we need from the model that are the same across collections, but for some reason
       // not stored at the run level.
       val arbitraryCollectionMetadata =
-        subreadModels.head.getDataSetMetadata.getCollections.getCollectionMetadata.head
+        subreadModels.head.getDataSetMetadata.getCollections.getCollectionMetadata.asScala.head
 
       def getComponentVersion(md: XsdCollectionMetadata,
                               componentId: String): Option[String] = {
         Option(md.getComponentVersions).flatMap { versions =>
-          versions.getValue.getVersionInfo
+          versions.getValue.getVersionInfo.asScala
             .find(_.getName == componentId)
             .map(_.getVersion)
         }
@@ -201,6 +202,7 @@ object DataModelParserImpl extends DataModelParser {
         transfersCompletedAt,
         completedAt,
         runModel.getStatus,
+        Option(runModel.getChipType).getOrElse(SupportedChipTypes.ONE_M_CHIP),
         collections.size,
         collections.count(c =>
           c.status == SupportedAcquisitionStates.COMPLETE),

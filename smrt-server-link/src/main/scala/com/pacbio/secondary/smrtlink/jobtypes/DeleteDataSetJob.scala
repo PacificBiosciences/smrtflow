@@ -1,16 +1,32 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
+import java.io.File
+import java.util.UUID
+
+import scala.collection.JavaConverters._
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
+
+import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacbio.common.models.CommonModels._
 import com.pacbio.secondary.smrtlink.actors.JobsDao
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
   InvalidJobOptionError,
   JobResultsWriter
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.DeleteDatasetsOptions
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   EngineJobEntryPointRecord,
@@ -18,10 +34,11 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
-
-import scala.concurrent._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
+import com.pacificbiosciences.pacbiodatasets._
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  InputOutputDataType,
+  ExternalResources
+}
 
 /**
   * Created by mkocher on 8/17/17.
@@ -132,25 +149,80 @@ case class DeleteDataSetJobOptions(
 
 }
 
-class DeleteDataSetJob(opts: DeleteDataSetJobOptions)
-    extends ServiceCoreJob(opts) {
+trait DeleteResourcesCoreJob extends DeleteResourcesUtils {
+  this: ServiceCoreJob =>
+
   type Out = PacBioDataStore
+  val resourceType = "Unknown Path"
+
+  protected def runDelete(job: JobResourceBase,
+                          resultsWriter: JobResultsWriter,
+                          dao: JobsDao,
+                          config: SystemJobConfig): Try[Report]
+
+  protected def runJob(job: JobResourceBase,
+                       resultsWriter: JobResultsWriter,
+                       dao: JobsDao,
+                       config: SystemJobConfig): Either[ResultFailed, Out] = {
+    val startedAt = JodaDateTime.now()
+    //resultsWriter.writeLine(s"Starting cleanup of ${opts.path} at ${startedAt.toString}")
+    val logFile = getStdOutLog(job, dao)
+    val reportPath = job.path.resolve("delete_report.json")
+
+    runDelete(job, resultsWriter, dao, config) match {
+      case Success(report) =>
+        val now = JodaDateTime.now()
+        ReportUtils.writeReport(report, reportPath)
+        val rptFile = DataStoreFile(
+          report.uuid,
+          s"${jobTypeId}::delete-report",
+          FileTypes.REPORT.fileTypeId.toString,
+          reportPath.toFile.length(),
+          now,
+          now,
+          reportPath.toAbsolutePath.toString,
+          isChunked = false,
+          s"${jobTypeId} Delete Report",
+          s"Report for ${resourceType} deletion"
+        )
+        Right(PacBioDataStore(now, now, "0.2.1", Seq(logFile, rptFile)))
+      case Failure(err) =>
+        val runTimeSec = computeTimeDeltaFromNow(startedAt)
+        Left(
+          ResultFailed(
+            job.jobId,
+            jobTypeId.toString,
+            s"Delete job ${job.jobId} of ${resourceType} failed with error '${err.getMessage}",
+            runTimeSec,
+            AnalysisJobStates.FAILED,
+            host
+          ))
+    }
+  }
+}
+
+class DeleteDataSetJob(opts: DeleteDataSetJobOptions)
+    extends ServiceCoreJob(opts)
+    with DeleteResourcesCoreJob {
+  override val resourceType = "Dataset"
+
+  override def runDelete(job: JobResourceBase,
+                         resultsWriter: JobResultsWriter,
+                         dao: JobsDao,
+                         config: SystemJobConfig): Try[Report] = Try {
+    // THIS needs to be fixed. It should delete from the file system and update the db as a computation single unit
+    // to make sure there's a
+    val results =
+      Await.result(opts.getAllDataSetsAndDelete(dao), opts.DEFAULT_TIMEOUT)
+    val paths: Seq[Path] = results._2.map(p => Paths.get(p.path))
+    if (paths.isEmpty) throw new Exception("No paths specified")
+    deleteDataSetFiles(paths, opts.removeFiles)
+  }
 
   override def run(
       resources: JobResourceBase,
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
-      config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-
-    // THIS needs to be fixed. It should delete from the file system and update the db as a computation single unit
-    // to make sure there's a
-    // This requires de-tangling the old-style job from the new model.
-    val results =
-      Await.result(opts.getAllDataSetsAndDelete(dao), opts.DEFAULT_TIMEOUT)
-    val paths: Seq[Path] = results._2.map(p => Paths.get(p.path))
-
-    val oldOpts =
-      DeleteDatasetsOptions(paths, opts.removeFiles, opts.getProjectId())
-    oldOpts.toJob.run(resources, resultsWriter)
-  }
+      config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] =
+    runJob(resources, resultsWriter, dao, config)
 }

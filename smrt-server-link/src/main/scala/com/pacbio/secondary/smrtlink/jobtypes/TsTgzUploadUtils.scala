@@ -39,7 +39,7 @@ trait TsJobValidationUtils {
     eveURL match {
       case Some(u) => Future.successful(u)
       case _ =>
-        Future.failed(new UnprocessableEntityError(
+        Future.failed(UnprocessableEntityError(
           "External EVE URL is not configured in System. Unable to send message to TechSupport"))
     }
   }
@@ -54,6 +54,7 @@ trait TsTgzUploadUtils extends LazyLogging {
   def DEFAULT_MAX_UPLOAD_TIME = 5.minutes
 
   // This is pretty painful to create a new actor system and shut it down for this client useage
+  // At a minimum, this should probably be pushed to the caller
   def upload(eveUrl: URL,
              apiSecret: String,
              tgz: Path,
@@ -62,7 +63,7 @@ trait TsTgzUploadUtils extends LazyLogging {
     val system = ActorSystem("client-upload")
     val client = new EventServerClient(eveUrl, apiSecret)(system)
 
-    val startMsg = s"Client ${client.toUploadUrl} Attempting to upload $tgz"
+    val startMsg = s"Client ${client.UPLOAD_URI} Attempting to upload $tgz"
     logger.info(startMsg)
     writer.writeLine(startMsg)
 
@@ -73,7 +74,7 @@ trait TsTgzUploadUtils extends LazyLogging {
       msg
     }
 
-    f.onComplete(_ => system.shutdown())
+    f.foreach(_ => system.terminate())
 
     f
 

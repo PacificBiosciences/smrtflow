@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplate
 import com.pacbio.secondary.smrtlink.analysis.pipelines.PipelineTemplateDao
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateResourceLoader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 /**
   *
@@ -43,12 +43,10 @@ class ResolvedPipelineTemplateService(dao: PipelineTemplateDao)
         path(Segment) { sx =>
           get {
             complete {
-              ok {
-                dao
-                  .getPipelineTemplateById(sx)
-                  .getOrElse(throw new ResourceNotFoundError(
-                    s"Unable to find pipeline $sx"))
-              }
+              dao
+                .getPipelineTemplateById(sx)
+                .getOrElse(throw new ResourceNotFoundError(
+                  s"Unable to find pipeline $sx"))
             }
           }
         } ~

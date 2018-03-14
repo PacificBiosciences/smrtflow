@@ -11,9 +11,8 @@ import com.pacbio.secondary.smrtlink.actors.{
 }
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.models._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
-import spray.routing.PathMatchers.Segment
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.duration._
@@ -39,23 +38,19 @@ class AlarmService(alarmDaoActor: ActorRef)
       pathEndOrSingleSlash {
         get {
           complete {
-            ok {
-              (alarmDaoActor ? GetAllAlarmStatus).mapTo[Seq[AlarmStatus]]
-            }
+            (alarmDaoActor ? GetAllAlarmStatus).mapTo[Seq[AlarmStatus]]
           }
         }
       } ~
         path(Segment) { alarmId =>
           get {
             complete {
-              ok {
-                for {
-                  opt <- (alarmDaoActor ? GetAlarmStatusById(alarmId))
-                    .mapTo[Option[AlarmStatus]]
-                  status <- failIfNone[AlarmStatus](
-                    s"Unable to find Alarm Id $alarmId")(opt)
-                } yield status
-              }
+              for {
+                opt <- (alarmDaoActor ? GetAlarmStatusById(alarmId))
+                  .mapTo[Option[AlarmStatus]]
+                status <- failIfNone[AlarmStatus](
+                  s"Unable to find Alarm Id $alarmId")(opt)
+              } yield status
             }
           }
         }

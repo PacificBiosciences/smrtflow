@@ -65,14 +65,16 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   // For jobs that are small and can completed in a relatively short amount of time (~seconds) and have minimal resource usage
   val quickWorkers = mutable.Queue[ActorRef]()
 
-  val serviceRunner = new ServiceJobRunner(dao, config)
+  //FIXME(mpkocher)(2017-12-17) This might be better to be more grainular
+  val ec = scala.concurrent.ExecutionContext.Implicits.global
+  val serviceRunner = new ServiceJobRunner(dao, config)(ec)
 
   def andLog(sx: String): Future[String] = Future.successful {
     log.info(sx)
     sx
   }
 
-  private def getManagerStatus() = {
+  private def getManagerStatus(): EngineManagerStatus = {
     val n = config.numGeneralWorkers - workers.length
     val m = config.numQuickWorkers - quickWorkers.length
     EngineManagerStatus(config.numGeneralWorkers, n, config.numQuickWorkers, m)

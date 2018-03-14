@@ -1,7 +1,7 @@
 package com.pacbio.common.models
 
 import java.util.{Properties, UUID}
-import collection.JavaConversions._
+
 import collection.JavaConverters._
 
 import scala.util.Try
@@ -15,7 +15,7 @@ trait Constants {
   // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "4.0.1"
   // Git SHA1 (previously Perforce CHANGELIST) that was used to generate the XSDs
-  final val XSD_CHANGELIST = "14c096c"
+  final val XSD_CHANGELIST = "55e2671"
 
   private def getMajorMinorPatch(prop: Properties): Option[String] =
     Try { prop.getProperty("version").replace("-SNAPSHOT", "") }.toOption

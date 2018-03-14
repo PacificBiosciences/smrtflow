@@ -1,11 +1,12 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets.validators
 
-import scalaz._
-import Scalaz._
-
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.FileType
 import com.pacificbiosciences.pacbiodatasets.HdfSubreadSet
+
+import cats.data._
+import cats.data.Validated._
+import cats.implicits._
 
 /**
   * Created by mkocher on 11/30/15.
@@ -22,8 +23,8 @@ object ValidateHdfSubreadSet extends ValidateDataSet {
     * @param ds
     * @return
     */
-  override def validateCustom(ds: HdfSubreadSet): ValidateDataSetE = {
-    ds.successNel
+  override def validateCustom(ds: HdfSubreadSet): ValidationResult[DsType] = {
+    ds.validNel
   }
 
 }

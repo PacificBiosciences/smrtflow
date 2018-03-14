@@ -13,15 +13,27 @@ trait CallPbReport extends Python {
   val reportModule: String
   val reportTaskId: String
 
+  /**
+    * Note, We completely ignore any errors here.
+    *
+    * If the report can't be generated for ANY reason we
+    * default to generating a "Simple" report.
+    *
+    * This is indeed perhaps not a great idea.
+    *
+    * @param stsXml Path to STS XML file
+    * @param outputJson Output Report JSON file
+    * @return
+    */
   def apply(stsXml: Path, outputJson: Path): Option[ExternalCmdFailure] = {
     val cmd = Seq(
       EXE,
       "-m",
-      s"pbreports.report.${reportModule}",
+      s"pbreports.report.$reportModule",
       stsXml.toAbsolutePath.toString,
       outputJson.toAbsolutePath.toString
     )
-    runSimpleCmd(cmd)
+    runCheckCall(cmd)
   }
 
   def run(stsXml: Path,
@@ -44,7 +56,7 @@ object PbReports {
   trait SubreadStatsReport extends CallPbReport {
     override def canProcess(dst: DataSetMetaTypes.DataSetMetaType,
                             hasStatsXml: Boolean): Boolean = {
-      (dst == DataSetMetaTypes.Subread) && (hasStatsXml)
+      (dst == DataSetMetaTypes.Subread) && hasStatsXml
     }
   }
 

@@ -13,6 +13,7 @@ import org.eclipse.persistence.jaxb.{
 import spray.json._
 
 import com.pacificbiosciences.pacbiodatasets._
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFilterProperty
 
 /**
   *
@@ -151,6 +152,18 @@ object DataSetJsonUtils {
       .asInstanceOf[GmapReferenceSet]
   }
 
+  def transcriptSetToJson(dataset: TranscriptSet) =
+    contextToJson(JAXBContext.newInstance(classOf[TranscriptSet]), dataset)
+
+  def transcriptSetFromJson(json: String): TranscriptSet = {
+    val ctx = JAXBContext.newInstance(classOf[TranscriptSet])
+    contextToUnmarshaller(ctx)
+      .unmarshal(new StreamSource(new StringReader(json)),
+                 classOf[TranscriptSet])
+      .getValue()
+      .asInstanceOf[TranscriptSet]
+  }
+
 }
 
 trait DataSetJsonProtocols extends DefaultJsonProtocol {
@@ -222,6 +235,31 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
       DataSetJsonUtils.gmapReferenceSetFromJson(json.toString)
   }
 
+  implicit object TranscriptSetJsonFormat
+      extends RootJsonFormat[TranscriptSet] {
+    def write(obj: TranscriptSet): JsObject =
+      DataSetJsonUtils.transcriptSetToJson(obj).parseJson.asJsObject
+    def read(json: JsValue): TranscriptSet =
+      DataSetJsonUtils.transcriptSetFromJson(json.toString)
+  }
+
+  implicit object DataSetFilterPropertyFormat
+      extends RootJsonFormat[DataSetFilterProperty] {
+    def write(p: DataSetFilterProperty): JsObject =
+      JsObject("name" -> JsString(p.name.value()),
+               "operator" -> JsString(p.operator.value()),
+               "value" -> JsString(p.value))
+    def read(value: JsValue): DataSetFilterProperty = {
+      value.asJsObject.getFields("name", "operator", "value") match {
+        case Seq(JsString(name),
+                 JsString(operator),
+                 JsString(operatorValue)) =>
+          DataSetFilterProperty(name, operator, operatorValue)
+        case x =>
+          deserializationError(s"Expected DataSetFilterProperty, got $x")
+      }
+    }
+  }
 }
 
 object DataSetJsonProtocol extends DataSetJsonProtocols

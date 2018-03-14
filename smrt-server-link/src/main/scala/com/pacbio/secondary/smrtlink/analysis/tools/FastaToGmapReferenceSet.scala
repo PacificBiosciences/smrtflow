@@ -83,11 +83,12 @@ object FastaToGmapReferenceSet
         throw new Exception(
           s"The output directory '${outputDir.toString}' does not exist; please create it or specify an already existing path.")
       GmapReferenceConverter(c.name,
-                             fastaPath,
-                             outputDir,
                              organism,
                              ploidy,
-                             c.inPlace)
+                             fastaPath,
+                             outputDir,
+                             inPlace = c.inPlace,
+                             mkdir = false)
     } match {
       case Success(x) =>
         x match {

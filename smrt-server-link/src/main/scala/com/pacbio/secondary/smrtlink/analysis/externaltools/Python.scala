@@ -4,7 +4,7 @@ trait Python extends ExternalToolsUtils {
   val EXE = "python"
 
   def hasModule(modName: String): Boolean = {
-    runCmd(Seq(EXE, "-c", s"import ${modName}")).isRight
+    runCheckCall(Seq(EXE, "-c", s"import $modName")).isEmpty
   }
 }
 

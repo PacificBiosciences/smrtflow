@@ -19,9 +19,9 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
-  PbSmrtPipeServiceOptions,
   UserRecord
 }
 import com.pacbio.secondary.smrtlink.services.{
@@ -32,8 +32,8 @@ import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 
 import scala.concurrent.duration.FiniteDuration
 import slick.jdbc.PostgresProfile.api._
@@ -64,7 +64,6 @@ abstract class SmrtLinkAnalysisJobExecutorSpecBase
       with SmrtLinkConfigProvider
       with PbsmrtpipeConfigLoader
       with EngineCoreConfigLoader
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with ActorSystemProvider
       with ConfigProvider
@@ -96,11 +95,12 @@ abstract class SmrtLinkAnalysisJobExecutorSpecBase
     val eps = Seq(ep)
     val taskOptions = Seq[ServiceTaskOptionBase]()
     val workflowOptions = Seq[ServiceTaskOptionBase]()
-    PbSmrtPipeServiceOptions("My-smrt-server-analysis-job-name",
-                             "pbsmrtpipe.pipelines.mock_dev01",
-                             eps,
-                             taskOptions,
-                             workflowOptions)
+    PbsmrtpipeJobOptions(Some("My-smrt-server-analysis-job-name"),
+                         None,
+                         "pbsmrtpipe.pipelines.mock_dev01",
+                         eps,
+                         taskOptions,
+                         workflowOptions)
   }
 
   lazy val rootJobDir = TestProviders.jobEngineConfig().pbRootJobDir

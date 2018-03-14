@@ -2,10 +2,6 @@ package com.pacbio.secondary.smrtlink.services
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.auth.{
-  Authenticator,
-  AuthenticatorProvider
-}
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -14,15 +10,19 @@ import com.pacbio.secondary.smrtlink.actors.{
   RunServiceActorRefProvider,
   SearchCriteria
 }
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedChipTypes
+
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
+import akka.http.scaladsl.model.StatusCodes
 
 import scala.concurrent.ExecutionContext.Implicits._
 
 // TODO(smcclellan): Add documentation
 
-class RunService(runActor: ActorRef, authenticator: Authenticator)
+class RunService(runActor: ActorRef)
     extends SmrtLinkBaseMicroService
     with SmrtLinkJsonProtocols {
 
@@ -34,25 +34,49 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
     "0.1.0",
     "Database-backed CRUD operations for Runs")
 
+  /**
+    * The spray interface has changed
+    *
+    * parameters('reserved.?.as[Option[Boolean]]) doesn't
+    * appear to work in the new API.
+    *
+    * @param sx
+    * @return
+    */
+  def stringToBoolean(sx: String): Boolean = sx.toLowerCase match {
+    case "true" => true
+    case "false" => false
+    case _ =>
+      // FIXME. This should probably raise
+      false
+  }
+
   val routes =
     //authenticate(authenticator.wso2Auth) { user =>
     pathPrefix("runs") {
-      pathEnd {
+      pathEndOrSingleSlash {
         get {
           parameters('name.?,
                      'substring.?,
                      'createdBy.?,
-                     'reserved.?.as[Option[Boolean]]).as(SearchCriteria) {
-            criteria =>
+                     'chipType.?,
+                     'reserved.?) {
+            (name, substring, createdBy, chipType, reserved) =>
               complete {
-                (runActor ? GetRuns(criteria)).mapTo[Set[RunSummary]]
+                (runActor ? GetRuns(
+                  SearchCriteria(name,
+                                 substring,
+                                 createdBy,
+                                 chipType.map(SupportedChipTypes.fromValue),
+                                 reserved.map(stringToBoolean))))
+                  .mapTo[Set[RunSummary]]
               }
           }
         } ~
           post {
             entity(as[RunCreate]) { create =>
               complete {
-                created {
+                StatusCodes.Created -> {
                   //(runActor ? CreateRun(user.userId, create)).mapTo[RunMetadata]
                   (runActor ? CreateRun(create)).mapTo[RunSummary]
                 }
@@ -64,25 +88,19 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
           pathEnd {
             get {
               complete {
-                ok {
-                  (runActor ? GetRun(id)).mapTo[Run]
-                }
+                (runActor ? GetRun(id)).mapTo[Run]
               }
             } ~
               post {
                 entity(as[RunUpdate]) { update =>
                   complete {
-                    ok {
-                      (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
-                    }
+                    (runActor ? UpdateRun(id, update)).mapTo[RunSummary]
                   }
                 }
               } ~
               delete {
                 complete {
-                  ok {
-                    (runActor ? DeleteRun(id)).mapTo[MessageResponse]
-                  }
+                  (runActor ? DeleteRun(id)).mapTo[MessageResponse]
                 }
               }
           } ~
@@ -90,18 +108,14 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
               get {
                 pathEnd {
                   complete {
-                    ok {
-                      (runActor ? GetCollections(id))
-                        .mapTo[Seq[CollectionMetadata]]
-                    }
+                    (runActor ? GetCollections(id))
+                      .mapTo[Seq[CollectionMetadata]]
                   }
                 } ~
                   path(JavaUUID) { collectionId =>
                     complete {
-                      ok {
-                        (runActor ? GetCollection(id, collectionId))
-                          .mapTo[CollectionMetadata]
-                      }
+                      (runActor ? GetCollection(id, collectionId))
+                        .mapTo[CollectionMetadata]
                     }
                   }
               }
@@ -109,12 +123,10 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
             pathPrefix("datamodel") {
               get {
                 pathEndOrSingleSlash {
-                  complete {
-                    ok { // added as a sugar layer to avoid getting the XML from within the JSON of Run
-                      (runActor ? GetRun(id))
-                        .mapTo[Run]
-                        .map(f => scala.xml.XML.loadString(f.dataModel))
-                    }
+                  complete { // added as a sugar layer to avoid getting the XML from within the JSON of Run
+                    (runActor ? GetRun(id))
+                      .mapTo[Run]
+                      .map(f => scala.xml.XML.loadString(f.dataModel))
                   }
                 }
               }
@@ -129,12 +141,10 @@ class RunService(runActor: ActorRef, authenticator: Authenticator)
   * a {{{RunServiceActorRefProvider}}} and an {{{AuthenticatorProvider}}}.
   */
 trait RunServiceProvider {
-  this: RunServiceActorRefProvider
-    with AuthenticatorProvider
-    with ServiceComposer =>
+  this: RunServiceActorRefProvider with ServiceComposer =>
 
   final val runService: Singleton[RunService] =
-    Singleton(() => new RunService(runServiceActorRef(), authenticator()))
+    Singleton(() => new RunService(runServiceActorRef()))
 
   addService(runService)
 }

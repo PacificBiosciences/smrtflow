@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.{Charsets, IOUtils}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Try
 
@@ -38,7 +38,7 @@ trait JsonResourceLoader[T]
     val xs =
       this.getClass.getClassLoader.getResourceAsStream(s"$ROOT_DIR_PREFIX/")
     logger.info(s"sbt Resources Loader. Resolved xs $xs")
-    val files = IOUtils.readLines(xs, Charsets.UTF_8)
+    val files = IOUtils.readLines(xs, Charsets.UTF_8).asScala
     logger.info(s"Files files ${files.length} $files")
     val pts = files
       .filter(_.endsWith(FILE_EXT))
@@ -56,6 +56,7 @@ trait JsonResourceLoader[T]
     val px = Pattern.compile(".*")
     val rs = ResourceList
       .getResources(px)
+      .asScala
       .filter(x => x.startsWith(ROOT_DIR_PREFIX) && x.endsWith(FILE_EXT))
       .toList
     logger.info(

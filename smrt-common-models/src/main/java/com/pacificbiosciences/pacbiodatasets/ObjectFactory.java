@@ -82,46 +82,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link ReferenceSet }
-     * 
-     */
-    public ReferenceSet createReferenceSet() {
-        return new ReferenceSet();
-    }
-
-    /**
-     * Create an instance of {@link ContigSetType }
-     * 
-     */
-    public ContigSetType createContigSetType() {
-        return new ContigSetType();
-    }
-
-    /**
-     * Create an instance of {@link DataSetType.Filters }
-     * 
-     */
-    public DataSetType.Filters createDataSetTypeFilters() {
-        return new DataSetType.Filters();
-    }
-
-    /**
-     * Create an instance of {@link DataSetType.DataSets }
-     * 
-     */
-    public DataSetType.DataSets createDataSetTypeDataSets() {
-        return new DataSetType.DataSets();
-    }
-
-    /**
-     * Create an instance of {@link ContigSetMetadataType }
-     * 
-     */
-    public ContigSetMetadataType createContigSetMetadataType() {
-        return new ContigSetMetadataType();
-    }
-
-    /**
      * Create an instance of {@link SubreadSet }
      * 
      */
@@ -143,6 +103,46 @@ public class ObjectFactory {
      */
     public ReadSetType createReadSetType() {
         return new ReadSetType();
+    }
+
+    /**
+     * Create an instance of {@link DataSetType.Filters }
+     * 
+     */
+    public DataSetType.Filters createDataSetTypeFilters() {
+        return new DataSetType.Filters();
+    }
+
+    /**
+     * Create an instance of {@link DataSetType.DataSets }
+     * 
+     */
+    public DataSetType.DataSets createDataSetTypeDataSets() {
+        return new DataSetType.DataSets();
+    }
+
+    /**
+     * Create an instance of {@link ReferenceSet }
+     * 
+     */
+    public ReferenceSet createReferenceSet() {
+        return new ReferenceSet();
+    }
+
+    /**
+     * Create an instance of {@link ContigSetType }
+     * 
+     */
+    public ContigSetType createContigSetType() {
+        return new ContigSetType();
+    }
+
+    /**
+     * Create an instance of {@link ContigSetMetadataType }
+     * 
+     */
+    public ContigSetMetadataType createContigSetMetadataType() {
+        return new ContigSetMetadataType();
     }
 
     /**
@@ -239,6 +239,30 @@ public class ObjectFactory {
      */
     public GmapReferenceSet createGmapReferenceSet() {
         return new GmapReferenceSet();
+    }
+
+    /**
+     * Create an instance of {@link TranscriptSet }
+     * 
+     */
+    public TranscriptSet createTranscriptSet() {
+        return new TranscriptSet();
+    }
+
+    /**
+     * Create an instance of {@link TranscriptSetType }
+     * 
+     */
+    public TranscriptSetType createTranscriptSetType() {
+        return new TranscriptSetType();
+    }
+
+    /**
+     * Create an instance of {@link TranscriptSetMetadataType }
+     * 
+     */
+    public TranscriptSetMetadataType createTranscriptSetMetadataType() {
+        return new TranscriptSetMetadataType();
     }
 
     /**

@@ -1,23 +1,44 @@
 package com.pacbio.secondary.smrtlink.analysis.datasets
 
 import java.nio.file.Path
+import java.text.SimpleDateFormat
+import javax.xml.datatype.DatatypeFactory
+import java.util.{UUID, Calendar}
 
-import scala.util.{Try, Failure, Success}
-import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConverters._
+import scala.collection.immutable.TreeSet
 
+import org.joda.time.{DateTime => JodaDateTime}
 import com.typesafe.scalalogging.LazyLogging
 
 import com.pacificbiosciences.pacbiodatasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{BaseEntityType, DNABarcode}
-import com.pacificbiosciences.pacbiocollectionmetadata.{
-  CollectionMetadata => XsdMetadata,
-  WellSample
+import com.pacificbiosciences.pacbiodatasets.{
+  DataSetType => XsdDataSetType,
+  DataSetMetadataType,
+  SubreadSet
 }
-import com.pacificbiosciences.pacbiosampleinfo.{BioSamples, BioSampleType}
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  BaseEntityType,
+  DNABarcode,
+  ExternalResource,
+  ExternalResources,
+  FilterType,
+  StrictEntityType,
+  SupportedFilterNames
+}
+import com.pacificbiosciences.pacbiocollectionmetadata.{
+  WellSample,
+  CollectionMetadata => XsdMetadata
+}
+import com.pacificbiosciences.pacbiosampleinfo.{BioSampleType, BioSamples}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
   DataSetLoader,
   DataSetWriter
 }
+import com.pacbio.secondary.smrtlink.analysis.externaltools.CallDataset
+
+import collection.JavaConverters._
 
 /**
   * Utilities for accessing and manipulating dataset metadata items,
@@ -28,10 +49,29 @@ trait DataSetMetadataUtils extends LazyLogging {
   val UNKNOWN = "unknown"
   val MULTIPLE_SAMPLES_NAME = "[multiple]"
 
+  /**
+    * Recurrsively return a flattened list of ExternalResource instances
+    *
+    * This will also handle null of ExternalResource entities.
+    *
+    * @param exs ExternalResources (can be Null)
+    */
+  def getAllExternalResources(exs: ExternalResources): Seq[ExternalResource] = {
+    Option(exs) match {
+      case Some(xs) =>
+        xs.getExternalResource.asScala.toList.flatMap { e =>
+          Option(e)
+            .map(i => Seq(i))
+            .getOrElse(Nil) ++ getAllExternalResources(e.getExternalResources)
+        }
+      case _ => Nil
+    }
+  }
+
   protected def getCollectionsMetadata(ds: ReadSetType): Seq[XsdMetadata] =
     Try {
       Option(ds.getDataSetMetadata.getCollections.getCollectionMetadata)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[XsdMetadata])
     }.toOption.getOrElse(Seq.empty[XsdMetadata])
 
@@ -50,7 +90,7 @@ trait DataSetMetadataUtils extends LazyLogging {
   private def getWellBioSamples(ws: WellSample): Seq[BioSampleType] = {
     Try {
       Option(ws.getBioSamples.getBioSample)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[BioSampleType])
     }.toOption.getOrElse(Seq.empty[BioSampleType])
   }
@@ -70,7 +110,7 @@ trait DataSetMetadataUtils extends LazyLogging {
   private def getBioSampleBarcodes(bs: BioSampleType): Seq[DNABarcode] =
     Try {
       Option(bs.getDNABarcodes.getDNABarcode)
-        .map(_.toList)
+        .map(_.asScala.toList)
         .getOrElse(Seq.empty[DNABarcode])
     }.toOption.getOrElse(Seq.empty[DNABarcode])
 
@@ -204,6 +244,8 @@ trait DataSetMetadataUtils extends LazyLogging {
   }
 }
 
+object DataSetMetadataUtils extends DataSetMetadataUtils
+
 /**
   * Convenience methods for applying metadata fields from the SMRT Link
   * database to an XML dataset.
@@ -291,5 +333,126 @@ object DataSetUpdateUtils extends DataSetMetadataUtils {
                      wellSampleName: Option[String] = None): Option[String] = {
     val ds = DataSetLoader.loadSubreadSet(dsFile)
     applyMetadataUpdates(ds, bioSampleName, wellSampleName)
+  }
+}
+
+// This doesn't really need to be its own trait but it is potentially useful
+// in other contexts than filter manipulation
+trait DataSetParentUtils {
+  protected def setParent(ds: ReadSetType, parent: ReadSetType) = {
+    val provenance = new DataSetMetadataType.Provenance()
+    val pds = new StrictEntityType()
+    pds.setMetaType(parent.getMetaType)
+    pds.setUniqueId(parent.getUniqueId)
+    pds.setTimeStampedName(parent.getTimeStampedName)
+    provenance.setParentDataSet(pds)
+    ds.getDataSetMetadata.setProvenance(provenance)
+  }
+}
+
+trait DataSetFilterUtils extends DataSetParentUtils {
+  def clearFilters(ds: XsdDataSetType): XsdDataSetType.Filters = {
+    val f = new XsdDataSetType.Filters()
+    ds.setFilters(f)
+    f
+  }
+
+  private def toProperty(req: DataSetFilterProperty) = {
+    val prop = new FilterType.Properties.Property()
+    prop.setName(req.name)
+    prop.setOperator(req.operator)
+    prop.setValue(req.value)
+    prop
+  }
+
+  private def appendFilter(ds: XsdDataSetType, f: FilterType) =
+    Option(ds.getFilters)
+      .getOrElse(clearFilters(ds))
+      .getFilter
+      .add(f)
+
+  private def toFilter(props: Seq[FilterType.Properties.Property]) = {
+    val xsdFilter = new FilterType()
+    val xsdProps = new FilterType.Properties()
+    props.foreach(xsdProps.getProperty.add)
+    xsdFilter.setProperties(xsdProps)
+    xsdFilter
+  }
+
+  def addSimpleFilter(ds: XsdDataSetType, req: DataSetFilterProperty): Unit =
+    appendFilter(ds, toFilter(Seq(toProperty(req))))
+
+  def addSimpleFilter(ds: XsdDataSetType,
+                      name: String,
+                      operator: String,
+                      value: String): Unit =
+    addSimpleFilter(ds, DataSetFilterProperty(name, operator, value))
+
+  /**
+    * Add a single filter with one or more AND'ed properties
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param reqs: list of filter reqs to be AND'ed together
+    */
+  def addFilter(ds: XsdDataSetType, reqs: Seq[DataSetFilterProperty]): Unit =
+    appendFilter(ds, toFilter(reqs.map(toProperty)))
+
+  /**
+    * Add multiple filters (OR'ed together), each with one or more properties
+    * (AND'ed together)
+    *
+    * @param ds: DataSet model loaded from XML
+    * @param filters: list of filters to be OR'ed together
+    */
+  def addFilters(ds: XsdDataSetType,
+                 filters: Seq[Seq[DataSetFilterProperty]]): Unit =
+    filters.foreach(reqs => addFilter(ds, reqs))
+
+  def addLengthFilter(ds: XsdDataSetType,
+                      value: Int,
+                      operator: String = ">=") =
+    addSimpleFilter(ds, "length", operator, value.toString)
+
+  /**
+    * Write a new SubreadSet XML file with filters applied
+    */
+  def applyFilters(dsFile: Path,
+                   outputFile: Path,
+                   filters: Seq[Seq[DataSetFilterProperty]],
+                   dsName: Option[String] = None,
+                   resolvePaths: Boolean = true,
+                   updateCounts: Boolean = true): SubreadSet = {
+    def getDataSet(f: Path) =
+      if (resolvePaths) {
+        DataSetLoader.loadAndResolveSubreadSet(f)
+      } else {
+        DataSetLoader.loadSubreadSet(f)
+      }
+    val ds = getDataSet(dsFile)
+    addFilters(ds, filters)
+    val timeStamp = new SimpleDateFormat("yyMMdd_HHmmss")
+      .format(Calendar.getInstance().getTime)
+    def toTimeStampName(n: String) = s"${n}_$timeStamp"
+    val createdAt = DatatypeFactory
+      .newInstance()
+      .newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
+    setParent(ds, ds) // the original dataset becomes the parent
+    val name = dsName.getOrElse(s"${ds.getName} (filtered)")
+    val timeStampName = toTimeStampName(name.toLowerCase)
+    ds.setCreatedAt(createdAt)
+    ds.setName(name)
+    ds.setTimeStampedName(timeStampName)
+    ds.setUniqueId(UUID.randomUUID().toString)
+    val tags = if (ds.getTags != "") {
+      TreeSet((ds.getTags.split(',') ++ Seq("copied")): _*)
+    } else Seq("copied")
+    ds.setTags(tags.toList.mkString(","))
+    DataSetWriter.writeSubreadSet(ds, outputFile)
+    if (updateCounts) {
+      CallDataset.runAbsolutize(outputFile)
+      getDataSet(outputFile)
+    } else {
+      ds
+    }
   }
 }

@@ -34,13 +34,24 @@ xsd-java:
 tools-smrt-server-link:
 	sbt -no-colors smrt-server-link/{compile,pack,assembly}
 
+# This is used by the internal incremental build
+# http://bitbucket.nanofluidics.com:7990/projects/DEP/repos/smrtlink-build/browse/bbmig/build/buildctl/pacbio/pbscala
 tools-tarball:
 	$(eval SHA := "`git rev-parse --short HEAD`")
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	sbt smrt-server-link/pack
+	sbt smrt-server-link/{compile,pack}
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
+
+tools-sim-tarball:
+	$(eval SHA := "`git rev-parse --short HEAD`")
+	@echo SHA is ${SHA}
+	rm -f smrtflow-sim*.tar.gz
+	rm -rf smrt-*/target/pack/*
+	sbt smrt-server-sim/{compile,pack}
+	cd smrt-server-sim && tar cvfz ../smrtflow-sim-packed-${SHA}.tar.gz target/pack
+
 
 repl:
 	sbt smrtflow/test:console
@@ -79,7 +90,7 @@ start-smrt-server-link-jar:
 
 test: validate-pacbio-manifests
 	sbt scalafmt::test
-	sbt -batch "test-only -- junitxml html console"
+	sbt -batch "testOnly -- junitxml console"
 
 test-int-clean: db-reset-prod
 	rm -rf jobs-root
@@ -101,7 +112,7 @@ test-int: repos/pacbiotestdata repos/chemistry-data-bundle repos/pbpipeline-reso
 	@echo "TEST DATA"
 	@echo $$PB_TEST_DATA_FILES
 	rm -rf jobs-root
-	sbt -batch -no-colors "smrt-server-sim/it:test"
+	sbt -batch -no-colors "smrt-server-sim/runInt"
 
 jsontest:
 	$(eval JSON := `find . -type f -name '*.json' -not -path '*/\.*' | grep -v './repos/' | grep -v './jobs-root/' | grep -v './tmp/' | grep -v 'target/scala'`)
@@ -190,7 +201,7 @@ validate-swagger-smrtlink:
 	swagger-tools validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
 validate-swagger-eve:
-	swagger-tools validate ./smrt-server-link/src/main/resources/eventserver_swagger.json
+	swagger-tools validate ./smrt-server-eve/src/main/resources/eventserver_swagger.json
 validate-swagger-bundle:
 	swagger-tools validate ./smrt-server-bundle/src/main/resources/bundleserver_swagger.json
 

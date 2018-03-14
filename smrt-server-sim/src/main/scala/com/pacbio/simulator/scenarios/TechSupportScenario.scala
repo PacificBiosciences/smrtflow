@@ -19,13 +19,13 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.BOOL
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
-  DataStoreServiceFile,
-  PbSmrtPipeServiceOptions
+  DataStoreServiceFile
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.typesafe.config.Config
@@ -42,12 +42,12 @@ object TechSupportScenarioLoader extends ScenarioLoader {
     // This is quite confusing.
     val testData = PacBioTestResourcesLoader.loadFromConfig()
     val c: Config = config.get
-    val smrtLinkClient = new SmrtLinkServiceAccessLayer(getHost(c), getPort(c))
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
     new TechSupportScenario(smrtLinkClient, testData)
   }
 }
 
-class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
+class TechSupportScenario(client: SmrtLinkServiceClient,
                           testData: PacBioTestResources)
     extends Scenario
     with VarSteps
@@ -78,7 +78,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
 
   val dataStore: Var[Seq[DataStoreServiceFile]] = Var()
 
-  def failedDevDiagnosticOpts(uuid: UUID): Var[PbSmrtPipeServiceOptions] = {
+  def failedDevDiagnosticOpts(uuid: UUID): Var[PbsmrtpipeJobOptions] = {
 
     //MK I don't understand why this has issue with dsUUID.get This will yield a NPE
     val ep = BoundServiceEntryPoint("eid_ref_dataset",
@@ -92,11 +92,14 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
       BOOL.optionTypeId)
 
     Var(
-      PbSmrtPipeServiceOptions("dev-triggered-failed",
-                               "pbsmrtpipe.pipelines.dev_diagnostic",
-                               Seq(ep),
-                               Seq(taskOption),
-                               workflowOptions))
+      PbsmrtpipeJobOptions(
+        Some("dev-triggered-failed"),
+        Some("scenario-runner TechSupportScenario"),
+        "pbsmrtpipe.pipelines.dev_diagnostic",
+        Seq(ep),
+        Seq(taskOption),
+        workflowOptions
+      ))
   }
 
   // Sanity Test for creating an SL System status TS bundle
@@ -105,7 +108,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
       user,
       Var("Sim TS Status support comment")),
     WaitForSuccessfulJob(jobStatusId),
-    dataStore := GetAnalysisJobDataStore(jobStatusId),
+    dataStore := GetJobDataStore(jobStatusId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )
@@ -130,7 +133,7 @@ class TechSupportScenario(client: SmrtLinkServiceAccessLayer,
                                      user,
                                      Var("Sim TS Failed Job support comment")),
     WaitForSuccessfulJob(jobFailedId),
-    dataStore := GetAnalysisJobDataStore(jobFailedId),
+    dataStore := GetJobDataStore(jobFailedId),
     fail("Expected 3 datastore files. Log, tgz, json manifest") IF dataStore
       .mapWith(_.size) !=? 3
   )

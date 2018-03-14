@@ -7,7 +7,7 @@ import com.pacbio.secondary.smrtlink.services.utils.{
   StatusGenerator,
   StatusGeneratorProvider
 }
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 import scala.concurrent.duration._
 
@@ -28,9 +28,7 @@ class StatusService(statusGenerator: StatusGenerator) extends PacBioService {
     path(statusServiceName) {
       get {
         complete {
-          ok {
-            statusGenerator.getStatus
-          }
+          statusGenerator.getStatus
         }
       }
     }

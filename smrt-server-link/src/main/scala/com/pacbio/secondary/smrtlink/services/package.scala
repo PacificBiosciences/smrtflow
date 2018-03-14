@@ -3,110 +3,47 @@ package com.pacbio.secondary.smrtlink
 import java.io.{PrintWriter, StringWriter}
 
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.services.utils.CORSSupport
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
-import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
-import spray.http._
-import spray.httpx.SprayJsonSupport
-import spray.httpx.marshalling._
-import spray.routing.directives.LogEntry
-import spray.util.LoggingContext
+import akka.http.scaladsl.marshalling._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{
+  HttpOrigin,
+  HttpOriginRange,
+  `Access-Control-Allow-Origin`
+}
+import akka.http.scaladsl.server._
+import StatusCodes._
+import Directives._
+import akka.http.scaladsl.server.directives.{DebuggingDirectives, LogEntry}
+import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import spray.json._
 
 import scala.util.control.NonFatal
 
 package object services {
 
   import akka.actor.{Actor, ActorLogging}
-  import spray.http.StatusCode
-  import spray.http.StatusCodes._
-  import spray.routing._
+  import StatusCodes._
 
-  trait AppConfig {
-
-    // TODO(smcclellan): The role of this model needs to be clarified
-    // TODO(smcclellan): Use ConfigProvider?
-    // TODO(smcclellan): Use ClockProvider?
-    lazy val conf: SubsystemConfig = {
-      // Load conf from application.conf
-      val conf = ConfigFactory.load()
-      SubsystemConfig(conf.getString("smrt-server.name"),
-                      conf.getString("smrt-server.display-name"),
-                      JodaDateTime.now)
-    }
-  }
-
-  object StatusCodeJoiners
-      extends BasicMarshallers
-      with BasicToResponseMarshallers {
-    import ToResponseMarshallable._
-
-    /**
-      * Bundles a service response with an HTTP code. This function should generally not be used directly, but instead
-      * the {{{ok}}}, {{{created}}}, etc. functions should be used like so:
-      *
-      * {{{
-      *   class MyService extends PacBioService {
-      *     val routes: Route =
-      *       path("resource") {
-      *         get {
-      *           complete {
-      *             ok {
-      *               (GetResource ? actor).mapTo[Try[Resource]]
-      *             }
-      *           }
-      *         } ~
-      *         post {
-      *           complete {
-      *             created {
-      *               (CreateResource ? actor).mapTo[Try[String]]
-      *             }
-      *           }
-      *         }
-      *       }
-      *   }
-      * }}}
-      */
-    def joinCode[T](code: StatusCode, resp: T)(
-        implicit m: Marshaller[T]): ToResponseMarshallable = {
-      implicit val joinM: ToResponseMarshaller[(StatusCode, T)] =
-        fromStatusCodeAndT((s: StatusCode) => s, m)
-      isMarshallable(code -> resp)
-    }
-  }
-
-  trait StatusCodeJoiners {
-    import StatusCodeJoiners._
-
-    /**
-      * Bundles a service response with the HTTP code 200 (OK)
-      *
-      * Note that this function may be used for clarity, but is not required, since 200 is the default code used by Spray
-      */
-    def ok[T](r: T)(implicit m: Marshaller[T]): ToResponseMarshallable =
-      joinCode(OK, r)
-
-    /**
-      * Bundles a service response with the HTTP code 201 (CREATED)
-      */
-    def created[T](r: T)(implicit m: Marshaller[T]): ToResponseMarshallable =
-      joinCode(Created, r)
-
-    /**
-      * Bundles a service response with the HTTP code 202 (ACCEPTED)
-      */
-    def accepted[T](r: T)(implicit m: Marshaller[T]): ToResponseMarshallable =
-      joinCode(Accepted, r)
-
-    /**
-      * Bundles a service response with the HTTP code 204 (NO CONTENT)
-      */
-    def noContent[T](r: T)(implicit m: Marshaller[T]): ToResponseMarshallable =
-      joinCode(NoContent, r)
-  }
-
+  /**
+    * This entire model needs to be rethought to avoid duplication with
+    * the rejection and exception handling spray model.
+    */
   object PacBioServiceErrors {
+
+    /**
+      * Should this extend RejectionWithOptionalCause ?
+      *
+      * This looks like we're reinventing the wheel here.
+      *
+      * @param message Display Message
+      * @param cause Optional detail Throwable
+      */
     sealed abstract class PacBioServiceError(message: String,
                                              cause: Throwable = null)
         extends Exception(message, cause) {
@@ -124,147 +61,113 @@ package object services {
       }
     }
 
-    class ResourceNotFoundError(message: String, cause: Throwable = null)
+    case class ResourceNotFoundError(message: String, cause: Throwable = null)
         extends PacBioServiceError(message, cause) {
       override val code = NotFound
     }
-    class MethodNotImplementedError(message: String, cause: Throwable = null)
+    case class MethodNotImplementedError(message: String,
+                                         cause: Throwable = null)
         extends PacBioServiceError(message, cause) {
       override val code = NotImplemented
     }
-    class ConflictError(message: String, cause: Throwable = null)
+    case class ConflictError(message: String, cause: Throwable = null)
         extends PacBioServiceError(message, cause) {
       override val code = Conflict
     }
-    class UnprocessableEntityError(message: String, cause: Throwable = null)
+    case class UnprocessableEntityError(message: String,
+                                        cause: Throwable = null)
         extends PacBioServiceError(message, cause) {
       override val code = UnprocessableEntity
     }
-    class UnknownServerError(message: String, cause: Throwable = null)
+    case class UnknownServerError(message: String, cause: Throwable = null)
         extends PacBioServiceError(message, cause) {
       override val code = InternalServerError
     }
   }
 
-  trait PacBioServiceErrors
-      extends BasicToResponseMarshallers
-      with LazyLogging {
-    import CORSSupport._
+  trait PacBioServiceErrors extends LazyLogging {
+
     import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
     import PacBioServiceErrors._
     import SprayJsonSupport._
 
-    def response(e: Throwable): ThrowableResponse = e match {
-      case t: PacBioServiceError => t.response
-      case NonFatal(t) => new UnknownServerError(t.getMessage, t).response
-    }
-
-    val responseMarshaller: ToResponseMarshaller[(Int, ThrowableResponse)] =
-      fromStatusCodeAndT(
-        (s: Int) => StatusCodes.getForKey(s).getOrElse(InternalServerError),
-        sprayJsonMarshallerConverter(pbThrowableResponseFormat))
-
-    def addAccessControlHeader(headers: List[HttpHeader]): List[HttpHeader] =
+    private def addAccessControlHeader(
+        headers: List[HttpHeader]): List[HttpHeader] =
       if (headers.forall(!_.isInstanceOf[`Access-Control-Allow-Origin`]))
-        allowOriginHeader :: headers
+        `Access-Control-Allow-Origin`(HttpOrigin("*")) :: headers
       else
         headers
 
-    implicit val pacbioExceptionHandler: ExceptionHandler = ExceptionHandler {
-      case NonFatal(e) =>
-        ctx =>
-          val resp = response(e)
-          val message = if (resp.message == null) {
-            e.getStackTrace.mkString("\n  ")
-          } else {
-            resp.message
-          }
-          logger.warn(
-            s"Non-fatal exception: ${resp.httpCode} - ${resp.errorType} - ${message} Request ${ctx.request}")
-          ctx
-          // Exception handling bypasses CORSSupport, so we add the header here
-            .withHttpResponseHeadersMapped(addAccessControlHeader)
-            .complete(resp.httpCode, resp)(responseMarshaller)
+    private def toErrorAndLog(
+        statusCode: StatusCode,
+        message: String): (StatusCode, ThrowableResponse) = {
+      val throwAble =
+        ThrowableResponse(statusCode.intValue(), message, statusCode.reason())
+      logger.error(throwAble.toLogMessage())
+      (statusCode, throwAble)
     }
 
-    implicit val pacbioRejectionHandler: RejectionHandler =
-      RejectionHandler.Default.andThen { route =>
-        route.compose[RequestContext] { rc =>
-          rc.withHttpResponseHeadersMapped(addAccessControlHeader)
-            .withHttpResponseMapped { resp =>
-              if (resp.status.isFailure) {
-                logger.warn(
-                  s"Request rejected: ${resp.status.intValue} - ${resp.status.reason} - ${resp.entity.asString}")
-                val tResp = ThrowableResponse(resp.status.intValue,
-                                              resp.entity.asString,
-                                              resp.status.reason)
-                val bResp =
-                  pbThrowableResponseFormat.write(tResp).prettyPrint.getBytes
-                resp.copy(
-                  entity = HttpEntity(ContentTypes.`application/json`, bResp))
-              } else {
-                resp
-              }
-            }
+    private def toThrowAbleAndLog[T <: PacBioServiceError](
+        ex: T): (StatusCode, ThrowableResponse) = {
+      val throwAble = ex.response
+      logger.error(throwAble.toLogMessage())
+      (ex.code, throwAble)
+    }
+
+    /**
+      * Custom Rejection handler to map errors to proper PacBio Error
+      * model and http codes
+      *
+      * The docs suggest avoid bundling several cases into a single handle call
+      *
+      * https://doc.akka.io/docs/akka-http/current/routing-dsl/rejections.html
+      *
+      * @return
+      */
+    def pacBioRejectionHandler(): RejectionHandler =
+      RejectionHandler
+        .newBuilder()
+        .handle {
+          case AuthenticationFailedRejection(cause, challengeHeaders) =>
+            complete(toErrorAndLog(Unauthorized,
+                                   s"Request is rejected with cause: $cause"))
         }
+        .handle {
+          case ex: Rejection => //FIXME.
+            complete(
+              toErrorAndLog(StatusCodes.InternalServerError, ex.toString))
+        }
+        .handleNotFound { ctx =>
+          ctx.complete(
+            toErrorAndLog(NotFound,
+                          s"Route: ${ctx.request.uri} does not exist."))
+        }
+        .result()
+
+    def pacbioExceptionHandler: ExceptionHandler =
+      ExceptionHandler {
+        case _: ArithmeticException =>
+          extractUri { uri =>
+            complete(
+              toErrorAndLog(UnprocessableEntity,
+                            UnprocessableEntity.defaultMessage))
+          }
+        case ex: IllegalArgumentException =>
+          complete(toErrorAndLog(NotFound, ex.getMessage))
+        case ex: PacBioServiceError =>
+          complete(toThrowAbleAndLog(ex))
       }
   }
 
-  trait PacBioService
-      extends StatusCodeJoiners
-      with Directives
-      with ServiceIdUtils {
-    import CORSSupport._
+  trait PacBioService extends Directives with ServiceIdUtils {
 
     val manifest: PacBioComponentManifest
     def routes: Route
 
-    def prefixedRoutes = cors { routes }
-  }
+    // This is where this should be customized
+    val corsSettings = CorsSettings.defaultSettings
 
-  class RoutedHttpService(route: Route)
-      extends Actor
-      with HttpService
-      with ActorLogging
-      with PacBioServiceErrors {
-    import CORSSupport._
-    import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols.pbThrowableResponseFormat
-
-    implicit def actorRefFactory = context
-
-    def showRequest(req: HttpRequest): LogEntry = {
-      var asString: String = req.entity.toOption
-        .map(
-          data => s"request: ${req.method} ${req.uri} ${data}"
-        )
-        .getOrElse(s"request: ${req.method} ${req.uri}")
-      LogEntry(asString, akka.event.Logging.InfoLevel)
-    }
-
-    def receive: Receive =
-      runRoute(compressResponseIfRequested() {
-        logRequest(showRequest _) {
-          route
-        }
-      })(pacbioExceptionHandler,
-         pacbioRejectionHandler,
-         context,
-         RoutingSettings.default,
-         LoggingContext.fromActorRefFactory)
-
-    override def timeoutRoute = complete {
-      val tResp = ThrowableResponse(
-        InternalServerError.intValue,
-        "The server was not able to produce a timely response to your request.",
-        InternalServerError.reason)
-      val bResp = pbThrowableResponseFormat.write(tResp).prettyPrint.getBytes
-
-      HttpResponse(
-        InternalServerError,
-        HttpEntity(ContentTypes.`application/json`, bResp),
-        List(allowOriginHeader)
-      )
-    }
+    def prefixedRoutes = cors(corsSettings) { routes }
   }
 
   trait ServiceIdUtils {

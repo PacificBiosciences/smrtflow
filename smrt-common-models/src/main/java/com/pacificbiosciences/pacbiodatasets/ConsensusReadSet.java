@@ -10,7 +10,6 @@ package com.pacificbiosciences.pacbiodatasets;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
@@ -23,10 +22,7 @@ import javax.xml.bind.annotation.XmlType;
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
- *     &lt;extension base="{http://pacificbiosciences.com/PacBioDatasets.xsd}DataSetType">
- *       &lt;sequence>
- *         &lt;element name="DataSetMetadata" type="{http://pacificbiosciences.com/PacBioDatasets.xsd}DataSetMetadataType"/>
- *       &lt;/sequence>
+ *     &lt;extension base="{http://pacificbiosciences.com/PacBioDatasets.xsd}ReadSetType">
  *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -35,39 +31,11 @@ import javax.xml.bind.annotation.XmlType;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "", propOrder = {
-    "dataSetMetadata"
-})
+@XmlType(name = "")
 @XmlRootElement(name = "ConsensusReadSet")
 public class ConsensusReadSet
-    extends DataSetType
+    extends ReadSetType
 {
 
-    @XmlElement(name = "DataSetMetadata", required = true)
-    protected DataSetMetadataType dataSetMetadata;
-
-    /**
-     * Gets the value of the dataSetMetadata property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link DataSetMetadataType }
-     *     
-     */
-    public DataSetMetadataType getDataSetMetadata() {
-        return dataSetMetadata;
-    }
-
-    /**
-     * Sets the value of the dataSetMetadata property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link DataSetMetadataType }
-     *     
-     */
-    public void setDataSetMetadata(DataSetMetadataType value) {
-        this.dataSetMetadata = value;
-    }
 
 }

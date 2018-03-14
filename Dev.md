@@ -11,11 +11,12 @@
 
 ### DB Setup
 
-Explicitly set `PGDATA` and `PGPORT` in `.bashrc` or `.bash_profile`
+Explicitly set `PGDATA` and `PGPORT` in `.bashrc` or `.bash_profile`.  Also add path to psql to PATH
 
 ```
 export PGPORT=5432
 export PGDATA='/Users/mkocher/Library/Application Support/Postgres/var-9.6'
+export PATH="/Applications/Postgres.app/Contents/Versions/9.6/bin:$PATH"
 
 ```
 

@@ -6,7 +6,6 @@ import javax.xml.bind.JAXBContext
 
 import com.typesafe.scalalogging.LazyLogging
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import scala.language.postfixOps
 import scala.language.higherKinds
@@ -64,14 +63,15 @@ object DataSetLoader extends LazyLogging {
                               path: Path): ExternalResource = {
 
     if (externalResource.getFileIndices != null) {
-      val indexFiles = externalResource.getFileIndices.getFileIndex.map { x =>
-        val px = resourceToAbsolutePath(x.getResourceId, path)
-        x.setResourceId(px.toString)
-        x
-      }
+      val indexFiles =
+        externalResource.getFileIndices.getFileIndex.asScala.map { x =>
+          val px = resourceToAbsolutePath(x.getResourceId, path)
+          x.setResourceId(px.toString)
+          x
+        }
 
       val uniqueIndexFiles =
-        (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList
+        (indexFiles.map(f => f.getResourceId -> f) toMap).values.toList.asJava
 
       val fs = new FileIndices()
       fs.getFileIndex.addAll(uniqueIndexFiles)
@@ -83,7 +83,7 @@ object DataSetLoader extends LazyLogging {
 
     rexsOpt match {
       case Some(rexs) =>
-        if (rexs.getExternalResource.nonEmpty) {
+        if (rexs.getExternalResource.asScala.nonEmpty) {
           val resolvedExs = resolveExternalResources(rexs, path)
           externalResource.setExternalResources(resolvedExs)
           rexs
@@ -101,11 +101,11 @@ object DataSetLoader extends LazyLogging {
 
     if (resources != null) {
       val exs = new ExternalResources()
-      val rx = resources.getExternalResource
+      val rx = resources.getExternalResource.asScala
         .map(x => resolveExternalResource(x, path))
         .toList
 
-      exs.getExternalResource.addAll(rx)
+      exs.getExternalResource.addAll(rx.asJava)
       exs
     } else {
       resources
@@ -217,6 +217,16 @@ object DataSetLoader extends LazyLogging {
   def loadGmapReferenceSetIO(path: Path): GmapReferenceSetIO =
     GmapReferenceSetIO(loadGmapReferenceSet(path), path)
 
+  def loadTranscriptSet(path: Path): TranscriptSet =
+    toUnMarshaller(JAXBContext.newInstance(classOf[TranscriptSet]), path)
+      .asInstanceOf[TranscriptSet]
+
+  def loadAndResolveTranscriptSet(path: Path): TranscriptSet =
+    resolveDataSet(loadTranscriptSet(path), path.toAbsolutePath.getParent)
+
+  def loadTranscriptSetIO(path: Path): TranscriptSetIO =
+    TranscriptSetIO(loadTranscriptSet(path), path)
+
   def loadType(dst: DataSetMetaTypes.DataSetMetaType,
                input: Path): DataSetType = {
     dst match {
@@ -229,6 +239,7 @@ object DataSetLoader extends LazyLogging {
       case DataSetMetaTypes.Contig => loadContigSet(input)
       case DataSetMetaTypes.Barcode => loadBarcodeSet(input)
       case DataSetMetaTypes.GmapReference => loadGmapReferenceSet(input)
+      case DataSetMetaTypes.Transcript => loadTranscriptSet(input)
     }
   }
 }
@@ -280,6 +291,10 @@ object ImplicitDataSetLoader {
     def load(path: Path) = loadGmapReferenceSet(path)
   }
 
+  implicit object TranscriptSetLoader extends DataSetLoader[TranscriptSet] {
+    def load(path: Path) = loadTranscriptSet(path)
+  }
+
   def loader[T <: DataSetType](path: Path)(implicit lx: DataSetLoader[T]) =
     lx.load(path)
 
@@ -302,6 +317,8 @@ object ImplicitDataSetLoader {
       case DataSetMetaTypes.Barcode => loaderAndResolve[BarcodeSet](input)
       case DataSetMetaTypes.GmapReference =>
         loaderAndResolve[GmapReferenceSet](input)
+      case DataSetMetaTypes.Transcript =>
+        loaderAndResolve[TranscriptSet](input)
     }
   }
 

@@ -1,12 +1,7 @@
 import java.nio.file.Files
 
 import akka.actor.ActorRefFactory
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import com.pacbio.secondary.smrtlink.auth.{
-  AuthenticatorImplProvider,
-  JwtUtils,
-  JwtUtilsProvider
-}
+import com.pacbio.secondary.smrtlink.auth.{JwtUtils, JwtUtilsProvider}
 import com.pacbio.secondary.smrtlink.dependency.{SetBindings, Singleton}
 import com.pacbio.secondary.smrtlink.time.FakeClockProvider
 import com.pacbio.secondary.smrtlink.analysis.configloaders.{
@@ -24,19 +19,18 @@ import com.pacbio.secondary.smrtlink.services.{
 import com.pacbio.secondary.smrtlink.testkit.TestUtils
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-import spray.http.HttpHeaders.RawHeader
-import spray.httpx.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import com.pacbio.secondary.smrtlink.models.QueryOperators.IntQueryOperator
 import spray.json._
-import spray.testkit.Specs2RouteTest
 import slick.jdbc.PostgresProfile.api._
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class DataSetServiceSpec
     extends Specification
-    with NoTimeConversions
     with Specs2RouteTest
     with SetupMockData
     with JobServiceConstants
@@ -60,7 +54,6 @@ class DataSetServiceSpec
       with DataSetServiceProvider
       with EventManagerActorProvider
       with JobsDaoProvider
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with FakeClockProvider
       with SetBindings
@@ -87,6 +80,9 @@ class DataSetServiceSpec
   step(runInsertAllMockData(dao))
 
   "DataSetService should list" should {
+    "Successfully parse Query filter" in {
+      IntQueryOperator.fromString("in:1,2,3") must beSome
+    }
     "Secondary analysis DataSets Types resources" in {
       Get(s"/$ROOT_SA_PREFIX/dataset-types") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
@@ -101,18 +97,29 @@ class DataSetServiceSpec
     }
     "Sanity DAO insertion test" in {
       val timeout = 10.seconds
-      val datasets = Await.result(dao.getSubreadDataSets(), timeout)
-      datasets.length == 2
+      val datasets =
+        Await.result(dao.getSubreadDataSets(DataSetSearchCriteria.default),
+                     timeout)
+      datasets.length === 2
     }
     "Secondary analysis Get SubreadSet list" in {
       Get(s"/$ROOT_SA_PREFIX/datasets/subreads") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        // subreads.foreach(println)
         subreads.size === 2
       }
     }
+    "Secondary analysis Get SubreadSet list by name" in {
+      Get(
+        s"/$ROOT_SA_PREFIX/datasets/subreads?name=DataSet_SubreadSet&id=gte:2") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val subreads = responseAs[Seq[SubreadServiceDataSet]]
+        subreads.size === 1
+      }
+    }
     "Secondary analysis SubreadSets by TEST/MOCK PROJECT ID" in {
-      val credentials = RawHeader(JWT_HEADER, MOCK_USER_LOGIN)
+      val credentials = RawHeader(JwtUtils.JWT_HEADER, MOCK_USER_LOGIN)
 
       val fx: Future[Option[Int]] =
         dao.getProjects().map(_.find(_.name == TEST_PROJECT_NAME).map(_.id))
@@ -210,6 +217,13 @@ class DataSetServiceSpec
     }
     "Secondary analysis Hdf Subread DataSet resources" in {
       Get(s"/$ROOT_SA_PREFIX/datasets/hdfsubreads") ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        //val dst = responseAs[DataSetType]
+        //dst.id must be_==("pacbio.datasets.subread")
+      }
+    }
+    "Secondary analysis TranscriptSet resources" in {
+      Get(s"/$ROOT_SA_PREFIX/datasets/transcripts") ~> totalRoutes ~> check {
         status.isSuccess must beTrue
         //val dst = responseAs[DataSetType]
         //dst.id must be_==("pacbio.datasets.subread")

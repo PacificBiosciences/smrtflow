@@ -24,7 +24,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   ExportJob,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MockJobUtils
+import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
@@ -67,7 +67,7 @@ case class ExportSmrtLinkJobOptions(ids: Seq[IdAble],
 
 class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
     extends ServiceCoreJob(opts)
-    with MockJobUtils
+    with CoreJobUtils
     with timeUtils {
 
   type Out = PacBioDataStore
@@ -152,17 +152,12 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
       jobs.map(_ => Seq.empty[BoundEntryPoint])
     }
 
+    val logFile = getStdOutLog(resources, dao)
     val startedAt = JodaDateTime.now()
     resultsWriter.writeLine(
       s"Starting export of ${opts.ids.length} jobs at ${startedAt.toString}")
     resultsWriter.writeLine(s"Job Export options: $opts")
     val datastoreJson = resources.path.resolve("datastore.json")
-
-    val logPath = resources.path.resolve(JobConstants.JOB_STDOUT)
-    val logFile = toSmrtLinkJobLog(
-      logPath,
-      Some(
-        s"${JobConstants.DATASTORE_FILE_MASTER_DESC} of the details of the Export DataSet Job job"))
 
     val results = jobs.zip(entryPoints).map {
       case (job, eps) =>

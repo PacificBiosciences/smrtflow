@@ -59,7 +59,7 @@ class PbServiceIntegrationSpec
 
   def runPbservice(args: String*): Option[ExternalCmdFailure] = {
     logger.info(s"Running pbservice command $args")
-    val rx = ExternalToolsUtils.runSimpleCmd(toCmd(args: _*))
+    val rx = ExternalToolsUtils.runCheckCall(toCmd(args: _*))
     rx
   }
 

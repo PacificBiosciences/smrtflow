@@ -28,7 +28,7 @@ trait SmrtLinkReplTool {
                  |
                  |import com.pacbio.secondary.smrtlink.models._
                  |import com.pacbio.common.models.CommonModelImplicits._
-                 |import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceAccessLayer => S}
+                 |import com.pacbio.secondary.smrtlink.client.{SmrtLinkServiceClient => S}
                  |import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetIOLoader._
                  |import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader._
                  |import com.pacbio.secondary.smrtlink.models.EngineConfig
@@ -36,7 +36,7 @@ trait SmrtLinkReplTool {
                  |import com.pacbio.secondary.smrtlink.actors.JobsDao
                  |import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
                  |
-                 |//This will make the repl hang on exit. Need to call actorSystem.shutdown()
+                 |//This will make the repl hang on exit. Need to call actorSystem.terminate()()()
                  |//implicit val actorSystem = ActorSystem("smrtlink-repl")
                  |
                  |object Pb extends ConfigLoader{
@@ -55,7 +55,7 @@ trait SmrtLinkReplTool {
 
   val welcomeBanner = Some("Welcome to the SMRT Link REPL")
 
-  val repl = ammonite.Main(predef = predef, welcomeBanner = welcomeBanner)
+  val repl = ammonite.Main(predefCode = predef, welcomeBanner = welcomeBanner)
 
 }
 

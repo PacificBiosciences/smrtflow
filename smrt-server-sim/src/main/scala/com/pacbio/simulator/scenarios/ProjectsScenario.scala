@@ -15,7 +15,7 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.{
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -53,7 +53,7 @@ class ProjectsScenario(host: String, port: Int)
 
   override val name = "ProjectsScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceAccessLayer(host, port)
+  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
 
   val MSG_PROJ_ERR =
     "Project database should be initially have just one project"

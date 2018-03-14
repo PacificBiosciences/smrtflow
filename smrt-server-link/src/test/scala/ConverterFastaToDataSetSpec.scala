@@ -48,7 +48,7 @@ class ConverterFastaToDataSetSpec extends Specification with LazyLogging {
 
   private def validateReference(path: Path) = {
     val ref = DataSetLoader.loadAndResolveReferenceSet(path)
-    ValidateReferenceSet.validator(ref).isSuccess must beTrue
+    ValidateReferenceSet.validator(ref).toEither.isRight must beTrue
   }
 
   "Convert Fasta to Reference Dataset XML" should {

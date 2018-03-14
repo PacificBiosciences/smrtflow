@@ -11,7 +11,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import scopt.OptionParser
 
 import scala.util.{Failure, Success, Try}
-import collection.JavaConversions._
+
 import collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration

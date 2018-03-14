@@ -9,6 +9,10 @@ import scala.util.{Try, Success, Failure}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.DataSetBaseType
 import com.pacbio.common.models.UUIDJsonProtocol
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedFilterNames,
+  SupportedFilterOperators
+}
 import com.pacificbiosciences.pacbiodatasets.{
   SubreadSet,
   HdfSubreadSet,
@@ -18,7 +22,8 @@ import com.pacificbiosciences.pacbiodatasets.{
   ConsensusAlignmentSet,
   ContigSet,
   ReferenceSet,
-  GmapReferenceSet
+  GmapReferenceSet,
+  TranscriptSet
 }
 import com.pacificbiosciences.pacbiodatasets.{DataSetType => XmlDataSetType}
 
@@ -85,6 +90,11 @@ object DataSetMetaTypes {
     override def shortName = "gmapreferences"
   }
 
+  case object Transcript extends DataSetMetaType {
+    final val fileType = FileTypes.DS_TRANSCRIPT
+    override def shortName = "transcripts"
+  }
+
   // FIXME. The order is important. Will reuse this in the db
   val ALL = Set(Subread,
                 HdfSubread,
@@ -94,8 +104,10 @@ object DataSetMetaTypes {
                 Contig,
                 Reference,
                 AlignmentCCS,
-                GmapReference)
-  val BAM_DATASETS = Set(Subread, CCS, Alignment, AlignmentCCS)
+                GmapReference,
+                Transcript)
+  val BAM_DATASETS: Set[DataSetMetaType] =
+    Set(Subread, CCS, Alignment, AlignmentCCS, Transcript)
 
   // This is for backward compatiblity
   def typeToIdString(x: DataSetMetaType) = x.toString
@@ -130,6 +142,9 @@ object DataSetMetaTypes {
       ds.attributes("MetaType").toString
     }.toOption.flatMap(toDataSetType)
   }
+
+  def fromAnyName(dsType: String): Option[DataSetMetaType] =
+    toDataSetType(dsType).orElse(fromShortName(dsType))
 }
 
 // Small General Container for Dataset
@@ -151,6 +166,19 @@ case class DataSetMetaData(uuid: java.util.UUID,
                            totalLength: Int)
 
 case class DatasetIndexFile(indexType: String, url: String)
+
+case class DataSetFilterProperty(name: SupportedFilterNames,
+                                 operator: SupportedFilterOperators,
+                                 value: String)
+object DataSetFilterProperty
+    extends ((String, String, String) => DataSetFilterProperty) {
+  def apply(name: String,
+            operator: String,
+            value: String): DataSetFilterProperty =
+    DataSetFilterProperty(SupportedFilterNames.fromValue(name),
+                          SupportedFilterOperators.fromValue(operator),
+                          value)
+}
 
 trait DataSetMetaDataProtocol
     extends DefaultJsonProtocol
@@ -193,3 +221,5 @@ case class ContigSetIO(dataset: ContigSet, path: Path) extends DataSetIO {
 }
 case class GmapReferenceSetIO(dataset: GmapReferenceSet, path: Path)
     extends DataSetIO { type T = GmapReferenceSet }
+case class TranscriptSetIO(dataset: TranscriptSet, path: Path)
+    extends DataSetIO { type T = TranscriptSet }

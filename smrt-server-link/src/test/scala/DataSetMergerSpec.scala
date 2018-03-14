@@ -2,7 +2,6 @@ import java.nio.file.{Files, Paths, Path}
 import java.io.File
 import java.util.UUID
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 
 import com.typesafe.scalalogging.LazyLogging
@@ -26,7 +25,6 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   PrinterJobResultsWriter,
   AnalysisJobStates
 }
-import com.pacbio.secondary.smrtlink.analysis.jobtypes.MergeDataSetOptions
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   DataSetMergerOptions,
   DataSetMergerTool,
@@ -71,7 +69,7 @@ class DataSetMergerSpec extends Specification with LazyLogging {
       // Not really clear what the expected behavior is here. The Schema of the HdfSubreadSet has not changed
       // but the DataSet "version" is across all schemas.
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         6)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(150000000)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(3)
@@ -124,7 +122,7 @@ class DataSetMergerAdvancedSpec
       println(p)
       DataSetWriter.writeSubreadSet(mergedDataSet, p)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         2)
       mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(81354)
       mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(137)
@@ -146,90 +144,12 @@ class DataSetMergerAdvancedSpec
       mergedDataSet.getMetaType must beEqualTo(
         DataSetMetaTypes.Alignment.toString)
       mergedDataSet.getVersion must beEqualTo(expectedVersion)
-      mergedDataSet.getExternalResources.getExternalResource.length must beEqualTo(
+      mergedDataSet.getExternalResources.getExternalResource.asScala.length must beEqualTo(
         3)
       //FIXME Metadata isn't being handled properly right now
       //mergedDataSet.getDataSetMetadata.getTotalLength must beEqualTo(274217)
       //mergedDataSet.getDataSetMetadata.getNumRecords must beEqualTo(133)
       mergedDataSet.getDataSets.getDataSet.size must beEqualTo(2)
-    }
-    "Merge SubreadSets using jobtype API" in {
-      val paths = getData(Seq("subreads-sequel", "subreads-xml"))
-      val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths,
-                                     "merge_datasets")
-      val outputDir = Files.createTempDirectory("merge-job-test")
-      val job = JobResource(UUID.randomUUID, outputDir)
-      val j = opts.toJob
-      val startedAt = JodaDateTime.now()
-      val jobResult = j.run(job, writer)
-      jobResult.isRight must beTrue
-      val elapsed = computeTimeDeltaFromNow(startedAt)
-      println(s"Merge job took $elapsed seconds")
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val REPORT_IDS = if (PbReports.isAvailable()) {
-        Seq("pbreports.tasks.adapter_report_xml",
-            "pbreports.tasks.filter_stats_report_xml",
-            "pbreports.tasks.loading_report_xml")
-      } else Seq("pbscala::dataset_report")
-      val reports =
-        datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
-      reports.size must beEqualTo(REPORT_IDS.size)
-      val taskIds = reports.map(_.sourceId).sorted
-      taskIds must beEqualTo(REPORT_IDS)
-    }
-  }
-}
-
-// XXX standalone test class for debugging runtime issues - not intended to
-// be run in standard suite
-class DataSetMergerScalingSpec
-    extends Specification
-    with LazyLogging
-    with timeUtils {
-  val DATA_DIR = "/unknownpath" // replace me with something useful
-  args(skipAll = !Paths.get(DATA_DIR).toFile.exists)
-
-  sequential
-
-  private def listSubreadSetFiles(f: File): Array[File] = {
-    f.listFiles
-      .filter((fn) => fn.toString.endsWith(".subreadset.xml"))
-      .toArray ++ f.listFiles
-      .filter(_.isDirectory)
-      .flatMap(listSubreadSetFiles)
-  }
-
-  val writer = new PrinterJobResultsWriter
-
-  "Test merging large numbers of datasets" should {
-    "Merge SubreadSets using jobtype API" in {
-      val paths = listSubreadSetFiles(Paths.get(DATA_DIR).toFile).map(_.toPath)
-      println(s"Found ${paths.size} SubreadSet XMLs")
-      val opts = MergeDataSetOptions(DataSetMetaTypes.Subread.toString,
-                                     paths,
-                                     "merge_datasets")
-      val outputDir = Files.createTempDirectory("merge-job-test")
-      val job = JobResource(UUID.randomUUID, outputDir)
-      println(s"Merge job output dir is ${outputDir.toString}")
-      val j = opts.toJob
-      val startedAt = JodaDateTime.now()
-      val jobResult = j.run(job, writer)
-      jobResult.isRight must beTrue
-      val elapsed = computeTimeDeltaFromNow(startedAt)
-      println(s"Merge job took $elapsed seconds")
-      val datastore = jobResult.right.get.asInstanceOf[PacBioDataStore]
-      val REPORT_IDS = if (PbReports.isAvailable()) {
-        Seq("pbreports.tasks.adapter_report_xml",
-            "pbreports.tasks.control_report",
-            "pbreports.tasks.filter_stats_report_xml",
-            "pbreports.tasks.loading_report_xml")
-      } else Seq("pbscala::dataset_report")
-      val reports =
-        datastore.files.filter(_.fileTypeId == FileTypes.REPORT.fileTypeId)
-      reports.size must beEqualTo(REPORT_IDS.size)
-      val taskIds = reports.map(_.sourceId).sorted
-      taskIds must beEqualTo(REPORT_IDS)
     }
   }
 }

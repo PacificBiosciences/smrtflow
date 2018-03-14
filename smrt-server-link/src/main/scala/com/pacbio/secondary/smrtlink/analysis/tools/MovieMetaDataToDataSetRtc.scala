@@ -6,7 +6,6 @@ import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.contracts.ContractLoaders
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetWriter
 
-import collection.JavaConversions._
 import collection.JavaConverters._
 import com.pacbio.secondary.smrtlink.analysis.converters.MovieMetadataConverter._
 import org.joda.time.{DateTime => JodaDateTime}
@@ -63,11 +62,12 @@ object MovieMetaDataToDataSetRtcTool
     val dsPath =
       rtc.getResolvedToolContract.getOutputFiles.asScala.toList.head.toString
 
-    val x = convertMovieOrFofnToHdfSubread(movieMetaDataXMLPath)
+    val x = convertMovieOrFofnToHdfSubread(Paths.get(movieMetaDataXMLPath),
+                                           Paths.get(dsPath),
+                                           "converted-rs")
 
     x match {
       case Right(ds) =>
-        DataSetWriter.writeHdfSubreadSet(ds, Paths.get(dsPath))
         println(s"Successfully converted $movieMetaDataXMLPath")
         println(s"Writing HdfSubreadSet Dataset XML to $dsPath")
         Right(ToolSuccess(toolId, computeTimeDeltaFromNow(startedAt)))

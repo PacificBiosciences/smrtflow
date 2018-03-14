@@ -11,7 +11,6 @@ import scala.collection._
 import spray.json._
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import spray.httpx.UnsuccessfulResponseException
 import org.apache.commons.io.FileUtils
 
 import com.pacbio.common.models._
@@ -29,8 +28,9 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
-  SmrtLinkServiceAccessLayer
+  SmrtLinkServiceClient
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
@@ -93,7 +93,7 @@ trait PbsmrtpipeScenarioCore
                           triggerFailure: Boolean = false,
                           name: String = "diagnostic-test",
                           projectId: Int = JobConstants.GENERAL_PROJECT_ID)
-    : PbSmrtPipeServiceOptions = {
+    : PbsmrtpipeJobOptions = {
     val pipelineId = "pbsmrtpipe.pipelines.dev_diagnostic_subreads"
     val ep = BoundServiceEntryPoint("eid_subread",
                                     FileTypes.DS_SUBREADS.fileTypeId,
@@ -118,18 +118,19 @@ trait PbsmrtpipeScenarioCore
 
     val workflowOptions = Seq.empty[ServiceTaskOptionBase]
 
-    PbSmrtPipeServiceOptions(name,
-                             pipelineId,
-                             Seq(ep),
-                             taskOptions,
-                             workflowOptions,
-                             projectId)
+    PbsmrtpipeJobOptions(Some(name),
+                         Some("scenario-runner PbsmrtpipeScenario"),
+                         pipelineId,
+                         Seq(ep),
+                         taskOptions,
+                         workflowOptions,
+                         Some(projectId))
   }
 
   protected val diagnosticOptsCore = toDiagnosticOptions(subreadsUuid.get)
-  protected val diagnosticOpts: Var[PbSmrtPipeServiceOptions] =
+  protected val diagnosticOpts: Var[PbsmrtpipeJobOptions] =
     projectId.mapWith { pid =>
-      diagnosticOptsCore.copy(projectId = pid)
+      diagnosticOptsCore.copy(projectId = Some(pid))
     }
   protected val failOpts = diagnosticOpts.mapWith(
     _.copy(
@@ -137,9 +138,10 @@ trait PbsmrtpipeScenarioCore
         ServiceTaskBooleanOption(toI("raise_exception"),
                                  true,
                                  BOOL.optionTypeId))))
-  protected val satOpts: Var[PbSmrtPipeServiceOptions] = Var(
-    PbSmrtPipeServiceOptions(
-      "site-acceptance-test",
+  protected val satOpts: Var[PbsmrtpipeJobOptions] = Var(
+    PbsmrtpipeJobOptions(
+      Some("site-acceptance-test"),
+      Some("scenario-runner PbsmrtpipeScenario"),
       "pbsmrtpipe.pipelines.sa3_sat",
       Seq(
         BoundServiceEntryPoint("eid_ref_dataset",
@@ -160,8 +162,9 @@ trait PbsmrtpipeScenarioCore
       )
     ))
   protected val chunkOpts = Var(
-    PbSmrtPipeServiceOptions(
-      "subreads-chunk-test",
+    PbsmrtpipeJobOptions(
+      Some("subreads-chunk-test"),
+      Some("scenario-runner PbsmrtpipeScenario"),
       "pbsmrtpipe.pipelines.dev_subreads_chunk",
       Seq(
         BoundServiceEntryPoint("eid_subread",
@@ -213,7 +216,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
 
   override val name = "PbsmrtpipeScenario"
   override val smrtLinkClient =
-    new SmrtLinkServiceAccessLayer(host, port, Some("jsnow"))
+    new SmrtLinkServiceClient(host, port, Some("jsnow"))
 
   private def getLastJob(jobs: Seq[EngineJob]) =
     jobs.sortWith(_.id > _.id).head
@@ -246,9 +249,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobId := RunAnalysisPipeline(diagnosticOpts),
     WaitForSuccessfulJob(jobId),
     //fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,
-    dataStore := GetAnalysisJobDataStore(jobId),
-    fail(s"job:${jobId} Expected five datastore files") IF dataStore.mapWith(
-      _.size) !=? 6,
+    dataStore := GetJobDataStore(jobId),
+    fail(s"job:${jobId} Expected seven datastore files") IF dataStore.mapWith(
+      _.size) !=? 7,
     fail(s"job:${jobId} Analysis log file size is 0") IF dataStore.mapWith {
       ds =>
         ds.filter(_.sourceId == "pbsmrtpipe::pbsmrtpipe.log").head.fileSize
@@ -256,28 +259,29 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Master log file size is 633 bytes") IF dataStore.mapWith { ds =>
       ds.filter(_.sourceId == "pbsmrtpipe::master.log").head.fileSize
     } ==? 633, // for some reason this is the size it starts at
-    jobReports := GetAnalysisJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
-    report := GetReport(jobReports.mapWith(_(0).dataStoreFile.uuid)),
+    job := GetJob(jobId),
+    jobReports := GetJobReports(jobId),
+    fail("Expected two reports") IF jobReports.mapWith(_.size) !=? 2,
+    report := GetJobReport(job.mapWith(_.id),
+                           jobReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(
       _(0).dataStoreFile.uuid) !=? report.mapWith(_.uuid),
-    job := GetJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     fail("Wrong project id in job") IF job.mapWith(_.projectId) !=? projectId,
     jobs := GetAnalysisJobsForProject(projectId),
     fail("Expected one job for project") IF jobs.mapWith(_.size) !=? 1,
     fail("Wrong job found for project ") IF jobs.mapWith(_.head) !=? job,
-    entryPoints := GetAnalysisJobEntryPoints(job.mapWith(_.id)),
+    entryPoints := GetJobEntryPoints(job.mapWith(_.id)),
     fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     fail("Wrong entry point UUID") IF entryPoints
       .mapWith(_(0).datasetUUID) !=? subreadsUuid,
     job := GetJob(jobId),
-    jobTasks := GetAnalysisJobTasks(job.mapWith(_.id)),
+    jobTasks := GetJobTasks(job.mapWith(_.id)),
     fail("Expected three job tasks") IF jobTasks.mapWith(_.size) !=? 3,
     fail("Expected all tasks to succeed") IF jobTasks.mapWith(
       _.count(_.state == "successful")) !=? 3,
-    jobEvents := GetAnalysisJobEvents(job.mapWith(_.id)),
+    jobEvents := GetJobEvents(job.mapWith(_.id)),
     fail("Expected at least one job event") IF jobEvents.mapWith(_.size) ==? 0,
     // there are two tasks, each one has CREATED and SUCCESSFUL events
     fail("Expected four task_status events") IF jobEvents.mapWith(
@@ -287,7 +291,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     // Export job(s)
     jobId2 := ExportJobs(jobs.mapWith(_.map(_.id)), Var(tmpDir)),
     WaitForSuccessfulJob(jobId2),
-    dataStore := GetAnalysisJobDataStore(jobId2),
+    dataStore := GetJobDataStore(jobId2),
     fail("Expected two files in datastore") IF dataStore.mapWith(_.size) !=? 2,
     fail("Expected one ZIP file in datastore") IF dataStore.mapWith { ds =>
       Paths
@@ -297,25 +301,23 @@ class PbsmrtpipeScenario(host: String, port: Int)
     } !=? true,
     // Import the job we just exported
     ImportJob(Var(Paths.get("/path/does/not/exist.zip"))) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     ImportJob(getExportedZip(dataStore), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException], // duplicate UUID
+      Exception], // duplicate UUID
     jobId2 := ImportJob(getExportedZip(dataStore)),
     WaitForSuccessfulJob(jobId2),
-    dataStore := GetAnalysisJobDataStore(jobId2),
+    dataStore := GetJobDataStore(jobId2),
     jobs := GetAnalysisJobs,
     fail("Expected latest analysis job to have non-null importedAt") IF
       jobs.mapWith { j =>
         getLastJob(j).importedAt.isDefined
       } !=? true,
-    dataStore := GetAnalysisJobDataStore(
-      jobs.mapWith(j => getLastJob(j).uuid)),
-    fail(s"job:${jobId} Expected four datastore files") IF dataStore.mapWith(
-      _.size) !=? 5,
-    jobReports := GetAnalysisJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
-    entryPoints := GetAnalysisJobEntryPoints(
-      jobs.mapWith(j => getLastJob(j).id)),
+    dataStore := GetJobDataStore(jobs.mapWith(j => getLastJob(j).uuid)),
+    fail(s"job:${jobId} Expected six datastore files") IF dataStore.mapWith(
+      _.size) !=? 6,
+    jobReports := GetJobReports(jobId),
+    fail("Expected two reports") IF jobReports.mapWith(_.size) !=? 2,
+    entryPoints := GetJobEntryPoints(jobs.mapWith(j => getLastJob(j).id)),
     fail("Expected one entry point for imported job") IF entryPoints.mapWith(
       _.size) !=? 1,
     // Failure mode
@@ -323,9 +325,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobStatus := WaitForJob(jobId2),
     fail("Expected job to fail when raise_exception=true") IF jobStatus !=? EXIT_FAILURE,
     job := GetJob(jobId2),
-    jobTasks := GetAnalysisJobTasks(job.mapWith(_.id)),
+    jobTasks := GetJobTasks(job.mapWith(_.id)),
     fail("Expected three job tasks") IF jobTasks.mapWith(_.size) !=? 3,
-    jobEvents := GetAnalysisJobEvents(job.mapWith(_.id)),
+    jobEvents := GetJobEvents(job.mapWith(_.id)),
     fail("Expected at least one job event") IF jobEvents.mapWith(_.size) ==? 0,
     // FIXME the task status events never leave CREATED state...
     fail("Expected at least two task_status events") IF jobEvents
@@ -335,7 +337,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Expected FAILED job_status event") IF jobEvents.mapWith(_.count(e =>
       (e.eventTypeId == JobConstants.EVENT_TYPE_JOB_STATUS) && (e.state == AnalysisJobStates.FAILED))) !=? 1,
     // FIXME this is broken because of wrong Content-Type
-    //jobOptions := GetAnalysisJobOptions(job.mapWith(_.id)),
+    //jobOptions := GetJobOptions(job.mapWith(_.id)),
     //fail("Expected a single task option") IF jobOptions.mapWith(_.taskOptions.size) !=? 1,
     // try and fail to delete ReferenceSet import
     subreadSets := GetSubreadSets,
@@ -343,9 +345,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
       rs.filter(_.uuid == subreadsUuid.get).head.jobId
     }),
     DeleteJob(importJob.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     DeleteJob(importJob.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[
-      UnsuccessfulResponseException],
+      Exception],
     // delete pbsmrtpipe jobs
     jobId2 := DeleteJob(jobId2, Var(false)),
     jobStatus := WaitForJob(jobId2),
@@ -361,10 +363,10 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail(s"Delete job ${jobId} failed") IF jobStatus !=? EXIT_SUCCESS,
     job := GetJob(job.mapWith(_.uuid)),
     fail(s"Job should now be inactive") IF job.mapWith(_.isActive) !=? false,
-    jobReports := GetAnalysisJobReports(job.mapWith(_.uuid)),
+    jobReports := GetJobReports(job.mapWith(_.uuid)),
     fail("Expected report file to be deleted") IF jobReports.mapWith(
       _(0).dataStoreFile.fileExists) !=? false,
-    dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
+    dataStore := GetJobDataStore(job.mapWith(_.uuid)),
     fail(s"Datastore files for ${job.mapWith(_.id)} Expected isActive=false") IF dataStore
       .mapWith(_.count(f => f.isActive)) !=? 0,
     // now delete the job we imported
@@ -399,7 +401,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
     jobId := RunAnalysisPipeline(chunkOpts),
     WaitForSuccessfulJob(jobId),
     job := GetJob(jobId),
-    dataStore := GetAnalysisJobDataStore(job.mapWith(_.uuid)),
+    dataStore := GetJobDataStore(job.mapWith(_.uuid)),
     fail("Found at least one chunked file in services datastore") IF
       dataStore.mapWith(ds => findChunkedDataStoreFiles(job.get, ds)) !=? 0
   )

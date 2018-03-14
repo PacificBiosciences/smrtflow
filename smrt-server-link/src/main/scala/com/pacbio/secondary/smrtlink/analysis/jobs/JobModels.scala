@@ -99,6 +99,8 @@ object OptionTypes {
 
 }
 
+case class InvalidJobOptionError(msg: String) extends Exception(msg)
+
 object JobModels {
 
   // Constants used across all Job types
@@ -160,6 +162,13 @@ object JobModels {
       val id = "convert-fasta-reference"
       val name = "Convert Fasta to ReferenceSet"
       val description = "Convert PacBio spec Fasta file to ReferenceSet XML"
+    }
+
+    case object CONVERT_FASTA_GMAPREFERENCE extends JobType {
+      val id = "convert-fasta-gmapreference"
+      val name = "Convert Fasta to GmapReferenceSet"
+      val description =
+        "Convert PacBio spec Fasta file to GmapReferenceSet XML"
     }
 
     case object CONVERT_RS_MOVIE extends JobType {
@@ -261,6 +270,13 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object DS_COPY extends JobType {
+      val id = "copy-dataset"
+      val name = "DataSet copying and filtering"
+      val description = "Copy an XML dataset, with optional filters"
+      override def isQuick: Boolean = true
+    }
+
     case object MJOB_MULTI_ANALYSIS extends JobType {
       val id = "multi-analysis"
       val name = "Run Multi-Analysis Jobs"
@@ -274,6 +290,7 @@ object JobModels {
     val ALL = Seq(
       CONVERT_FASTA_BARCODES,
       CONVERT_FASTA_REFERENCE,
+      CONVERT_FASTA_GMAPREFERENCE,
       CONVERT_RS_MOVIE,
       DELETE_DATASETS,
       DELETE_JOB,
@@ -288,6 +305,7 @@ object JobModels {
       TS_JOB,
       TS_SYSTEM_STATUS,
       DB_BACKUP,
+      DS_COPY,
       MJOB_MULTI_ANALYSIS
     )
 
@@ -341,14 +359,6 @@ object JobModels {
       s"GeneralWorkers active/total ($activeGeneralWorkers/$totalGeneralWorkers) QuickWorkers active/total $activeQuickWorkers/$totalQuickWorkers"
   }
 
-  // New Job Models
-  case class RunnableJob(job: CoreJob, state: AnalysisJobStates.JobStates)
-
-  // There's a bit of awkwardness here due to the PrimaryKey of the job having a Int and UUID
-  case class RunnableJobWithId(id: Int,
-                               job: CoreJob,
-                               state: AnalysisJobStates.JobStates)
-
   // This should only have the "completed" jobOptions states
   case class JobCompletedResult(uuid: UUID, state: AnalysisJobStates.JobStates)
 
@@ -401,22 +411,25 @@ object JobModels {
     * For example, for jobTypeId, "pbsmrtpipe", the jsonSettings JSON must have a pipelineId key
     * that is a String.
     *
-    *
-    * @param id id of the Job (unique relative to the SL System)
-    * @param uuid Globally unique job identifier
-    * @param name Display name of task
-    * @param comment User comment
-    * @param createdAt when the Job was created
-    * @param updatedAt when the job was last updated
-    * @param state current state of the job
-    * @param projectId id of the associated project
-    * @param jobTypeId job type id
-    * @param path path to job output directory
-    * @param jsonSettings JSON format of the job options (this structure will be consistent with the job type id)
-    * @param createdBy user that created the Job
+    * @param id              id of the Job (unique relative to the SL System)
+    * @param uuid            Globally unique job identifier
+    * @param name            Display name of task
+    * @param comment         User comment
+    * @param createdAt       when the Job was created
+    * @param updatedAt       when the job metadata was last updated at
+    * @param jobUpdatedAt    when the job execution was last updated at
+    * @param state           current state of the job
+    * @param projectId       id of the associated project
+    * @param jobTypeId       job type id
+    * @param path            path to job output directory
+    * @param jsonSettings    JSON format of the job options (this structure will be consistent with the job type id)
+    * @param createdBy       user that created the Job
     * @param smrtlinkVersion SL System version
-    * @param isActive if the job is active. Not Active jobs will not be displayed by default
-    * @param errorMessage error message if the job is an Error state.
+    * @param isActive        if the job is active. Not Active jobs will not be displayed by default
+    * @param errorMessage    error message if the job is an Error state.
+    * @param importedAt      if the job was imported, this will be the timestamp of the imported at date
+    * @param tags            tags of jobs. This follows the same model as the dataset. An empty string is the default and
+    *                        values are comma separated.
     */
   case class EngineJob(id: Int,
                        uuid: UUID,
@@ -424,6 +437,7 @@ object JobModels {
                        comment: String,
                        createdAt: JodaDateTime,
                        updatedAt: JodaDateTime,
+                       jobUpdatedAt: JodaDateTime,
                        state: AnalysisJobStates.JobStates,
                        jobTypeId: String,
                        path: String,
@@ -437,7 +451,8 @@ object JobModels {
                        isMultiJob: Boolean = false,
                        workflow: String = "{}",
                        parentMultiJobId: Option[Int] = None,
-                       importedAt: Option[JodaDateTime] = None)
+                       importedAt: Option[JodaDateTime] = None,
+                       tags: String = "")
       extends SmrtLinkJob {
 
     def toEngineCoreJob: EngineCoreJob = {
@@ -448,6 +463,7 @@ object JobModels {
         comment,
         createdAt,
         updatedAt,
+        jobUpdatedAt,
         state,
         jobTypeId,
         path,
@@ -458,7 +474,8 @@ object JobModels {
         isActive,
         errorMessage,
         projectId,
-        parentMultiJobId
+        parentMultiJobId,
+        tags = tags
       )
     }
   }
@@ -471,6 +488,7 @@ object JobModels {
                            comment: String,
                            createdAt: JodaDateTime,
                            updatedAt: JodaDateTime,
+                           jobUpdatedAt: JodaDateTime,
                            state: AnalysisJobStates.JobStates,
                            jobTypeId: String,
                            path: String,
@@ -481,7 +499,8 @@ object JobModels {
                            isActive: Boolean = true,
                            errorMessage: Option[String] = None,
                            projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-                           parentMultiJobId: Option[Int] = None)
+                           parentMultiJobId: Option[Int] = None,
+                           tags: String = "")
       extends SmrtLinkJob {}
 
   /**
@@ -817,7 +836,10 @@ object JobModels {
                               taskOptions: Seq[PipelineBaseOption],
                               entryPoints: Seq[EntryPoint],
                               tags: Seq[String],
-                              presets: Seq[PipelineTemplatePreset])
+                              presets: Option[Seq[PipelineTemplatePreset]] =
+                                None) {
+    def getPresets = presets.getOrElse(Seq.empty[PipelineTemplatePreset])
+  }
 
   // templateId refers to the PipelineTemplate Id
   case class PipelineTemplatePreset(presetId: String,
@@ -858,6 +880,10 @@ object JobModels {
                                 success: Boolean,
                                 error: Option[String] = None)
 
+  case class ExportJobManifest(job: EngineJob,
+                               entryPoints: Seq[BoundEntryPoint],
+                               datastore: Option[PacBioDataStore])
+
   // Tech Support Related Models. These really belong on "common"
 
   object BundleTypes {
@@ -866,6 +892,9 @@ object JobModels {
     // the SL System Event eventTypeId convention (for ElasticSearch motivations)
     val FAILED_INSTALL = "sl_ts_bundle_failed_install"
     val SYSTEM_STATUS = "sl_ts_bundle_system_status"
+    // Historical Job metrics bundle
+    val JOB_HIST = "sl_ts_bundle_job_metrics_history"
+    // Failed Job Bundle
     val JOB = "sl_ts_bundle_job"
     // Should only be used in unittests
     val TEST = "sl_ts_test_bundle"
@@ -925,8 +954,21 @@ object JobModels {
                            jobId: Int)
       extends TsManifest
 
-  case class ExportJobManifest(job: EngineJob,
-                               entryPoints: Seq[BoundEntryPoint],
-                               datastore: Option[PacBioDataStore])
+  /**
+    *
+    * @param jobsJson Relative Path to the EngineJobMetrics within the
+    *                 TS Bundle
+    */
+  case class TsJobMetricHistory(id: UUID,
+                                bundleTypeId: String,
+                                bundleTypeVersion: Int,
+                                createdAt: JodaDateTime,
+                                smrtLinkSystemId: UUID,
+                                dnsName: Option[String],
+                                smrtLinkSystemVersion: Option[String],
+                                user: String,
+                                comment: Option[String],
+                                jobsJson: Path)
+      extends TsManifest
 
 }

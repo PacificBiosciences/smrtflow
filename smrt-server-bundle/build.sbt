@@ -9,8 +9,6 @@ test in assembly := {}
 val mainServer =
   "com.pacbio.secondary.smrtserverbundle.app.BundleUpdateServerApp"
 
-Revolver.settings
-
 mainClass in (Compile, run) := Some(mainServer)
 
 mainClass in assembly := Some(mainServer)
@@ -26,8 +24,6 @@ assemblyMergeStrategy in assembly := {
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
-
-packSettings
 
 packMain := Map("smrt-server-data-bundle" -> mainServer)
 

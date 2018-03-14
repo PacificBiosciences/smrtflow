@@ -1,61 +1,46 @@
 package com.pacbio.secondary.smrtlink.client
 
-import java.net.URL
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.{Try, Success, Failure}
-
+import scala.util.{Failure, Success, Try}
 import akka.actor.ActorSystem
-import akka.io.IO
-import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.scalalogging.LazyLogging
-import spray.can.Http
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx.SprayJsonSupport
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, Uri}
+import akka.http.scaladsl.client.RequestBuilding._
 
+/**
+  * FIXME. This is broken.
+  */
 class AuthenticatedServiceAccessLayer(
-    baseUrl: URL,
+    host: String,
+    port: Int,
     token: String,
-    wso2Port: Int = 8243)(implicit actorSystem: ActorSystem)
-    extends SmrtLinkServiceAccessLayer(baseUrl, None)(actorSystem)
+    wso2Port: Int = 8243,
+    securedConnection: Boolean = true)(implicit actorSystem: ActorSystem)
+    extends SmrtLinkServiceClient(host, port)(actorSystem)
     with ApiManagerClientBase {
 
   implicit val timeout: Timeout = 30.seconds
 
-  def this(host: String, port: Int, token: String)(
-      implicit actorSystem: ActorSystem) {
-    this(UrlUtils.convertToUrl(host, port), token)(actorSystem)
-  }
+  override def RootUri: Uri =
+    Uri.from(host = host,
+             port = wso2Port,
+             scheme = Uri.httpScheme(securedConnection))
 
-  override def toUrl(segment: String): String =
-    new URL(baseUrl.getProtocol,
-            baseUrl.getHost,
-            wso2Port,
-            s"/SMRTLink/1.0.0$segment").toString
+  lazy val RootAuthUriPath
+    : Uri.Path = Uri.Path./ ++ Uri.Path("SMRTLink") / "1.0.0"
 
-  private def sslSendReceive(request: HttpRequest): Future[HttpResponse] = {
-    for {
-      Http
-        .HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(
-        baseUrl.getHost,
-        port = wso2Port,
-        sslEncryption = true)
-      response <- connector ? request
-    } yield
-      response match {
-        case r: HttpResponse => r
-        case x => throw new RuntimeException(s"Unexpected response $x")
-      }
-  }
+  override def toUri(path: Uri.Path) =
+    RootUri.copy(path = RootAuthUriPath ++ Uri.Path./ ++ path)
 
-  override def requestPipe: HttpRequest => Future[HttpResponse] =
-    addHeader("Authorization", s"Bearer ${token}") ~> sslSendReceive
+  def addAuthHeader(request: HttpRequest): HttpRequest =
+    request ~> addHeader("Authorization", s"Bearer $token")
 }
 
 object AuthenticatedServiceAccessLayer {

@@ -8,8 +8,6 @@ test in assembly := {}
 
 val mainServer = "com.pacbio.secondary.smrtlink.app.SmrtLinkSmrtServer"
 
-Revolver.settings
-
 mainClass in (Compile, run) := Some(mainServer)
 
 mainClass in assembly := Some(mainServer)
@@ -26,15 +24,11 @@ assemblyMergeStrategy in assembly := {
     oldStrategy(x)
 }
 
-packSettings
-
 packMain := Map(
   "smrt-server-link-analysis" -> mainServer,
-  "smrt-server-eve" -> "com.pacbio.secondary.smrtlink.app.SmrtEventServerApp",
   "tech-support-bundler" -> "com.pacbio.secondary.smrtlink.tools.TechSupportFileBundlerApp",
   "tech-support-uploader" -> "com.pacbio.secondary.smrtlink.tools.TechSupportUploaderApp",
   "pbservice" -> "com.pacbio.secondary.smrtlink.tools.PbServiceApp",
-  "pbtestkit-service-runner" -> "com.pacbio.secondary.smrtlink.testkit.TestkitRunnerApp",
   "smrt-db-tool" -> "com.pacbio.secondary.smrtlink.tools.DatabaseToolApp",
   "amclient" -> "com.pacbio.secondary.smrtlink.tools.AmClientApp",
   "bundler-validate-config" -> "com.pacbio.secondary.smrtlink.tools.BundlerConfigApp",
@@ -53,7 +47,8 @@ packMain := Map(
   "merge-datasets" -> "com.pacbio.secondary.smrtlink.analysis.tools.DataSetMergerApp",
   "ds-tools" -> "com.pacbio.secondary.smrtlink.analysis.tools.PbDataSetToolsApp",
   "smrtflow-example-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleToolApp",
-  "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp"
+  "smrtflow-example-subparser-tool" -> "com.pacbio.secondary.smrtlink.analysis.tools.ExampleSubParserToolApp",
+  "smrt-link-job-cleanup" -> "com.pacbio.secondary.smrtlink.tools.JobCleanupApp"
 )
 
 packGenerateWindowsBatFile := false

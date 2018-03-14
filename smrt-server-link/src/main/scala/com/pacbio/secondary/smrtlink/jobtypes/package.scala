@@ -18,7 +18,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  CoreJobModel,
   InvalidJobOptionError,
   JobResultsWriter
 }
@@ -82,18 +81,15 @@ package object jobtypes {
                         writer: JobResultsWriter,
                         startedAt: JodaDateTime,
                         jobUUID: UUID): Either[ResultFailed, Out] = {
-      tx match {
-        case Success(x) => Right(x)
-        case Failure(ex) =>
-          val runTime = computeTimeDeltaFromNow(startedAt)
-          val msg = s"Failed to Run ${ex.getMessage}"
-          Left(
-            ResultFailed(jobUUID,
-                         jobTypeId.id,
-                         msg,
-                         runTime,
-                         AnalysisJobStates.FAILED,
-                         host))
+      tx.toEither.left.map { ex =>
+        val runTime = computeTimeDeltaFromNow(startedAt)
+        val msg = s"Failed to Run ${ex.getMessage}"
+        ResultFailed(jobUUID,
+                     jobTypeId.id,
+                     msg,
+                     runTime,
+                     AnalysisJobStates.FAILED,
+                     host)
       }
     }
 
@@ -131,15 +127,27 @@ package object jobtypes {
       * @return
       */
     def addStdOutLogToDataStore(
-        jobId: UUID,
+        resources: JobResourceBase,
         dao: JobsDao,
-        path: Path,
         projectId: Option[Int]): Future[DataStoreFile] = {
+      val now = JodaDateTime.now()
+      val path = resources.path.resolve(JobConstants.JOB_STDOUT)
+      val file = DataStoreFile(
+        UUID.randomUUID(),
+        JobConstants.DATASTORE_FILE_MASTER_LOG_ID,
+        FileTypes.LOG.fileTypeId,
+        // probably wrong; the file isn't closed yet.  But it won't get
+        // closed until after this method completes.
+        path.toFile.length,
+        now,
+        now,
+        path.toString,
+        isChunked = false,
+        JobConstants.DATASTORE_FILE_MASTER_NAME,
+        JobConstants.DATASTORE_FILE_MASTER_DESC
+      )
 
-      val file = DataStoreFile.fromMaster(path)
-
-      dao.importDataStoreFile(file, jobId, projectId).map(_ => file)
-
+      dao.importDataStoreFile(file, resources.jobId, projectId).map(_ => file)
     }
 
     def runAndBlock[T](fx: Future[T], timeOut: FiniteDuration): Try[T] =
@@ -198,10 +206,9 @@ package object jobtypes {
     def resolvePathsAndWriteEntryPoints(
         dao: JobsDao,
         jobRoot: Path,
-        timeout: FiniteDuration,
         datasetType: DataSetMetaTypes.DataSetMetaType,
-        datasetIds: Seq[IdAble]): Seq[Path] = {
-      val fx: Future[Seq[Path]] = for {
+        datasetIds: Seq[IdAble]): Future[Seq[Path]] = {
+      for {
         datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
                                                               datasetIds,
                                                               dao)
@@ -210,8 +217,6 @@ package object jobtypes {
           updateDataSetandWriteToEntryPointsDir(Paths.get(p), jobRoot, dao)
         })
       } yield updatedPaths
-
-      Await.result(blocking(fx), timeout)
     }
   }
 
@@ -330,13 +335,14 @@ package object jobtypes {
         datasetType: DataSetMetaTypes.DataSetMetaType,
         ids: Seq[IdAble]): Seq[EngineJobEntryPointRecord] = {
       val timeout: FiniteDuration = ids.length * TIMEOUT_PER_RECORD
-      val fx = for {
-        datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
-                                                              ids,
-                                                              dao)
-        entryPoints <- Future.successful(datasets.map(ds =>
-          EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
-      } yield entryPoints
+      def fx =
+        for {
+          datasets <- ValidateServiceDataSetUtils.resolveInputs(datasetType,
+                                                                ids,
+                                                                dao)
+          entryPoints <- Future.successful(datasets.map(ds =>
+            EngineJobEntryPointRecord(ds.uuid, datasetType.toString)))
+        } yield entryPoints
 
       Await.result(blocking(fx), timeout)
     }
@@ -346,6 +352,10 @@ package object jobtypes {
       extends ServiceCoreJobModel {
     // sugar
     val jobTypeId = opts.jobTypeId
+
+    def getStdOutLog(resources: JobResourceBase, dao: JobsDao) =
+      runAndBlock(addStdOutLogToDataStore(resources, dao, opts.projectId),
+                  opts.DEFAULT_TIMEOUT).get
   }
 
   // Use to encode a multi job type
@@ -430,6 +440,8 @@ package object jobtypes {
         case JobTypeIds.IMPORT_DATASET => jx.convertTo[ImportDataSetJobOptions]
         case JobTypeIds.CONVERT_FASTA_REFERENCE =>
           jx.convertTo[ImportFastaJobOptions]
+        case JobTypeIds.CONVERT_FASTA_GMAPREFERENCE =>
+          jx.convertTo[ImportFastaGmapJobOptions]
         case JobTypeIds.MERGE_DATASETS => jx.convertTo[MergeDataSetJobOptions]
         case JobTypeIds.MOCK_PBSMRTPIPE =>
           jx.convertTo[MockPbsmrtpipeJobOptions]
@@ -441,6 +453,7 @@ package object jobtypes {
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS =>
           jx.convertTo[TsSystemStatusBundleJobOptions]
+        case JobTypeIds.DS_COPY => jx.convertTo[CopyDataSetJobOptions]
         // These really need to be separated out into there own class
         case JobTypeIds.MJOB_MULTI_ANALYSIS =>
           jx.convertTo[MultiAnalysisJobOptions]

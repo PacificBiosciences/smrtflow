@@ -10,12 +10,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
   JobResult
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, CoreJob}
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 
 object CommonMessages {
 
   // New Job model
-  case class RunJob(job: CoreJob, path: Path)
   case class RunEngineJob(job: EngineJob)
 
   // Not sure if this is the best model for doing this

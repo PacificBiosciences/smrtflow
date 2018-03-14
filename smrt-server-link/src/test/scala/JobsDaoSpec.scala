@@ -13,7 +13,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.PacBioIntJobResolver
-import com.pacbio.secondary.smrtlink.models.ReferenceServiceDataSet
+import com.pacbio.secondary.smrtlink.models.{
+  DataSetSearchCriteria,
+  ReferenceServiceDataSet
+}
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import org.specs2.mutable.Specification
@@ -22,6 +25,8 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import org.joda.time.{DateTime => JodaDateTime}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
   sequential
@@ -55,13 +60,19 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       validateSize(dao.getDataSetMetas(activity = None).map(_.length), 7)
     }
     "Get SubreadSets" in {
-      validateSize(dao.getSubreadDataSets().map(_.length), 2)
+      validateSize(
+        dao.getSubreadDataSets(DataSetSearchCriteria.default).map(_.length),
+        2)
     }
     "Get ReferenceSets" in {
-      validateSize(dao.getReferenceDataSets().map(_.length), 4)
+      validateSize(
+        dao.getReferenceDataSets(DataSetSearchCriteria.default).map(_.length),
+        4)
     }
     "Get BarcodeSets" in {
-      validateSize(dao.getBarcodeDataSets().map(_.length), 1)
+      validateSize(
+        dao.getBarcodeDataSets(DataSetSearchCriteria.default).map(_.length),
+        1)
     }
     "Get Projects" in {
       // Should have the GENERAL Project and the Test project created from

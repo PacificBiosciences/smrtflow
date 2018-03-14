@@ -1,7 +1,7 @@
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
@@ -31,13 +31,16 @@ trait MockJobExport {
     logDirPath.toFile.mkdir
     val logPath = logDirPath.resolve("master.log")
     FileUtils.writeStringToFile(logPath.toFile, "Hello world!", "UTF-8")
+
+    val now = JodaDateTime.now()
     EngineJob(
       1,
       UUID.randomUUID(),
       "My job",
       "Test job",
-      JodaDateTime.now(),
-      JodaDateTime.now(),
+      now,
+      now,
+      now,
       AnalysisJobStates.SUCCESSFUL,
       "pbsmrtpipe",
       jobPath.toString,
@@ -186,18 +189,21 @@ class JobUtilsSpec
       val ref2 = DataSetLoader.loadReferenceSet(ref2Path)
       DataSetValidator.validate(ref2, unzipPath)
       val resPaths2 =
-        ref2.getExternalResources.getExternalResource.map(_.getResourceId)
+        ref2.getExternalResources.getExternalResource.asScala
+          .map(_.getResourceId)
       resPaths2.forall(Paths.get(_).isAbsolute) must beFalse
       // now absolutize paths and make sure they exist
       val ref3 = DataSetLoader.loadAndResolveReferenceSet(ref2Path)
       val resPaths3 =
-        ref3.getExternalResources.getExternalResource.map(_.getResourceId)
+        ref3.getExternalResources.getExternalResource.asScala
+          .map(_.getResourceId)
       resPaths3.forall(Paths.get(_).toFile.exists) === true
       // and now the entry point dataset
       val ref4Path = unzipPath.resolve(epsUnzip(0).path)
       val ref4 = DataSetLoader.loadAndResolveReferenceSet(ref4Path)
       val resPaths4 =
-        ref4.getExternalResources.getExternalResource.map(_.getResourceId)
+        ref4.getExternalResources.getExternalResource.asScala
+          .map(_.getResourceId)
       resPaths4.forall(Paths.get(_).toFile.exists) === true
     }
   }
@@ -277,7 +283,8 @@ class JobUtilsAdvancedSpec
       val subreads2 = DataSetLoader.loadAndResolveSubreadSet(subreads2Path)
       DataSetValidator.validate(subreads2, unzipPath)
       val resPaths2 =
-        subreads2.getExternalResources.getExternalResource.map(_.getResourceId)
+        subreads2.getExternalResources.getExternalResource.asScala
+          .map(_.getResourceId)
       resPaths2.forall(Paths.get(_).toFile.exists) === true
     }
   }

@@ -129,10 +129,16 @@
 		</xs:annotation>
 		<xs:complexType>
 			<xs:sequence>
+                <xs:element ref="BioSamplesCsv" minOccurs="0"/>
 				<xs:element ref="BioSample" maxOccurs="unbounded"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
+    <xs:element name="BioSamplesCsv" type="pbbase:InputOutputDataType">
+        <xs:annotation>
+            <xs:documentation>The name of the biosamples CSV.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
 	<xs:element name="BioSample" type="BioSampleType">
 		<xs:annotation>
 			<xs:documentation>An individual biological sample.</xs:documentation>

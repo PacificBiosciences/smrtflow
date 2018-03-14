@@ -54,6 +54,29 @@ import javax.xml.bind.annotation.XmlType;
  *             &lt;/complexContent>
  *           &lt;/complexType>
  *         &lt;/element>
+ *         &lt;element name="ReferenceSnr" type="{http://www.w3.org/2001/XMLSchema}float"/>
+ *         &lt;element name="ReferenceSpectrum">
+ *           &lt;complexType>
+ *             &lt;complexContent>
+ *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+ *                 &lt;sequence>
+ *                   &lt;element name="Values">
+ *                     &lt;complexType>
+ *                       &lt;complexContent>
+ *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+ *                           &lt;sequence>
+ *                             &lt;element name="Value" type="{http://www.w3.org/2001/XMLSchema}float" maxOccurs="unbounded"/>
+ *                           &lt;/sequence>
+ *                         &lt;/restriction>
+ *                       &lt;/complexContent>
+ *                     &lt;/complexType>
+ *                   &lt;/element>
+ *                 &lt;/sequence>
+ *                 &lt;attribute name="NumberFilterBins" use="required" type="{http://www.w3.org/2001/XMLSchema}int" />
+ *               &lt;/restriction>
+ *             &lt;/complexContent>
+ *           &lt;/complexType>
+ *         &lt;/element>
  *       &lt;/sequence>
  *     &lt;/extension>
  *   &lt;/complexContent>
@@ -67,7 +90,9 @@ import javax.xml.bind.annotation.XmlType;
     "analogs",
     "defaultLaserSetPoint",
     "snrCut",
-    "targetSNR"
+    "targetSNR",
+    "referenceSnr",
+    "referenceSpectrum"
 })
 public class SequencingChemistryConfig
     extends DataEntityType
@@ -81,6 +106,10 @@ public class SequencingChemistryConfig
     protected float snrCut;
     @XmlElement(name = "TargetSNR", required = true)
     protected SequencingChemistryConfig.TargetSNR targetSNR;
+    @XmlElement(name = "ReferenceSnr")
+    protected float referenceSnr;
+    @XmlElement(name = "ReferenceSpectrum", required = true)
+    protected SequencingChemistryConfig.ReferenceSpectrum referenceSpectrum;
 
     /**
      * Gets the value of the analogs property.
@@ -162,6 +191,46 @@ public class SequencingChemistryConfig
         this.targetSNR = value;
     }
 
+    /**
+     * Gets the value of the referenceSnr property.
+     * 
+     */
+    public float getReferenceSnr() {
+        return referenceSnr;
+    }
+
+    /**
+     * Sets the value of the referenceSnr property.
+     * 
+     */
+    public void setReferenceSnr(float value) {
+        this.referenceSnr = value;
+    }
+
+    /**
+     * Gets the value of the referenceSpectrum property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link SequencingChemistryConfig.ReferenceSpectrum }
+     *     
+     */
+    public SequencingChemistryConfig.ReferenceSpectrum getReferenceSpectrum() {
+        return referenceSpectrum;
+    }
+
+    /**
+     * Sets the value of the referenceSpectrum property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link SequencingChemistryConfig.ReferenceSpectrum }
+     *     
+     */
+    public void setReferenceSpectrum(SequencingChemistryConfig.ReferenceSpectrum value) {
+        this.referenceSpectrum = value;
+    }
+
 
     /**
      * <p>Java class for anonymous complex type.
@@ -218,6 +287,150 @@ public class SequencingChemistryConfig
                 analog = new ArrayList<AnalogType>();
             }
             return this.analog;
+        }
+
+    }
+
+
+    /**
+     * <p>Java class for anonymous complex type.
+     * 
+     * <p>The following schema fragment specifies the expected content contained within this class.
+     * 
+     * <pre>
+     * &lt;complexType>
+     *   &lt;complexContent>
+     *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+     *       &lt;sequence>
+     *         &lt;element name="Values">
+     *           &lt;complexType>
+     *             &lt;complexContent>
+     *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+     *                 &lt;sequence>
+     *                   &lt;element name="Value" type="{http://www.w3.org/2001/XMLSchema}float" maxOccurs="unbounded"/>
+     *                 &lt;/sequence>
+     *               &lt;/restriction>
+     *             &lt;/complexContent>
+     *           &lt;/complexType>
+     *         &lt;/element>
+     *       &lt;/sequence>
+     *       &lt;attribute name="NumberFilterBins" use="required" type="{http://www.w3.org/2001/XMLSchema}int" />
+     *     &lt;/restriction>
+     *   &lt;/complexContent>
+     * &lt;/complexType>
+     * </pre>
+     * 
+     * 
+     */
+    @XmlAccessorType(XmlAccessType.FIELD)
+    @XmlType(name = "", propOrder = {
+        "values"
+    })
+    public static class ReferenceSpectrum {
+
+        @XmlElement(name = "Values", required = true)
+        protected SequencingChemistryConfig.ReferenceSpectrum.Values values;
+        @XmlAttribute(name = "NumberFilterBins", required = true)
+        protected int numberFilterBins;
+
+        /**
+         * Gets the value of the values property.
+         * 
+         * @return
+         *     possible object is
+         *     {@link SequencingChemistryConfig.ReferenceSpectrum.Values }
+         *     
+         */
+        public SequencingChemistryConfig.ReferenceSpectrum.Values getValues() {
+            return values;
+        }
+
+        /**
+         * Sets the value of the values property.
+         * 
+         * @param value
+         *     allowed object is
+         *     {@link SequencingChemistryConfig.ReferenceSpectrum.Values }
+         *     
+         */
+        public void setValues(SequencingChemistryConfig.ReferenceSpectrum.Values value) {
+            this.values = value;
+        }
+
+        /**
+         * Gets the value of the numberFilterBins property.
+         * 
+         */
+        public int getNumberFilterBins() {
+            return numberFilterBins;
+        }
+
+        /**
+         * Sets the value of the numberFilterBins property.
+         * 
+         */
+        public void setNumberFilterBins(int value) {
+            this.numberFilterBins = value;
+        }
+
+
+        /**
+         * <p>Java class for anonymous complex type.
+         * 
+         * <p>The following schema fragment specifies the expected content contained within this class.
+         * 
+         * <pre>
+         * &lt;complexType>
+         *   &lt;complexContent>
+         *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+         *       &lt;sequence>
+         *         &lt;element name="Value" type="{http://www.w3.org/2001/XMLSchema}float" maxOccurs="unbounded"/>
+         *       &lt;/sequence>
+         *     &lt;/restriction>
+         *   &lt;/complexContent>
+         * &lt;/complexType>
+         * </pre>
+         * 
+         * 
+         */
+        @XmlAccessorType(XmlAccessType.FIELD)
+        @XmlType(name = "", propOrder = {
+            "value"
+        })
+        public static class Values {
+
+            @XmlElement(name = "Value", type = Float.class)
+            protected List<Float> value;
+
+            /**
+             * Gets the value of the value property.
+             * 
+             * <p>
+             * This accessor method returns a reference to the live list,
+             * not a snapshot. Therefore any modification you make to the
+             * returned list will be present inside the JAXB object.
+             * This is why there is not a <CODE>set</CODE> method for the value property.
+             * 
+             * <p>
+             * For example, to add a new item, do as follows:
+             * <pre>
+             *    getValue().add(newItem);
+             * </pre>
+             * 
+             * 
+             * <p>
+             * Objects of the following type(s) are allowed in the list
+             * {@link Float }
+             * 
+             * 
+             */
+            public List<Float> getValue() {
+                if (value == null) {
+                    value = new ArrayList<Float>();
+                }
+                return this.value;
+            }
+
         }
 
     }

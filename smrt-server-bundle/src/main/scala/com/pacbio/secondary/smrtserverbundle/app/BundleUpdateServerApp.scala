@@ -4,6 +4,7 @@ import java.net.{BindException, URL}
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.util.Timeout
 import akka.pattern._
@@ -24,7 +25,8 @@ import com.pacbio.secondary.smrtlink.actors.{
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.app.{
   ActorSystemCakeProvider,
-  BaseServiceConfigCakeProvider
+  BaseServiceConfigCakeProvider,
+  ServiceLoggingUtils
 }
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models.{
@@ -34,11 +36,15 @@ import com.pacbio.secondary.smrtlink.models.{
 import com.pacbio.secondary.smrtserverbundle.dao.BundleUpdateDao
 import com.typesafe.scalalogging.LazyLogging
 import spray.json._
-import spray.httpx.SprayJsonSupport._
-import spray.can.Http
-import spray.http.HttpHeaders
-import spray.routing._
-import spray.routing.directives.FileAndResourceDirectives
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.headers.{
+  ContentDispositionTypes,
+  `Content-Disposition`
+}
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives
+import akka.http.scaladsl.settings.RoutingSettings
 
 import concurrent.duration._
 import scala.concurrent.Future
@@ -168,9 +174,12 @@ class BundleUpdateService(dao: BundleUpdateDao)(
               case b: PacBioDataBundleIO =>
                 val fileName = s"$bundleTypeId-$bundleVersion.tar.gz"
                 logger.info(s"Downloading bundle $b to $fileName")
-                respondWithHeader(
-                  HttpHeaders.`Content-Disposition`(
-                    "attachment; filename=" + fileName)) {
+                val params: Map[String, String] = Map("filename" -> fileName)
+                val customHeader: HttpHeader =
+                  `Content-Disposition`(ContentDispositionTypes.attachment,
+                                        params)
+
+                respondWithHeader(customHeader) {
                   getFromFile(b.tarGzPath.toFile)
                 }
             }
@@ -308,30 +317,24 @@ trait RootPacBioDataBundleServerCakeProvider extends RouteConcatenation {
   this: ActorSystemCakeProvider with PacBioDataBundleServicesCakeProvider =>
 
   lazy val allRoutes: Route = services.map(_.prefixedRoutes).reduce(_ ~ _)
-
-  lazy val rootService =
-    actorSystem.actorOf(Props(new RoutedHttpService(allRoutes)))
 }
 
-trait PacBioDataBundleServerCakeProvider extends LazyLogging with timeUtils {
+trait PacBioDataBundleServerCakeProvider
+    extends LazyLogging
+    with timeUtils
+    with ServiceLoggingUtils {
   this: RootPacBioDataBundleServerCakeProvider
     with PacBioDataBundleConfigCakeProvider
     with ActorSystemCakeProvider =>
 
   implicit val timeout = Timeout(10.seconds)
 
-  //FIXME(mpkocher)(2017-4-11) Add validation on startup
-  def startServices(): Future[String] = {
-    (IO(Http)(actorSystem) ? Http.Bind(rootService,
-                                       systemHost,
-                                       port = systemPort)) flatMap {
-      case r: Http.CommandFailed =>
-        Future.failed(
-          new BindException(s"Failed to bind to $systemHost:$systemPort"))
-      case _ =>
-        Future { s"Successfully started up on $systemHost:$systemPort" }
-    }
-  }
+  //FIXME(mpkocher)(2017-4-11) Add validation on startup. Add explicit unbind call
+  def startServices(): Future[String] =
+    Http()
+      .bindAndHandle(logResponseTimeRoutes(allRoutes), systemHost, systemPort)
+      .map(_ => "Successfully Started Services")
+
 }
 
 object PacBioDataBundleServer

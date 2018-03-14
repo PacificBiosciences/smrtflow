@@ -1,9 +1,17 @@
 package com.pacbio.secondary.smrtlink
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
-
 import akka.actor.ActorSystem
+import akka.event.{Logging, LoggingAdapter}
+import akka.event.Logging.LogLevel
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.server.{Route, RouteResult}
+import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
+import akka.http.scaladsl.server.directives.{
+  DebuggingDirectives,
+  LogEntry,
+  LoggingMagnet
+}
+import akka.stream.ActorMaterializer
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.utils.SmrtServerIdUtils
 
@@ -27,23 +35,47 @@ package object app {
     lazy val systemHost = "0.0.0.0"
     lazy val systemUUID = getSystemUUID(conf)
     lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
-    lazy val swaggerJson = "eventserver_swagger.json"
-    // Note, this must be consistent with the how the server is launched.
-    lazy val eveUrl = new URL(s"https:$systemHost:$systemPort")
-  }
-
-  trait EventServiceConfigCakeProvider extends BaseServiceConfigCakeProvider {
-
-    override lazy val systemName = "smrt-eve"
-    // This should be loaded from the application.conf with an ENV var mapping
-    lazy val eventMessageDir: Path =
-      Paths.get(conf.getString("smrtflow.event.eventRootDir")).toAbsolutePath
-    // Make this independently configurable
-    lazy val eventUploadFilesDir: Path = eventMessageDir.resolve("files")
   }
 
   trait ActorSystemCakeProvider { this: BaseServiceConfigCakeProvider =>
     implicit lazy val actorSystem = ActorSystem(systemName)
+    implicit lazy val materializer = ActorMaterializer()
+  }
+
+  trait ServiceLoggingUtils {
+    private def akkaResponseTimeLoggingFunction(
+        loggingAdapter: LoggingAdapter,
+        requestTimestamp: Long,
+        level: LogLevel = Logging.InfoLevel)(req: HttpRequest)(
+        res: RouteResult): Unit = {
+      val entry = res match {
+        case Complete(resp) =>
+          val responseTimestamp: Long = System.nanoTime
+          val elapsedTime
+            : Long = (responseTimestamp - requestTimestamp) / 1000000
+          val loggingString =
+            s"""Logged Request:${req.method.value}:${req.uri}:${resp.status}:$elapsedTime ms"""
+          LogEntry(loggingString, level)
+        case Rejected(reason) =>
+          LogEntry(s"Rejected Reason: ${reason.mkString(",")}", level)
+      }
+      entry.logTo(loggingAdapter)
+    }
+
+    private def logResponseTime(log: LoggingAdapter) = {
+      val requestTimestamp = System.nanoTime
+      akkaResponseTimeLoggingFunction(log, requestTimestamp)(_)
+    }
+
+    /**
+      * Wrap the routes with the logging of the Response Time
+      *
+      * @param routes original routes
+      * @return
+      */
+    def logResponseTimeRoutes(routes: Route) =
+      DebuggingDirectives.logRequestResult(LoggingMagnet(logResponseTime))(
+        routes)
   }
 
 }

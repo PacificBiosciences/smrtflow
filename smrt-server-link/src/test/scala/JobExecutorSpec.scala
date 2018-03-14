@@ -1,16 +1,13 @@
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
-import com.pacbio.secondary.smrtlink.auth.Authenticator._
-import spray.http.HttpHeaders.RawHeader
-
 import scala.concurrent.duration._
 import com.typesafe.config.Config
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import akka.actor.{ActorRefFactory, ActorSystem}
-import spray.httpx.SprayJsonSupport._
-import spray.testkit.Specs2RouteTest
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors._
@@ -40,7 +37,8 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.jobtypes.{
   DeleteSmrtLinkJobOptions,
-  ExportSmrtLinkJobOptions
+  ExportSmrtLinkJobOptions,
+  PbsmrtpipeJobOptions
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.services.{
@@ -56,7 +54,6 @@ import slick.jdbc.PostgresProfile.api._
 class JobExecutorSpec
     extends Specification
     with Specs2RouteTest
-    with NoTimeConversions
     with JobServiceConstants
     with timeUtils
     with LazyLogging
@@ -80,7 +77,6 @@ class JobExecutorSpec
       with JobsServiceProvider
       with PbsmrtpipeConfigLoader
       with EngineCoreConfigLoader
-      with AuthenticatorImplProvider
       with JwtUtilsProvider
       with ActorSystemProvider
       with ConfigProvider
@@ -124,13 +120,14 @@ class JobExecutorSpec
   val rx = scala.util.Random
   val jobName = s"my-job-name-${rx.nextInt(1000)}"
 
-  val mockOpts = PbSmrtPipeServiceOptions(
-    jobName,
+  val mockOpts = PbsmrtpipeJobOptions(
+    Some(jobName),
+    None,
     "pbsmrtpipe.pipelines.mock_dev01",
     Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
     Nil,
     Nil,
-    projectId = -1)
+    projectId = Some(-1))
 
   val jobId = 1
   val taskUUID = UUID.randomUUID()
@@ -161,16 +158,20 @@ class JobExecutorSpec
   "Job Execution Service list" should {
 
     var newJob: Option[EngineJob] = None
+    val jwtUtilsImpl = new JwtUtilsImpl
 
     "execute mock-pbsmrtpipe job with project id 1" in {
-      val credentials = RawHeader(JWT_HEADER, "jsnow")
+      val userRecord = UserRecord("jsnow", Some("carbon/jsnow@domain.com"))
+      val credentials =
+        RawHeader(JwtUtils.JWT_HEADER,
+                  jwtUtilsImpl.userRecordToJwt(userRecord))
       val projectRoutes = TestProviders.projectService().prefixedRoutes
       Post(s"/$ROOT_SA_PREFIX/projects", project) ~> addHeader(credentials) ~> projectRoutes ~> check {
         status.isSuccess must beTrue
         projectId = responseAs[FullProject].id
       }
 
-      Post(url, mockOpts.copy(projectId = projectId)) ~> totalRoutes ~> check {
+      Post(url, mockOpts.copy(projectId = Some(projectId))) ~> totalRoutes ~> check {
         newJob = Some(responseAs[EngineJob])
         logger.info(s"Response to $url -> $newJob")
         // Hack to poll
@@ -249,6 +250,19 @@ class JobExecutorSpec
         val f = dsFiles2.find(_.uuid == uuid).head
         f.path must beEqualTo(dsFiles.head.path)
         f.fileSize must beEqualTo(12345)
+      }
+    }
+    "update job record" in {
+      val tags = "alpha,beta.gamma"
+      val comment = "Hello, world!"
+      val name = "My favorite job"
+      val u = UpdateJobRecord(Some(name), Some(comment), Some(tags))
+      Put(toJobTypeById(JobTypeIds.MOCK_PBSMRTPIPE.id, 1), u) ~> totalRoutes ~> check {
+        status.isSuccess must beTrue
+        val job = responseAs[EngineJob]
+        job.name === name
+        job.comment === comment
+        job.tags === tags
       }
     }
     "access job reports" in {
