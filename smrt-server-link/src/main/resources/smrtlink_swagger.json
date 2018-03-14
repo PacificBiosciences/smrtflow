@@ -1276,7 +1276,99 @@
             "type": "string",
             "name": "typeOrId",
             "in": "path"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "limit",
+            "description": "The maximum number of datasets returned",
+            "default": 10000
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "marker",
+            "description": "The offset of the number of records to return"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "id",
+            "description": "DataSet id Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "uuid",
+            "description": "DataSet UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "name",
+            "description": "DataSet name String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "path",
+            "description": "DataSet path String QueryFilter e.g., '/path/to/dataset.xml' or 'in:/alpha.xml,/beta.xml' Note, these need to be URL encoded"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "numRecords",
+            "description": "DataSet numRecord Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "totalLength",
+            "description": "DataSet totalLength Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "version",
+            "description": "DataSet version String QueryFilter e.g., '3.0.1' or 'in:3.0.1,4.1.0'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "createdBy",
+            "description": "DataSet createdBy String QueryFilter e.g., 'ralph' or 'in:Steve,ralph'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "jobId",
+            "description": "DataSet jobId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "projectId",
+            "description": "DataSet projectId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "createdAt",
+            "description": "DataSet createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "updatedAt",
+            "description": "DataSet createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "isActive",
+            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft) deleted datasets are returned"
           }
+
         ],
         "produces": [
           "application/json"
@@ -4364,7 +4456,7 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Path of the dataset"
         },
         "tags": {
                "type": "string",
