@@ -65,6 +65,7 @@ class SmrtLinkServiceClient(
   // and centralization. Everything in this class should consume and construct
   /// Uri.Path instances, not raw strings.
 
+  // FIXME. The Convention is for the RootUri to prepend the leading slash
   val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SL_PREFIX)
 
   val ROOT_JM_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / JOB_MANAGER_PREFIX

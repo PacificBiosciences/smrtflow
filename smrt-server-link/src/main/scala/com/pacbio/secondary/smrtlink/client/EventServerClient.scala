@@ -44,26 +44,14 @@ class EventServerClient(
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  private val SEGMENT_EVENTS = "events"
-  private val SEGMENT_FILES = "files"
+  val PREFIX_API_PATH = Uri.Path("api") / "v1"
 
-  val PREFIX_API_PATH = Uri.Path./ ++ Uri.Path("api") / "v1"
-
-  val UPLOAD_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_FILES
-  val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_EVENTS
-  val FILES_URI_PATH: Uri.Path = PREFIX_API_PATH / SEGMENT_FILES
+  val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / "events"
+  val FILES_URI_PATH: Uri.Path = PREFIX_API_PATH / "files"
 
   val FILES_URI = toUri(FILES_URI_PATH)
+  val UPLOAD_URI = FILES_URI
   val EVENTS_URI = toUri(EVENTS_URI_PATH)
-  val UPLOAD_URI = toUri(UPLOAD_URI_PATH)
-
-  //val toUploadUrl: Uri = toUri(UPLOAD_URI_PATH)
-  //val eventsUrl:Uri = toUri(EVENTS_URI_PATH)
-  //val filesUrl = toApiUrl(SEGMENT_FILES)
-
-  //val PREFIX_BASE = "/api/v1"
-  //val PREFIX_EVENTS = s"$PREFIX_BASE/$SEGMENT_EVENTS"
-  //val PREFIX_FILES = s"$PREFIX_BASE/$SEGMENT_FILES"
 
   /**
     * Create an Eve Client
@@ -78,7 +66,7 @@ class EventServerClient(
     this(baseUrl.getHost,
          baseUrl.getPort,
          apiSecret,
-         securedConnection = (baseUrl.getProtocol == "https"))(actorSystem)
+         securedConnection = baseUrl.getProtocol == "https")(actorSystem)
   }
 
   // Useful for debugging
@@ -90,11 +78,17 @@ class EventServerClient(
   }
 
   private def generateAuthHeader(method: HttpMethod,
-                                 segment: Uri.Path): HttpHeader = {
+                                 path: Uri.Path): HttpHeader = {
+
+    // There's an inconsistency here because of the how the
+    // the auth needs the path that begins with the a slash
+    val px = if (path.startsWithSlash) path else Uri.Path./ ++ path
     val key =
-      Signer.generate(apiSecret, s"${method.value}+$segment", Signer.timestamp)
+      Signer.generate(apiSecret,
+                      s"${method.value}+${px.toString}",
+                      Signer.timestamp)
     val authHeader = s"hmac uid:$key"
-    // logger.debug(s"segment '$segment' with key $key")
+    // logger.info(s"segment '$px' with key $key")
     RawHeader("Authentication", authHeader)
   }
 
@@ -109,7 +103,7 @@ class EventServerClient(
 
   def sendSmrtLinkSystemEvent(
       event: SmrtLinkSystemEvent): Future[SmrtLinkSystemEvent] =
-    smrtLinkSystemEventPipeline(HttpMethods.POST, EVENTS_URI_PATH) {
+    smrtLinkSystemEventPipeline(HttpMethods.POST, EVENTS_URI.path) {
       Post(EVENTS_URI, event)
     }
 
@@ -152,8 +146,8 @@ class EventServerClient(
 
   def upload(pathTgz: Path): Future[SmrtLinkSystemEvent] = {
 
-    smrtLinkSystemEventPipeline(HttpMethods.POST, FILES_URI_PATH) {
-      Post(UPLOAD_URI, createUploadEntity(pathTgz))
+    smrtLinkSystemEventPipeline(HttpMethods.POST, FILES_URI.path) {
+      Post(FILES_URI, createUploadEntity(pathTgz))
     }
   }
 
