@@ -194,7 +194,7 @@ class RunDao(val db: Database, val parser: DataModelParser)
     }
   }
 
-  override def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
+  def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
 
     val q0 = runSummaries
 
@@ -222,7 +222,7 @@ class RunDao(val db: Database, val parser: DataModelParser)
     db.run(q5.result).map(_.toSet)
   }
 
-  override def getRun(id: UUID): Future[Run] = {
+  def getRun(id: UUID): Future[Run] = {
     val summary = runSummaries.filter(_.uniqueId === id)
     val model = dataModels.filter(_.uniqueId === id)
     val run = summary.join(model).result.headOption.map { opt =>
@@ -238,17 +238,17 @@ class RunDao(val db: Database, val parser: DataModelParser)
     db.run(run)
   }
 
-  override def createRun(create: RunCreate): Future[RunSummary] =
+  def createRun(create: RunCreate): Future[RunSummary] =
     Future(parser(create.dataModel)).flatMap { r =>
       updateOrCreate(r.run.uniqueId, update = false, Some(r), None)
     }
 
-  override def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
+  def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
     Future(update.dataModel.map(parser.apply)).flatMap { r =>
       updateOrCreate(id, update = true, r, update.reserved)
     }
 
-  override def deleteRun(id: UUID): Future[MessageResponse] = {
+  def deleteRun(id: UUID): Future[MessageResponse] = {
     val action = DBIO
       .seq(
         collectionMetadata.filter(_.runId === id).delete,
@@ -259,11 +259,11 @@ class RunDao(val db: Database, val parser: DataModelParser)
     db.run(action.transactionally)
   }
 
-  override def getCollectionMetadatas(
+  def getCollectionMetadatas(
       runId: UUID): Future[Seq[CollectionMetadata]] =
     db.run(collectionMetadata.filter(_.runId === runId).result)
 
-  override def getCollectionMetadata(
+  def getCollectionMetadata(
       runId: UUID,
       uniqueId: UUID): Future[CollectionMetadata] = {
     db.run {
