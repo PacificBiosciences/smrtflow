@@ -117,7 +117,7 @@ class DatabaseSampleDao(db: Database, clock: Clock) extends SampleDao {
 }
 
 /**
-  * Provides a DatabaseRunDao.
+  * Provides a DatabaseSampleDao.
   */
 trait DatabaseSampleDaoProvider extends SampleDaoProvider with ClockProvider {
   this: DalProvider with DataModelParserProvider =>
