@@ -549,10 +549,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Max number of Datasets to show",
       opt[String]("search-name") action { (n, c) =>
         c.copy(searchName = Some(n))
-      } text "Search for datasets whose 'name' field matches the specified string",
+      } text "Search for datasets whose 'name' field matches the specified string. Supported syntax 'Alpha' or 'in:Alpha,Beta'",
       opt[String]("search-path") action { (p, c) =>
         c.copy(searchPath = Some(p))
-      } text "Search for datasets whose 'path' field matches the specified string"
+      } text "Search for datasets whose 'path' field matches the specified string. Supported syntax '/path/alpha.xml' or 'in:/alpha.xml,/path/beta.xml'"
     )
 
     note("\nDELETE SMRTLINK DATASET\n")
