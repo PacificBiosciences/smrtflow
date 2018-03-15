@@ -103,7 +103,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         createdByEmail = None, // This is explicitly not set to avoid sending an email
         smrtLinkVersion = smrtLinkVersion,
         parentMultiJobId = Some(parentJobId),
-        projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+        projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID),
+        subJobTypeId = Some(job.pipelineId)
       )
       .map { job =>
         writer.writeLine(
