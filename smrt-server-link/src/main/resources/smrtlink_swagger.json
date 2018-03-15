@@ -6012,6 +6012,12 @@
           "type": "string",
           "title": "Tags",
           "description": "Tags for the dataset. These should be ',' separated values"
+        },
+        "subJobTypeId": {
+          "type": ["string", "null"],
+          "title": "SubJobTypeId",
+          "default": null,
+          "description": "The Job 'sub job type id'. This could be used to communicate a specific job type of the 'root' jobTypeId. For pbsmrtpipe/analysis jobs, the pipeline id is used."
         }
       },
       "required": [
