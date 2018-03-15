@@ -227,7 +227,7 @@ package object jobtypes {
     val description: Option[String]
     val projectId: Option[Int]
 
-    //
+    // It's very important that these are defs
     def subJobTypeId: Option[String] = None
 
     /**
