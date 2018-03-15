@@ -31,7 +31,7 @@ class V19__AddSubJobTypeIdToEngineJob
   }
 
   def updateSubJobId(u: UpdateSubJobType): DBIO[Int] =
-    sqlu"UPDATE engine_jobs SET sub_job_type_id = '${u.subJobTypeId}' WHERE job_id = ${u.id}"
+    sqlu"UPDATE engine_jobs SET sub_job_type_id = ${u.subJobTypeId} WHERE job_id = ${u.id}"
 
   def updateSubJobTypeIds(records: Seq[UpdateSubJobType]): DBIO[Seq[Int]] =
     DBIO.sequence(records.map(updateSubJobId))
