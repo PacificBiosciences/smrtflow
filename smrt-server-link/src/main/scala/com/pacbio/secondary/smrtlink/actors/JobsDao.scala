@@ -776,7 +776,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       createdByEmail: Option[String] = None,
       smrtLinkVersion: Option[String] = None,
       projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      workflow: JsObject = JsObject.empty): Future[EngineJob] = {
+      workflow: JsObject = JsObject.empty,
+      subJobTypeId: Option[String] = None): Future[EngineJob] = {
     val path = ""
     val createdAt = JodaDateTime.now()
 
@@ -805,21 +806,22 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   /** New Actor-less model **/
-  def createCoreJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: JobTypeIds.JobType,
-      entryPoints: Seq[EngineJobEntryPointRecord] =
-        Seq.empty[EngineJobEntryPointRecord],
-      jsonSetting: JsObject,
-      createdBy: Option[String] = None,
-      createdByEmail: Option[String] = None,
-      smrtLinkVersion: Option[String] = None,
-      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      parentMultiJobId: Option[Int] = None,
-      importedAt: Option[JodaDateTime] = None): Future[EngineJob] = {
+  def createCoreJob(uuid: UUID,
+                    name: String,
+                    description: String,
+                    jobTypeId: JobTypeIds.JobType,
+                    entryPoints: Seq[EngineJobEntryPointRecord] =
+                      Seq.empty[EngineJobEntryPointRecord],
+                    jsonSetting: JsObject,
+                    createdBy: Option[String] = None,
+                    createdByEmail: Option[String] = None,
+                    smrtLinkVersion: Option[String] = None,
+                    projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                    parentMultiJobId: Option[Int] = None,
+                    importedAt: Option[JodaDateTime] = None,
+                    subJobTypeId: Option[String] = None): Future[EngineJob] = {
 
+    // This is wrong.
     val path = ""
     val createdAt = JodaDateTime.now()
 
@@ -840,7 +842,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       smrtLinkVersion,
       projectId = projectId,
       parentMultiJobId = parentMultiJobId,
-      importedAt = importedAt
+      importedAt = importedAt,
+      subJobTypeId = subJobTypeId
     )
 
     insertEngineJob(engineJob, entryPoints)

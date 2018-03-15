@@ -221,10 +221,14 @@ package object jobtypes {
   }
 
   trait ServiceJobOptions {
+
     // This metadata will be used when creating an instance of a EngineJob
     val name: Option[String]
     val description: Option[String]
     val projectId: Option[Int]
+
+    //
+    def subJobTypeId: Option[String] = None
 
     /**
       * This is a guess.

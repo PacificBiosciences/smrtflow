@@ -18,6 +18,7 @@ import com.pacbio.common.models.{
 import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+import shapeless.cachedImplicit
 
 import scala.util.{Failure, Success, Try}
 
@@ -419,19 +420,20 @@ trait EngineJobJsonSupport
       )
   }
 
-  val engineJobJsonNewestFormat = jsonFormat22(EngineJob)
   val smrtLink510engineJobJson = jsonFormat20(SmrtLink510EngineJob)
+  implicit val EngineJobJsonFormat: RootJsonFormat[EngineJob] = cachedImplicit
 
-  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
-    override def read(json: JsValue): EngineJob =
-      Try(engineJobJsonNewestFormat.read(json)) match {
-        case Success(engineJob) => engineJob
-        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
-      }
-
-    override def write(obj: EngineJob): JsValue =
-      engineJobJsonNewestFormat.write(obj)
-  }
+//  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
+//    override def read(json: JsValue): EngineJob =
+//      Try(engineJobJsonNewestFormat.read(json)) match {
+//        case Success(engineJob) => engineJob
+//        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
+//      }
+//
+//    override def write(obj: EngineJob): JsValue =
+//      engineJobJsonNewestFormat.write(obj)
+//
+//  }
 }
 
 object EngineJobJsonSupport extends EngineJobJsonSupport
