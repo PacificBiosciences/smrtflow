@@ -201,27 +201,33 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 
     def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
       if (opts.jobTypeId.isMultiJob) {
-        dao.createMultiJob(uuid,
-                           name,
-                           comment,
-                           opts.jobTypeId,
-                           epoints,
-                           jsettings,
-                           user.map(_.userId),
-                           user.flatMap(_.userEmail),
-                           config.smrtLinkVersion,
-                           projectId)
+        dao.createMultiJob(
+          uuid,
+          name,
+          comment,
+          opts.jobTypeId,
+          epoints,
+          jsettings,
+          user.map(_.userId),
+          user.flatMap(_.userEmail),
+          config.smrtLinkVersion,
+          projectId,
+          subJobTypeId = opts.subJobTypeId
+        )
       } else {
-        dao.createCoreJob(uuid,
-                          name,
-                          comment,
-                          opts.jobTypeId,
-                          epoints,
-                          jsettings,
-                          user.map(_.userId),
-                          user.flatMap(_.userEmail),
-                          config.smrtLinkVersion,
-                          projectId)
+        dao.createCoreJob(
+          uuid,
+          name,
+          comment,
+          opts.jobTypeId,
+          epoints,
+          jsettings,
+          user.map(_.userId),
+          user.flatMap(_.userEmail),
+          config.smrtLinkVersion,
+          projectId,
+          subJobTypeId = opts.subJobTypeId
+        )
       }
     }
 

@@ -163,6 +163,9 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
 
+    def subJobTypeId: Rep[Option[String]] =
+      column[Option[String]]("sub_job_type_id", O.Default(None))
+
     def path: Rep[String] =
       column[String]("path", O.Length(500, varying = true))
 
@@ -201,28 +204,30 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def tags: Rep[String] = column[String]("tags")
 
     def * =
-      (id,
-       uuid,
-       name,
-       comment,
-       createdAt,
-       updatedAt,
-       jobUpdatedAt,
-       state,
-       jobTypeId,
-       path,
-       jsonSettings,
-       createdBy,
-       createdByEmail,
-       smrtLinkVersion,
-       isActive,
-       errorMessage,
-       projectId,
-       isMultiJob,
-       workflow,
-       parentMultiJobId,
-       importedAt,
-       tags) <> (EngineJob.tupled, EngineJob.unapply)
+      (id ::
+        uuid ::
+        name ::
+        comment ::
+        createdAt ::
+        updatedAt ::
+        jobUpdatedAt ::
+        state ::
+        jobTypeId ::
+        path ::
+        jsonSettings ::
+        createdBy ::
+        createdByEmail ::
+        smrtLinkVersion ::
+        isActive ::
+        errorMessage ::
+        projectId ::
+        isMultiJob ::
+        workflow ::
+        parentMultiJobId ::
+        importedAt ::
+        tags ::
+        subJobTypeId ::
+        HNil).mappedWith(Generic[EngineJob])
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
 
