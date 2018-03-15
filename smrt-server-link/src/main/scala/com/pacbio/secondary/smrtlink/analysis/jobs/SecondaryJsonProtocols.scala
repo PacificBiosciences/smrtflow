@@ -421,19 +421,19 @@ trait EngineJobJsonSupport
   }
 
   val smrtLink510engineJobJson = jsonFormat20(SmrtLink510EngineJob)
-  implicit val EngineJobJsonFormat: RootJsonFormat[EngineJob] = cachedImplicit
+  val engineJobJsonNewestFormat: RootJsonFormat[EngineJob] = cachedImplicit
 
-//  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
-//    override def read(json: JsValue): EngineJob =
-//      Try(engineJobJsonNewestFormat.read(json)) match {
-//        case Success(engineJob) => engineJob
-//        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
-//      }
-//
-//    override def write(obj: EngineJob): JsValue =
-//      engineJobJsonNewestFormat.write(obj)
-//
-//  }
+  implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
+    override def read(json: JsValue): EngineJob =
+      Try(engineJobJsonNewestFormat.read(json)) match {
+        case Success(engineJob) => engineJob
+        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
+      }
+
+    override def write(obj: EngineJob): JsValue =
+      engineJobJsonNewestFormat.write(obj)
+
+  }
 }
 
 object EngineJobJsonSupport extends EngineJobJsonSupport

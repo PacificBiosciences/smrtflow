@@ -1,0 +1,17 @@
+{
+  "name": "Bauhaus2_Job_m54010_180210_225555",
+  "updatedAt": "2018-03-15T21:42:50.295Z",
+  "workflow": "{}",
+  "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-beta/smrtsuite_166987/userdata/jobs_root/082/082270",
+  "state": "SUCCESSFUL",
+  "uuid": "4be8a6ca-a0ea-48a0-ade3-3b7e40653958",
+  "projectId": 1,
+  "jobTypeId": "pbsmrtpipe",
+  "id": 82270,
+  "smrtlinkVersion": "5.1.0.26412",
+  "comment": "Description for job Pbsmrtpipe",
+  "createdAt": "2018-03-15T21:06:54.621Z",
+  "isActive": true,
+  "isMultiJob": false,
+  "jsonSettings": "{\"name\":\"Bauhaus2_Job_m54010_180210_225555\",\"entryPoints\":[{\"entryId\":\"eid_subread\",\"fileTypeId\":\"PacBio.DataSet.SubreadSet\",\"datasetId\":122877},{\"entryId\":\"eid_ref_dataset\",\"fileTypeId\":\"PacBio.DataSet.ReferenceSet\",\"datasetId\":5073}],\"projectId\":1,\"workflowOptions\":[],\"taskOptions\":[{\"id\":\"pbalign.task_options.algorithm_options\",\"value\":\"--minMatch 12 --bestn 10 --minPctSimilarity 70.0\",\"optionTypeId\":\"string\"},{\"id\":\"pbalign.task_options.concordant\",\"value\":false,\"optionTypeId\":\"boolean\"},{\"id\":\"pbalign.task_options.consolidate_aligned_bam\",\"value\":false,\"optionTypeId\":\"boolean\"},{\"id\":\"pbalign.task_options.consolidate_n_files\",\"value\":1,\"optionTypeId\":\"integer\"},{\"id\":\"pbalign.task_options.hit_policy\",\"value\":\"randombest\",\"optionTypeId\":\"string\"},{\"id\":\"pbalign.task_options.min_accuracy\",\"value\":70.0,\"optionTypeId\":\"float\"},{\"id\":\"pbalign.task_options.min_length\",\"value\":50,\"optionTypeId\":\"integer\"},{\"id\":\"pbalign.task_options.no_split_subreads\",\"value\":false,\"optionTypeId\":\"boolean\"}],\"pipelineId\":\"pbsmrtpipe.pipelines.sa3_ds_align\"}"
+}
