@@ -10,12 +10,18 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   DataStoreFile,
-  EngineJob
+  EngineJob,
+  JobTypeIds
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.PacBioIntJobResolver
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  PacBioIntJobResolver
+}
 import com.pacbio.secondary.smrtlink.models.{
   DataSetSearchCriteria,
-  ReferenceServiceDataSet
+  JobSearchCriteria,
+  ReferenceServiceDataSet,
+  QueryOperators
 }
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
@@ -146,6 +152,52 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       rSetFile.path === dsFile.path
       rSetFile.projectId === projectId
       rSetFile.jobId === importedJob.id
+    }
+
+    "Job search API" in {
+      val job1 =
+        MockFileUtils
+          .toTestRawEngineJob("pbsmrtpipe-test",
+                              None,
+                              Some(JobTypeIds.PBSMRTPIPE),
+                              None)
+          .copy(name = "job1")
+      val job2 = job1.copy(name = "job2",
+                           uuid = UUID.randomUUID(),
+                           state = AnalysisJobStates.SUCCESSFUL)
+      val job3 = job2.copy(name = "job3",
+                           uuid = UUID.randomUUID(),
+                           smrtlinkVersion = Some("5.1.0"),
+                           isActive = false)
+      val job4 = job1.copy(name = "job4",
+                           uuid = UUID.randomUUID(),
+                           jobTypeId = JobTypeIds.CONVERT_RS_MOVIE.id)
+      val c1 = JobSearchCriteria.allAnalysisJobs
+      val c2 =
+        c1.copy(
+          state = Some(
+            QueryOperators.JobStateEqOperator(AnalysisJobStates.SUCCESSFUL)))
+      val c3 = c1.copy(
+        smrtlinkVersion = Some(QueryOperators.StringEqQueryOperator("5.1.0")))
+      val c4 = c1.copy(isActive = Some(true))
+      val c5 = c1.copy(jobTypeId = Some(
+        QueryOperators.StringEqQueryOperator(JobTypeIds.CONVERT_RS_MOVIE.id)))
+      val c6 = c1.copy(jobTypeId = None)
+      val pbsmrtpipeJobs = Seq(job1, job2, job3, job4)
+      val searchCriteria = Seq(c1, c2, c3, c4, c5, c6)
+      val fx = for {
+        jobs <- Future.sequence(pbsmrtpipeJobs.map { job =>
+          dao.importRawEngineJob(job, job)
+        })
+        queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
+      } yield queries.map(_.map(_.name).filter(_.startsWith("job")))
+      val jobNames = Await.result(fx, timeout)
+      jobNames(0) === Seq("job3", "job2", "job1")
+      jobNames(1) === Seq("job3", "job2")
+      jobNames(2) === Seq("job3")
+      jobNames(3) === Seq("job2", "job1")
+      jobNames(4) === Seq("job4")
+      jobNames(5) === Seq("job4", "job3", "job2", "job1")
     }
 
   }
