@@ -3,6 +3,13 @@ package com.pacbio.secondary.smrtlink.services
 import java.util.UUID
 import java.nio.file.{Files, Path, Paths}
 
+import scala.collection.JavaConverters._
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -16,6 +23,16 @@ import akka.http.scaladsl.model.headers.{
 import akka.http.scaladsl.server.directives.FileAndResourceDirectives
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.unmarshalling.{FromRequestUnmarshaller, Unmarshaller}
+import akka.stream.scaladsl.FileIO
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.{FileUtils, FilenameUtils}
+import spray.json._
+
+import com.pacbio.common.models.CommonModels._
+import com.pacbio.common.models.CommonModelImplicits
+import CommonModelImplicits._
+import com.pacbio.common.models.CommonModelSpraySupport
+import com.pacbio.common.models.CommonModelSpraySupport.IdAbleMatcher
 import com.pacbio.secondary.smrtlink.actors.{
   ActorRefFactoryProvider,
   ActorSystemProvider,
@@ -23,17 +40,11 @@ import com.pacbio.secondary.smrtlink.actors.{
   JobsDaoProvider
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.common.models.CommonModels._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   MethodNotImplementedError,
   ResourceNotFoundError,
   UnprocessableEntityError
 }
-import com.pacbio.common.models.CommonModelImplicits
-import CommonModelImplicits._
-import akka.stream.scaladsl.FileIO
-import com.pacbio.common.models.CommonModelSpraySupport
-import com.pacbio.common.models.CommonModelSpraySupport.IdAbleMatcher
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
@@ -43,19 +54,10 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes._
 import com.pacbio.secondary.smrtlink.models._
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
-import spray.json._
-
-import scala.collection.JavaConverters._
-import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 object JobResourceUtils extends LazyLogging {
   // FIXME. This is a very lackluster idea.
@@ -116,7 +118,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     extends SmrtLinkBaseMicroService
     with JobServiceConstants
     with JobServiceRoutes
-    with DownloadFileUtils {
+    with DownloadFileUtils
+    with SearchQueryUtils {
   val dao: JobsDao
   val config: SystemJobConfig
 
@@ -238,28 +241,206 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     } yield engineJob
   }
 
+  protected def parseJobSearchCriteria(
+      projectIds: Set[Int],
+      isActive: Option[Boolean],
+      limit: Int,
+      marker: Option[Int],
+      id: Option[String],
+      uuid: Option[String],
+      name: Option[String],
+      comment: Option[String],
+      createdAt: Option[String],
+      updatedAt: Option[String],
+      jobUpdatedAt: Option[String],
+      path: Option[String],
+      jsonSettings: Option[String],
+      createdBy: Option[String],
+      createdByEmail: Option[String],
+      smrtlinkVersion: Option[String],
+      errorMessage: Option[String],
+      projectId: Option[String],
+      parentMultiJobId: Option[String],
+      importedAt: Option[String],
+      tags: Option[String],
+      subJobTypeId: Option[String]): Future[JobSearchCriteria] = {
+    val search = JobSearchCriteria(projectIds = projectIds,
+                                   limit = limit,
+                                   marker = marker,
+                                   isActive = isActive,
+                                   jobTypeId =
+                                     Some(StringEqQueryOperator(jobTypeId.id)))
+
+    for {
+      qId <- parseQueryOperator[IntQueryOperator](id,
+                                                  IntQueryOperator.fromString)
+      qUUID <- parseQueryOperator[UUIDQueryOperator](
+        uuid,
+        UUIDQueryOperator.fromString)
+      qName <- parseQueryOperator[StringQueryOperator](
+        name,
+        StringQueryOperator.fromString)
+      qComment <- parseQueryOperator[StringQueryOperator](
+        comment,
+        StringQueryOperator.fromString)
+      qCreatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        createdAt,
+        DateTimeQueryOperator.fromString)
+      qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        updatedAt,
+        DateTimeQueryOperator.fromString)
+      qJobUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
+        jobUpdatedAt,
+        DateTimeQueryOperator.fromString)
+      qPath <- parseQueryOperator[StringQueryOperator](
+        path,
+        StringQueryOperator.fromString)
+      qJsonSettings <- parseQueryOperator[StringQueryOperator](
+        jsonSettings,
+        StringQueryOperator.fromString)
+      qCreatedBy <- parseQueryOperator[StringQueryOperator](
+        createdBy,
+        StringQueryOperator.fromString)
+      qCreatedByEmail <- parseQueryOperator[StringQueryOperator](
+        createdByEmail,
+        StringQueryOperator.fromString)
+      qSmrtlinkVersion <- parseQueryOperator[StringQueryOperator](
+        smrtlinkVersion,
+        StringQueryOperator.fromString)
+      qErrorMessage <- parseQueryOperator[StringQueryOperator](
+        errorMessage,
+        StringQueryOperator.fromString)
+      qProjectId <- parseQueryOperator[IntQueryOperator](
+        projectId,
+        IntQueryOperator.fromString)
+      // qIsMultiJob FIXME how do i handle booleans?
+      qParentMultiJobId <- parseQueryOperator[IntQueryOperator](
+        parentMultiJobId,
+        IntQueryOperator.fromString)
+      qImportedAt <- parseQueryOperator[DateTimeQueryOperator](
+        importedAt,
+        DateTimeQueryOperator.fromString)
+      qTags <- parseQueryOperator[StringQueryOperator](
+        tags,
+        StringQueryOperator.fromString)
+      qSubJobTypeId <- parseQueryOperator[StringQueryOperator](
+        subJobTypeId,
+        StringQueryOperator.fromString)
+    } yield
+      search.copy(
+        id = qId,
+        uuid = qUUID,
+        name = qName,
+        comment = qComment,
+        createdAt = qCreatedAt,
+        updatedAt = qUpdatedAt,
+        jobUpdatedAt = qJobUpdatedAt,
+        path = qPath,
+        jsonSettings = qJsonSettings,
+        createdBy = qCreatedBy,
+        createdByEmail = qCreatedByEmail,
+        smrtlinkVersion = qSmrtlinkVersion,
+        errorMessage = qErrorMessage,
+        projectId = qProjectId,
+        parentMultiJobId = qParentMultiJobId,
+        importedAt = qImportedAt,
+        tags = qTags,
+        subJobTypeId = qSubJobTypeId
+      )
+  }
+
   // Means a project wasn't provided
   val DEFAULT_PROJECT: Option[Int] = None
 
   val allRootJobRoutes: Route =
-    pathEndOrSingleSlash {
-      post {
-        SmrtDirectives.extractOptionalUserRecord { user =>
+    SmrtDirectives.extractOptionalUserRecord { user =>
+      pathEndOrSingleSlash {
+        post {
           entity(as[T]) { opts =>
             complete(StatusCodes.Created -> createJob(opts, user))
           }
-        }
-      } ~
-        get {
-          parameters('showAll.?, 'projectId ? DEFAULT_PROJECT) {
-            (showAll, projectId) =>
-              encodeResponse {
-                complete {
-                  dao.getJobsByTypeId(jobTypeId, showAll.isDefined, projectId)
+        } ~
+          get {
+            parameters(
+              'showAll.?,
+              'limit.as[Int].?,
+              'marker.as[Int].?,
+              'id.?,
+              'uuid.?,
+              'name.?,
+              'comment.?,
+              'createdAt.?,
+              'updatedAt.?,
+              'jobUpdatedAt.?,
+              'path.?,
+              'jsonSettings.?,
+              'createdBy.?,
+              'createdByEmail.?,
+              'smrtlinkVersion.?,
+              'errorMessage.?,
+              'parentMultiJobId.?,
+              'importedAt.?,
+              'tags.?,
+              'subJobTypeId.?,
+              'projectId.?
+            ) {
+              (showAll,
+               limit,
+               marker,
+               id,
+               uuid,
+               name,
+               comment,
+               createdAt,
+               updatedAt,
+               jobUpdatedAt,
+               path,
+               jsonSettings,
+               createdBy,
+               createdByEmail,
+               smrtlinkVersion,
+               errorMessage,
+               parentMultiJobId,
+               importedAt,
+               tags,
+               subJobTypeId,
+               projectId) =>
+                encodeResponse {
+                  complete {
+                    val isActive = showAll.map(_ => None).getOrElse(Some(true))
+                    for {
+                      ids <- getProjectIds(dao, projectId.map(_.toInt), user)
+                      searchCriteria <- parseJobSearchCriteria(
+                        ids.toSet,
+                        isActive,
+                        limit.getOrElse(JobSearchCriteria.DEFAULT_MAX_JOBS),
+                        marker,
+                        id,
+                        uuid,
+                        name,
+                        comment,
+                        createdAt,
+                        updatedAt,
+                        jobUpdatedAt,
+                        path,
+                        jsonSettings,
+                        createdBy,
+                        createdByEmail,
+                        smrtlinkVersion,
+                        errorMessage,
+                        projectId,
+                        parentMultiJobId,
+                        importedAt,
+                        tags,
+                        subJobTypeId
+                      )
+                      jobs <- dao.getJobs(searchCriteria)
+                    } yield jobs
+                  }
                 }
-              }
+            }
           }
-        }
+      }
     }
 
   def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =

@@ -3,24 +3,23 @@ package com.pacbio.secondary.smrtlink.services
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import akka.actor.ActorRef
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.pattern.ask
-import com.pacbio.secondary.smrtlink.models.QueryOperators._
-import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
-
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 //import shapeless.HNil
 
-import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import SprayJsonSupport._
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.server.Route
-import com.pacbio.secondary.smrtlink.dependency.Singleton
+import akka.actor.ActorRef
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.pattern.ask
+import spray.json._
+import SprayJsonSupport._
+
+import com.pacbio.common.models.CommonModels._
+import com.pacbio.common.models.CommonModelSpraySupport._
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   MethodNotImplementedError,
@@ -31,13 +30,17 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
   DataSetUpdateUtils
 }
+import com.pacbio.secondary.smrtlink.dependency.Singleton
+import com.pacbio.secondary.smrtlink.models.QueryOperators._
+import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, JobsDaoProvider}
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.EngineJob
-import com.pacbio.common.models.CommonModels._
-import com.pacbio.common.models.CommonModelSpraySupport._
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  JobConstants
+}
 import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
@@ -45,13 +48,54 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 //
 import collection.JavaConverters._
 
+trait SearchQueryUtils {
+
+  /**
+    * Validate and URL decode the raw string.
+    */
+  protected def parseQueryOperator[T](
+      sx: Option[String],
+      f: (String) => Option[T]): Future[Option[T]] = {
+
+    sx match {
+      case Some(v) =>
+        val urlDecodedString = java.net.URLDecoder.decode(v, "UTF-8")
+        f(urlDecodedString) match {
+          case Some(op) => Future.successful(Some(op))
+          case _ =>
+            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+        }
+      case _ =>
+        // Nothing was provided
+        Future.successful(None)
+    }
+  }
+
+  // - If a projectId is provided, return only that Id.
+  // - If a projectId is not provided, but a user is logged in, return all projectIds associated with
+  // that user, plus the general project id.
+  // - If a projectId is not provided, and no user is logged in, return an empty projectId list.
+  def getProjectIds(dao: JobsDao,
+                    projectId: Option[Int],
+                    user: Option[UserRecord]): Future[Seq[Int]] =
+    (projectId, user) match {
+      case (Some(id), _) => Future.successful(Seq(id))
+      case (None, Some(u)) =>
+        dao
+          .getUserProjects(u.userId)
+          .map(_.map(_.project.id) :+ JobConstants.GENERAL_PROJECT_ID)
+      case (None, None) => Future.successful(Nil)
+    }
+}
+
 /**
   * Accessing DataSets by type. Currently several datasets types are
   * not completely supported (ContigSet, CCSreads, CCS Alignments)
   */
 class DataSetService(dao: JobsDao)
     extends SmrtLinkBaseRouteMicroService
-    with SmrtLinkConstants {
+    with SmrtLinkConstants
+    with SearchQueryUtils {
   // For all the Message types
 
   import CommonModelImplicits._
@@ -107,21 +151,6 @@ class DataSetService(dao: JobsDao)
       .reduceLeft((a, c) => s"$a|$c")
     ("(" + xs + ")").r
   }
-
-  // - If a projectId is provided, return only that Id.
-  // - If a projectId is not provided, but a user is logged in, return all projectIds associated with
-  // that user, plus the general project id.
-  // - If a projectId is not provided, and no user is logged in, return an empty projectId list.
-  def getProjectIds(projectId: Option[Int],
-                    user: Option[UserRecord]): Future[Seq[Int]] =
-    (projectId, user) match {
-      case (Some(id), _) => Future.successful(Seq(id))
-      case (None, Some(u)) =>
-        dao
-          .getUserProjects(u.userId)
-          .map(_.map(_.project.id) :+ GENERAL_PROJECT_ID)
-      case (None, None) => Future.successful(Nil)
-    }
 
   // Need to add boilerplate getters here to plug into the current model and adhere to the interface
   // This should be cleaned up at somepoint.
@@ -255,27 +284,6 @@ class DataSetService(dao: JobsDao)
   }
 
   /**
-    * Validate and URL decode the raw string.
-    */
-  private def parseQueryOperator[T](
-      sx: Option[String],
-      f: (String) => Option[T]): Future[Option[T]] = {
-
-    sx match {
-      case Some(v) =>
-        val urlDecodedString = java.net.URLDecoder.decode(v, "UTF-8")
-        f(urlDecodedString) match {
-          case Some(op) => Future.successful(Some(op))
-          case _ =>
-            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
-        }
-      case _ =>
-        // Nothing was provided
-        Future.successful(None)
-    }
-  }
-
-  /**
     * URL decode, convert to QueryOperators and
     * return a DataSet DataSetSearchCriteria.
     */
@@ -330,7 +338,7 @@ class DataSetService(dao: JobsDao)
         createdAt,
         DateTimeQueryOperator.fromString)
       qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
-        createdAt,
+        updatedAt,
         DateTimeQueryOperator.fromString)
       qPath <- parseQueryOperator[StringQueryOperator](
         path,
@@ -398,7 +406,7 @@ class DataSetService(dao: JobsDao)
                   complete {
                     for {
                       // workaround for this project id oddness in the API
-                      ids <- getProjectIds(projectId.map(_.toInt), user)
+                      ids <- getProjectIds(dao, projectId.map(_.toInt), user)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
                         Some(showAll.isEmpty),
@@ -417,6 +425,7 @@ class DataSetService(dao: JobsDao)
                         jobId,
                         projectId
                       )
+                      _ <- Future.successful(println(searchCriteria))
                       datasets <- GetDataSets(searchCriteria)
                     } yield datasets
                   }

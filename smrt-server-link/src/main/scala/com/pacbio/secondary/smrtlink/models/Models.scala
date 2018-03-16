@@ -1067,43 +1067,12 @@ object QueryOperators {
 
 }
 
-case class DataSetSearchCriteria(
-    projectIds: Set[Int],
-    isActive: Option[Boolean] = Some(true),
-    limit: Int,
-    marker: Option[Int] = None, // offset
-    id: Option[QueryOperators.IntQueryOperator] = None,
-    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
-    path: Option[QueryOperators.StringQueryOperator] = None,
-    name: Option[QueryOperators.StringQueryOperator] = None,
-    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
-    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
-    numRecords: Option[QueryOperators.LongQueryOperator] = None,
-    totalLength: Option[QueryOperators.LongQueryOperator] = None,
-    version: Option[QueryOperators.StringQueryOperator] = None,
-    createdBy: Option[QueryOperators.StringQueryOperator] = None,
-    jobId: Option[QueryOperators.IntQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None) {
+trait SearchCriteriaBase {
+  val isActive: Option[Boolean]
+  val limit: Int
+  val marker: Option[Int]
 
-  /**
-    * Get all Operators as a Map of values
-    */
-  def operators: Map[String, Option[String]] = {
-    Map(
-      "id" -> id.map(_.toQueryString),
-      "uuid" -> uuid.map(_.toQueryString),
-      "name" -> name.map(_.toQueryString),
-      "path" -> path.map(_.toQueryString),
-      "createdAt" -> createdAt.map(_.toQueryString),
-      "updatedAt" -> updatedAt.map(_.toQueryString),
-      "numRecords" -> numRecords.map(_.toQueryString),
-      "totalLength" -> totalLength.map(_.toQueryString),
-      "version" -> version.map(_.toQueryString),
-      "createdBy" -> createdBy.map(_.toQueryString),
-      "jobId" -> jobId.map(_.toQueryString),
-      "projectId" -> projectId.map(_.toQueryString)
-    )
-  }
+  def operators: Map[String, Option[String]]
 
   def toQuery: Uri.Query = {
 
@@ -1136,7 +1105,46 @@ case class DataSetSearchCriteria(
 
     Uri.Query(urlEncodedParmas)
   }
+}
 
+case class DataSetSearchCriteria(
+    projectIds: Set[Int],
+    isActive: Option[Boolean] = Some(true),
+    limit: Int,
+    marker: Option[Int] = None, // offset
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    numRecords: Option[QueryOperators.LongQueryOperator] = None,
+    totalLength: Option[QueryOperators.LongQueryOperator] = None,
+    version: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    jobId: Option[QueryOperators.IntQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None)
+    extends SearchCriteriaBase {
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "numRecords" -> numRecords.map(_.toQueryString),
+      "totalLength" -> totalLength.map(_.toQueryString),
+      "version" -> version.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "jobId" -> jobId.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString)
+    )
+  }
 }
 
 object DataSetSearchCriteria {
@@ -1148,6 +1156,81 @@ object DataSetSearchCriteria {
                           isActive = DEFAULT_IS_ACTIVE,
                           name = None,
                           limit = DEFAULT_MAX_DATASETS)
+}
+
+case class JobSearchCriteria(
+    projectIds: Set[Int],
+    limit: Int,
+    marker: Option[Int] = None,
+    isActive: Option[Boolean] = Some(true),
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    comment: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    jobUpdatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    //state: Option[QueryOperators.JobStateQueryOperator] = None,
+    jobTypeId: Option[QueryOperators.StringQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
+    jsonSettings: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    createdByEmail: Option[QueryOperators.StringQueryOperator] = None,
+    smrtlinkVersion: Option[QueryOperators.StringQueryOperator] = None,
+    errorMessage: Option[QueryOperators.StringQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None,
+    isMultiJob: Option[Boolean] = None,
+    parentMultiJobId: Option[QueryOperators.IntQueryOperator] = None,
+    importedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    tags: Option[QueryOperators.StringQueryOperator] = None,
+    subJobTypeId: Option[QueryOperators.StringQueryOperator] = None)
+    extends SearchCriteriaBase {
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "comment" -> comment.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "jobUpdatedAt" -> jobUpdatedAt.map(_.toQueryString),
+      //"state" -> state.map(_.toQueryString),
+      "jobTypeId" -> jobTypeId.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "jsonSettings" -> jsonSettings.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "createdByEmail" -> createdByEmail.map(_.toQueryString),
+      "smrtlinkVersion" -> path.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString),
+//      "isMultiJob" -> isMultiJob.map(_.toQueryString), FIXME
+      "parentMultiJobId" -> parentMultiJobId.map(_.toQueryString),
+      "importedAt" -> importedAt.map(_.toQueryString),
+      "tags" -> tags.map(_.toQueryString),
+      "subJobTypeId" -> subJobTypeId.map(_.toQueryString)
+    )
+  }
+
+}
+
+object JobSearchCriteria {
+  final val DEFAULT_MAX_JOBS = 10000
+  final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
+
+  def default =
+    JobSearchCriteria(Set.empty[Int],
+                      isActive = DEFAULT_IS_ACTIVE,
+                      name = None,
+                      limit = DEFAULT_MAX_JOBS)
+  // used for metrics harvesting
+  def allAnalysisJobs =
+    default.copy(
+      jobTypeId =
+        Some(QueryOperators.StringEqQueryOperator(JobTypeIds.PBSMRTPIPE.id)),
+      isActive = None)
 }
 
 // Options used for Merging Datasets
