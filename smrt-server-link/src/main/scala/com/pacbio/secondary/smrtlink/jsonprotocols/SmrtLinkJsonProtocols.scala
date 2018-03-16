@@ -1,12 +1,10 @@
 package com.pacbio.secondary.smrtlink.jsonprotocols
 
-import com.pacbio.secondary.smrtlink.models._
 import fommil.sjs.FamilyFormats
 import org.joda.time.{DateTime => JodaDateTime}
 import shapeless.cachedImplicit
 import spray.json._
 
-// This common model should not be defined here
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
   SupportedRunStates,

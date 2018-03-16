@@ -11,6 +11,7 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.jobtypes.ImportFastaJobOptions
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
+import org.apache.commons.io.FileUtils
 import org.specs2.mutable.Specification
 import spray.json._
 
@@ -307,6 +308,16 @@ class JobModelsSpec extends Specification with timeUtils {
   }
 
   "Testing EngineJob serialization including previous versions" should {
+    "Load model from SL 510 data model" in {
+      val p = getPath("engine-job-5.1.0.26412.json")
+
+      val sx: String = FileUtils.readFileToString(p.toFile, "UTF-8")
+      val job = sx.parseJson.convertTo[EngineJob]
+
+      job.uuid === UUID.fromString("4be8a6ca-a0ea-48a0-ade3-3b7e40653958")
+      job.name === "Bauhaus2_Job_m54010_180210_225555"
+      job.subJobTypeId must beNone
+    }
     "Serialize model to JSON and recycle" in {
 
       val now = JodaDateTime.now()
