@@ -2864,10 +2864,118 @@
           },
           {
             "required": false,
-            "type": "string",
-            "name": "showAll",
+            "type": "boolean",
+            "name": "isActive",
             "in": "query",
-            "allowEmptyValue": true
+            "default": true
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "id",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "uuid",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "comment",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdAt",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "updatedAt",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "jobUpdatedAt",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "path",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdBy",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdByEmail",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "smrtlinkVersion",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "errorMessage",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "parentMultiJobId",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "importedAt",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "subJobTypeId",
+            "in": "query"
           },
           {
             "required": false,
