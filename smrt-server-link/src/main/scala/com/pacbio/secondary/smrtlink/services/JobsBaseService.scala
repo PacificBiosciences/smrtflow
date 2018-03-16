@@ -39,6 +39,7 @@ import com.pacbio.secondary.smrtlink.actors.{
   JobsDao,
   JobsDaoProvider
 }
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   MethodNotImplementedError,
@@ -253,8 +254,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       createdAt: Option[String],
       updatedAt: Option[String],
       jobUpdatedAt: Option[String],
+      state: Option[String],
       path: Option[String],
-      jsonSettings: Option[String],
       createdBy: Option[String],
       createdByEmail: Option[String],
       smrtlinkVersion: Option[String],
@@ -292,11 +293,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       qJobUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
         jobUpdatedAt,
         DateTimeQueryOperator.fromString)
+      qState <- parseQueryOperator[JobStateQueryOperator](
+        state,
+        JobStateQueryOperator.fromString)
       qPath <- parseQueryOperator[StringQueryOperator](
         path,
-        StringQueryOperator.fromString)
-      qJsonSettings <- parseQueryOperator[StringQueryOperator](
-        jsonSettings,
         StringQueryOperator.fromString)
       qCreatedBy <- parseQueryOperator[StringQueryOperator](
         createdBy,
@@ -335,8 +336,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         createdAt = qCreatedAt,
         updatedAt = qUpdatedAt,
         jobUpdatedAt = qJobUpdatedAt,
+        state = qState,
         path = qPath,
-        jsonSettings = qJsonSettings,
         createdBy = qCreatedBy,
         createdByEmail = qCreatedByEmail,
         smrtlinkVersion = qSmrtlinkVersion,
@@ -362,7 +363,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
         } ~
           get {
             parameters(
-              'showAll.?,
+              'isActive.as[Boolean].?,
               'limit.as[Int].?,
               'marker.as[Int].?,
               'id.?,
@@ -372,8 +373,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               'createdAt.?,
               'updatedAt.?,
               'jobUpdatedAt.?,
+              'state.?,
               'path.?,
-              'jsonSettings.?,
               'createdBy.?,
               'createdByEmail.?,
               'smrtlinkVersion.?,
@@ -384,7 +385,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
               'subJobTypeId.?,
               'projectId.?
             ) {
-              (showAll,
+              (isActive,
                limit,
                marker,
                id,
@@ -394,8 +395,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                createdAt,
                updatedAt,
                jobUpdatedAt,
+               state,
                path,
-               jsonSettings,
                createdBy,
                createdByEmail,
                smrtlinkVersion,
@@ -407,12 +408,12 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                projectId) =>
                 encodeResponse {
                   complete {
-                    val isActive = showAll.map(_ => None).getOrElse(Some(true))
                     for {
                       ids <- getProjectIds(dao, projectId.map(_.toInt), user)
                       searchCriteria <- parseJobSearchCriteria(
                         ids.toSet,
-                        isActive,
+                        // default to isActive=true
+                        Some(isActive.getOrElse(true)),
                         limit.getOrElse(JobSearchCriteria.DEFAULT_MAX_JOBS),
                         marker,
                         id,
@@ -422,8 +423,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                         createdAt,
                         updatedAt,
                         jobUpdatedAt,
+                        state,
                         path,
-                        jsonSettings,
                         createdBy,
                         createdByEmail,
                         smrtlinkVersion,

@@ -1065,6 +1065,36 @@ object QueryOperators {
     }
   }
 
+  sealed trait JobStateQueryOperator extends QuertyOperator {
+    def jobStateToString(state: AnalysisJobStates.JobStates): String =
+      state.toString
+  }
+
+  case class JobStateEqOperator(state: AnalysisJobStates.JobStates)
+      extends JobStateQueryOperator {
+    override def toQueryString: String = jobStateToString(state)
+  }
+  case class JobStateInOperator(states: Set[AnalysisJobStates.JobStates])
+      extends JobStateQueryOperator {
+    override def toQueryString: String =
+      toInQuery(states.map(jobStateToString))
+  }
+
+  object JobStateQueryOperator
+      extends QueryOperatorConverter[AnalysisJobStates.JobStates] {
+    override def convertFromString(sx: String): AnalysisJobStates.JobStates =
+      AnalysisJobStates.toState(sx).getOrElse(AnalysisJobStates.UNKNOWN)
+
+    def fromString(value: String): Option[JobStateQueryOperator] = {
+      value.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(JobStateInOperator)
+        case head :: Nil => toValue(head).map(JobStateEqOperator)
+        case _ =>
+          // Invalid or unsupported String Query Operator
+          None
+      }
+    }
+  }
 }
 
 trait SearchCriteriaBase {
@@ -1170,10 +1200,9 @@ case class JobSearchCriteria(
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     jobUpdatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
-    //state: Option[QueryOperators.JobStateQueryOperator] = None,
+    state: Option[QueryOperators.JobStateQueryOperator] = None,
     jobTypeId: Option[QueryOperators.StringQueryOperator] = None,
     path: Option[QueryOperators.StringQueryOperator] = None,
-    jsonSettings: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     createdByEmail: Option[QueryOperators.StringQueryOperator] = None,
     smrtlinkVersion: Option[QueryOperators.StringQueryOperator] = None,
@@ -1198,10 +1227,9 @@ case class JobSearchCriteria(
       "createdAt" -> createdAt.map(_.toQueryString),
       "updatedAt" -> updatedAt.map(_.toQueryString),
       "jobUpdatedAt" -> jobUpdatedAt.map(_.toQueryString),
-      //"state" -> state.map(_.toQueryString),
+      "state" -> state.map(_.toQueryString),
       "jobTypeId" -> jobTypeId.map(_.toQueryString),
       "path" -> path.map(_.toQueryString),
-      "jsonSettings" -> jsonSettings.map(_.toQueryString),
       "createdBy" -> createdBy.map(_.toQueryString),
       "createdByEmail" -> createdByEmail.map(_.toQueryString),
       "smrtlinkVersion" -> path.map(_.toQueryString),

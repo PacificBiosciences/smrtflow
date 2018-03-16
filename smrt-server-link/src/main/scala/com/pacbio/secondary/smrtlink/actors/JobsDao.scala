@@ -993,8 +993,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val qIsActive: QOF = { q =>
       c.isActive.map { value =>
         value match {
-          case true => q.filter(_.isActive === true)
-          case false => q.filter(_.isActive === false)
+          case true => q.filter(_.isActive)
+          case false => q // there's no filter for isActive=false
         }
       }
     }
@@ -1069,6 +1069,13 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
           case DateTimeLteOperator(value) => q.filter(_.jobUpdatedAt <= value)
         }
     }
+    val qByState: QOF = { q =>
+      c.state
+        .map {
+          case JobStateEqOperator(value) => q.filter(_.state === value)
+          case JobStateInOperator(values) => q.filter(_.state inSet values)
+        }
+    }
     val qByJobTypeId: QOF = { q =>
       c.jobTypeId
         .map {
@@ -1082,15 +1089,6 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         .map {
           case StringEqQueryOperator(value) => q.filter(_.path === value)
           case StringInQueryOperator(values) => q.filter(_.path inSet values)
-        }
-    }
-    val qByJsonSettings: QOF = { q =>
-      c.jsonSettings
-        .map {
-          case StringEqQueryOperator(value) =>
-            q.filter(_.jsonSettings === value)
-          case StringInQueryOperator(values) =>
-            q.filter(_.jsonSettings inSet values)
         }
     }
     val qByCreatedBy: QOF = { q =>
@@ -1129,7 +1127,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         }
     }
     val qByIsMultiJob: QOF = { q =>
-      c.isActive.map { value =>
+      c.isMultiJob.map { value =>
         value match {
           case true => q.filter(_.isMultiJob === true)
           case false => q.filter(_.isMultiJob === false)
@@ -1137,7 +1135,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       }
     }
     val qByParentMultiJobId: QOF = { q =>
-      c.id
+      c.parentMultiJobId
         .map {
           case IntEqQueryOperator(value) =>
             q.filter(_.parentMultiJobId === value)
@@ -1164,7 +1162,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         }
     }
     val qByTags: QOF = { q =>
-      c.path
+      c.tags
         .map {
           case StringEqQueryOperator(value) => q.filter(_.tags === value)
           case StringInQueryOperator(values) => q.filter(_.tags inSet values)
@@ -1191,8 +1189,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       qByCreatedAt,
       qByUpdatedAt,
       qByJobUpdatedAt,
+      qByState,
       qByPath,
-      qByJsonSettings,
       qByCreatedBy,
       qByCreatedByEmail,
       qBySmrtlinkVersion,
