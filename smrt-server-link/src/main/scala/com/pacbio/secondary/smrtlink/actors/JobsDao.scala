@@ -984,15 +984,235 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(q1.sortBy(_.id.desc).result)
   }
 
-  def getJobsByTypeId(
-      jobTypeId: JobTypeIds.JobType,
-      includeInactive: Boolean = false,
-      projectId: Option[Int] = None): Future[Seq[EngineJob]] = {
-    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId.id).sortBy(_.id.desc)
-    val q2 = if (!includeInactive) q1.filter(_.isActive) else q1
-    val q3 =
-      if (projectId.isDefined) q2.filter(_.projectId === projectId.get) else q2
-    db.run(q3.result)
+  private def qJobsBySearch(c: JobSearchCriteria) = {
+
+    type Q = Query[EngineJobsT, EngineJobsT#TableElementType, Seq]
+    type QF = (Q => Q)
+    type QOF = (Q => Option[Q])
+
+    val qIsActive: QOF = { q =>
+      c.isActive.map { value =>
+        value match {
+          case true => q.filter(_.isActive)
+          case false => q // there's no filter for isActive=false
+        }
+      }
+    }
+
+    // This needs to be clarified and collapsed back into the SearchCriteria API
+    // in the new standard way.
+    val qOldProjectIds: QOF = { q =>
+      if (c.projectIds.nonEmpty) Some(q.filter(_.projectId inSet c.projectIds))
+      else None
+    }
+
+    val qById: QOF = { q =>
+      c.id
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.id === value)
+          case IntInQueryOperator(values) => q.filter(_.id inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.id >= value)
+          case IntGtQueryOperator(value) => q.filter(_.id > value)
+          case IntLteQueryOperator(value) => q.filter(_.id <= value)
+          case IntLtQueryOperator(value) => q.filter(_.id < value)
+        }
+    }
+    val qByUUID: QOF = { q =>
+      c.uuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.uuid === value)
+          case UUIDInOperator(values) => q.filter(_.uuid inSet values)
+        }
+    }
+    val qByName: QOF = { q =>
+      c.name
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringInQueryOperator(values) => q.filter(_.name inSet values)
+        }
+    }
+    val qByComment: QOF = { q =>
+      c.comment
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.comment === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.comment inSet values)
+        }
+    }
+    val qByCreatedAt: QOF = { q =>
+      c.createdAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.createdAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.createdAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.createdAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.createdAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.createdAt <= value)
+        }
+    }
+    val qByUpdatedAt: QOF = { q =>
+      c.updatedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.updatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.updatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.updatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.updatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.updatedAt <= value)
+        }
+    }
+    val qByJobUpdatedAt: QOF = { q =>
+      c.jobUpdatedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.jobUpdatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.jobUpdatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.jobUpdatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.jobUpdatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.jobUpdatedAt <= value)
+        }
+    }
+    val qByState: QOF = { q =>
+      c.state
+        .map {
+          case JobStateEqOperator(value) => q.filter(_.state === value)
+          case JobStateInOperator(values) => q.filter(_.state inSet values)
+        }
+    }
+    val qByJobTypeId: QOF = { q =>
+      c.jobTypeId
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.jobTypeId === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.jobTypeId inSet values)
+        }
+    }
+    val qByPath: QOF = { q =>
+      c.path
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringInQueryOperator(values) => q.filter(_.path inSet values)
+        }
+    }
+    val qByCreatedBy: QOF = { q =>
+      c.createdBy
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.createdBy inSet values)
+        }
+    }
+    val qByCreatedByEmail: QOF = { q =>
+      c.createdByEmail
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.createdByEmail === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.createdByEmail inSet values)
+        }
+    }
+    val qBySmrtlinkVersion: QOF = { q =>
+      c.smrtlinkVersion
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.smrtLinkVersion === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.smrtLinkVersion inSet values)
+        }
+    }
+    val qByErrorMessage: QOF = { q =>
+      c.errorMessage
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.errorMessage === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.errorMessage inSet values)
+        }
+    }
+    val qByIsMultiJob: QOF = { q =>
+      c.isMultiJob.map { value =>
+        value match {
+          case true => q.filter(_.isMultiJob === true)
+          case false => q.filter(_.isMultiJob === false)
+        }
+      }
+    }
+    val qByParentMultiJobId: QOF = { q =>
+      c.parentMultiJobId
+        .map {
+          case IntEqQueryOperator(value) =>
+            q.filter(_.parentMultiJobId === value)
+          case IntInQueryOperator(values) =>
+            q.filter(_.parentMultiJobId inSet values)
+          case IntGteQueryOperator(value) =>
+            q.filter(_.parentMultiJobId >= value)
+          case IntGtQueryOperator(value) =>
+            q.filter(_.parentMultiJobId > value)
+          case IntLteQueryOperator(value) =>
+            q.filter(_.parentMultiJobId <= value)
+          case IntLtQueryOperator(value) =>
+            q.filter(_.parentMultiJobId < value)
+        }
+    }
+    val qByImportedAt: QOF = { q =>
+      c.importedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.importedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.importedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.importedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.importedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.importedAt <= value)
+        }
+    }
+    val qByTags: QOF = { q =>
+      c.tags
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.tags === value)
+          case StringInQueryOperator(values) => q.filter(_.tags inSet values)
+        }
+    }
+    val qBySubJobTypeId: QOF = { q =>
+      c.subJobTypeId
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.subJobTypeId === value)
+          case StringInQueryOperator(values) =>
+            q.filter(_.subJobTypeId inSet values)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(
+      qIsActive,
+      qByJobTypeId,
+      qOldProjectIds,
+      qById,
+      qByName,
+      qByUUID,
+      qByComment,
+      qByCreatedAt,
+      qByUpdatedAt,
+      qByJobUpdatedAt,
+      qByState,
+      qByPath,
+      qByCreatedBy,
+      qByCreatedByEmail,
+      qBySmrtlinkVersion,
+      qByErrorMessage,
+      qByIsMultiJob,
+      qByParentMultiJobId,
+      qByImportedAt,
+      qByTags,
+      qBySubJobTypeId
+    )
+
+    val qTotal: QF = { q =>
+      queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }
+    }
+
+    qTotal(engineJobs)
+  }
+
+  def getJobs(c: JobSearchCriteria): Future[Seq[EngineJob]] = {
+    val q1 = qJobsBySearch(c).sortBy(_.id.desc)
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.take(c.limit).result)
   }
 
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
