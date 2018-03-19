@@ -588,6 +588,7 @@ trait ServiceDataSetMetadata {
   val projectId: Int
   val parentUuid: Option[UUID]
   val isActive: Boolean
+  val numChildren: Int
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -635,6 +636,7 @@ case class SubreadServiceDataSet(
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -664,6 +666,7 @@ case class HdfSubreadServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -687,6 +690,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -708,6 +712,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -729,6 +734,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -750,6 +756,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
                                             isActive: Boolean = true,
+                                            numChildren: Int = 0,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -772,6 +779,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
                                  isActive: Boolean = true,
+                                 numChildren: Int = 0,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -793,6 +801,7 @@ case class ContigServiceDataSet(id: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
                                 isActive: Boolean = true,
+                                numChildren: Int = 0,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -816,6 +825,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
@@ -839,6 +849,7 @@ case class TranscriptServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 
