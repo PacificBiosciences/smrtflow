@@ -18,6 +18,11 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.client._
+import com.pacbio.secondary.smrtlink.models.JobSearchCriteria
+import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  DateTimeLtOperator,
+  JobStateInOperator
+}
 
 case class JobCleanupConfig(host: String,
                             port: Int,
@@ -56,16 +61,13 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
       } else cleanupJob(client, job)
     }
 
-    def filterJob(job: EngineJob): Boolean = {
-      (job.state.isCompleted &&
-      job.updatedAt.isBefore(cutoff) &&
-      !AnalysisJobStates.isSuccessful(job.state))
-    }
+    val searchCriteria = JobSearchCriteria.default.copy(
+      state = Some(JobStateInOperator(AnalysisJobStates.FAILURE_STATES.toSet)),
+      updatedAt = Some(DateTimeLtOperator(cutoff)))
 
     for {
       _ <- andLog(s"Will remove all failed jobs prior to ${cutoff.toString}")
-      allJobs <- sal.getAnalysisJobs()
-      jobs <- Future.successful(allJobs.filter(filterJob))
+      jobs <- sal.getAnalysisJobs(Some(searchCriteria))
       results <- runBatch(10, jobs, (job: EngineJob) => runCleanUp(sal, job))
       total <- Future.successful(results.reduceLeftOption(_ + _).getOrElse(0))
       msg <- andLog {
