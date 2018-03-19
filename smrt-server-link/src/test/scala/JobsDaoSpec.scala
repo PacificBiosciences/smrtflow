@@ -1,6 +1,15 @@
 import java.nio.file.Files
 import java.util.UUID
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
+
+import org.joda.time.{DateTime => JodaDateTime}
+import org.specs2.mutable.Specification
+import slick.jdbc.PostgresProfile.api._
+
 import com.pacbio.common.models.CommonModelImplicits._
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, SmrtLinkTestDalProvider}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -25,14 +34,6 @@ import com.pacbio.secondary.smrtlink.models.{
 }
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
-import org.specs2.mutable.Specification
-import slick.jdbc.PostgresProfile.api._
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import org.joda.time.{DateTime => JodaDateTime}
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
   sequential
@@ -155,24 +156,26 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
     }
 
     "Job search API" in {
+      val prefix = Random.alphanumeric.take(10).mkString("")
       val job1 =
         MockFileUtils
           .toTestRawEngineJob("pbsmrtpipe-test",
                               None,
                               Some(JobTypeIds.PBSMRTPIPE),
                               None)
-          .copy(name = "job1")
-      val job2 = job1.copy(name = "job2",
+          .copy(name = s"${prefix}-job1")
+      val job2 = job1.copy(name = s"${prefix}-job2",
                            uuid = UUID.randomUUID(),
                            state = AnalysisJobStates.SUCCESSFUL)
-      val job3 = job2.copy(name = "job3",
+      val job3 = job2.copy(name = s"${prefix}-job3",
                            uuid = UUID.randomUUID(),
                            smrtlinkVersion = Some("5.1.0"),
                            isActive = false)
-      val job4 = job1.copy(name = "job4",
+      val job4 = job1.copy(name = s"${prefix}-job4",
                            uuid = UUID.randomUUID(),
                            jobTypeId = JobTypeIds.CONVERT_RS_MOVIE.id)
-      val c1 = JobSearchCriteria.allAnalysisJobs
+      val c1 = JobSearchCriteria.allAnalysisJobs.copy(
+        name = Some(QueryOperators.StringMatchQueryOperator(s"${prefix}-job")))
       val c2 =
         c1.copy(
           state = Some(
@@ -190,14 +193,15 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
           dao.importRawEngineJob(job, job)
         })
         queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
-      } yield queries.map(_.map(_.name).filter(_.startsWith("job")))
+      } yield queries.map(_.map(_.name))
       val jobNames = Await.result(fx, timeout)
-      jobNames(0) === Seq("job3", "job2", "job1")
-      jobNames(1) === Seq("job3", "job2")
-      jobNames(2) === Seq("job3")
-      jobNames(3) === Seq("job2", "job1")
-      jobNames(4) === Seq("job4")
-      jobNames(5) === Seq("job4", "job3", "job2", "job1")
+      def toJobName(x: Int) = s"${prefix}-job$x"
+      jobNames(0) === Seq(3, 2, 1).map(toJobName)
+      jobNames(1) === Seq(3, 2).map(toJobName)
+      jobNames(2) === Seq(3).map(toJobName)
+      jobNames(3) === Seq(2, 1).map(toJobName)
+      jobNames(4) === Seq(4).map(toJobName)
+      jobNames(5) === Seq(4, 3, 2, 1).map(toJobName)
     }
 
   }

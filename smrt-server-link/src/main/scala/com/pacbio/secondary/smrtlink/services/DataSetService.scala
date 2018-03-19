@@ -63,7 +63,8 @@ trait SearchQueryUtils {
         f(urlDecodedString) match {
           case Some(op) => Future.successful(Some(op))
           case _ =>
-            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+            Future.failed(
+              UnprocessableEntityError(s"Invalid Filter `$urlDecodedString`"))
         }
       case _ =>
         // Nothing was provided

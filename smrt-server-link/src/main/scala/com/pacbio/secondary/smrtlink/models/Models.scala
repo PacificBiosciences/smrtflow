@@ -863,6 +863,7 @@ object QueryOperators {
   private def toLteQuery(value: String) = s"lte:$value"
   private def toGtQuery(value: String) = s"gt:$value"
   private def toGteQuery(value: String) = s"gte:$value"
+  private def toMatchQuery(value: String) = s"like:$value"
 
   // This is a bit of a grab bag of utils
   trait QueryOperatorConverter[T] {
@@ -893,6 +894,10 @@ object QueryOperators {
   case class StringEqQueryOperator(value: String) extends StringQueryOperator {
     override def toQueryString: String = toEqQuery(value)
   }
+  case class StringMatchQueryOperator(value: String)
+      extends StringQueryOperator {
+    override def toQueryString: String = toMatchQuery(value)
+  }
   case class StringInQueryOperator(value: Set[String])
       extends StringQueryOperator {
     override def toQueryString: String = toInQuery(value)
@@ -914,6 +919,8 @@ object QueryOperators {
     def fromString(value: String): Option[StringQueryOperator] = {
       value.split(":", 2).toList match {
         case "in" :: tail :: Nil => toSetValue(tail).map(StringInQueryOperator)
+        case "like" :: tail :: Nil =>
+          toValue(tail).map(StringMatchQueryOperator)
         case head :: Nil => toValue(head).map(StringEqQueryOperator)
         case _ =>
           // Invalid or unsupported String Query Operator
