@@ -373,7 +373,7 @@ class DataSetService(dao: JobsDao)
         pathEnd {
           get {
             parameters(
-              'showAll.?,
+              'isActive.as[Boolean].?,
               'limit.as[Int].?,
               'marker.as[Int].?,
               'id.?,
@@ -388,7 +388,7 @@ class DataSetService(dao: JobsDao)
               'jobId.?,
               'projectId.?
             ) {
-              (showAll,
+              (isActive,
                limit,
                marker,
                id,
@@ -409,7 +409,7 @@ class DataSetService(dao: JobsDao)
                       ids <- getProjectIds(dao, projectId.map(_.toInt), user)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
-                        Some(showAll.isEmpty),
+                        Some(isActive.getOrElse(true)),
                         limit.getOrElse(
                           DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
                         marker,
