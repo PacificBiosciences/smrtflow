@@ -64,7 +64,7 @@ object JobCleanup extends ClientAppUtils with LazyLogging {
 
     for {
       _ <- andLog(s"Will remove all failed jobs prior to ${cutoff.toString}")
-      allJobs <- sal.getAnalysisJobs
+      allJobs <- sal.getAnalysisJobs()
       jobs <- Future.successful(allJobs.filter(filterJob))
       results <- runBatch(10, jobs, (job: EngineJob) => runCleanUp(sal, job))
       total <- Future.successful(results.reduceLeftOption(_ + _).getOrElse(0))

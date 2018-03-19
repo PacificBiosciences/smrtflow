@@ -42,7 +42,8 @@ import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models.QueryOperators.{
   StringInQueryOperator,
-  StringQueryOperator
+  StringQueryOperator,
+  JobStateQueryOperator
 }
 import com.pacbio.secondary.smrtlink.models._
 
@@ -517,10 +518,13 @@ object PbServiceParser extends CommandLineToolVersion {
         c.copy(jobType = t)
       } validate { t =>
         validateJobType(t)
-      } text "Only retrieve jobs of specified type",
+      } text s"Only retrieve jobs of specified type (Default: ${defaults.jobType})",
       opt[String]('s', "job-state") action { (s, c) =>
         c.copy(jobState = Some(s)) // This should validate the job state.
-      } text "Only display jobs in specified state (e.g., CREATED, SUCCESSFUL, RUNNING, FAILED)"
+      } text "Only display jobs in specified state (e.g., CREATED, SUCCESSFUL, RUNNING, FAILED)",
+      opt[String]("search-name") action { (n, c) =>
+        c.copy(searchName = Some(n))
+      } text "Search for jobs whose 'name' field matches the specified string. Supported syntax 'Alpha' or 'in:Alpha,Beta'"
     )
 
     note("\nGET SMRTLINK DATASET DETAILS\n")
@@ -673,8 +677,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           status.uuid.toString,
           status.version,
           status.message))
-    printTable(table, headers)
-    ""
+    toTable(table, headers)
   }
 
   // This really needs a count call on each dataset type
@@ -712,14 +715,14 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   protected def systemJobSummary(): Future[String] = {
     for {
-      numImportJobs <- sal.getImportJobs.map(_.length)
-      numMergeJobs <- sal.getMergeJobs.map(_.length)
-      numAnalysisJobs <- sal.getAnalysisJobs.map(_.length)
-      numConvertFastaJobs <- sal.getFastaConvertJobs.map(_.length)
-      numConvertFastaBarcodeJobs <- sal.getBarcodeConvertJobs.map(_.length)
-      numTsSystemBundleJobs <- Future.successful(0) // These need to be added
-      numTsFailedJobBundleJob <- Future.successful(0)
-      numDbBackUpJobs <- Future.successful(0)
+      numImportJobs <- sal.getImportJobs().map(_.length)
+      numMergeJobs <- sal.getMergeJobs().map(_.length)
+      numAnalysisJobs <- sal.getAnalysisJobs().map(_.length)
+      numConvertFastaJobs <- sal.getFastaConvertJobs().map(_.length)
+      numConvertFastaBarcodeJobs <- sal.getBarcodeConvertJobs().map(_.length)
+      numTsSystemBundleJobs <- sal.getTsSystemBundleJobs().map(_.length)
+      numTsFailedJobBundleJob <- sal.getTsFailedJobBundleJobs().map(_.length)
+      numDbBackUpJobs <- sal.getDbBackUpJobs().map(_.length)
     } yield s"""
         |System Job Summary by job type:
         |
@@ -884,37 +887,21 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     } yield jobInfo + reportInfo
   }
 
-  protected def jobsSummary(maxItems: Int,
-                            asJson: Boolean,
-                            engineJobs: Seq[EngineJob],
-                            jobState: Option[String] = None): String = {
-    if (asJson) {
-      engineJobs.take(maxItems).toJson.prettyPrint
-    } else {
-      val table = engineJobs
-        .sortBy(_.id)
-        .reverse
-        .filter(job => jobState.map(_ == job.state.toString).getOrElse(true))
-        .take(maxItems)
-        .map(
-          job =>
-            Seq(job.id.toString,
-                job.state.toString,
-                job.name,
-                job.uuid.toString,
-                job.createdBy.getOrElse(""),
-                job.tags))
-      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy", "Tags"))
-    }
-  }
-
   def runGetJobs(maxItems: Int,
                  asJson: Boolean = false,
                  jobType: String = "pbsmrtpipe",
-                 jobState: Option[String] = None): Future[String] = {
+                 jobState: Option[String] = None,
+                 searchName: Option[String] = None): Future[String] = {
+    val qJobState = jobState.flatMap(JobStateQueryOperator.fromString)
+    val qName = searchName.flatMap(StringQueryOperator.fromString)
+
+    val searchCriteria =
+      JobSearchCriteria.default.copy(limit = maxItems,
+                                     name = qName,
+                                     state = qJobState)
     sal
-      .getJobsByType(jobType)
-      .map(jobs => jobsSummary(maxItems, asJson, jobs, jobState))
+      .getJobsByType(jobType, Some(searchCriteria))
+      .map(jobs => toJobsSummary(jobs, asJson))
   }
 
   private def getDataSetResult(
@@ -1448,7 +1435,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       ds <- sal.getDataSet(dsId)
       request <- Future.successful(project.asRequest.appendDataSet(ds.id))
       projectWithDs <- sal.updateProject(projectId, request)
-      _ <- Future.successful { if (verbose) printProjectInfo(projectWithDs) }
+      _ <- Future.successful {
+        if (verbose) println(toProjectSummary(projectWithDs))
+      }
     } yield s"Added dataset to project ${projectWithDs.name}"
   }
 
@@ -1482,7 +1471,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runCreateProject(name: String, description: String): Future[String] = {
     sal
       .createProject(name, description)
-      .map(project => formatProjectInfo(project))
+      .map(project => toProjectSummary(project))
   }
 
   /**
@@ -2008,7 +1997,11 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.JOB =>
           ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
         case Modes.JOBS =>
-          ps.runGetJobs(c.maxItems, c.asJson, c.jobType, c.jobState)
+          ps.runGetJobs(c.maxItems,
+                        c.asJson,
+                        c.jobType,
+                        c.jobState,
+                        c.searchName)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.EXPORT_JOB =>

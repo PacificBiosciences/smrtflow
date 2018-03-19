@@ -1215,6 +1215,9 @@ case class JobSearchCriteria(
     subJobTypeId: Option[QueryOperators.StringQueryOperator] = None)
     extends SearchCriteriaBase {
 
+  def withProject(projectId: Int) =
+    copy(projectId = Some(QueryOperators.IntEqQueryOperator(projectId)))
+
   /**
     * Get all Operators as a Map of values
     */
