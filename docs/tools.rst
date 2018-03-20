@@ -9,7 +9,10 @@ Commandline Tools
 Commandline Interaction with SMRT Link Services
 -----------------------------------------------
 
-The `pbservice` exe can be used in to interact with the SMRT Link Services from the commandline.
+The `pbservice` exe can be used in to interact with the SMRT Link Services from the commandline.  Note that machine-readable output can be obtained in most
+cases by adding the argument `--json` to the command line; attempting to parse
+plain-text output is strongly discouraged.
+
 
 Checking the Status
 ^^^^^^^^^^^^^^^^^^^
@@ -56,6 +59,7 @@ Importing a DataSet into SMRT Link Server
 
 .. note:: This can also operate recursively on a directory. All files ending in `*.subreadset.xml` will be imported into the system. Any files that have already been imported into the system will be skipped.
 
+
 Submit an Resequencing Analysis Job
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -65,6 +69,9 @@ Submit an Resequencing Analysis Job
         -e /path/to/subreadset.xml \
         -e /path/to/referenceset.xml \
         --job-title my_job_title
+
+This will automatically import the entry point datasets if they are not already
+present in the system.
 
 
 Resubmitting an Analysis Job
@@ -85,6 +92,21 @@ Importing/Converting a RSII movie into SMRT Link
 .. code-block:: bash
 
     $> pbservice import-rs-movie --host smrtlink-alpha --port 8081 /path/to/movies
+
+This will create a new HdfSubreadSet XML and database entry.  Note that the
+underlying HDF5 data files will not be converted at this stage; conversion to
+BAM format requires running a separate pbsmrtpipe job.
+
+
+Querying Job History
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    $> pbservice get-jobs --job-state FAILED --job-type pbsmrtpipe --search-name like:hg19 --search-pipeline pbsmrtpipe.pipelines.sa3_ds_resequencing_fat
+
+The `get-jobs` subcommand allows searching for jobs by type, name (full or
+partial), job state, and/or pbsmrtpipe pipeline (if relevant).
 
 
 For further options, please use `pbservice --help` for more functionality.

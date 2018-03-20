@@ -882,8 +882,8 @@ Verify that the response status is **201: Created**. Notice that this time the r
         “comment” : “Deleting job 13957a79-1bbb-44ea-83f3-6c0595bf0d42”
     }
 
-How to setup an SMRT Link Analysis Job for a specific Pipeline
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to setup a SMRT Link Analysis Job for a specific Pipeline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To create an analysis job for a specific pipeline, you need to create a job of type “pbsmrtpipe” with the payload based on the template of the desired pipeline. Perform the following steps:
 
@@ -1065,6 +1065,32 @@ Use the request body built above in the following API call:
 
 Verify that the job was created successfully. The return HTTP status
 should be **201 Created**.
+
+
+Querying Job History
+~~~~~~~~~~~~~~~~~~~~
+
+The job service endpoints provide a number of search criteria (plus paging
+support) that can be used to limit the return results.  A full list of
+available search criteria is provided in the the JSON Swagger API definition
+for the jobs endpoint.  The following search retrieves all failed Site
+Acceptance Test (SAT) pipeline jobs:
+
+.. code-block:: bash
+
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe?state=FAILED&subJobTypeId=pbsmrtpipe.pipelines.sa3_sat
+
+For most datatypes additional operators besides equality are allowed, for example:
+
+.. code-block:: bash
+    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe?createdAt=lt%3A2018-03-01T00:00:00.000Z&createdBy=myusername
+
+
+This retrieves all pbsmrtpipe jobs run before 2018-03-01 by a user with the
+login ID "myusername".  (Note that certain searches, especially partial text
+searches using `like:`, may be significantly slower to execute and can overload
+the server if called too frequently.)
+
 
     For Research Use Only. Not for use in diagnostic procedures. ©
     Copyright 2015 - 2017, Pacific Biosciences of California, Inc. All
