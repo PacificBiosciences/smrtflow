@@ -146,6 +146,7 @@ object PbServiceParser extends CommandLineToolVersion {
       showReports: Boolean = false,
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
+      searchSubJobType: Option[String] = None,
       force: Boolean = false,
       reserved: Boolean = false,
       user: String = System.getProperty("user.name"),
@@ -524,7 +525,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Only display jobs in specified state (e.g., CREATED, SUCCESSFUL, RUNNING, FAILED)",
       opt[String]("search-name") action { (n, c) =>
         c.copy(searchName = Some(n))
-      } text "Search for jobs whose 'name' field matches the specified string. Supported syntax 'Alpha' or 'in:Alpha,Beta'"
+      } text "Search for jobs whose 'name' field matches the specified string. Supported syntax 'Alpha' or 'in:Alpha,Beta'",
+      opt[String]("search-pipeline") action { (p, c) =>
+        c.copy(searchSubJobType = Some(p))
+      } text "Search for jobs by subJobTypeId field, i.e. pipeline ID (applies to pbsmrtpipe jobs only)"
     )
 
     note("\nGET SMRTLINK DATASET DETAILS\n")
@@ -891,14 +895,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                  asJson: Boolean = false,
                  jobType: String = "pbsmrtpipe",
                  jobState: Option[String] = None,
-                 searchName: Option[String] = None): Future[String] = {
+                 searchName: Option[String] = None,
+                 searchSubJobType: Option[String] = None): Future[String] = {
     val qJobState = jobState.flatMap(JobStateQueryOperator.fromString)
     val qName = searchName.flatMap(StringQueryOperator.fromString)
+    val qSubJobType = searchSubJobType.flatMap(StringQueryOperator.fromString)
 
     val searchCriteria =
       JobSearchCriteria.default.copy(limit = maxItems,
                                      name = qName,
-                                     state = qJobState)
+                                     state = qJobState,
+                                     subJobTypeId = qSubJobType)
     sal
       .getJobsByType(jobType, Some(searchCriteria))
       .map(jobs => toJobsSummary(jobs, asJson))
@@ -2001,7 +2008,8 @@ object PbService extends ClientAppUtils with LazyLogging {
                         c.asJson,
                         c.jobType,
                         c.jobState,
-                        c.searchName)
+                        c.searchName,
+                        c.searchSubJobType)
         case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
         case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
         case Modes.EXPORT_JOB =>
