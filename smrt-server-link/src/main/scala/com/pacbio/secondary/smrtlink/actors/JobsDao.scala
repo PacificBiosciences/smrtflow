@@ -1028,6 +1028,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.name
         .map {
           case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.name like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.name inSet values)
         }
     }
@@ -1035,6 +1037,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.comment
         .map {
           case StringEqQueryOperator(value) => q.filter(_.comment === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.comment like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.comment inSet values)
         }
@@ -1080,6 +1084,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.jobTypeId
         .map {
           case StringEqQueryOperator(value) => q.filter(_.jobTypeId === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.jobTypeId like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.jobTypeId inSet values)
         }
@@ -1088,6 +1094,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.path
         .map {
           case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.path like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.path inSet values)
         }
     }
@@ -1095,6 +1103,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.createdBy
         .map {
           case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdBy like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.createdBy inSet values)
         }
@@ -1104,6 +1114,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         .map {
           case StringEqQueryOperator(value) =>
             q.filter(_.createdByEmail === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdByEmail like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.createdByEmail inSet values)
         }
@@ -1113,6 +1125,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         .map {
           case StringEqQueryOperator(value) =>
             q.filter(_.smrtLinkVersion === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.smrtLinkVersion like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.smrtLinkVersion inSet values)
         }
@@ -1122,6 +1136,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         .map {
           case StringEqQueryOperator(value) =>
             q.filter(_.errorMessage === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.errorMessage like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.errorMessage inSet values)
         }
@@ -1165,6 +1181,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       c.tags
         .map {
           case StringEqQueryOperator(value) => q.filter(_.tags === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.tags like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.tags inSet values)
         }
     }
@@ -1173,6 +1191,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         .map {
           case StringEqQueryOperator(value) =>
             q.filter(_.subJobTypeId === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.subJobTypeId like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.subJobTypeId inSet values)
         }
@@ -2156,6 +2176,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.name
         .map {
           case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.name like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.name inSet values)
         }
     }
@@ -2165,6 +2187,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.path
         .map {
           case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.path like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.path inSet values)
         }
     }
@@ -2214,6 +2238,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.version
         .map {
           case StringEqQueryOperator(value) => q.filter(_.version === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.version like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.version inSet values)
         }
@@ -2224,6 +2250,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.createdBy
         .map {
           case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdBy like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.createdBy inSet values)
         }

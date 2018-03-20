@@ -63,7 +63,8 @@ trait SearchQueryUtils {
         f(urlDecodedString) match {
           case Some(op) => Future.successful(Some(op))
           case _ =>
-            Future.failed(UnprocessableEntityError(s"Invalid Filter `$v`"))
+            Future.failed(
+              UnprocessableEntityError(s"Invalid Filter `$urlDecodedString`"))
         }
       case _ =>
         // Nothing was provided
@@ -373,7 +374,7 @@ class DataSetService(dao: JobsDao)
         pathEnd {
           get {
             parameters(
-              'showAll.?,
+              'isActive.as[Boolean].?,
               'limit.as[Int].?,
               'marker.as[Int].?,
               'id.?,
@@ -388,7 +389,7 @@ class DataSetService(dao: JobsDao)
               'jobId.?,
               'projectId.?
             ) {
-              (showAll,
+              (isActive,
                limit,
                marker,
                id,
@@ -409,7 +410,7 @@ class DataSetService(dao: JobsDao)
                       ids <- getProjectIds(dao, projectId.map(_.toInt), user)
                       searchCriteria <- parseDataSetSearchCriteria(
                         ids.toSet,
-                        Some(showAll.isEmpty),
+                        Some(isActive.getOrElse(true)),
                         limit.getOrElse(
                           DataSetSearchCriteria.DEFAULT_MAX_DATASETS),
                         marker,

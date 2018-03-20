@@ -488,7 +488,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetAnalysisJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetAnalysisJobs"
     override def runWith =
-      smrtLinkClient.getAnalysisJobs.map(j => j.sortBy(_.id))
+      smrtLinkClient.getAnalysisJobs().map(j => j.sortBy(_.id))
   }
 
   case class GetAnalysisJobsForProject(projectId: Var[Int])
@@ -501,7 +501,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetLastAnalysisJobId extends VarStep[UUID] {
     override val name = "GetLastAnalysisJobId"
     override def runWith =
-      smrtLinkClient.getAnalysisJobs.map(j => j.sortBy(_.id).last.uuid)
+      smrtLinkClient.getAnalysisJobs().map(j => j.sortBy(_.id).last.uuid)
   }
 
   case class GetJobById(jobId: Var[Int]) extends VarStep[EngineJob] {
@@ -583,7 +583,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetDatasetDeleteJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetDatasetDeleteJobs"
     override def runWith =
-      smrtLinkClient.getDatasetDeleteJobs.map(j => j.sortBy(_.id))
+      smrtLinkClient.getDatasetDeleteJobs().map(j => j.sortBy(_.id))
   }
 
   case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
