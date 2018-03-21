@@ -22,10 +22,10 @@ class V20__AddNumChildrenToDataSetMeta
     with SlickMigration
     with LazyLogging {
 
-  //
-  case class InRecord(id: Int, uuid: UUID)
-  case class OutRecord(in: InRecord, numChildren: Int)
+  // Parent UUID that has children
+  case class InRecord(uuid: UUID)
 
+  // Utils to get UUID to work with plain sql queries
   implicit class PgPositionedResult(val r: PositionedResult) {
     def nextUUID: UUID = UUID.fromString(r.nextString)
 
@@ -40,21 +40,21 @@ class V20__AddNumChildrenToDataSetMeta
   }
 
   implicit val getInRecordResult = GetResult(
-    r => InRecord(r.nextInt, UUID.fromString(r.nextString)))
+    r => InRecord(UUID.fromString(r.nextString)))
 
   def getRecords: DBIO[Seq[InRecord]] =
-    sql"""SELECT id, parent_uuid FROM dataset_metadata WHERE parent_uuid IS NOT NULL"""
+    sql"""SELECT parent_uuid FROM dataset_metadata WHERE parent_uuid IS NOT NULL"""
       .as[InRecord]
 
   /**
-    * Note, this is assuming the parent exists
+    * Note, this is assuming the parent exists.
+    *
+    * This should also modifiy the 'updated_at' timestamp.
     */
   def getAndUpdateNumChildren(record: InRecord): DBIO[String] =
     for {
-      numChildren <- sql"""select COUNT(*) from dataset_metadata WHERE parent_uuid = ${record.uuid}"""
-        .as[Int]
-      _ <- sqlu"""UPDATE dataset_metadata SET num_children = ${numChildren.length} WHERE uuid = ${record.uuid}"""
-    } yield s"Updated $record with ${numChildren.length}"
+      _ <- sqlu"""UPDATE dataset_metadata SET num_children = (select COUNT(*) as total from dataset_metadata WHERE parent_uuid = ${record.uuid}) WHERE uuid = ${record.uuid}"""
+    } yield s"Updated $record"
 
   def getAndUpdateRecords(records: Seq[InRecord]): DBIO[Seq[String]] =
     DBIO.sequence(records.map(getAndUpdateNumChildren))
