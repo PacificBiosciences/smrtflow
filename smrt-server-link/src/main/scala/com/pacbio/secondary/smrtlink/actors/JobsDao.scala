@@ -1656,16 +1656,36 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
+  /**
+    * Update the numChildren (active+inactive) from dataset with a specific UUID.
+    *
+    * If the parent UUID does NOT exist, the update will be ignored.
+    */
   private def actionUpdateNumChildren(parentUUID: UUID): DBIO[Int] = {
-    for {
-      total <- dsMetaData2.filter(_.parentUuid === parentUUID).length.result
-      _ <- dsMetaData2
-        .filter(_.uuid === parentUUID)
-        .map(d => (d.name, d.updatedAt))
-        .update((s"Name with $total", JodaDateTime.now()))
-    } yield total
+    def action0 =
+      for {
+        numChildren <- dsMetaData2
+          .filter(_.parentUuid === parentUUID)
+          .length
+          .result
+        _ <- dsMetaData2
+          .filter(_.uuid === parentUUID)
+          .map(d => (d.numChildren, d.updatedAt))
+          .update((numChildren, JodaDateTime.now()))
+      } yield numChildren
+
+    dsMetaData2.filter(_.uuid === parentUUID).exists.result.flatMap {
+      case true => action0
+      case false =>
+        logger.warn(
+          s"Parent DataSet $parentUUID does not exist. Unable to update num children")
+        DBIO.successful(0)
+    }
   }
 
+  /**
+    * Util for the common usecase
+    */
   private def actionUpdateNumChildrenOpt(parentUUID: Option[UUID]): DBIO[Int] =
     parentUUID
       .map(actionUpdateNumChildren)
@@ -1679,7 +1699,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
     val action: DBIO[Unit] = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
