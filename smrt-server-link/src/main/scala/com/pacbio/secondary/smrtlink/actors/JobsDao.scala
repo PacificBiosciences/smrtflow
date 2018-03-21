@@ -2077,8 +2077,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * @return
     */
   private def toSds(t1: DataSetMetaDataSet,
-                    t2: SubreadServiceSet,
-                    numChildren: Int): SubreadServiceDataSet =
+                    t2: SubreadServiceSet): SubreadServiceDataSet =
     SubreadServiceDataSet(
       t1.id,
       t1.uuid,
@@ -2108,7 +2107,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t2.dnaBarcodeName,
       t1.parentUuid,
       isActive = t1.isActive,
-      numChildren = numChildren
+      numChildren = t1.numChildren
     )
 
   /**
@@ -2121,7 +2120,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
     //val qParentCount = dsMetaData2.filter
     db.run(q.result.headOption)
-      .map(_.map(x => toSds(x._1, x._2, 0)))
+      .map(_.map(x => toSds(x._1, x._2)))
       .flatMap(
         failIfNone(s"Unable to find SubreadSet with id ${id.toIdString}"))
   }
@@ -2310,7 +2309,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q1 = q0 join dsSubread2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
     db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
-      .map(_.map(x => toSds(x._1, x._2, 0)))
+      .map(_.map(x => toSds(x._1, x._2)))
   }
 
   /**
@@ -2339,7 +2338,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getReferenceDataSets(
@@ -2389,7 +2389,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getGmapReferenceDataSets(
@@ -2452,7 +2453,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] = {
@@ -2487,7 +2489,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getAlignmentDataSets(
@@ -2535,7 +2538,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
@@ -2584,7 +2588,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getConsensusAlignmentDataSets(c: DataSetSearchCriteria)
@@ -2632,7 +2637,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getTranscriptDataSets(
@@ -2679,7 +2685,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getBarcodeDataSets(
@@ -2725,7 +2732,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getContigDataSets(
