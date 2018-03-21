@@ -299,10 +299,12 @@ class DataSetService(dao: JobsDao)
       name: Option[String],
       createdAt: Option[String],
       updatedAt: Option[String],
+      importedAt: Option[String],
       numRecords: Option[String],
       totalLength: Option[String],
       version: Option[String],
       jobId: Option[String],
+      parentUuid: Option[String],
       projectId: Option[String]): Future[DataSetSearchCriteria] = {
 
     val search =
@@ -341,9 +343,15 @@ class DataSetService(dao: JobsDao)
       qUpdatedAt <- parseQueryOperator[DateTimeQueryOperator](
         updatedAt,
         DateTimeQueryOperator.fromString)
+      qImportedAt <- parseQueryOperator[DateTimeQueryOperator](
+        importedAt,
+        DateTimeQueryOperator.fromString)
       qPath <- parseQueryOperator[StringQueryOperator](
         path,
         StringQueryOperator.fromString)
+      qParentUuid <- parseQueryOperator[UUIDQueryOperator](
+        parentUuid,
+        UUIDQueryOperator.fromString)
     } yield
       search.copy(
         name = qName,
@@ -352,10 +360,12 @@ class DataSetService(dao: JobsDao)
         path = qPath,
         createdAt = qCreatedAt,
         updatedAt = qUpdatedAt,
+        importedAt = qImportedAt,
         numRecords = qNumRecords,
         totalLength = qTotalLength,
         version = qVersion,
         jobId = qJobId,
+        parentUuid = qParentUuid,
         projectId = qProjectId
       )
 
@@ -383,10 +393,12 @@ class DataSetService(dao: JobsDao)
               'name.?,
               'createdAt.?,
               'updatedAt.?,
+              'importedAt.?,
               'numRecords.?,
               'totalLength.?,
               'version.?,
               'jobId.?,
+              'parentUuid.?,
               'projectId.?
             ) {
               (isActive,
@@ -398,10 +410,12 @@ class DataSetService(dao: JobsDao)
                name,
                createdAt,
                updatedAt,
+               importedAt,
                numRecords,
                totalLength,
                version,
                jobId,
+               parentUuid,
                projectId) =>
                 encodeResponse {
                   complete {
@@ -420,13 +434,14 @@ class DataSetService(dao: JobsDao)
                         name,
                         createdAt,
                         updatedAt,
+                        importedAt,
                         numRecords,
                         totalLength,
                         version,
                         jobId,
+                        parentUuid,
                         projectId
                       )
-                      _ <- Future.successful(println(searchCriteria))
                       datasets <- GetDataSets(searchCriteria)
                     } yield datasets
                   }

@@ -409,6 +409,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def parentUuid: Rep[Option[UUID]] =
       column[Option[UUID]]("parent_uuid")
 
+    def numChildren: Rep[Int] = column[Int]("num_children", O.Default(0))
+
     def * =
       (id,
        uuid,
@@ -427,7 +429,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        jobId,
        projectId,
        isActive,
-       parentUuid) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
+       parentUuid,
+       numChildren) <> (DataSetMetaDataSet.tupled, DataSetMetaDataSet.unapply)
 
     def uuidIdx = index("dataset_metadata_uuid", uuid, unique = true)
 

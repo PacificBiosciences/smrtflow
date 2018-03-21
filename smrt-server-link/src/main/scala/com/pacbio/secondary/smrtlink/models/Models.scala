@@ -441,7 +441,8 @@ case class DataSetMetaDataSet(id: Int,
                               jobId: Int,
                               projectId: Int,
                               isActive: Boolean,
-                              parentUuid: Option[UUID])
+                              parentUuid: Option[UUID],
+                              numChildren: Int = 0)
     extends UniqueIdAble
     with ProjectAble
 
@@ -588,6 +589,7 @@ trait ServiceDataSetMetadata {
   val projectId: Int
   val parentUuid: Option[UUID]
   val isActive: Boolean
+  val numChildren: Int
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -635,6 +637,7 @@ case class SubreadServiceDataSet(
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -664,6 +667,7 @@ case class HdfSubreadServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -687,6 +691,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -708,6 +713,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -729,6 +735,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -750,6 +757,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
                                             isActive: Boolean = true,
+                                            numChildren: Int = 0,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -772,6 +780,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
                                  isActive: Boolean = true,
+                                 numChildren: Int = 0,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -793,6 +802,7 @@ case class ContigServiceDataSet(id: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
                                 isActive: Boolean = true,
+                                numChildren: Int = 0,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -816,6 +826,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
@@ -839,6 +850,7 @@ case class TranscriptServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 
@@ -1155,11 +1167,13 @@ case class DataSetSearchCriteria(
     name: Option[QueryOperators.StringQueryOperator] = None,
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    importedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     numRecords: Option[QueryOperators.LongQueryOperator] = None,
     totalLength: Option[QueryOperators.LongQueryOperator] = None,
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
+    parentUuid: Option[QueryOperators.UUIDQueryOperator] = None,
     projectId: Option[QueryOperators.IntQueryOperator] = None)
     extends SearchCriteriaBase {
 
@@ -1174,11 +1188,13 @@ case class DataSetSearchCriteria(
       "path" -> path.map(_.toQueryString),
       "createdAt" -> createdAt.map(_.toQueryString),
       "updatedAt" -> updatedAt.map(_.toQueryString),
+      "importedAt" -> importedAt.map(_.toQueryString),
       "numRecords" -> numRecords.map(_.toQueryString),
       "totalLength" -> totalLength.map(_.toQueryString),
       "version" -> version.map(_.toQueryString),
       "createdBy" -> createdBy.map(_.toQueryString),
       "jobId" -> jobId.map(_.toQueryString),
+      "parentUuid" -> parentUuid.map(_.toQueryString),
       "projectId" -> projectId.map(_.toQueryString)
     )
   }

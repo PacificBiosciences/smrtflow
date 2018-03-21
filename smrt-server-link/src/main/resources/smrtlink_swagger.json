@@ -1365,10 +1365,21 @@
           {
             "in": "query",
             "type": "string",
+            "name": "importedAt",
+            "description": "DataSet imported at DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
             "name": "isActive",
             "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft) deleted datasets are returned"
+          },
+          {
+            "in": "query",
+            "type": "integer",
+            "name": "parentUuid",
+            "description": "DataSet Parent UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
           }
-
         ],
         "produces": [
           "application/json"
@@ -4223,6 +4234,12 @@
           "type": "boolean",
           "title": "Is active",
           "description": ""
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
         }
       }
     },
@@ -4315,6 +4332,12 @@
           "type": "string",
           "title": "Comments",
           "description": ""
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
         }
       },
       "required": [
@@ -4480,7 +4503,18 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "title": "Parent DataSet UUID",
+          "description": "Parent DataSet UUID"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4506,7 +4540,9 @@
         "metadataContextId",
         "runName",
         "datasetType",
-        "comments"
+        "comments",
+        "parentUuid",
+        "numChildren"
       ],
       "example": {
         "name": "Convert-movie",
@@ -4663,8 +4699,9 @@
         },
         "parentUuid": {
           "type": ["string", "null"],
-          "title": "Parent dataset UUID",
-          "description": "UUID of parent, if any"
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
         },
         "datasetType": {
                "type": "string",
@@ -4675,7 +4712,13 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4702,7 +4745,8 @@
         "runName",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
@@ -4827,7 +4871,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4847,7 +4903,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_barcode_adapters_96",
@@ -4965,7 +5022,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4985,7 +5054,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
@@ -5004,7 +5074,8 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
         "comments": "ccs alignment dataset converted",
-        "isActive": true
+        "isActive": true,
+        "numChildren": 0
       }
     },
     "ContigSetDetails": {
@@ -5102,7 +5173,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5122,7 +5205,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
@@ -5240,7 +5324,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5260,7 +5356,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
@@ -5388,7 +5485,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5410,7 +5519,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "lambdaNEB",
@@ -5540,7 +5650,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5562,7 +5684,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "hg38",

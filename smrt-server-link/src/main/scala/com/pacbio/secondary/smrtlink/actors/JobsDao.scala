@@ -1676,15 +1676,51 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
+  /**
+    * Update the numChildren (active+inactive) from dataset with a specific UUID.
+    *
+    * If the parent UUID does NOT exist, the update will be ignored.
+    */
+  private def actionUpdateNumChildren(parentUUID: UUID): DBIO[Int] = {
+    def action0 =
+      for {
+        numChildren <- dsMetaData2
+          .filter(_.parentUuid === parentUUID)
+          .length
+          .result
+        _ <- dsMetaData2
+          .filter(_.uuid === parentUUID)
+          .map(d => (d.numChildren, d.updatedAt))
+          .update((numChildren, JodaDateTime.now()))
+      } yield numChildren
+
+    dsMetaData2.filter(_.uuid === parentUUID).exists.result.flatMap {
+      case true => action0
+      case false =>
+        logger.warn(
+          s"Parent DataSet $parentUUID does not exist. Unable to update num children")
+        DBIO.successful(0)
+    }
+  }
+
+  /**
+    * Util for the common usecase
+    */
+  private def actionUpdateNumChildrenOpt(parentUUID: Option[UUID]): DBIO[Int] =
+    parentUUID
+      .map(actionUpdateNumChildren)
+      .getOrElse(DBIO.successful(0))
+
   private def actionImportSubreadSet(
       i: ImportAbleSubreadSet): DBIO[MessageResponse] = {
-    val ds = i.file
+
     val action0 = insertMetaData(i.file)
-      .flatMap(i => insertSubreadSetRecord(i, ds))
+      .flatMap(x => insertSubreadSetRecord(x, i.file))
 
     val action: DBIO[Unit] = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1708,14 +1744,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file)
-      .flatMap(i => insertHdfSubreadSetRecord(i, ds))
+      .flatMap(x => insertHdfSubreadSetRecord(x, i.file))
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1727,15 +1763,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportAlignmentSet(
       i: ImportAbleAlignmentSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
+      dsAlignment2 forceInsert AlignmentServiceSet(id, i.file.uuid)
     }
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1746,15 +1782,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportBarcodeSet(
       i: ImportAbleBarcodeSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
+      dsBarcode2 forceInsert BarcodeServiceSet(id, i.file.uuid)
     }
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1766,13 +1802,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportConsensusReadSet(
       i: ImportAbleConsensusReadSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid)
+      dsCCSread2 forceInsert ConsensusReadServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1783,13 +1820,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
+      dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1800,13 +1838,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportTranscriptSet(
       i: ImportAbleTranscriptSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsTranscript2 forceInsert TranscriptServiceSet(id, ds.uuid)
+      dsTranscript2 forceInsert TranscriptServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1817,13 +1856,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportContigSet(
       i: ImportAbleContigSet): DBIO[MessageResponse] = {
-    val ds = i.ds.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
+      dsContig2 forceInsert ContigServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1834,7 +1874,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportReferenceSet(
       i: ImportAbleReferenceSet): DBIO[MessageResponse] = {
-    val ds = i.ds.file
+
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsReference2 forceInsert ReferenceServiceSet(id,
                                                    i.file.uuid,
@@ -1842,7 +1882,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                                                    i.file.organism)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -2019,7 +2061,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           .update(setIsActive, JodaDateTime.now()))
       .map(_ =>
         MessageResponse(
-          s"Successfully set isActive=$setIsActive for dataset $id"))
+          s"Successfully set isActive=$setIsActive for dataset ${id.toIdString}"))
   }
 
   def updateDataSetById(
@@ -2105,7 +2147,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.dnaBarcodeName,
       t1.parentUuid,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   /**
@@ -2116,6 +2159,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     */
   def getSubreadDataSetById(id: IdAble): Future[SubreadServiceDataSet] = {
     val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
+    //val qParentCount = dsMetaData2.filter
     db.run(q.result.headOption)
       .map(_.map(x => toSds(x._1, x._2)))
       .flatMap(
@@ -2279,6 +2323,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
+    val qByImportedAt: QOF = { q =>
+      c.importedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.importedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.importedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.importedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.importedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.importedAt <= value)
+        }
+    }
+
     val qByUUID: QOF = { q =>
       c.uuid
         .map {
@@ -2287,19 +2342,31 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
-    val queries: Seq[QOF] = Seq(qInActive,
-                                qOldProjectIds,
-                                qById,
-                                qByName,
-                                qByPath,
-                                qByNumRecords,
-                                qByTotaLength,
-                                qByJobId,
-                                qByVersion,
-                                qByCreatedBy,
-                                qByCreatedAt,
-                                qByUpdatedAt,
-                                qByUUID)
+    val qByParentUUID: QOF = { q =>
+      c.parentUuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.parentUuid === value)
+          case UUIDInOperator(values) => q.filter(_.parentUuid inSet values)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(
+      qInActive,
+      qOldProjectIds,
+      qById,
+      qByName,
+      qByPath,
+      qByNumRecords,
+      qByTotaLength,
+      qByJobId,
+      qByVersion,
+      qByCreatedBy,
+      qByCreatedAt,
+      qByUpdatedAt,
+      qByImportedAt,
+      qByUUID,
+      qByParentUUID
+    )
 
     val qTotal: QF = { q =>
       queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }
@@ -2343,7 +2410,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getReferenceDataSets(
@@ -2393,7 +2461,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getGmapReferenceDataSets(
@@ -2456,7 +2525,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] = {
@@ -2491,7 +2561,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getAlignmentDataSets(
@@ -2539,7 +2610,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
@@ -2588,7 +2660,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getConsensusAlignmentDataSets(c: DataSetSearchCriteria)
@@ -2636,7 +2709,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getTranscriptDataSets(
@@ -2683,7 +2757,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getBarcodeDataSets(
@@ -2729,7 +2804,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getContigDataSets(
