@@ -2274,6 +2274,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
+    val qByImportedAt: QOF = { q =>
+      c.importedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.importedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.importedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.importedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.importedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.importedAt <= value)
+        }
+    }
+
     val qByUUID: QOF = { q =>
       c.uuid
         .map {
@@ -2282,19 +2293,31 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
-    val queries: Seq[QOF] = Seq(qInActive,
-                                qOldProjectIds,
-                                qById,
-                                qByName,
-                                qByPath,
-                                qByNumRecords,
-                                qByTotaLength,
-                                qByJobId,
-                                qByVersion,
-                                qByCreatedBy,
-                                qByCreatedAt,
-                                qByUpdatedAt,
-                                qByUUID)
+    val qByParentUUID: QOF = { q =>
+      c.parentUuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.parentUuid === value)
+          case UUIDInOperator(values) => q.filter(_.parentUuid inSet values)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(
+      qInActive,
+      qOldProjectIds,
+      qById,
+      qByName,
+      qByPath,
+      qByNumRecords,
+      qByTotaLength,
+      qByJobId,
+      qByVersion,
+      qByCreatedBy,
+      qByCreatedAt,
+      qByUpdatedAt,
+      qByImportedAt,
+      qByUUID,
+      qByParentUUID
+    )
 
     val qTotal: QF = { q =>
       queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }

@@ -1160,11 +1160,13 @@ case class DataSetSearchCriteria(
     name: Option[QueryOperators.StringQueryOperator] = None,
     createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    importedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
     numRecords: Option[QueryOperators.LongQueryOperator] = None,
     totalLength: Option[QueryOperators.LongQueryOperator] = None,
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
+    parentUuid: Option[QueryOperators.UUIDQueryOperator] = None,
     projectId: Option[QueryOperators.IntQueryOperator] = None)
     extends SearchCriteriaBase {
 
@@ -1179,11 +1181,13 @@ case class DataSetSearchCriteria(
       "path" -> path.map(_.toQueryString),
       "createdAt" -> createdAt.map(_.toQueryString),
       "updatedAt" -> updatedAt.map(_.toQueryString),
+      "importedAt" -> importedAt.map(_.toQueryString),
       "numRecords" -> numRecords.map(_.toQueryString),
       "totalLength" -> totalLength.map(_.toQueryString),
       "version" -> version.map(_.toQueryString),
       "createdBy" -> createdBy.map(_.toQueryString),
       "jobId" -> jobId.map(_.toQueryString),
+      "parentUuid" -> parentUuid.map(_.toQueryString),
       "projectId" -> projectId.map(_.toQueryString)
     )
   }
