@@ -441,7 +441,8 @@ case class DataSetMetaDataSet(id: Int,
                               jobId: Int,
                               projectId: Int,
                               isActive: Boolean,
-                              parentUuid: Option[UUID])
+                              parentUuid: Option[UUID],
+                              numChildren: Int = 0)
     extends UniqueIdAble
     with ProjectAble
 

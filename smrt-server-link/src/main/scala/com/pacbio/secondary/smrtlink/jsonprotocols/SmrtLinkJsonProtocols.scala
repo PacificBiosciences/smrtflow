@@ -246,7 +246,7 @@ trait SmrtLinkJsonProtocols
   implicit val jobUpdateFormat = jsonFormat3(UpdateJobRecord)
 
   // DataSet
-  implicit val dataSetMetadataFormat = jsonFormat18(DataSetMetaDataSet)
+  implicit val dataSetMetadataFormat = jsonFormat19(DataSetMetaDataSet)
   implicit val datasetTypeFormat = jsonFormat6(ServiceDataSetMetaType)
   implicit val subreadDataSetFormat: RootJsonFormat[SubreadServiceDataSet] =
     cachedImplicit

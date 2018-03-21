@@ -222,7 +222,8 @@ object Converters extends DataSetMetadataUtils {
       projectId,
       dnaBarcodeName,
       parentUuid = parentUuid,
-      isActive = true
+      isActive = true,
+      numChildren = 0
     )
   }
 
