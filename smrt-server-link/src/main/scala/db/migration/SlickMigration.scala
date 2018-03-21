@@ -8,8 +8,9 @@ import slick.jdbc.JdbcBackend.{BaseSession, DatabaseDef}
 import slick.jdbc.JdbcDataSource
 import slick.util.AsyncExecutor
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
+import scala.util.{Try, Success, Failure}
 
 // UnmanagedSession was deprecated in Slick 3.0 and removed in 3.1. This is my attempt to re-create its functionality
 // for 3.1.
@@ -53,10 +54,15 @@ trait SlickMigration { self: JdbcMigration =>
 
   override final def migrate(conn: Connection): Unit = {
     val db = new UnmanagedDatabase(conn)
-    try {
-      Await.result(slickMigrate(db), Duration.Inf)
-    } finally {
-      db.close()
+
+    Try(Await.result(slickMigrate(db), Duration.Inf)) match {
+      case Success(_) =>
+        db.close()
+        Unit
+      case Failure(ex) =>
+        db.close()
+        System.err.println(ex.getMessage)
+        throw ex
     }
   }
 }
