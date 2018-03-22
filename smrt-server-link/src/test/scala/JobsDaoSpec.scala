@@ -158,7 +158,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
     "Job search API" in {
       val prefix = Random.alphanumeric.take(10).mkString("")
       def toJobName(x: Int) = s"${prefix}-job$x"
-      def toJobNames(xx: Seq[Int]) = xx.map(_.toJobName).toSet
+      def toJobNames(xx: Seq[Int]) = xx.map(toJobName).toSet
       val job1 =
         MockFileUtils
           .toTestRawEngineJob("pbsmrtpipe-test",
@@ -199,7 +199,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
         queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
       } yield queries.map(_.map(_.name).toSet)
       val jobNames = Await.result(fx, timeout)
-      jobNames.zip(expectedResults).map { (names1, names2) =>
+      jobNames.zip(expectedResults).map { case (names1, names2) =>
         names1 === names2
       }
     }
