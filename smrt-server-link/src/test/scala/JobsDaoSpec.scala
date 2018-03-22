@@ -190,8 +190,9 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       val c6 = c1.copy(jobTypeId = None)
       val pbsmrtpipeJobs = Seq(job1, job2, job3, job4)
       val searchCriteria = Seq(c1, c2, c3, c4, c5, c6)
-      val expectedResults = Seq(Seq(3, 2, 1), Seq(3, 2), Seq(3),
-                                Seq(2, 1), Seq(4), Seq(4, 3, 2, 1))
+      val expectedResults = Seq(
+        Seq(3, 2, 1), Seq(3, 2), Seq(3), Seq(2, 1), Seq(4), Seq(4, 3, 2, 1)
+      ).map(toJobNames)
       val fx = for {
         jobs <- Future.sequence(pbsmrtpipeJobs.map { job =>
           dao.importRawEngineJob(job, job)
