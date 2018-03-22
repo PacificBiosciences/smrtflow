@@ -71,7 +71,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     fail(s"Expected at least one datastore file") IF dataStore
       .mapWith(_.size) ==? 0,
     jobReports := GetJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
+    fail("Expected at least one report") IF jobReports.mapWith(_.size) ==? 0,
     report := GetJobReport(job.mapWith(_.id),
                            jobReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(
