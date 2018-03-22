@@ -80,9 +80,12 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     entryPoints := GetJobEntryPoints(job.mapWith(_.id)),
-    fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1
+    fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     //fail("Wrong entry point UUID") IF entryPoints
     //  .mapWith(_(0).datasetUUID) !=? subreadsUuid
+    fail(
+      s"Expected Analysis Job subJobTypeId to be ${diagnosticOptsCore.pipelineId}")
+      IF job.mapWith(_.subJobTypeId) !=? Some(diagnosticOptsCore.pipelineId)
   )
 
   // XXX unused, unnecessary?
