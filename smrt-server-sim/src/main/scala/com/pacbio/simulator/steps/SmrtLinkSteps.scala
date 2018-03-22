@@ -733,12 +733,6 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         jobId = Some(QueryOperators.IntEqQueryOperator(jobId)))
     }
 
-    private def verifyOneParent(ssets: Seq[SubreadServiceDataSet]): Boolean =
-      ssets.count(_.numChildren == numChildren) == 1
-
-    private def verifyChildren(sset: Seq[SubreadServiceDataSet]): Boolean =
-      sset.count(_.numChildren != 0) == numChildren
-
     private def verifyOrFail(fx: => Boolean, msg: String): Future[String] = {
       if (fx) andLog(s"Successful. $msg")
       else Future.failed(new Exception(s"Failed. $msg"))
@@ -757,21 +751,31 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
           Some(toSearch(copyDataSetJob.id)))
         _ <- verifyOrFail(
           copiedSubreadSets.length == 1,
-          s"Expected 1 output SubreadSet from copy job ${copyDataSetJob.id} got ${copiedSubreadSets.length}")
+          s"Expected 1 output SubreadSet from copy Job ${copyDataSetJob.id} got ${copiedSubreadSets.length} subreadsets")
         copiedSubread <- Future.successful(copiedSubreadSets.head)
+        _ <- andLog(
+          s"Sucessfully copied SubreadSet to id:${copiedSubread.id} uuid:${copiedSubread.uuid}")
         createdJob <- smrtLinkClient.runAnalysisPipeline(
           toOptions(s"$name-${UUID.randomUUID()}", copiedSubread.uuid))
         job <- pollForSuccessfulJob(createdJob.id, maxTime)
         _ <- andLog(s"Completed running job ${job.id}")
         ssets <- smrtLinkClient.getSubreadSets(Some(toSearch(job.id)))
         _ <- andLog(
-          s"Found ${ssets.length} SubreadSet output from Job ${job.id}")
+          s"Found ${ssets.length} SubreadSets output from Job ${job.id}")
         _ <- verifyOrFail(
-          verifyOneParent(ssets),
-          s"Expected to find 1 parent. Found ${ssets.count(_.numChildren > 0)}")
+          ssets.length == numChildren,
+          s"Expected to find $numChildren children. Found ${ssets.length}")
+        updatedSubreadSet <- smrtLinkClient.getSubreadSet(copiedSubread.id)
+        _ <- andLog(
+          s"Got updated SubreadSet ${updatedSubreadSet.id} with numChildren ${updatedSubreadSet.numChildren}")
+        allChildren <- smrtLinkClient.getSubreadSets(
+          Some(
+            DataSetSearchCriteria.default.copy(parentUuid =
+              Some(QueryOperators.UUIDEqOperator(copiedSubread.uuid)))))
         _ <- verifyOrFail(
-          verifyChildren(ssets),
-          s"Expected to find $numChildren. Found ${ssets.count(_.numChildren == 0)}")
+          allChildren.length == updatedSubreadSet.numChildren,
+          s"Got updated SubreadSet ${updatedSubreadSet.id} with numChildren ${updatedSubreadSet.numChildren} to be ${allChildren.length}"
+        )
       } yield
         s"Successfully run $pipelineId from Job ${job.id} and verified $numChildren"
     }
