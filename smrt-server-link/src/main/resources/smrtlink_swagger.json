@@ -1372,7 +1372,7 @@
             "in": "query",
             "type": "string",
             "name": "isActive",
-            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft) deleted datasets are returned"
+            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft-deleted) datasets are returned"
           },
           {
             "in": "query",
@@ -2871,128 +2871,149 @@
             "required": true,
             "type": "string",
             "name": "type",
-            "in": "path"
+            "in": "path",
+            "description": "Job type ID e.g. 'pbsmrtpipe'"
           },
           {
             "required": false,
             "type": "boolean",
             "name": "isActive",
             "in": "query",
-            "default": true
+            "default": true,
+            "description": "Job isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft-deleted) jobs are returned"
           },
           {
             "required": false,
             "type": "integer",
             "name": "limit",
-            "in": "query"
+            "in": "query",
+            "description": "Maximum number of entries to return (sorted by descending order of ID)"
           },
           {
             "required": false,
             "type": "integer",
             "name": "marker",
-            "in": "query"
+            "in": "query",
+            "description": "The offset of the number of records to return"
           },
           {
             "required": false,
             "type": "integer",
             "name": "id",
-            "in": "query"
+            "in": "query",
+            "description": "Job id Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
           },
           {
             "required": false,
             "type": "string",
             "name": "uuid",
-            "in": "query"
+            "in": "query",
+            "description": "Job UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
           },
           {
             "required": false,
             "type": "string",
             "name": "name",
-            "in": "query"
+            "in": "query",
+            "description": "Job name String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
           },
           {
             "required": false,
             "type": "string",
             "name": "comment",
-            "in": "query"
+            "in": "query",
+            "description": "Job comments String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
           },
           {
             "required": false,
             "type": "string",
             "name": "createdAt",
-            "in": "query"
+            "in": "query",
+            "description": "Job createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
           },
           {
             "required": false,
             "type": "string",
             "name": "updatedAt",
-            "in": "query"
+            "in": "query",
+            "description": "Job updatedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
           },
           {
             "required": false,
             "type": "string",
             "name": "jobUpdatedAt",
-            "in": "query"
+            "in": "query",
+            "description": "Job jobUpdatedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
           },
           {
             "required": false,
             "type": "string",
             "name": "state",
-            "in": "query"
+            "in": "query",
+            "description": "Job state QueryFilter, e.g. 'SUCCESSFUL' or 'in:FAILED,TERMINATED'"
           },
           {
             "required": false,
             "type": "string",
             "name": "path",
-            "in": "query"
+            "in": "query",
+            "description": "Job path String QueryFilter e.g., '/path/to/jobs/000/000001'.  Note, these need to be URL encoded"
           },
           {
             "required": false,
             "type": "string",
             "name": "createdBy",
-            "in": "query"
+            "in": "query",
+            "description": "Job createdBy String QueryFilter, e.g. 'Alice' or 'in:Alice,Bob'"
           },
           {
             "required": false,
             "type": "string",
             "name": "createdByEmail",
-            "in": "query"
+            "in": "query",
+            "description": "Job createdByEmail String QueryFilter, e.g. 'user@university.edu'"
           },
           {
             "required": false,
             "type": "string",
             "name": "smrtlinkVersion",
-            "in": "query"
+            "in": "query",
+            "description": "Job smrtlinkVersion String QueryFilter, e.g. '5.1.0.23456'"
           },
           {
             "required": false,
             "type": "string",
             "name": "errorMessage",
-            "in": "query"
+            "in": "query",
+            "description": "Job errorMessage String QueryFilter"
           },
           {
             "required": false,
             "type": "integer",
             "name": "parentMultiJobId",
-            "in": "query"
+            "in": "query",
+            "description": "Job parentMultiJobId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
           },
           {
             "required": false,
             "type": "string",
             "name": "importedAt",
-            "in": "query"
+            "in": "query",
+            "description": "Job importedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
           },
           {
             "required": false,
             "type": "string",
             "name": "subJobTypeId",
-            "in": "query"
+            "in": "query",
+            "description": "Job subJobTypeId query filter, e.g. 'pbsmrtpipe.pipelines.sa3_sat'"
           },
           {
             "required": false,
             "type": "integer",
             "name": "projectId",
-            "in": "query"
+            "in": "query",
+            "description": "Job projectId filter"
           }
         ],
         "produces": [
