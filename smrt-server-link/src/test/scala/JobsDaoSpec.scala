@@ -157,6 +157,8 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
 
     "Job search API" in {
       val prefix = Random.alphanumeric.take(10).mkString("")
+      def toJobName(x: Int) = s"${prefix}-job$x"
+      def toJobNames(xx: Seq[Int]) = xx.map(toJobName).toSet
       val job1 =
         MockFileUtils
           .toTestRawEngineJob("pbsmrtpipe-test",
@@ -188,20 +190,19 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       val c6 = c1.copy(jobTypeId = None)
       val pbsmrtpipeJobs = Seq(job1, job2, job3, job4)
       val searchCriteria = Seq(c1, c2, c3, c4, c5, c6)
+      val expectedResults = Seq(
+        Seq(3, 2, 1), Seq(3, 2), Seq(3), Seq(2, 1), Seq(4), Seq(4, 3, 2, 1)
+      ).map(toJobNames)
       val fx = for {
         jobs <- Future.sequence(pbsmrtpipeJobs.map { job =>
           dao.importRawEngineJob(job, job)
         })
         queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
-      } yield queries.map(_.map(_.name))
+      } yield queries.map(_.map(_.name).toSet)
       val jobNames = Await.result(fx, timeout)
-      def toJobName(x: Int) = s"${prefix}-job$x"
-      jobNames(0) === Seq(3, 2, 1).map(toJobName)
-      jobNames(1) === Seq(3, 2).map(toJobName)
-      jobNames(2) === Seq(3).map(toJobName)
-      jobNames(3) === Seq(2, 1).map(toJobName)
-      jobNames(4) === Seq(4).map(toJobName)
-      jobNames(5) === Seq(4, 3, 2, 1).map(toJobName)
+      jobNames.zip(expectedResults).map { case (names1, names2) =>
+        names1 === names2
+      }
     }
 
   }
