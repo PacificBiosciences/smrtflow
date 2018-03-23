@@ -1271,7 +1271,7 @@ case class JobSearchCriteria(
 }
 
 object JobSearchCriteria {
-  final val DEFAULT_MAX_JOBS = 10000
+  final val DEFAULT_MAX_JOBS = 6000
   final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
 
   def default =
