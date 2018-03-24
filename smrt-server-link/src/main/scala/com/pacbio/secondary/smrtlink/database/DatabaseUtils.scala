@@ -18,7 +18,7 @@ case class SmrtLinkDatabaseConfig(dbName: String,
                                   password: String,
                                   server: String = "localhost",
                                   port: Int = 5432,
-                                  maxConnections: Int = 20) {
+                                  maxConnections: Int = 15) {
 
   val jdbcURI =
     s"jdbc:postgresql://$server:$port/$dbName?user=$username&password=$password"
