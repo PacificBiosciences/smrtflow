@@ -1174,7 +1174,8 @@ case class DataSetSearchCriteria(
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
     parentUuid: Option[QueryOperators.UUIDQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None)
+    projectId: Option[QueryOperators.IntQueryOperator] = None,
+    numChildren: Option[QueryOperators.IntQueryOperator] = None)
     extends SearchCriteriaBase {
 
   /**
@@ -1195,7 +1196,8 @@ case class DataSetSearchCriteria(
       "createdBy" -> createdBy.map(_.toQueryString),
       "jobId" -> jobId.map(_.toQueryString),
       "parentUuid" -> parentUuid.map(_.toQueryString),
-      "projectId" -> projectId.map(_.toQueryString)
+      "projectId" -> projectId.map(_.toQueryString),
+      "numChildren" -> numChildren.map(_.toQueryString)
     )
   }
 }

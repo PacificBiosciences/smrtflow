@@ -1379,6 +1379,12 @@
             "type": "integer",
             "name": "parentUuid",
             "description": "DataSet Parent UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "numChildren",
+            "description": "DataSet numChildren Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7' Using numChildren=0 will only return Children datasets, whereas numChildren:gt:0 will return only parent datasets"
           }
         ],
         "produces": [
