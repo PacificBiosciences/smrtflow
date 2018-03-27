@@ -864,6 +864,9 @@ case class TranscriptServiceDataSet(
   */
 object QueryOperators {
 
+  // For queries that need db.filter(_.x === null)
+  val NULL = "null"
+
   /**
     * Common Utils to generate a
     */
@@ -1084,6 +1087,36 @@ object QueryOperators {
     }
   }
 
+  // It's not completely clear to me how to extend UUIDQueryOperator
+  sealed trait UUIDOptionQueryOperator extends QuertyOperator {
+    def uuidToString(uuid: UUID): String = uuid.toString
+  }
+
+  case class UUIDOptionEqOperator(uuid: UUID) extends UUIDOptionQueryOperator {
+    override def toQueryString: String = uuidToString(uuid)
+  }
+  case class UUIDOptionInOperator(uuids: Set[UUID])
+      extends UUIDOptionQueryOperator {
+    override def toQueryString: String = toInQuery(uuids.map(uuidToString))
+  }
+
+  case class UUIDNullQueryOperator() extends UUIDOptionQueryOperator {
+    override def toQueryString: String = toEqQuery(NULL)
+  }
+
+  object UUIDOptionQueryOperator extends QueryOperatorConverter[UUID] {
+    override def convertFromString(sx: String): UUID = UUID.fromString(sx)
+
+    def fromString(sx: String): Option[UUIDOptionQueryOperator] = {
+      sx.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(UUIDOptionInOperator)
+        case "null" :: Nil => Some(UUIDNullQueryOperator())
+        case head :: Nil => toValue(head).map(UUIDOptionEqOperator)
+        case _ => None
+      }
+    }
+  }
+
   sealed trait JobStateQueryOperator extends QuertyOperator {
     def jobStateToString(state: AnalysisJobStates.JobStates): String =
       state.toString
@@ -1173,7 +1206,7 @@ case class DataSetSearchCriteria(
     version: Option[QueryOperators.StringQueryOperator] = None,
     createdBy: Option[QueryOperators.StringQueryOperator] = None,
     jobId: Option[QueryOperators.IntQueryOperator] = None,
-    parentUuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    parentUuid: Option[QueryOperators.UUIDOptionQueryOperator] = None,
     projectId: Option[QueryOperators.IntQueryOperator] = None,
     numChildren: Option[QueryOperators.IntQueryOperator] = None)
     extends SearchCriteriaBase {

@@ -350,9 +350,9 @@ class DataSetService(dao: JobsDao)
       qPath <- parseQueryOperator[StringQueryOperator](
         path,
         StringQueryOperator.fromString)
-      qParentUuid <- parseQueryOperator[UUIDQueryOperator](
+      qParentUuid <- parseQueryOperator[UUIDOptionQueryOperator](
         parentUuid,
-        UUIDQueryOperator.fromString)
+        UUIDOptionQueryOperator.fromString)
       qNumChildren <- parseQueryOperator[IntQueryOperator](
         numChildren,
         IntQueryOperator.fromString)
