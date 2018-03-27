@@ -45,11 +45,16 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
       |        name: ${ds.name}
       |  numRecords: ${ds.numRecords}
       | totalLength: ${ds.totalLength}
-      |       jobId: ${ds.jobId}
-      |         md5: ${ds.md5}
       |   createdAt: ${ds.createdAt}
       |   updatedAt: ${ds.updatedAt}
+      |  importedAt: ${ds.importedAt}
+      |   createdBy: ${ds.createdBy.getOrElse("")}
       |        tags: ${ds.tags}
+      |    isActive: ${ds.isActive}
+      | parent UUID: ${ds.parentUuid.getOrElse("")}
+      | numchildren: ${ds.numChildren}
+      |       jobId: ${ds.jobId}
+      |   projectId: ${ds.projectId}
       |        path: ${ds.path}
     """.stripMargin
   }
