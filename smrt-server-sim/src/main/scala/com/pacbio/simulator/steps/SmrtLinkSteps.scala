@@ -771,7 +771,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
         allChildren <- smrtLinkClient.getSubreadSets(
           Some(
             DataSetSearchCriteria.default.copy(parentUuid =
-              Some(QueryOperators.UUIDEqOperator(copiedSubread.uuid)))))
+              Some(QueryOperators.UUIDOptionEqOperator(copiedSubread.uuid)))))
         _ <- verifyOrFail(
           allChildren.length == updatedSubreadSet.numChildren,
           s"Got updated SubreadSet ${updatedSubreadSet.id} with numChildren ${updatedSubreadSet.numChildren} to be ${allChildren.length}"
