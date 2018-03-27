@@ -854,19 +854,23 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           .getTranscriptSets(Some(searchCriteria))
           .map(_.map(ds => (ds, ds.toJson)))
     }
-    for {
-      records <- fx
-      outstr <- Future.successful {
-        if (asJson) {
-          records.map(_._2).map(_.prettyPrint).mkString(",\n")
-        } else {
-          val table = records.map(_._1).reverse.take(maxItems).map { ds =>
-            Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
-          }
-          toTable(table, Seq("ID", "UUID", "Name", "Path"))
-        }
+
+    def jsonPrinter(records: Seq[JsValue]): String =
+      records.map(_.prettyPrint).mkString(",\n")
+
+    def tablePrinter(records: Seq[ServiceDataSetMetadata]): String = {
+      val table = records.map { ds =>
+        Seq(ds.id.toString, ds.uuid.toString, ds.name, ds.path)
       }
-    } yield outstr
+      toTable(table, Seq("ID", "UUID", "Name", "Path"))
+    }
+
+    def printer(records: Seq[(ServiceDataSetMetadata, JsValue)]): String = {
+      if (asJson) jsonPrinter(records.map(_._2))
+      else tablePrinter(records.map(_._1))
+    }
+
+    fx.map(printer)
   }
 
   def runGetJobInfo(jobId: IdAble,
@@ -1798,8 +1802,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       _ <- engineDriver(exportJob, Some(maxTime))
       ds <- sal.getJobDataStore(exportJob.id)
       path <- ds
-        .filter(_.fileTypeId == FileTypes.ZIP.fileTypeId)
-        .headOption
+        .find(_.fileTypeId == FileTypes.ZIP.fileTypeId)
         .map(f => Future.successful(Paths.get(f.path)))
         .getOrElse(Future.failed(new RuntimeException(
           s"Can't get ZIP file from export job datastore")))

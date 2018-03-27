@@ -305,7 +305,8 @@ class DataSetService(dao: JobsDao)
       version: Option[String],
       jobId: Option[String],
       parentUuid: Option[String],
-      projectId: Option[String]): Future[DataSetSearchCriteria] = {
+      projectId: Option[String],
+      numChildren: Option[String]): Future[DataSetSearchCriteria] = {
 
     val search =
       DataSetSearchCriteria(projectIds,
@@ -349,9 +350,12 @@ class DataSetService(dao: JobsDao)
       qPath <- parseQueryOperator[StringQueryOperator](
         path,
         StringQueryOperator.fromString)
-      qParentUuid <- parseQueryOperator[UUIDQueryOperator](
+      qParentUuid <- parseQueryOperator[UUIDOptionQueryOperator](
         parentUuid,
-        UUIDQueryOperator.fromString)
+        UUIDOptionQueryOperator.fromString)
+      qNumChildren <- parseQueryOperator[IntQueryOperator](
+        numChildren,
+        IntQueryOperator.fromString)
     } yield
       search.copy(
         name = qName,
@@ -366,7 +370,8 @@ class DataSetService(dao: JobsDao)
         version = qVersion,
         jobId = qJobId,
         parentUuid = qParentUuid,
-        projectId = qProjectId
+        projectId = qProjectId,
+        numChildren = qNumChildren
       )
 
   }
@@ -399,7 +404,8 @@ class DataSetService(dao: JobsDao)
               'version.?,
               'jobId.?,
               'parentUuid.?,
-              'projectId.?
+              'projectId.?,
+              'numChildren.?
             ) {
               (isActive,
                limit,
@@ -416,7 +422,8 @@ class DataSetService(dao: JobsDao)
                version,
                jobId,
                parentUuid,
-               projectId) =>
+               projectId,
+               numChildren) =>
                 encodeResponse {
                   complete {
                     for {
@@ -440,7 +447,8 @@ class DataSetService(dao: JobsDao)
                         version,
                         jobId,
                         parentUuid,
-                        projectId
+                        projectId,
+                        numChildren
                       )
                       datasets <- GetDataSets(searchCriteria)
                     } yield datasets

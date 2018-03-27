@@ -2345,8 +2345,23 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val qByParentUUID: QOF = { q =>
       c.parentUuid
         .map {
-          case UUIDEqOperator(value) => q.filter(_.parentUuid === value)
-          case UUIDInOperator(values) => q.filter(_.parentUuid inSet values)
+          case UUIDOptionEqOperator(value) => q.filter(_.parentUuid === value)
+          case UUIDOptionInOperator(values) =>
+            q.filter(_.parentUuid inSet values)
+          case UUIDNullQueryOperator() => q.filter(_.parentUuid.isEmpty)
+        }
+    }
+
+    val qNumChildren: QOF = { q =>
+      c.numChildren
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.numChildren === value)
+          case IntInQueryOperator(values) =>
+            q.filter(_.numChildren inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.numChildren >= value)
+          case IntGtQueryOperator(value) => q.filter(_.numChildren > value)
+          case IntLteQueryOperator(value) => q.filter(_.numChildren <= value)
+          case IntLtQueryOperator(value) => q.filter(_.numChildren < value)
         }
     }
 
@@ -2365,7 +2380,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       qByUpdatedAt,
       qByImportedAt,
       qByUUID,
-      qByParentUUID
+      qByParentUUID,
+      qNumChildren
     )
 
     val qTotal: QF = { q =>
