@@ -1376,9 +1376,9 @@
           },
           {
             "in": "query",
-            "type": "integer",
+            "type": "string",
             "name": "parentUuid",
-            "description": "DataSet Parent UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
+            "description": "DataSet Parent UUID Optional QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78' or ?parentUuid=null This will return parent datasets (i.e, no children datasets are returned)"
           },
           {
             "in": "query",
