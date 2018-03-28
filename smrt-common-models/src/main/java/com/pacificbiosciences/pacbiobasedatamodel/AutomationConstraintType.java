@@ -50,6 +50,7 @@ import com.pacificbiosciences.pacbioautomationconstraints.AutomationConstraint;
  *       &lt;attribute name="MaxMovieLength" type="{http://www.w3.org/2001/XMLSchema}int" />
  *       &lt;attribute name="MinInsertSize" type="{http://www.w3.org/2001/XMLSchema}int" />
  *       &lt;attribute name="MaxInsertSize" type="{http://www.w3.org/2001/XMLSchema}int" />
+ *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="AllChips" />
  *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -84,6 +85,8 @@ public class AutomationConstraintType
     protected Integer minInsertSize;
     @XmlAttribute(name = "MaxInsertSize")
     protected Integer maxInsertSize;
+    @XmlAttribute(name = "ChipType")
+    protected SupportedChipTypes chipType;
 
     /**
      * Gets the value of the automations property.
@@ -275,6 +278,34 @@ public class AutomationConstraintType
      */
     public void setMaxInsertSize(Integer value) {
         this.maxInsertSize = value;
+    }
+
+    /**
+     * Gets the value of the chipType property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public SupportedChipTypes getChipType() {
+        if (chipType == null) {
+            return SupportedChipTypes.ALL_CHIPS;
+        } else {
+            return chipType;
+        }
+    }
+
+    /**
+     * Sets the value of the chipType property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public void setChipType(SupportedChipTypes value) {
+        this.chipType = value;
     }
 
 

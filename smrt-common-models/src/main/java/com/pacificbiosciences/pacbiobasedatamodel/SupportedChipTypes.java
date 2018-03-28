@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
  *     &lt;enumeration value="1mChip"/>
  *     &lt;enumeration value="8mChip"/>
+ *     &lt;enumeration value="AllChips"/>
  *   &lt;/restriction>
  * &lt;/simpleType>
  * </pre>
@@ -35,7 +36,9 @@ public enum SupportedChipTypes {
     @XmlEnumValue("1mChip")
     ONE_M_CHIP("1mChip"),
     @XmlEnumValue("8mChip")
-    EIGHT_M_CHIP("8mChip");
+    EIGHT_M_CHIP("8mChip"),
+    @XmlEnumValue("AllChips")
+    ALL_CHIPS("AllChips");
     private final String value;
 
     SupportedChipTypes(String v) {

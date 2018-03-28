@@ -57,6 +57,8 @@ import javax.xml.bind.annotation.XmlType;
  *     &lt;enumeration value="FinalBuffer"/>
  *     &lt;enumeration value="Empty11"/>
  *     &lt;enumeration value="Empty12"/>
+ *     &lt;enumeration value="Silwet"/>
+ *     &lt;enumeration value="WashBuffer2"/>
  *   &lt;/restriction>
  * &lt;/simpleType>
  * </pre>
@@ -132,7 +134,11 @@ public enum ReagentKey {
     @XmlEnumValue("Empty11")
     EMPTY_11("Empty11"),
     @XmlEnumValue("Empty12")
-    EMPTY_12("Empty12");
+    EMPTY_12("Empty12"),
+    @XmlEnumValue("Silwet")
+    SILWET("Silwet"),
+    @XmlEnumValue("WashBuffer2")
+    WASH_BUFFER_2("WashBuffer2");
     private final String value;
 
     ReagentKey(String v) {
