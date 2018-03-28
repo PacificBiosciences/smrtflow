@@ -242,8 +242,16 @@ lazy val smrtflow = project
     .Argument(TestFrameworks.Specs2, "junitxml", "console"))
   .disablePlugins(plugins.JUnitXmlReportPlugin) // MK. Why is this disabled?
   .configs(IntegrationTest)
-  .dependsOn(common, smrtServerLink, smrtServerSim)
-  .aggregate(common, smrtServerLink, smrtServerSim)
+  .dependsOn(common,
+             smrtServerLink,
+             smrtServerSim,
+             smrtServerBundle,
+             smrtServerEve)
+  .aggregate(common,
+             smrtServerLink,
+             smrtServerSim,
+             smrtServerBundle,
+             smrtServerEve)
 
 lazy val common =
   toPacBioProject("smrt-common-models")
