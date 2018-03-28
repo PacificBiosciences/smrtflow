@@ -1,13 +1,9 @@
 package com.pacbio.secondary.smrtlink.client
 
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import javax.net.ssl._
 import java.net.URL
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.http.scaladsl.Http.OutgoingConnection
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
@@ -26,8 +22,6 @@ import akka.http.scaladsl.model._
 import akka.stream.scaladsl.{Sink, Source => AkkaSource}
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
-import com.typesafe.sslconfig.akka.AkkaSSLConfig
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -35,36 +29,12 @@ import scala.util.Random
 import scala.util.control.NonFatal
 import scala.xml._
 
-trait ApiManagerClientBase {
-  val ADMIN_PORT = 9443
-  val API_PORT = 8243
-
-  protected val trustfulSslContext = {
-    // Create a trust manager that does not validate certificate chains.
-    val permissiveTrustManager: TrustManager = new X509TrustManager() {
-      override def checkClientTrusted(chain: Array[X509Certificate],
-                                      authType: String): Unit = {}
-      override def checkServerTrusted(chain: Array[X509Certificate],
-                                      authType: String): Unit = {}
-      override def getAcceptedIssuers(): Array[X509Certificate] = {
-        null
-      }
-    }
-
-    val initTrustManagers = Array(permissiveTrustManager)
-    val ctx = SSLContext.getInstance("TLS")
-    ctx.init(null, initTrustManagers, new SecureRandom())
-    ctx
-  }
-
-}
-
 class ApiManagerAccessLayer(
     host: String,
     portOffset: Int = 0,
     user: String,
-    password: String)(implicit actorSystem: ActorSystem)
-    extends ApiManagerClientBase
+    password: String)(implicit val actorSystem: ActorSystem)
+    extends SecureClientBase
     with LazyLogging {
 
   import ApiManagerJsonProtocols._
@@ -75,6 +45,8 @@ class ApiManagerAccessLayer(
   implicit val executionContext = actorSystem.dispatcher
   implicit val timeout: Timeout = 200.seconds
 
+  val ADMIN_PORT = 9443
+  val API_PORT = 8243
   val EP_STATUS = "/publisher"
 
   val HEADER_CONTENT_JSON = `Content-Type`(ContentTypes.`application/json`)
@@ -95,39 +67,8 @@ class ApiManagerAccessLayer(
     val RETIRE = Value("Retire")
   }
 
-  val badSslConfig =
-    AkkaSSLConfig()
-      .mapSettings(
-        s =>
-          s.withLoose(
-            s.loose
-              .withDisableSNI(true)
-              .withAcceptAnyCertificate(true)
-              .withDisableHostnameVerification(true)))
-
-//  val badCtx: HttpsConnectionContext = ConnectionContext.https(sslContext)
-  val badCtx = Http().createClientHttpsContext(badSslConfig)
-
-  val permissiveCtx = new HttpsConnectionContext(
-    trustfulSslContext,
-    badCtx.sslConfig,
-    badCtx.enabledCipherSuites,
-    badCtx.enabledProtocols,
-    badCtx.clientAuth,
-    badCtx.sslParameters
-  )
-
-  val portNumber = 9443 // Is this correct?
-
-  protected def getWso2Connection(
-      port: Int): Flow[HttpRequest, HttpResponse, Future[OutgoingConnection]] =
-    Http(actorSystem).outgoingConnectionHttps(
-      host,
-      port = port + portOffset,
-      connectionContext = permissiveCtx)
-
-  val apiPipeHttp = getWso2Connection(API_PORT)
-  val adminPipeHttp = getWso2Connection(ADMIN_PORT)
+  val apiPipeHttp = getHttpsConnection(host, API_PORT + portOffset)
+  val adminPipeHttp = getHttpsConnection(host, ADMIN_PORT + portOffset)
 
   // This needs the correct HTTPS configuration
   def apiPipe(request: HttpRequest): Future[HttpResponse] =
@@ -143,7 +84,6 @@ class ApiManagerAccessLayer(
       .runWith(Sink.head)
 
   def toUrl(segment: String): String = segment
-  //new URL("https", host, portNumber + portOffset, segment).toString
 
   /**
     * If we can connect to publisher at :9443/publisher on https, then

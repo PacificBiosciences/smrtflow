@@ -153,6 +153,10 @@ object PbServiceParser extends CommandLineToolVersion {
       password: Option[String] =
         Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
       usePassword: Boolean = false,
+      appConfig: Option[File] = Properties
+        .envOrNone("PB_SERVICE_APP_CONFIG")
+        .map(f => Paths.get(f))
+        .map(_.toFile),
       comment: Option[String] = None,
       includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
@@ -222,13 +226,13 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(user = u)
     } text "User ID (requires password if used for authentication)"
 
-    /*opt[String]("password") action { (p, c) =>
+    opt[String]("password") action { (p, c) =>
       c.copy(password = Some(p))
     } text "Authentication password"
 
     opt[Unit]('p', "ask-pass") action { (_, c) =>
       c.copy(usePassword = true)
-    } text "Prompt for authentication password"*/
+    } text "Prompt for authentication password"
 
     opt[String]('t', "token") action { (t, c) =>
       c.copy(authToken = Some(getToken(t)))
@@ -238,6 +242,10 @@ object PbServiceParser extends CommandLineToolVersion {
     opt[Unit]("json") action { (_, c) =>
       c.copy(asJson = true)
     } text "Display output as JSON"
+
+    opt[File]("app-config") action { (p, c) =>
+      c.copy(appConfig = Some(p))
+    } text "Path to app-config.json file for WSO2 authentication"
 
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
@@ -1938,18 +1946,32 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 }
 
 object PbService extends ClientAppUtils with LazyLogging {
+  import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
 
   protected def getPass = "foo"
 
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
+    val clientInfo = c.appConfig.map(appConfig =>
+      JsonParser(loadFile(appConfig)).convertTo[ClientInfo])
     def toClient = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
     def toAuthClient(t: String) =
       new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
     def toAuthClientLogin(u: String, p: String) =
       Try {
-        AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
+        clientInfo
+          .map { i =>
+            AuthenticatedServiceAccessLayer(c.host,
+                                            c.port,
+                                            u,
+                                            p,
+                                            i.consumerKey,
+                                            i.consumerSecret)(actorSystem)
+          }
+          .getOrElse {
+            AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
+          }
       } match {
         case Success(s) => s
         case Failure(err) =>
