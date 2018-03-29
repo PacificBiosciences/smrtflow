@@ -191,7 +191,12 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       val pbsmrtpipeJobs = Seq(job1, job2, job3, job4)
       val searchCriteria = Seq(c1, c2, c3, c4, c5, c6)
       val expectedResults = Seq(
-        Seq(3, 2, 1), Seq(3, 2), Seq(3), Seq(2, 1), Seq(4), Seq(4, 3, 2, 1)
+        Seq(3, 2, 1),
+        Seq(3, 2),
+        Seq(3),
+        Seq(2, 1),
+        Seq(4),
+        Seq(4, 3, 2, 1)
       ).map(toJobNames)
       val fx = for {
         jobs <- Future.sequence(pbsmrtpipeJobs.map { job =>
@@ -200,8 +205,9 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
         queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
       } yield queries.map(_.map(_.name).toSet)
       val jobNames = Await.result(fx, timeout)
-      jobNames.zip(expectedResults).map { case (names1, names2) =>
-        names1 === names2
+      jobNames.zip(expectedResults).map {
+        case (names1, names2) =>
+          names1 === names2
       }
     }
 
