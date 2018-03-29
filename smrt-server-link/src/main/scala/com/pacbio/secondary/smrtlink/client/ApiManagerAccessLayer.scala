@@ -115,9 +115,7 @@ class ApiManagerAccessLayer(
 
   }
 
-  // the consumer key and secret can come from the dynamic client
-  // registration mechanism (the register() method) or they can come
-  // from some existing configuration, like the UI's app-config.json
+  // in practice the key and secret are now hardcoded
   def login(consumerKey: String,
             consumerSecret: String,
             scopes: Set[String]): Future[OauthToken] = {
@@ -141,6 +139,9 @@ class ApiManagerAccessLayer(
     )
     apiPipe(request).flatMap(Unmarshal(_).to[OauthToken])
   }
+
+  def login(scopes: Set[String]): Future[OauthToken] =
+    login(CONSUMER_KEY, CONSUMER_SECRET, scopes)
 
   /**
     * Mechanism to see if wso2 has "completely" started up

@@ -63,48 +63,18 @@ object AuthenticatedServiceAccessLayer {
                                  "openid",
                                  "userinfo")
 
-  private def doApply(
-      host: String,
-      port: Int,
-      user: String,
-      password: String,
-      toClientAuth: (ApiManagerAccessLayer) => Future[(String, String)])(
+  def apply(host: String, port: Int, user: String, password: String)(
       implicit actorSystem: ActorSystem): AuthenticatedServiceAccessLayer = {
-    implicit val ec = actorSystem.dispatcher
     val wso2Client =
-      new ApiManagerAccessLayer(host, user = user, password = password)
-    val tx = for {
-      (clientId, clientSecret) <- toClientAuth(wso2Client)
-      auth <- wso2Client.login(clientId, clientSecret, clientScopes)
-    } yield auth
-    Try { Await.result(tx, 30.seconds) } match {
+      new ApiManagerAccessLayer(host, user = user, password = password)(
+        actorSystem)
+    val fx = wso2Client.login(clientScopes)
+    Try { Await.result(fx, 30.seconds) } match {
       case Success(auth) =>
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
       case Failure(err) =>
         throw new RuntimeException(s"Can't authenticate: $err")
     }
-  }
-
-  // FIXME this runs but the result isn't working properly
-  def apply(host: String, port: Int, user: String, password: String)(
-      implicit actorSystem: ActorSystem): AuthenticatedServiceAccessLayer = {
-    def toClientAuth(wso2Client: ApiManagerAccessLayer) = {
-      implicit val ec = actorSystem.dispatcher
-      wso2Client.register().map(reg => (reg.clientId, reg.clientSecret))
-    }
-    doApply(host, port, user, password, toClientAuth)(actorSystem)
-  }
-
-  def apply(host: String,
-            port: Int,
-            user: String,
-            password: String,
-            clientId: String,
-            clientSecret: String)(
-      implicit actorSystem: ActorSystem): AuthenticatedServiceAccessLayer = {
-    def toClientAuth(wso2Client: ApiManagerAccessLayer) =
-      Future.successful((clientId, clientSecret))
-    doApply(host, port, user, password, toClientAuth)(actorSystem)
   }
 }

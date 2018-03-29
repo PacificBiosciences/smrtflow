@@ -513,11 +513,17 @@ class SmrtLinkServiceClient(
       Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString))
         .withHeaders(headers: _*))
 
-  def createProject(name: String, description: String): Future[FullProject] =
+  def createProject(name: String,
+                    description: String,
+                    userName: Option[String] = None): Future[FullProject] = {
+    val members = userName.map { user =>
+      Seq(ProjectRequestUser(user, ProjectUserRole.CAN_EDIT))
+    }
     getObject[FullProject](
       Post(toUri(ROOT_PROJECTS_URI_PATH),
-           ProjectRequest(name, description, None, None, None, None))
+           ProjectRequest(name, description, None, None, None, members))
         .withHeaders(headers: _*))
+  }
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
