@@ -12,21 +12,14 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import collection.JavaConverters._
-import com.pacbio.common.utils.TarGzUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   BundleTypes,
   TsSystemStatusManifest
 }
-import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportConstants
-import com.pacbio.secondary.smrtlink.app._
 import com.pacbio.secondary.smrtlink.auth.hmac.{DefaultSigner, SignerConfig}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtservereve.app.{
-  EventServerCakeProvider,
-  SmrtEventServer
-}
+import com.pacbio.secondary.smrtservereve.app.SmrtEventServer
 
 /**
   * Created by mkocher on 2/19/17.
