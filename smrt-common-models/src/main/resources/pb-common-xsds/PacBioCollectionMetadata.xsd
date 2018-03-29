@@ -364,11 +364,11 @@ If multiple collections are utilizing the same physical plate well, all these co
 						<xs:documentation>Name of primary analysis protocol. </xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="ConfigFileName" type="xs:string">
-					<xs:annotation>
-						<xs:documentation>Name of primary analysis config file. </xs:documentation>
-					</xs:annotation>
-				</xs:element>
+        <xs:element name="ConfigFileName" type="xs:string" minOccurs="0">
+          <xs:annotation>
+            <xs:documentation>Name of primary analysis config file. </xs:documentation>
+          </xs:annotation>
+			  </xs:element>
 				<xs:element name="SequencingCondition" type="xs:string">
 					<xs:annotation>
 						<xs:documentation>A sequencing condition tag to be used by primary analysis, e.g., to select basecaller calibration or training parameters. </xs:documentation>

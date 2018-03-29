@@ -41,7 +41,7 @@ import javax.xml.bind.annotation.XmlType;
  *           &lt;/complexType>
  *         &lt;/element>
  *         &lt;element name="AutomationName" type="{http://www.w3.org/2001/XMLSchema}string"/>
- *         &lt;element name="ConfigFileName" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *         &lt;element name="ConfigFileName" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
  *         &lt;element name="SequencingCondition" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *         &lt;element name="OutputOptions">
  *           &lt;complexType>
@@ -137,7 +137,7 @@ public class Primary {
     protected Primary.SampleTrace sampleTrace;
     @XmlElement(name = "AutomationName", required = true)
     protected String automationName;
-    @XmlElement(name = "ConfigFileName", required = true)
+    @XmlElement(name = "ConfigFileName")
     protected String configFileName;
     @XmlElement(name = "SequencingCondition", required = true)
     protected String sequencingCondition;
