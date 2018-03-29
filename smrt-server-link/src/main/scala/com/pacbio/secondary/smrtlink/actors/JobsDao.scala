@@ -2396,7 +2396,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsSubread2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toSds(x._1, x._2)))
   }
 
@@ -2435,7 +2435,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsReference2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toR(x._1, x._2)))
   }
 
@@ -2486,7 +2486,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsGmapReference2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toGmapR(x._1, x._2)))
   }
 
@@ -2511,7 +2511,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsHdfSubread2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toHds(x._1, x._2)))
   }
 
@@ -2587,7 +2587,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     // DataSets that don't extend the base model don't really need to do a join.
     val q1 = q0 join dsAlignment2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toA(x._1)))
   }
 
@@ -2636,7 +2636,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsCCSread2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toCCSread(x._1)))
   }
 
@@ -2685,7 +2685,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsCCSAlignment2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toCCSA(x._1)))
   }
 
@@ -2734,7 +2734,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsTranscript2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toT(x._1)))
   }
 
@@ -2782,7 +2782,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsBarcode2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toB(x._1)))
   }
 
@@ -2829,7 +2829,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val q0 = qDsMetaDataBySearch(c)
     val q1 = q0 join dsContig2 on (_.id === _.id)
     val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
-    db.run(q2.take(c.limit).sortBy(_._1.id.desc).result)
+    db.run(q2.sortBy(_._1.id.desc).take(c.limit).result)
       .map(_.map(x => toCtg(x._1)))
   }
 
