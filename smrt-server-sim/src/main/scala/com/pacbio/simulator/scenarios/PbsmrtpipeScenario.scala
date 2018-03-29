@@ -405,7 +405,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
     fail("Found at least one chunked file in services datastore") IF
       dataStore.mapWith(ds => findChunkedDataStoreFiles(job.get, ds)) !=? 0
   )
+  val childrenTests = Seq(RunDevPipelineAndVerifyChildren(subreadsUuid))
+
   // TODO SAT job?  this is problematic because of the added depenendencies;
   // we need to check for pbalign and GenomicConsensus first
-  override val steps = setupSteps ++ diagnosticJobTests ++ miscTests ++ chunkTests
+  override val steps = setupSteps ++ diagnosticJobTests ++ miscTests ++ chunkTests ++ childrenTests
 }

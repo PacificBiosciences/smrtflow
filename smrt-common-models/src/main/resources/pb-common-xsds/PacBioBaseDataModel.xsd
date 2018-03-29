@@ -406,6 +406,11 @@ By default, any PN is compatible for use with other PNs in the system.  In order
 						<xs:documentation>Maximum recommended insert size</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
+				<xs:attribute name="ChipType" type="SupportedChipTypes" use="optional" default="AllChips">
+					<xs:annotation>
+						<xs:documentation>Chip platform supported by this automation, for example MagBead is 1m only</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>
@@ -442,6 +447,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 				</xs:attribute>
 				<xs:attribute name="IsObsolete" type="xs:boolean" default="false"/>
 				<xs:attribute name="IsRestricted" type="xs:boolean" default="false"/>
+				<xs:attribute name="ChipType" type="SupportedChipTypes" use="optional" default="AllChips"/>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>
@@ -847,6 +853,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="1mChip"/>
 			<xs:enumeration value="8mChip"/>
+			<xs:enumeration value="AllChips"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:complexType name="UserDefinedFieldsType">

@@ -52,12 +52,12 @@ import javax.xml.bind.annotation.XmlType;
 public class ExpirationData {
 
     @XmlElementRefs({
-        @XmlElementRef(name = "BindingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
-        @XmlElementRef(name = "CellPacPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
+        @XmlElementRef(name = "SequencingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
         @XmlElementRef(name = "SequencingTube0PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
-        @XmlElementRef(name = "SequencingTube1PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
         @XmlElementRef(name = "TemplatePrepKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
-        @XmlElementRef(name = "SequencingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false)
+        @XmlElementRef(name = "BindingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
+        @XmlElementRef(name = "SequencingTube1PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
+        @XmlElementRef(name = "CellPacPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false)
     })
     protected List<JAXBElement<Integer>> content;
 
@@ -67,8 +67,8 @@ public class ExpirationData {
      * <p>
      * You are getting this "catch-all" property because of the following reason: 
      * The field name "CellPacPastExpiration" is used by two different parts of a schema. See: 
-     * line 259 of file:/home/nechols/src/smrtflow/smrt-common-models/src/main/resources/pb-common-xsds/PacBioCollectionMetadata.xsd
-     * line 254 of file:/home/nechols/src/smrtflow/smrt-common-models/src/main/resources/pb-common-xsds/PacBioCollectionMetadata.xsd
+     * line 259 of file:/Users/mkocher/repos/smrtflow/smrt-common-models/src/main/resources/pb-common-xsds/PacBioCollectionMetadata.xsd
+     * line 254 of file:/Users/mkocher/repos/smrtflow/smrt-common-models/src/main/resources/pb-common-xsds/PacBioCollectionMetadata.xsd
      * <p>
      * To get rid of this property, apply a property customization to one 
      * of both of the following declarations to change their names: 

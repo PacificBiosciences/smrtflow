@@ -2,187 +2,286 @@ package com.pacbio.secondary.smrtlink.actors
 
 import java.util.UUID
 
-import com.google.common.annotations.VisibleForTesting
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
-  UnprocessableEntityError,
-  ResourceNotFoundError
+  ResourceNotFoundError,
+  UnprocessableEntityError
 }
-import CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
+import com.pacbio.secondary.smrtlink.actors._
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  JobEvent
+}
+import com.pacbio.secondary.smrtlink.database.TableModels
 import com.pacbio.secondary.smrtlink.models._
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates
+import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import scala.language.implicitConversions
+import slick.jdbc.PostgresProfile.api._
+import org.joda.time.{DateTime => JodaDateTime}
+
+import scala.util.control.NonFatal
+import scala.util.{Success, Try}
 
 /**
-  * Interface for the Run service DAO.
+  * RunDao that stores run designs in a Slick database.
   */
-trait RunDao {
+class RunDao(val db: Database, val parser: DataModelParser)
+    extends DaoFutureUtils
+    with LazyLogging {
+  import TableModels._
 
   /**
-    * Provides a list of all available run designs.
+    * These are event hooks to trigger the updating of MultiJob state from changes in the Run State
     */
-  def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]]
+  private def updateMultiJobState(
+      jobId: Int,
+      updateState: AnalysisJobStates.JobStates,
+      jobQuery: Query[EngineJobsT, EngineJobsT#TableElementType, Seq],
+      msg: String): Future[EngineJob] = {
 
-  /**
-    * Gets a run design by id.
-    */
-  def getRun(id: UUID): Future[Run]
+    def toJobEvent(engineJob: EngineJob): JobEvent = {
+      val msg =
+        s"RunDesign Updating MultiJob id:${engineJob.id} type:${engineJob.jobTypeId} state to from ${engineJob.state} to $updateState"
 
-  /**
-    * Creates a new run design.
-    */
-  def createRun(create: RunCreate): Future[RunSummary]
-
-  /**
-    * Updates a run design.
-    */
-  def updateRun(id: UUID, update: RunUpdate): Future[RunSummary]
-
-  /**
-    * Deletes a run design.
-    */
-  def deleteRun(id: UUID): Future[MessageResponse]
-
-  /**
-    * Provides a list of all CollectionMetadata for a given run.
-    */
-  def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]]
-
-  /**
-    * Gets a CollectionMetadata by unique id.
-    */
-  def getCollectionMetadata(runId: UUID, id: UUID): Future[CollectionMetadata]
-}
-
-/**
-  * Provider for injecting a singleton RunDao. Concrete providers must override the runDao val.
-  */
-trait RunDaoProvider {
-
-  /**
-    * Singleton run design DAO object.
-    */
-  val runDao: Singleton[RunDao]
-}
-
-/**
-  * Concrete implementation of RunDao that stores runs in memory.
-  */
-class InMemoryRunDao(parser: DataModelParser) extends RunDao {
-  val runs: mutable.HashMap[UUID, Run] = new mutable.HashMap
-  val collections
-    : mutable.HashMap[UUID, mutable.HashMap[UUID, CollectionMetadata]] =
-    new mutable.HashMap
-
-  private def putResults(results: ParseResults): Unit = {
-    // Ignore value of reserved in results, it's automatically false
-    var reserved = false
-    if (runs contains results.run.uniqueId)
-      reserved = runs(results.run.uniqueId).reserved
-    runs(results.run.uniqueId) = results.run.copy(reserved = reserved)
-
-    val collectMap = new mutable.HashMap[UUID, CollectionMetadata]
-    results.collections.foreach { c =>
-      collectMap(c.uniqueId) = c
-    }
-    collections(results.run.uniqueId) = collectMap
-  }
-
-  override final def getRuns(
-      criteria: SearchCriteria): Future[Set[RunSummary]] = Future {
-    var results: Iterable[Run] = runs.values
-    if (criteria.name.isDefined)
-      results = results.filter(_.name == criteria.name.get)
-    if (criteria.substring.isDefined)
-      results = results.filter(
-        run =>
-          run.name.contains(criteria.substring.get) || run.summary.exists(
-            _.contains(criteria.substring.get)))
-    if (criteria.createdBy.isDefined)
-      results = results.filter(_.createdBy.exists(_ == criteria.createdBy.get))
-    if (criteria.chipType.isDefined)
-      results = results.filter(_.chipType == criteria.chipType.get)
-    if (criteria.reserved.isDefined)
-      results = results.filter(_.reserved == criteria.reserved.get)
-    results.map(_.summarize).toSet
-  }
-
-  override final def getRun(id: UUID): Future[Run] = Future {
-    if (runs contains id)
-      runs(id)
-    else
-      throw new ResourceNotFoundError(s"Unable to find resource $id")
-  }
-
-  override final def createRun(create: RunCreate): Future[RunSummary] =
-    Future {
-      val results = parser(create.dataModel)
-      putResults(results)
-      results.run.summarize
+      JobEvent(
+        UUID.randomUUID(),
+        engineJob.id,
+        updateState,
+        msg,
+        JodaDateTime.now()
+      )
     }
 
-  override final def updateRun(id: UUID,
-                               update: RunUpdate): Future[RunSummary] =
-    Future {
-      if (runs contains id) {
-        update.dataModel.foreach { d =>
-          val results = parser(d)
-          if (results.run.uniqueId != id)
+    val q = for {
+      job <- jobQuery.result.head
+      _ <- DBIO.seq(engineJobs
+                      .filter(_.id === job.id)
+                      .map(j => (j.state, j.updatedAt))
+                      .update(updateState, JodaDateTime.now()),
+                    jobEvents += toJobEvent(job))
+      updatedJob <- engineJobs.filter(_.id === jobId).result.headOption
+    } yield updatedJob
+
+    db.run(q.transactionally).flatMap(failIfNone(msg))
+  }
+
+  private def submitMultiJob(jobId: Int): Future[EngineJob] = {
+    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
+      .filter(_.isMultiJob === true)
+      .filter(_.id === jobId)
+
+    val msg =
+      s"Failed to find Job $jobId in state ${AnalysisJobStates.CREATED}"
+    val sx = AnalysisJobStates.SUBMITTED
+
+    updateMultiJobState(jobId, sx, q0, msg)
+  }
+
+  private def terminateMultiJob(jobId: Int): Future[EngineJob] = {
+    // This isn't completely clear how this interacts with the ICS Run states. This really, really needs to be a FSM.
+    // If the job is in the CREATED
+    val states: Set[AnalysisJobStates.JobStates] =
+      Set(AnalysisJobStates.RUNNING, AnalysisJobStates.CREATED)
+
+    val q0 = qGetEngineJobsByStates(states)
+      .filter(_.isMultiJob === true)
+      .filter(_.id === jobId)
+
+    val msg = s"Failed to find Job $jobId in states $states"
+    val sx = AnalysisJobStates.TERMINATED
+
+    // This should attempt to propagate the errorMessage of the Job
+    updateMultiJobState(jobId, sx, q0, msg)
+  }
+
+  private def runMultiJobUpdate(summary: RunSummary): Future[String] = {
+
+    val sx: (SupportedRunStates, Option[Int]) =
+      (summary.status, summary.multiJobId)
+    def toMessage(job: EngineJob) =
+      s"Run ${summary.uniqueId} Updated MultiJob id:${job.id} state to ${job.state}"
+
+    def toMessageAndLog(job: EngineJob): Future[String] = Future {
+      val msg = toMessage(job)
+      logger.info(msg)
+      msg
+    }
+
+    sx match {
+      case (SupportedRunStates.COMPLETE, Some(multiJobId)) =>
+        // In principle, this could be done from the Running state and the analysis jobs would start as
+        // soon as each subreadset has been generated by Primary and imported into SL.
+        // However, for simplicity and to avoid terminating running analysis jobs created that have been
+        // created while the Run has been executing, we'll wait till the run is entire completed and imported in SL.
+        submitMultiJob(multiJobId).flatMap(toMessageAndLog)
+      case (SupportedRunStates.ABORTED, Some(multiJobId)) =>
+        terminateMultiJob(multiJobId).flatMap(toMessageAndLog)
+      case (SupportedRunStates.TERMINATED, Some(multiJobId)) =>
+        terminateMultiJob(multiJobId).flatMap(toMessageAndLog)
+      case (state: SupportedRunStates, Some(multiJobId)) =>
+        Future.successful(
+          s"No updatable action for MultiJob id:$multiJobId from RunSummary state:$state")
+      case (_, None) => Future.successful(s"Run ${summary.uniqueId}")
+    }
+  }
+
+  private def updateOrCreate(
+      uniqueId: UUID,
+      update: Boolean,
+      parseResults: Option[ParseResults] = None,
+      setReserved: Option[Boolean] = None): Future[RunSummary] = {
+
+    require(update || parseResults.isDefined,
+            "Cannot create a run without ParseResults")
+
+    val action =
+      runSummaries.filter(_.uniqueId === uniqueId).result.headOption.flatMap {
+        prev =>
+          if (prev.isEmpty && update)
+            throw new ResourceNotFoundError(
+              s"Unable to find resource $uniqueId")
+          if (prev.isDefined && !update)
             throw new UnprocessableEntityError(
-              s"Cannot update run $id with data model for run ${results.run.uniqueId}")
-          putResults(results)
+              s"Resource $uniqueId already exists")
+
+          val wasReserved = prev.map(_.reserved)
+          val reserved = setReserved.orElse(wasReserved).getOrElse(false)
+          val summary = parseResults
+            .map(_.run.summarize)
+            .orElse(prev)
+            .get
+            .copy(reserved = reserved)
+
+          val summaryUpdate =
+            Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
+
+          val dataModelAndCollectionsUpdate = parseResults
+            .map { res: ParseResults =>
+              if (res.run.uniqueId != uniqueId)
+                throw new UnprocessableEntityError(
+                  s"Cannot update run $uniqueId with data model for run ${res.run.uniqueId}")
+
+              val collectionsUpdate =
+                res.collections.map(c => collectionMetadata.insertOrUpdate(c))
+              val dataModelUpdate = dataModels.insertOrUpdate(
+                DataModelAndUniqueId(res.run.dataModel, uniqueId))
+              collectionsUpdate :+ dataModelUpdate
+            }
+            .getOrElse(Nil)
+
+          DBIO
+            .sequence(summaryUpdate ++ dataModelAndCollectionsUpdate)
+            .map(_ => summary)
+      }
+
+    db.run(action.transactionally) andThen {
+      case trySummary: Try[RunSummary] =>
+        trySummary
+          .map(runMultiJobUpdate)
+          .recoverWith {
+            case ex: ResourceNotFoundError =>
+              // The job with an id or specific state was not found. This might yield false negatives
+              Success("")
+            case NonFatal(ex) =>
+              logger.error(s"Failed to update MultiJob ${ex.getMessage}")
+              Success("")
+          }
+    }
+  }
+
+  def getRuns(criteria: SearchCriteria): Future[Set[RunSummary]] = {
+
+    val q0 = runSummaries
+
+    val q1 =
+      criteria.chipType.map(c => q0.filter(_.chipType === c)).getOrElse(q0)
+
+    val q2 = criteria.name.map(n => q1.filter(_.name === n)).getOrElse(q1)
+
+    val q3 = criteria.substring
+      .map { sx =>
+        q2.filter { r =>
+          (r.name.indexOf(sx) >= 0)
+            .||(r.summary.getOrElse("").indexOf(sx) >= 0)
         }
-        update.reserved.foreach(r => runs(id) = runs(id).copy(reserved = r))
-        runs(id).summarize
-      } else
-        throw new ResourceNotFoundError(s"Unable to find resource $id")
+      }
+      .getOrElse(q2)
+
+    val q4 =
+      criteria.reserved.map(c => q3.filter(_.reserved === c)).getOrElse(q3)
+
+    val q5 = criteria.createdBy
+      .map(c => q4.filter(_.createdBy.isDefined).filter(_.createdBy === c))
+      .getOrElse(q4)
+
+    db.run(q5.result).map(_.toSet)
+  }
+
+  def getRun(id: UUID): Future[Run] = {
+    val summary = runSummaries.filter(_.uniqueId === id)
+    val model = dataModels.filter(_.uniqueId === id)
+    val run = summary.join(model).result.headOption.map { opt =>
+      opt
+        .map { res =>
+          res._1.withDataModel(res._2.dataModel)
+        }
+        .getOrElse {
+          throw new ResourceNotFoundError(s"Unable to find resource $id")
+        }
     }
 
-  override final def deleteRun(id: UUID): Future[MessageResponse] = Future {
-    if (runs contains id) {
-      runs -= id
-      collections -= id
-      MessageResponse(s"Successfully deleted run design $id")
-    } else
-      throw new ResourceNotFoundError(s"Unable to find resource $id")
+    db.run(run)
   }
 
-  override final def getCollectionMetadatas(
-      runId: UUID): Future[Seq[CollectionMetadata]] = Future {
-    if (collections contains runId)
-      collections(runId).values.toSeq
-    else
-      throw new ResourceNotFoundError(s"Unable to find resource $runId")
+  def createRun(create: RunCreate): Future[RunSummary] =
+    Future(parser(create.dataModel)).flatMap { r =>
+      updateOrCreate(r.run.uniqueId, update = false, Some(r), None)
+    }
+
+  def updateRun(id: UUID, update: RunUpdate): Future[RunSummary] =
+    Future(update.dataModel.map(parser.apply)).flatMap { r =>
+      updateOrCreate(id, update = true, r, update.reserved)
+    }
+
+  def deleteRun(id: UUID): Future[MessageResponse] = {
+    val action = DBIO
+      .seq(
+        collectionMetadata.filter(_.runId === id).delete,
+        dataModels.filter(_.uniqueId === id).delete,
+        runSummaries.filter(_.uniqueId === id).delete
+      )
+      .map(_ => MessageResponse(s"Successfully deleted run design $id"))
+    db.run(action.transactionally)
   }
 
-  override final def getCollectionMetadata(
-      runId: UUID,
-      id: UUID): Future[CollectionMetadata] = Future {
-    if (collections contains runId)
-      if (collections(runId) contains id)
-        collections(runId)(id)
-      else
-        throw new ResourceNotFoundError(s"Unable to find resource $id")
-    else
-      throw new ResourceNotFoundError(s"Unable to find resource $runId")
-  }
+  def getCollectionMetadatas(runId: UUID): Future[Seq[CollectionMetadata]] =
+    db.run(collectionMetadata.filter(_.runId === runId).result)
 
-  @VisibleForTesting
-  def clear(): Unit = {
-    runs.clear()
-    collections.clear()
+  def getCollectionMetadata(runId: UUID,
+                            uniqueId: UUID): Future[CollectionMetadata] = {
+    db.run {
+        collectionMetadata
+          .filter(_.runId === runId)
+          .filter(_.uniqueId === uniqueId)
+          .result
+          .headOption
+      }
+      .map(_.getOrElse(throw new ResourceNotFoundError(
+        s"No collection with id $uniqueId found in run $runId")))
+
   }
 }
 
 /**
-  * Provides an InMemoryRunDao. Concrete providers must mixin a ClockProvider.
+  * Provides a RunDao.
   */
-trait InMemoryRunDaoProvider extends RunDaoProvider {
-  this: DataModelParserProvider =>
+trait RunDaoProvider { this: DalProvider with DataModelParserProvider =>
 
-  override final val runDao: Singleton[RunDao] =
-    Singleton(() => new InMemoryRunDao(dataModelParser()))
+  val runDao: Singleton[RunDao] =
+    Singleton(() => new RunDao(db(), dataModelParser()))
 }

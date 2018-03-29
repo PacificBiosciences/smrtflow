@@ -50,6 +50,8 @@ case class PbsmrtpipeJobOptions(name: Option[String],
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
 
+  override def subJobTypeId: Option[String] = Some(pipelineId)
+
   override def resolveEntryPoints(
       dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
     val fx = resolver(entryPoints, dao).map(_.map(_._1))

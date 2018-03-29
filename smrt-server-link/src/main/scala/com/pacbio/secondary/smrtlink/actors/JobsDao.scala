@@ -776,7 +776,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       createdByEmail: Option[String] = None,
       smrtLinkVersion: Option[String] = None,
       projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      workflow: JsObject = JsObject.empty): Future[EngineJob] = {
+      workflow: JsObject = JsObject.empty,
+      subJobTypeId: Option[String] = None): Future[EngineJob] = {
     val path = ""
     val createdAt = JodaDateTime.now()
 
@@ -805,21 +806,22 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   /** New Actor-less model **/
-  def createCoreJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: JobTypeIds.JobType,
-      entryPoints: Seq[EngineJobEntryPointRecord] =
-        Seq.empty[EngineJobEntryPointRecord],
-      jsonSetting: JsObject,
-      createdBy: Option[String] = None,
-      createdByEmail: Option[String] = None,
-      smrtLinkVersion: Option[String] = None,
-      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      parentMultiJobId: Option[Int] = None,
-      importedAt: Option[JodaDateTime] = None): Future[EngineJob] = {
+  def createCoreJob(uuid: UUID,
+                    name: String,
+                    description: String,
+                    jobTypeId: JobTypeIds.JobType,
+                    entryPoints: Seq[EngineJobEntryPointRecord] =
+                      Seq.empty[EngineJobEntryPointRecord],
+                    jsonSetting: JsObject,
+                    createdBy: Option[String] = None,
+                    createdByEmail: Option[String] = None,
+                    smrtLinkVersion: Option[String] = None,
+                    projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                    parentMultiJobId: Option[Int] = None,
+                    importedAt: Option[JodaDateTime] = None,
+                    subJobTypeId: Option[String] = None): Future[EngineJob] = {
 
+    // This is wrong.
     val path = ""
     val createdAt = JodaDateTime.now()
 
@@ -840,7 +842,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       smrtLinkVersion,
       projectId = projectId,
       parentMultiJobId = parentMultiJobId,
-      importedAt = importedAt
+      importedAt = importedAt,
+      subJobTypeId = subJobTypeId
     )
 
     insertEngineJob(engineJob, entryPoints)
@@ -981,15 +984,255 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(q1.sortBy(_.id.desc).result)
   }
 
-  def getJobsByTypeId(
-      jobTypeId: JobTypeIds.JobType,
-      includeInactive: Boolean = false,
-      projectId: Option[Int] = None): Future[Seq[EngineJob]] = {
-    val q1 = engineJobs.filter(_.jobTypeId === jobTypeId.id).sortBy(_.id.desc)
-    val q2 = if (!includeInactive) q1.filter(_.isActive) else q1
-    val q3 =
-      if (projectId.isDefined) q2.filter(_.projectId === projectId.get) else q2
-    db.run(q3.result)
+  private def qJobsBySearch(c: JobSearchCriteria) = {
+
+    type Q = Query[EngineJobsT, EngineJobsT#TableElementType, Seq]
+    type QF = (Q => Q)
+    type QOF = (Q => Option[Q])
+
+    val qIsActive: QOF = { q =>
+      c.isActive.map { value =>
+        value match {
+          case true => q.filter(_.isActive)
+          case false => q // there's no filter for isActive=false
+        }
+      }
+    }
+
+    // This needs to be clarified and collapsed back into the SearchCriteria API
+    // in the new standard way.
+    val qOldProjectIds: QOF = { q =>
+      if (c.projectIds.nonEmpty) Some(q.filter(_.projectId inSet c.projectIds))
+      else None
+    }
+
+    val qById: QOF = { q =>
+      c.id
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.id === value)
+          case IntInQueryOperator(values) => q.filter(_.id inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.id >= value)
+          case IntGtQueryOperator(value) => q.filter(_.id > value)
+          case IntLteQueryOperator(value) => q.filter(_.id <= value)
+          case IntLtQueryOperator(value) => q.filter(_.id < value)
+        }
+    }
+    val qByUUID: QOF = { q =>
+      c.uuid
+        .map {
+          case UUIDEqOperator(value) => q.filter(_.uuid === value)
+          case UUIDInOperator(values) => q.filter(_.uuid inSet values)
+        }
+    }
+    val qByName: QOF = { q =>
+      c.name
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.name like s"%${value}%")
+          case StringInQueryOperator(values) => q.filter(_.name inSet values)
+        }
+    }
+    val qByComment: QOF = { q =>
+      c.comment
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.comment === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.comment like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.comment inSet values)
+        }
+    }
+    val qByCreatedAt: QOF = { q =>
+      c.createdAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.createdAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.createdAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.createdAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.createdAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.createdAt <= value)
+        }
+    }
+    val qByUpdatedAt: QOF = { q =>
+      c.updatedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.updatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.updatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.updatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.updatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.updatedAt <= value)
+        }
+    }
+    val qByJobUpdatedAt: QOF = { q =>
+      c.jobUpdatedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.jobUpdatedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.jobUpdatedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.jobUpdatedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.jobUpdatedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.jobUpdatedAt <= value)
+        }
+    }
+    val qByState: QOF = { q =>
+      c.state
+        .map {
+          case JobStateEqOperator(value) => q.filter(_.state === value)
+          case JobStateInOperator(values) => q.filter(_.state inSet values)
+        }
+    }
+    val qByJobTypeId: QOF = { q =>
+      c.jobTypeId
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.jobTypeId === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.jobTypeId like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.jobTypeId inSet values)
+        }
+    }
+    val qByPath: QOF = { q =>
+      c.path
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.path like s"%${value}%")
+          case StringInQueryOperator(values) => q.filter(_.path inSet values)
+        }
+    }
+    val qByCreatedBy: QOF = { q =>
+      c.createdBy
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdBy like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.createdBy inSet values)
+        }
+    }
+    val qByCreatedByEmail: QOF = { q =>
+      c.createdByEmail
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.createdByEmail === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdByEmail like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.createdByEmail inSet values)
+        }
+    }
+    val qBySmrtlinkVersion: QOF = { q =>
+      c.smrtlinkVersion
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.smrtLinkVersion === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.smrtLinkVersion like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.smrtLinkVersion inSet values)
+        }
+    }
+    val qByErrorMessage: QOF = { q =>
+      c.errorMessage
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.errorMessage === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.errorMessage like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.errorMessage inSet values)
+        }
+    }
+    val qByIsMultiJob: QOF = { q =>
+      c.isMultiJob.map { value =>
+        value match {
+          case true => q.filter(_.isMultiJob === true)
+          case false => q.filter(_.isMultiJob === false)
+        }
+      }
+    }
+    val qByParentMultiJobId: QOF = { q =>
+      c.parentMultiJobId
+        .map {
+          case IntEqQueryOperator(value) =>
+            q.filter(_.parentMultiJobId === value)
+          case IntInQueryOperator(values) =>
+            q.filter(_.parentMultiJobId inSet values)
+          case IntGteQueryOperator(value) =>
+            q.filter(_.parentMultiJobId >= value)
+          case IntGtQueryOperator(value) =>
+            q.filter(_.parentMultiJobId > value)
+          case IntLteQueryOperator(value) =>
+            q.filter(_.parentMultiJobId <= value)
+          case IntLtQueryOperator(value) =>
+            q.filter(_.parentMultiJobId < value)
+        }
+    }
+    val qByImportedAt: QOF = { q =>
+      c.importedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.importedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.importedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.importedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.importedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.importedAt <= value)
+        }
+    }
+    val qByTags: QOF = { q =>
+      c.tags
+        .map {
+          case StringEqQueryOperator(value) => q.filter(_.tags === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.tags like s"%${value}%")
+          case StringInQueryOperator(values) => q.filter(_.tags inSet values)
+        }
+    }
+    val qBySubJobTypeId: QOF = { q =>
+      c.subJobTypeId
+        .map {
+          case StringEqQueryOperator(value) =>
+            q.filter(_.subJobTypeId === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.subJobTypeId like s"%${value}%")
+          case StringInQueryOperator(values) =>
+            q.filter(_.subJobTypeId inSet values)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(
+      qIsActive,
+      qByJobTypeId,
+      qOldProjectIds,
+      qById,
+      qByName,
+      qByUUID,
+      qByComment,
+      qByCreatedAt,
+      qByUpdatedAt,
+      qByJobUpdatedAt,
+      qByState,
+      qByPath,
+      qByCreatedBy,
+      qByCreatedByEmail,
+      qBySmrtlinkVersion,
+      qByErrorMessage,
+      qByIsMultiJob,
+      qByParentMultiJobId,
+      qByImportedAt,
+      qByTags,
+      qBySubJobTypeId
+    )
+
+    val qTotal: QF = { q =>
+      queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }
+    }
+
+    qTotal(engineJobs)
+  }
+
+  def getJobs(c: JobSearchCriteria): Future[Seq[EngineJob]] = {
+    val q1 = qJobsBySearch(c).sortBy(_.id.desc)
+    val q2 = c.marker.map(i => q1.drop(i)).getOrElse(q1)
+    db.run(q2.take(c.limit).result)
   }
 
   def getJobEntryPoints(jobId: Int): Future[Seq[EngineJobEntryPoint]] =
@@ -1433,15 +1676,51 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     }
   }
 
+  /**
+    * Update the numChildren (active+inactive) from dataset with a specific UUID.
+    *
+    * If the parent UUID does NOT exist, the update will be ignored.
+    */
+  private def actionUpdateNumChildren(parentUUID: UUID): DBIO[Int] = {
+    def action0 =
+      for {
+        numChildren <- dsMetaData2
+          .filter(_.parentUuid === parentUUID)
+          .length
+          .result
+        _ <- dsMetaData2
+          .filter(_.uuid === parentUUID)
+          .map(d => (d.numChildren, d.updatedAt))
+          .update((numChildren, JodaDateTime.now()))
+      } yield numChildren
+
+    dsMetaData2.filter(_.uuid === parentUUID).exists.result.flatMap {
+      case true => action0
+      case false =>
+        logger.warn(
+          s"Parent DataSet $parentUUID does not exist. Unable to update num children")
+        DBIO.successful(0)
+    }
+  }
+
+  /**
+    * Util for the common usecase
+    */
+  private def actionUpdateNumChildrenOpt(parentUUID: Option[UUID]): DBIO[Int] =
+    parentUUID
+      .map(actionUpdateNumChildren)
+      .getOrElse(DBIO.successful(0))
+
   private def actionImportSubreadSet(
       i: ImportAbleSubreadSet): DBIO[MessageResponse] = {
-    val ds = i.file
+
     val action0 = insertMetaData(i.file)
-      .flatMap(i => insertSubreadSetRecord(i, ds))
+      .flatMap(x => insertSubreadSetRecord(x, i.file))
 
     val action: DBIO[Unit] = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1465,14 +1744,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportHdfSubreadSet(
       i: ImportAbleHdfSubreadSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file)
-      .flatMap(i => insertHdfSubreadSetRecord(i, ds))
+      .flatMap(x => insertHdfSubreadSetRecord(x, i.file))
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1484,15 +1763,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportAlignmentSet(
       i: ImportAbleAlignmentSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsAlignment2 forceInsert AlignmentServiceSet(id, ds.uuid)
+      dsAlignment2 forceInsert AlignmentServiceSet(id, i.file.uuid)
     }
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1503,15 +1782,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportBarcodeSet(
       i: ImportAbleBarcodeSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsBarcode2 forceInsert BarcodeServiceSet(id, ds.uuid)
+      dsBarcode2 forceInsert BarcodeServiceSet(id, i.file.uuid)
     }
 
     val action = DBIO.seq(
       action0,
-      datastoreServiceFiles += i.ds.file
+      datastoreServiceFiles += i.ds.file,
+      actionUpdateNumChildrenOpt(i.file.parentUuid)
     )
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
@@ -1523,13 +1802,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportConsensusReadSet(
       i: ImportAbleConsensusReadSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsCCSread2 forceInsert ConsensusReadServiceSet(id, ds.uuid)
+      dsCCSread2 forceInsert ConsensusReadServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1540,13 +1820,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportConsensusAlignmentSet(
       i: ImportAbleConsensusAlignmentSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, ds.uuid)
+      dsCCSAlignment2 forceInsert ConsensusAlignmentServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1557,13 +1838,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportTranscriptSet(
       i: ImportAbleTranscriptSet): DBIO[MessageResponse] = {
-    val ds = i.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsTranscript2 forceInsert TranscriptServiceSet(id, ds.uuid)
+      dsTranscript2 forceInsert TranscriptServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += i.ds.file)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1574,13 +1856,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportContigSet(
       i: ImportAbleContigSet): DBIO[MessageResponse] = {
-    val ds = i.ds.file
 
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
-      dsContig2 forceInsert ContigServiceSet(id, ds.uuid)
+      dsContig2 forceInsert ContigServiceSet(id, i.file.uuid)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1591,7 +1874,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   private def actionImportReferenceSet(
       i: ImportAbleReferenceSet): DBIO[MessageResponse] = {
-    val ds = i.ds.file
+
     val action0 = insertMetaData(i.file).flatMap { id: Int =>
       dsReference2 forceInsert ReferenceServiceSet(id,
                                                    i.file.uuid,
@@ -1599,7 +1882,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
                                                    i.file.organism)
     }
 
-    val action = DBIO.seq(action0, datastoreServiceFiles += ds)
+    val action = DBIO.seq(action0,
+                          datastoreServiceFiles += i.ds.file,
+                          actionUpdateNumChildrenOpt(i.file.parentUuid))
 
     checkForServiceMetaData(i.ds.file, i.ds.file.fileTypeId, action)
   }
@@ -1776,7 +2061,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           .update(setIsActive, JodaDateTime.now()))
       .map(_ =>
         MessageResponse(
-          s"Successfully set isActive=$setIsActive for dataset $id"))
+          s"Successfully set isActive=$setIsActive for dataset ${id.toIdString}"))
   }
 
   def updateDataSetById(
@@ -1862,7 +2147,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.dnaBarcodeName,
       t1.parentUuid,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   /**
@@ -1873,6 +2159,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     */
   def getSubreadDataSetById(id: IdAble): Future[SubreadServiceDataSet] = {
     val q = qDsMetaDataById(id) join dsSubread2 on (_.id === _.id)
+    //val qParentCount = dsMetaData2.filter
     db.run(q.result.headOption)
       .map(_.map(x => toSds(x._1, x._2)))
       .flatMap(
@@ -1933,6 +2220,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.name
         .map {
           case StringEqQueryOperator(value) => q.filter(_.name === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.name like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.name inSet values)
         }
     }
@@ -1942,6 +2231,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.path
         .map {
           case StringEqQueryOperator(value) => q.filter(_.path === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.path like s"%${value}%")
           case StringInQueryOperator(values) => q.filter(_.path inSet values)
         }
     }
@@ -1991,6 +2282,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.version
         .map {
           case StringEqQueryOperator(value) => q.filter(_.version === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.version like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.version inSet values)
         }
@@ -2001,6 +2294,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       c.createdBy
         .map {
           case StringEqQueryOperator(value) => q.filter(_.createdBy === value)
+          case StringMatchQueryOperator(value) =>
+            q.filter(_.createdBy like s"%${value}%")
           case StringInQueryOperator(values) =>
             q.filter(_.createdBy inSet values)
         }
@@ -2028,6 +2323,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
+    val qByImportedAt: QOF = { q =>
+      c.importedAt
+        .map {
+          case DateTimeEqOperator(value) => q.filter(_.importedAt === value)
+          case DateTimeGtOperator(value) => q.filter(_.importedAt > value)
+          case DateTimeGteOperator(value) => q.filter(_.importedAt >= value)
+          case DateTimeLtOperator(value) => q.filter(_.importedAt < value)
+          case DateTimeLteOperator(value) => q.filter(_.importedAt <= value)
+        }
+    }
+
     val qByUUID: QOF = { q =>
       c.uuid
         .map {
@@ -2036,19 +2342,47 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         }
     }
 
-    val queries: Seq[QOF] = Seq(qInActive,
-                                qOldProjectIds,
-                                qById,
-                                qByName,
-                                qByPath,
-                                qByNumRecords,
-                                qByTotaLength,
-                                qByJobId,
-                                qByVersion,
-                                qByCreatedBy,
-                                qByCreatedAt,
-                                qByUpdatedAt,
-                                qByUUID)
+    val qByParentUUID: QOF = { q =>
+      c.parentUuid
+        .map {
+          case UUIDOptionEqOperator(value) => q.filter(_.parentUuid === value)
+          case UUIDOptionInOperator(values) =>
+            q.filter(_.parentUuid inSet values)
+          case UUIDNullQueryOperator() => q.filter(_.parentUuid.isEmpty)
+        }
+    }
+
+    val qNumChildren: QOF = { q =>
+      c.numChildren
+        .map {
+          case IntEqQueryOperator(value) => q.filter(_.numChildren === value)
+          case IntInQueryOperator(values) =>
+            q.filter(_.numChildren inSet values)
+          case IntGteQueryOperator(value) => q.filter(_.numChildren >= value)
+          case IntGtQueryOperator(value) => q.filter(_.numChildren > value)
+          case IntLteQueryOperator(value) => q.filter(_.numChildren <= value)
+          case IntLtQueryOperator(value) => q.filter(_.numChildren < value)
+        }
+    }
+
+    val queries: Seq[QOF] = Seq(
+      qInActive,
+      qOldProjectIds,
+      qById,
+      qByName,
+      qByPath,
+      qByNumRecords,
+      qByTotaLength,
+      qByJobId,
+      qByVersion,
+      qByCreatedBy,
+      qByCreatedAt,
+      qByUpdatedAt,
+      qByImportedAt,
+      qByUUID,
+      qByParentUUID,
+      qNumChildren
+    )
 
     val qTotal: QF = { q =>
       queries.foldLeft(q) { case (acc, qf) => qf(acc).getOrElse(acc) }
@@ -2092,7 +2426,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getReferenceDataSets(
@@ -2142,7 +2477,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.projectId,
       t2.ploidy,
       t2.organism,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getGmapReferenceDataSets(
@@ -2205,7 +2541,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getHdfDataSetById(id: IdAble): Future[HdfSubreadServiceDataSet] = {
@@ -2240,7 +2577,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getAlignmentDataSets(
@@ -2288,7 +2626,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   // TODO(smcclellan): limit is never uesed. add `.take(limit)`?
@@ -2337,7 +2676,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getConsensusAlignmentDataSets(c: DataSetSearchCriteria)
@@ -2385,7 +2725,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getTranscriptDataSets(
@@ -2432,7 +2773,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getBarcodeDataSets(
@@ -2478,7 +2820,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       t1.createdBy,
       t1.jobId,
       t1.projectId,
-      isActive = t1.isActive
+      isActive = t1.isActive,
+      numChildren = t1.numChildren
     )
 
   def getContigDataSets(

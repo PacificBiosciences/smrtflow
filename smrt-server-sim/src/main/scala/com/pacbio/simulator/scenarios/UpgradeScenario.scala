@@ -71,7 +71,7 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     fail(s"Expected at least one datastore file") IF dataStore
       .mapWith(_.size) ==? 0,
     jobReports := GetJobReports(jobId),
-    fail("Expected one report") IF jobReports.mapWith(_.size) !=? 1,
+    fail("Expected at least one report") IF jobReports.mapWith(_.size) ==? 0,
     report := GetJobReport(job.mapWith(_.id),
                            jobReports.mapWith(_(0).dataStoreFile.uuid)),
     fail("Wrong report UUID in datastore") IF jobReports.mapWith(
@@ -80,9 +80,12 @@ class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
     entryPoints := GetJobEntryPoints(job.mapWith(_.id)),
-    fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1
+    fail("Expected one entry point") IF entryPoints.mapWith(_.size) !=? 1,
     //fail("Wrong entry point UUID") IF entryPoints
     //  .mapWith(_(0).datasetUUID) !=? subreadsUuid
+    fail(
+      s"Expected Analysis Job subJobTypeId to be ${diagnosticOptsCore.pipelineId}")
+      IF job.mapWith(_.subJobTypeId) !=? Some(diagnosticOptsCore.pipelineId)
   )
 
   // XXX unused, unnecessary?

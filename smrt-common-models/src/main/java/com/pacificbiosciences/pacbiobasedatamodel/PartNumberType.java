@@ -42,6 +42,7 @@ import com.pacificbiosciences.pacbioreagentkit.SupplyKitSequencing;
  *       &lt;attribute name="ExpirationDate" type="{http://www.w3.org/2001/XMLSchema}date" />
  *       &lt;attribute name="IsObsolete" type="{http://www.w3.org/2001/XMLSchema}boolean" default="false" />
  *       &lt;attribute name="IsRestricted" type="{http://www.w3.org/2001/XMLSchema}boolean" default="false" />
+ *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="AllChips" />
  *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -80,6 +81,8 @@ public class PartNumberType
     protected Boolean isObsolete;
     @XmlAttribute(name = "IsRestricted")
     protected Boolean isRestricted;
+    @XmlAttribute(name = "ChipType")
+    protected SupportedChipTypes chipType;
 
     /**
      * Gets the value of the defaults property.
@@ -255,6 +258,34 @@ public class PartNumberType
      */
     public void setIsRestricted(Boolean value) {
         this.isRestricted = value;
+    }
+
+    /**
+     * Gets the value of the chipType property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public SupportedChipTypes getChipType() {
+        if (chipType == null) {
+            return SupportedChipTypes.ALL_CHIPS;
+        } else {
+            return chipType;
+        }
+    }
+
+    /**
+     * Sets the value of the chipType property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public void setChipType(SupportedChipTypes value) {
+        this.chipType = value;
     }
 
 }

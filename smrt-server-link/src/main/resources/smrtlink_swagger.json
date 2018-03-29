@@ -1365,10 +1365,27 @@
           {
             "in": "query",
             "type": "string",
+            "name": "importedAt",
+            "description": "DataSet imported at DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "in": "query",
+            "type": "string",
             "name": "isActive",
-            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft) deleted datasets are returned"
+            "description": "DataSet isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft-deleted) datasets are returned"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "parentUuid",
+            "description": "DataSet Parent UUID Optional QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78' or ?parentUuid=null This will return parent datasets (i.e, no children datasets are returned)"
+          },
+          {
+            "in": "query",
+            "type": "string",
+            "name": "numChildren",
+            "description": "DataSet numChildren Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7' Using numChildren=0 will only return Children datasets, whereas numChildren:gt:0 will return only parent datasets"
           }
-
         ],
         "produces": [
           "application/json"
@@ -2860,20 +2877,149 @@
             "required": true,
             "type": "string",
             "name": "type",
-            "in": "path"
+            "in": "path",
+            "description": "Job type ID e.g. 'pbsmrtpipe'"
+          },
+          {
+            "required": false,
+            "type": "boolean",
+            "name": "isActive",
+            "in": "query",
+            "default": true,
+            "description": "Job isActive QueryFilter e.g., 'isActive=true' 'isActive=false'. By default only active (i.e., non-soft-deleted) jobs are returned"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of entries to return (sorted by descending order of ID)"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "marker",
+            "in": "query",
+            "description": "The offset of the number of records to return"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "id",
+            "in": "query",
+            "description": "Job id Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
           },
           {
             "required": false,
             "type": "string",
-            "name": "showAll",
+            "name": "uuid",
             "in": "query",
-            "allowEmptyValue": true
+            "description": "Job UUID QueryFilter e.g., 'bed09210-272b-11e8-b223-e3d877ad877e' or 'in:bed09210-272b-11e8-b223-e3d877ad877e,ca234090-272b-11e8-abef-0773aed21b78'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "name",
+            "in": "query",
+            "description": "Job name String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "comment",
+            "in": "query",
+            "description": "Job comments String QueryFilter e.g., 'alpha' or 'in:alpha,beta'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdAt",
+            "in": "query",
+            "description": "Job createdAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "updatedAt",
+            "in": "query",
+            "description": "Job updatedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "jobUpdatedAt",
+            "in": "query",
+            "description": "Job jobUpdatedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "state",
+            "in": "query",
+            "description": "Job state QueryFilter, e.g. 'SUCCESSFUL' or 'in:FAILED,TERMINATED'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "path",
+            "in": "query",
+            "description": "Job path String QueryFilter e.g., '/path/to/jobs/000/000001'.  Note, these need to be URL encoded"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdBy",
+            "in": "query",
+            "description": "Job createdBy String QueryFilter, e.g. 'Alice' or 'in:Alice,Bob'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "createdByEmail",
+            "in": "query",
+            "description": "Job createdByEmail String QueryFilter, e.g. 'user@university.edu'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "smrtlinkVersion",
+            "in": "query",
+            "description": "Job smrtlinkVersion String QueryFilter, e.g. '5.1.0.23456'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "errorMessage",
+            "in": "query",
+            "description": "Job errorMessage String QueryFilter"
+          },
+          {
+            "required": false,
+            "type": "integer",
+            "name": "parentMultiJobId",
+            "in": "query",
+            "description": "Job parentMultiJobId Numeric QueryFilter e.g., '1' or 'in:1,2,3', 'gt:7'"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "importedAt",
+            "in": "query",
+            "description": "Job importedAt DateTime QueryFilter e.g., '2018-03-14T00:13:26.693Z' or 'gt:2018-03-14T00:13:26.693Z', 'lte:2018-03-14T00:13:26.693Z' (datetime must be specified using ISO8601 format)"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "subJobTypeId",
+            "in": "query",
+            "description": "Job subJobTypeId query filter, e.g. 'pbsmrtpipe.pipelines.sa3_sat'"
           },
           {
             "required": false,
             "type": "integer",
             "name": "projectId",
-            "in": "query"
+            "in": "query",
+            "description": "Job projectId filter"
           }
         ],
         "produces": [
@@ -4115,6 +4261,12 @@
           "type": "boolean",
           "title": "Is active",
           "description": ""
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
         }
       }
     },
@@ -4207,6 +4359,12 @@
           "type": "string",
           "title": "Comments",
           "description": ""
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
         }
       },
       "required": [
@@ -4372,7 +4530,18 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "title": "Parent DataSet UUID",
+          "description": "Parent DataSet UUID"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4398,7 +4567,9 @@
         "metadataContextId",
         "runName",
         "datasetType",
-        "comments"
+        "comments",
+        "parentUuid",
+        "numChildren"
       ],
       "example": {
         "name": "Convert-movie",
@@ -4555,8 +4726,9 @@
         },
         "parentUuid": {
           "type": ["string", "null"],
-          "title": "Parent dataset UUID",
-          "description": "UUID of parent, if any"
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
         },
         "datasetType": {
                "type": "string",
@@ -4567,7 +4739,13 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4594,7 +4772,8 @@
         "runName",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "07-26-2016_SMS_FleaVal_A11_SIRV-E0_150pM_onchip_6hrMovie",
@@ -4719,7 +4898,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4739,7 +4930,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_barcode_adapters_96",
@@ -4857,7 +5049,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -4877,7 +5081,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_consensusalignmentset-161104_063043351",
@@ -4896,7 +5101,8 @@
         "userId": 1,
         "datasetType": "PacBio.DataSet.ConsensusAlignmentSet",
         "comments": "ccs alignment dataset converted",
-        "isActive": true
+        "isActive": true,
+        "numChildren": 0
       }
     },
     "ContigSetDetails": {
@@ -4994,7 +5200,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5014,7 +5232,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_contigset-170123_234232277 AND pacbio_dataset_contigset-170123_234232286 AND pacbio_dataset_contigset-170123_234232283",
@@ -5132,7 +5351,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5152,7 +5383,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "pacbio_dataset_consensusreadset-170202_060035163 AND pacbio_dataset_consensusreadset-170202_060041668 AND pacbio_dataset_consensusreadset-170202_060035188 AND pacbio_dataset_consensusreadset-170202_060035178 AND pacbio_dataset_consensusreadset-170202_060035206 AND pacbio_dataset_consensusreadset-170202_060035160 AND pacbio_dataset_consensusreadset-170202_060035159 AND pacbio_dataset_consensusreadset-170202_060045439 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060041703 AND pacbio_dataset_consensusreadset-170202_060035185 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035225 AND pacbio_dataset_consensusreadset-170202_060045401 AND pacbio_dataset_consensusreadset-170202_06004398 AND pacbio_dataset_consensusreadset-170202_060035204 AND pacbio_dataset_consensusreadset-170202_060044705 AND pacbio_dataset_consensusreadset-170202_060035166 AND pacbio_dataset_consensusreadset-170202_060035286 AND pacbio_dataset_consensusreadset-170202_060035189 AND pacbio_dataset_consensusreadset-170202_060035169 AND pacbio_dataset_consensusreadset-170202_060041666 AND pacbio_dataset_consensusreadset-170202_060035228 AND pacbio_dataset_consensusreadset-170202_060035151",
@@ -5280,7 +5512,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5302,7 +5546,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "lambdaNEB",
@@ -5432,7 +5677,19 @@
                "type": "string",
                "title": "Comments",
                "description": ""
-             }
+             },
+        "parentUuid": {
+          "type": ["string", "null"],
+          "default": null,
+          "title": "Parent DataSet UUID",
+          "description": "UUID of parent Dataset (if any)"
+        },
+        "numChildren": {
+          "type": "integer",
+          "title": "Number of Children",
+          "description": "Total Number (active + inactive) Children datasets",
+          "default": 0
+        }
       },
       "required": [
         "name",
@@ -5454,7 +5711,8 @@
         "userId",
         "datasetType",
         "comments",
-        "isActive"
+        "isActive",
+        "numChildren"
       ],
       "example": {
         "name": "hg38",
@@ -6012,6 +6270,12 @@
           "type": "string",
           "title": "Tags",
           "description": "Tags for the dataset. These should be ',' separated values"
+        },
+        "subJobTypeId": {
+          "type": ["string", "null"],
+          "title": "SubJobTypeId",
+          "default": null,
+          "description": "The Job 'sub job type id'. This could be used to communicate a specific job type of the 'root' jobTypeId. For pbsmrtpipe/analysis jobs, the pipeline id is used."
         }
       },
       "required": [

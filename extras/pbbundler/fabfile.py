@@ -203,7 +203,14 @@ def _copy_chemistry_bundle(version, dest_dir, bundle_type_id):
     bundle_name = "-".join([bundle_type_id, version])
     tarball = bundle_name + ".tar.gz"
 
-    nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-releases/pacbio/seq/{}/{}/{}".format(bundle_type_id, version, tarball)
+    (versionnum, snapshot) = re.subn (r'SNAPSHOT', '', version, 1)
+
+    if snapshot:
+        reltype="snapshots"
+    else:
+        reltype="releases"
+
+    nexus_url="http://ossnexus.pacificbiosciences.com/repository/maven-{}/pacbio/seq/{}/{}/{}".format(reltype, bundle_type_id, versionnum, tarball)
     urllib.urlretrieve (nexus_url, os.path.join(res_bundle_dir, tarball))
     target_dir = os.path.join(res_bundle_dir, bundle_name)
     current_link = os.path.join(res_bundle_dir, "{}-active".format(bundle_type_id))

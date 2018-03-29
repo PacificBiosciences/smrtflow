@@ -441,7 +441,8 @@ case class DataSetMetaDataSet(id: Int,
                               jobId: Int,
                               projectId: Int,
                               isActive: Boolean,
-                              parentUuid: Option[UUID])
+                              parentUuid: Option[UUID],
+                              numChildren: Int = 0)
     extends UniqueIdAble
     with ProjectAble
 
@@ -588,6 +589,7 @@ trait ServiceDataSetMetadata {
   val projectId: Int
   val parentUuid: Option[UUID]
   val isActive: Boolean
+  val numChildren: Int
 
   // MK. I'm not sure this is a good idea.
   def toDataStoreFile(sourceId: String,
@@ -635,6 +637,7 @@ case class SubreadServiceDataSet(
     dnaBarcodeName: Option[String],
     parentUuid: Option[UUID],
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Subread.toString())
     extends ServiceDataSetMetadata
 
@@ -664,6 +667,7 @@ case class HdfSubreadServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = HdfSubread.toString())
     extends ServiceDataSetMetadata
 
@@ -687,6 +691,7 @@ case class ReferenceServiceDataSet(id: Int,
                                    organism: String,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Reference.toString())
     extends ServiceDataSetMetadata
 
@@ -708,6 +713,7 @@ case class AlignmentServiceDataSet(id: Int,
                                    projectId: Int,
                                    parentUuid: Option[UUID] = None,
                                    isActive: Boolean = true,
+                                   numChildren: Int = 0,
                                    datasetType: String = Alignment.toString())
     extends ServiceDataSetMetadata
 
@@ -729,6 +735,7 @@ case class ConsensusReadServiceDataSet(id: Int,
                                        projectId: Int,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String = CCS.toString())
     extends ServiceDataSetMetadata
 
@@ -750,6 +757,7 @@ case class ConsensusAlignmentServiceDataSet(id: Int,
                                             projectId: Int,
                                             parentUuid: Option[UUID] = None,
                                             isActive: Boolean = true,
+                                            numChildren: Int = 0,
                                             datasetType: String =
                                               AlignmentCCS.toString())
     extends ServiceDataSetMetadata
@@ -772,6 +780,7 @@ case class BarcodeServiceDataSet(id: Int,
                                  projectId: Int,
                                  parentUuid: Option[UUID] = None,
                                  isActive: Boolean = true,
+                                 numChildren: Int = 0,
                                  datasetType: String = Barcode.toString())
     extends ServiceDataSetMetadata
 
@@ -793,6 +802,7 @@ case class ContigServiceDataSet(id: Int,
                                 projectId: Int,
                                 parentUuid: Option[UUID] = None,
                                 isActive: Boolean = true,
+                                numChildren: Int = 0,
                                 datasetType: String = Contig.toString())
     extends ServiceDataSetMetadata
 
@@ -816,6 +826,7 @@ case class GmapReferenceServiceDataSet(id: Int,
                                        organism: String,
                                        parentUuid: Option[UUID] = None,
                                        isActive: Boolean = true,
+                                       numChildren: Int = 0,
                                        datasetType: String =
                                          GmapReference.toString())
     extends ServiceDataSetMetadata
@@ -839,6 +850,7 @@ case class TranscriptServiceDataSet(
     projectId: Int,
     parentUuid: Option[UUID] = None,
     isActive: Boolean = true,
+    numChildren: Int = 0,
     datasetType: String = Transcript.toString())
     extends ServiceDataSetMetadata
 
@@ -852,6 +864,9 @@ case class TranscriptServiceDataSet(
   */
 object QueryOperators {
 
+  // For queries that need db.filter(_.x === null)
+  val NULL = "null"
+
   /**
     * Common Utils to generate a
     */
@@ -863,6 +878,7 @@ object QueryOperators {
   private def toLteQuery(value: String) = s"lte:$value"
   private def toGtQuery(value: String) = s"gt:$value"
   private def toGteQuery(value: String) = s"gte:$value"
+  private def toMatchQuery(value: String) = s"like:$value"
 
   // This is a bit of a grab bag of utils
   trait QueryOperatorConverter[T] {
@@ -893,6 +909,10 @@ object QueryOperators {
   case class StringEqQueryOperator(value: String) extends StringQueryOperator {
     override def toQueryString: String = toEqQuery(value)
   }
+  case class StringMatchQueryOperator(value: String)
+      extends StringQueryOperator {
+    override def toQueryString: String = toMatchQuery(value)
+  }
   case class StringInQueryOperator(value: Set[String])
       extends StringQueryOperator {
     override def toQueryString: String = toInQuery(value)
@@ -914,6 +934,8 @@ object QueryOperators {
     def fromString(value: String): Option[StringQueryOperator] = {
       value.split(":", 2).toList match {
         case "in" :: tail :: Nil => toSetValue(tail).map(StringInQueryOperator)
+        case "like" :: tail :: Nil =>
+          toValue(tail).map(StringMatchQueryOperator)
         case head :: Nil => toValue(head).map(StringEqQueryOperator)
         case _ =>
           // Invalid or unsupported String Query Operator
@@ -1065,45 +1087,74 @@ object QueryOperators {
     }
   }
 
+  // It's not completely clear to me how to extend UUIDQueryOperator
+  sealed trait UUIDOptionQueryOperator extends QuertyOperator {
+    def uuidToString(uuid: UUID): String = uuid.toString
+  }
+
+  case class UUIDOptionEqOperator(uuid: UUID) extends UUIDOptionQueryOperator {
+    override def toQueryString: String = uuidToString(uuid)
+  }
+  case class UUIDOptionInOperator(uuids: Set[UUID])
+      extends UUIDOptionQueryOperator {
+    override def toQueryString: String = toInQuery(uuids.map(uuidToString))
+  }
+
+  case class UUIDNullQueryOperator() extends UUIDOptionQueryOperator {
+    override def toQueryString: String = toEqQuery(NULL)
+  }
+
+  object UUIDOptionQueryOperator extends QueryOperatorConverter[UUID] {
+    override def convertFromString(sx: String): UUID = UUID.fromString(sx)
+
+    def fromString(sx: String): Option[UUIDOptionQueryOperator] = {
+      sx.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(UUIDOptionInOperator)
+        case "null" :: Nil => Some(UUIDNullQueryOperator())
+        case head :: Nil => toValue(head).map(UUIDOptionEqOperator)
+        case _ => None
+      }
+    }
+  }
+
+  sealed trait JobStateQueryOperator extends QuertyOperator {
+    def jobStateToString(state: AnalysisJobStates.JobStates): String =
+      state.toString
+  }
+
+  case class JobStateEqOperator(state: AnalysisJobStates.JobStates)
+      extends JobStateQueryOperator {
+    override def toQueryString: String = jobStateToString(state)
+  }
+  case class JobStateInOperator(states: Set[AnalysisJobStates.JobStates])
+      extends JobStateQueryOperator {
+    override def toQueryString: String =
+      toInQuery(states.map(jobStateToString))
+  }
+
+  object JobStateQueryOperator
+      extends QueryOperatorConverter[AnalysisJobStates.JobStates] {
+    override def convertFromString(sx: String): AnalysisJobStates.JobStates =
+      AnalysisJobStates.toState(sx).getOrElse(AnalysisJobStates.UNKNOWN)
+
+    def fromString(value: String): Option[JobStateQueryOperator] = {
+      value.split(":", 2).toList match {
+        case "in" :: tail :: Nil => toSetValue(tail).map(JobStateInOperator)
+        case head :: Nil => toValue(head).map(JobStateEqOperator)
+        case _ =>
+          // Invalid or unsupported String Query Operator
+          None
+      }
+    }
+  }
 }
 
-case class DataSetSearchCriteria(
-    projectIds: Set[Int],
-    isActive: Option[Boolean] = Some(true),
-    limit: Int,
-    marker: Option[Int] = None, // offset
-    id: Option[QueryOperators.IntQueryOperator] = None,
-    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
-    path: Option[QueryOperators.StringQueryOperator] = None,
-    name: Option[QueryOperators.StringQueryOperator] = None,
-    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
-    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
-    numRecords: Option[QueryOperators.LongQueryOperator] = None,
-    totalLength: Option[QueryOperators.LongQueryOperator] = None,
-    version: Option[QueryOperators.StringQueryOperator] = None,
-    createdBy: Option[QueryOperators.StringQueryOperator] = None,
-    jobId: Option[QueryOperators.IntQueryOperator] = None,
-    projectId: Option[QueryOperators.IntQueryOperator] = None) {
+trait SearchCriteriaBase {
+  val isActive: Option[Boolean]
+  val limit: Int
+  val marker: Option[Int]
 
-  /**
-    * Get all Operators as a Map of values
-    */
-  def operators: Map[String, Option[String]] = {
-    Map(
-      "id" -> id.map(_.toQueryString),
-      "uuid" -> uuid.map(_.toQueryString),
-      "name" -> name.map(_.toQueryString),
-      "path" -> path.map(_.toQueryString),
-      "createdAt" -> createdAt.map(_.toQueryString),
-      "updatedAt" -> updatedAt.map(_.toQueryString),
-      "numRecords" -> numRecords.map(_.toQueryString),
-      "totalLength" -> totalLength.map(_.toQueryString),
-      "version" -> version.map(_.toQueryString),
-      "createdBy" -> createdBy.map(_.toQueryString),
-      "jobId" -> jobId.map(_.toQueryString),
-      "projectId" -> projectId.map(_.toQueryString)
-    )
-  }
+  def operators: Map[String, Option[String]]
 
   def toQuery: Uri.Query = {
 
@@ -1136,7 +1187,52 @@ case class DataSetSearchCriteria(
 
     Uri.Query(urlEncodedParmas)
   }
+}
 
+case class DataSetSearchCriteria(
+    projectIds: Set[Int],
+    isActive: Option[Boolean] = Some(true),
+    limit: Int,
+    marker: Option[Int] = None, // offset
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    importedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    numRecords: Option[QueryOperators.LongQueryOperator] = None,
+    totalLength: Option[QueryOperators.LongQueryOperator] = None,
+    version: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    jobId: Option[QueryOperators.IntQueryOperator] = None,
+    parentUuid: Option[QueryOperators.UUIDOptionQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None,
+    numChildren: Option[QueryOperators.IntQueryOperator] = None)
+    extends SearchCriteriaBase {
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "importedAt" -> importedAt.map(_.toQueryString),
+      "numRecords" -> numRecords.map(_.toQueryString),
+      "totalLength" -> totalLength.map(_.toQueryString),
+      "version" -> version.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "jobId" -> jobId.map(_.toQueryString),
+      "parentUuid" -> parentUuid.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString),
+      "numChildren" -> numChildren.map(_.toQueryString)
+    )
+  }
 }
 
 object DataSetSearchCriteria {
@@ -1148,6 +1244,82 @@ object DataSetSearchCriteria {
                           isActive = DEFAULT_IS_ACTIVE,
                           name = None,
                           limit = DEFAULT_MAX_DATASETS)
+}
+
+case class JobSearchCriteria(
+    projectIds: Set[Int],
+    limit: Int,
+    marker: Option[Int] = None,
+    isActive: Option[Boolean] = Some(true),
+    id: Option[QueryOperators.IntQueryOperator] = None,
+    uuid: Option[QueryOperators.UUIDQueryOperator] = None,
+    name: Option[QueryOperators.StringQueryOperator] = None,
+    comment: Option[QueryOperators.StringQueryOperator] = None,
+    createdAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    updatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    jobUpdatedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    state: Option[QueryOperators.JobStateQueryOperator] = None,
+    jobTypeId: Option[QueryOperators.StringQueryOperator] = None,
+    path: Option[QueryOperators.StringQueryOperator] = None,
+    createdBy: Option[QueryOperators.StringQueryOperator] = None,
+    createdByEmail: Option[QueryOperators.StringQueryOperator] = None,
+    smrtlinkVersion: Option[QueryOperators.StringQueryOperator] = None,
+    errorMessage: Option[QueryOperators.StringQueryOperator] = None,
+    projectId: Option[QueryOperators.IntQueryOperator] = None,
+    isMultiJob: Option[Boolean] = None,
+    parentMultiJobId: Option[QueryOperators.IntQueryOperator] = None,
+    importedAt: Option[QueryOperators.DateTimeQueryOperator] = None,
+    tags: Option[QueryOperators.StringQueryOperator] = None,
+    subJobTypeId: Option[QueryOperators.StringQueryOperator] = None)
+    extends SearchCriteriaBase {
+
+  def withProject(projectId: Int) =
+    copy(projectId = Some(QueryOperators.IntEqQueryOperator(projectId)))
+
+  /**
+    * Get all Operators as a Map of values
+    */
+  def operators: Map[String, Option[String]] = {
+    Map(
+      "id" -> id.map(_.toQueryString),
+      "uuid" -> uuid.map(_.toQueryString),
+      "name" -> name.map(_.toQueryString),
+      "comment" -> comment.map(_.toQueryString),
+      "createdAt" -> createdAt.map(_.toQueryString),
+      "updatedAt" -> updatedAt.map(_.toQueryString),
+      "jobUpdatedAt" -> jobUpdatedAt.map(_.toQueryString),
+      "state" -> state.map(_.toQueryString),
+      "jobTypeId" -> jobTypeId.map(_.toQueryString),
+      "path" -> path.map(_.toQueryString),
+      "createdBy" -> createdBy.map(_.toQueryString),
+      "createdByEmail" -> createdByEmail.map(_.toQueryString),
+      "smrtlinkVersion" -> path.map(_.toQueryString),
+      "projectId" -> projectId.map(_.toQueryString),
+//      "isMultiJob" -> isMultiJob.map(_.toQueryString), FIXME
+      "parentMultiJobId" -> parentMultiJobId.map(_.toQueryString),
+      "importedAt" -> importedAt.map(_.toQueryString),
+      "tags" -> tags.map(_.toQueryString),
+      "subJobTypeId" -> subJobTypeId.map(_.toQueryString)
+    )
+  }
+
+}
+
+object JobSearchCriteria {
+  final val DEFAULT_MAX_JOBS = 6000
+  final val DEFAULT_IS_ACTIVE: Option[Boolean] = Some(true)
+
+  def default =
+    JobSearchCriteria(Set.empty[Int],
+                      isActive = DEFAULT_IS_ACTIVE,
+                      name = None,
+                      limit = DEFAULT_MAX_JOBS)
+  // used for metrics harvesting
+  def allAnalysisJobs =
+    default.copy(
+      jobTypeId =
+        Some(QueryOperators.StringEqQueryOperator(JobTypeIds.PBSMRTPIPE.id)),
+      isActive = None)
 }
 
 // Options used for Merging Datasets

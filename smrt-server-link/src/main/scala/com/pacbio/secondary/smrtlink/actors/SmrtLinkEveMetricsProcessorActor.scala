@@ -156,10 +156,12 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     */
   def harvestAnalysisJobs(dao: JobsDao, maxConcurrent: Int)(
       implicit ec: ExecutionContext): Future[Seq[EngineJobMetrics]] = {
-    def getIds(): Future[Seq[Int]] =
+    def getIds(): Future[Seq[Int]] = {
+      val c = JobSearchCriteria.allAnalysisJobs
       dao
-        .getJobsByTypeId(JobTypeIds.PBSMRTPIPE, includeInactive = true)
+        .getJobs(c)
         .map(items => items.filter(_.state.isCompleted).map(job => job.id))
+    }
 
     def getConvertToEngineMetrics(i: Int): Future[EngineJobMetrics] =
       convertToEngineMetrics(dao, IntIdAble(i))

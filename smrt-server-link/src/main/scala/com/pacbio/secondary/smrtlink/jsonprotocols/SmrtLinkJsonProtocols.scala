@@ -1,12 +1,10 @@
 package com.pacbio.secondary.smrtlink.jsonprotocols
 
-import com.pacbio.secondary.smrtlink.models._
 import fommil.sjs.FamilyFormats
 import org.joda.time.{DateTime => JodaDateTime}
 import shapeless.cachedImplicit
 import spray.json._
 
-// This common model should not be defined here
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
   SupportedRunStates,
@@ -248,7 +246,7 @@ trait SmrtLinkJsonProtocols
   implicit val jobUpdateFormat = jsonFormat3(UpdateJobRecord)
 
   // DataSet
-  implicit val dataSetMetadataFormat = jsonFormat18(DataSetMetaDataSet)
+  implicit val dataSetMetadataFormat = jsonFormat19(DataSetMetaDataSet)
   implicit val datasetTypeFormat = jsonFormat6(ServiceDataSetMetaType)
   implicit val subreadDataSetFormat: RootJsonFormat[SubreadServiceDataSet] =
     cachedImplicit

@@ -271,15 +271,22 @@ trait PacBioDataBundleServicesCakeProvider {
   }
 
   // Load Legacy 5.0.X Bundles and warn if a non 5.0.X version is loaded
-  lazy val loaded500Bundles =
-    PacBioDataBundleIOUtils.loadBundlesFromRoot(
-      pacBioBundleRoot.resolve("5.0.0"))
+  def loadLegacy500(path: Path): Seq[PacBioDataBundleIO] = {
+    if (Files.exists(legacy500Dir)) {
+      PacBioDataBundleIOUtils.loadBundlesFromRoot(path)
+    } else {
+      logger.warn(s"UNABLE TO LOAD LEGACY 5.0.0 bundles from $path")
+      Nil
+    }
+  }
+
+  lazy val legacy500Dir = pacBioBundleRoot.resolve("5.0.0")
 
   // V2 Bundles with the system version
   lazy val bundleDao = new BundleUpdateDao(
     loadSystemBundlesByVersion(pacBioBundleRoot))
 
-  lazy val dao = new LegacyPacBioBundleDao(loaded500Bundles)
+  lazy val dao = new LegacyPacBioBundleDao(loadLegacy500(legacy500Dir))
   lazy val daoActor =
     actorSystem.actorOf(Props(new PacBioBundleDaoActor(dao, pacBioBundleRoot)))
 
@@ -333,7 +340,12 @@ trait PacBioDataBundleServerCakeProvider
   def startServices(): Future[String] =
     Http()
       .bindAndHandle(logResponseTimeRoutes(allRoutes), systemHost, systemPort)
-      .map(_ => "Successfully Started Services")
+      .map { result =>
+        logger.info(result.toString)
+        val msg = s"Successfully Started Services on $systemHost:$systemPort"
+        logger.info(msg)
+        msg
+      }
 
 }
 

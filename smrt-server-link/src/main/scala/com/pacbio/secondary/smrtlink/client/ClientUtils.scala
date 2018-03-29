@@ -45,19 +45,18 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
       |        name: ${ds.name}
       |  numRecords: ${ds.numRecords}
       | totalLength: ${ds.totalLength}
-      |       jobId: ${ds.jobId}
-      |         md5: ${ds.md5}
       |   createdAt: ${ds.createdAt}
       |   updatedAt: ${ds.updatedAt}
+      |  importedAt: ${ds.importedAt}
+      |   createdBy: ${ds.createdBy.getOrElse("")}
       |        tags: ${ds.tags}
+      |    isActive: ${ds.isActive}
+      | parent UUID: ${ds.parentUuid.getOrElse("")}
+      | numchildren: ${ds.numChildren}
+      |       jobId: ${ds.jobId}
+      |   projectId: ${ds.projectId}
       |        path: ${ds.path}
     """.stripMargin
-  }
-
-  def printDataSetInfo(ds: DataSetMetaDataSet, asJson: Boolean = false): Int = {
-    if (asJson) println(ds.toJson.prettyPrint)
-    else println(toDataSetInfoSummary(ds))
-    0
   }
 
   /**
@@ -110,14 +109,27 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     }
   }
 
-  def printJobInfo(job: EngineJob,
-                   asJson: Boolean = false,
-                   dumpJobSettings: Boolean = false): Int = {
-    println(formatJobInfo(job, asJson, dumpJobSettings))
-    0
+  protected def toJobsSummary(engineJobs: Seq[EngineJob],
+                              asJson: Boolean = false): String = {
+    if (asJson) {
+      engineJobs.toJson.prettyPrint
+    } else {
+      val table = engineJobs
+        .sortBy(_.id)
+        .reverse
+        .map(
+          job =>
+            Seq(job.id.toString,
+                job.state.toString,
+                job.name,
+                job.uuid.toString,
+                job.createdBy.getOrElse(""),
+                job.tags))
+      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy", "Tags"))
+    }
   }
 
-  def formatProjectInfo(project: FullProject): String = {
+  def toProjectSummary(project: FullProject): String =
     s"""
       |PROJECT SUMMARY:
       |  id: ${project.id}
@@ -128,12 +140,6 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
       |  datasets: ${project.datasets.size}
       |  members: ${project.members.size}
      """.stripMargin
-  }
-
-  def printProjectInfo(project: FullProject): Int = {
-    println(formatProjectInfo(project))
-    0
-  }
 
   // Create a Table as String. This should be better model with a streaming
   // solution that passes in the "printer"
@@ -155,20 +161,10 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
         .getOrElse("NO DATA FOUND")
   }
 
-  def printTable(table: Seq[Seq[String]], headers: Seq[String]): Int = {
-    println(toTable(table, headers))
-    0
-  }
-
   def formatReportAttributes(r: Report, prefix: String = ""): String = {
     (Seq(s"${prefix}${r.title}:") ++ r.attributes.map { a =>
       s"  ${prefix}${a.name} = ${a.value}"
     }).mkString("\n")
-  }
-
-  def showReportAttributes(r: Report, prefix: String = ""): Int = {
-    println(formatReportAttributes(r, prefix))
-    0
   }
 
   /**

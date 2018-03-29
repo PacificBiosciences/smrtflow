@@ -389,6 +389,7 @@ object JobModels {
     val updatedAt: JodaDateTime
     val state: AnalysisJobStates.JobStates
     val jobTypeId: String
+    val subJobTypeId: Option[String]
     val path: String
     val jsonSettings: String
     val createdBy: Option[String]
@@ -430,6 +431,8 @@ object JobModels {
     * @param importedAt      if the job was imported, this will be the timestamp of the imported at date
     * @param tags            tags of jobs. This follows the same model as the dataset. An empty string is the default and
     *                        values are comma separated.
+    * @param subJobTypeId    The Job "sub job type id". This could be used to communicate a specific job type of the "root"
+    *                        jobTypeId. For pbsmrtpipe/analysis jobs, the pipeline id is used.
     */
   case class EngineJob(id: Int,
                        uuid: UUID,
@@ -452,7 +455,8 @@ object JobModels {
                        workflow: String = "{}",
                        parentMultiJobId: Option[Int] = None,
                        importedAt: Option[JodaDateTime] = None,
-                       tags: String = "")
+                       tags: String = "",
+                       subJobTypeId: Option[String] = None)
       extends SmrtLinkJob {
 
     def toEngineCoreJob: EngineCoreJob = {
@@ -475,7 +479,8 @@ object JobModels {
         errorMessage,
         projectId,
         parentMultiJobId,
-        tags = tags
+        tags = tags,
+        subJobTypeId = subJobTypeId
       )
     }
   }
@@ -500,7 +505,8 @@ object JobModels {
                            errorMessage: Option[String] = None,
                            projectId: Int = JobConstants.GENERAL_PROJECT_ID,
                            parentMultiJobId: Option[Int] = None,
-                           tags: String = "")
+                           tags: String = "",
+                           subJobTypeId: Option[String] = None)
       extends SmrtLinkJob {}
 
   /**

@@ -32,7 +32,6 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.{
 }
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.database.{
-  DatabaseRunDaoProvider,
   DatabaseSampleDaoProvider,
   DatabaseUtils
 }
@@ -159,7 +158,7 @@ trait SmrtLinkProviders
     with RegistryServiceProvider
     with RunServiceActorRefProvider
     with SampleServiceActorRefProvider
-    with DatabaseRunDaoProvider
+    with RunDaoProvider
     with DatabaseSampleDaoProvider
     with InMemoryRegistryDaoProvider
     with DataModelParserImplProvider

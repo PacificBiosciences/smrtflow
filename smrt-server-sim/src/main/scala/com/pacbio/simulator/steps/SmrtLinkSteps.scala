@@ -37,6 +37,21 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     logger.info(sx)
     sx
   }
+  private def pollForSuccessfulJob(
+      jobId: IdAble,
+      maxTime: FiniteDuration): Future[EngineJob] = {
+    Future
+      .fromTry {
+        logger.info(s"Start to poll for Successful Job ${jobId.toIdString}")
+        smrtLinkClient.pollForSuccessfulJob(jobId, Some(maxTime))
+      }
+      .recoverWith {
+        case NonFatal(ex) =>
+          logger.error(
+            s"Failed to wait for Successful job ${jobId.toIdString}")
+          Future.failed(ex)
+      }
+  }
 
   case object GetStatus extends VarStep[Int] {
     override val name = "GetStatus"
@@ -366,22 +381,13 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
           Future.failed(ex)
       }
   }
+
   case class WaitForSuccessfulJob(jobId: Var[UUID],
                                   maxTime: Var[FiniteDuration] = Var(
                                     1800.seconds))
       extends VarStep[EngineJob] {
     override val name = "WaitForSuccessfulJob"
-    override def runWith =
-      Future
-        .fromTry {
-          logger.info(s"Start to poll for Successful Job ${jobId.get}")
-          smrtLinkClient.pollForSuccessfulJob(jobId.get, Some(maxTime.get))
-        }
-        .recoverWith {
-          case NonFatal(ex) =>
-            logger.error(s"Failed to wait for Successful job $jobId")
-            Future.failed(ex)
-        }
+    override def runWith = pollForSuccessfulJob(jobId.get, maxTime.get)
   }
 
   case class ImportFasta(path: Var[Path], dsName: Var[String])
@@ -488,7 +494,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetAnalysisJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetAnalysisJobs"
     override def runWith =
-      smrtLinkClient.getAnalysisJobs.map(j => j.sortBy(_.id))
+      smrtLinkClient.getAnalysisJobs().map(j => j.sortBy(_.id))
   }
 
   case class GetAnalysisJobsForProject(projectId: Var[Int])
@@ -501,7 +507,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetLastAnalysisJobId extends VarStep[UUID] {
     override val name = "GetLastAnalysisJobId"
     override def runWith =
-      smrtLinkClient.getAnalysisJobs.map(j => j.sortBy(_.id).last.uuid)
+      smrtLinkClient.getAnalysisJobs().map(j => j.sortBy(_.id).last.uuid)
   }
 
   case class GetJobById(jobId: Var[Int]) extends VarStep[EngineJob] {
@@ -583,7 +589,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   case object GetDatasetDeleteJobs extends VarStep[Seq[EngineJob]] {
     override val name = "GetDatasetDeleteJobs"
     override def runWith =
-      smrtLinkClient.getDatasetDeleteJobs.map(j => j.sortBy(_.id))
+      smrtLinkClient.getDatasetDeleteJobs().map(j => j.sortBy(_.id))
   }
 
   case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
@@ -652,22 +658,24 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       */
     override def runWith = {
 
-      val f1 = for {
-        miniMeta <- Future.successful(
-          DataSetFileUtils.getDataSetMiniMeta(path))
-        dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
-      } yield dataset.uuid
+      def f1 =
+        for {
+          miniMeta <- Future.successful(
+            DataSetFileUtils.getDataSetMiniMeta(path))
+          dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
+        } yield dataset.uuid
 
-      val f2 = for {
-        miniMeta <- Future.successful(
-          DataSetFileUtils.getDataSetMiniMeta(path))
-        job <- smrtLinkClient.importDataSet(path, dsMetaType)
-        successfulJob <- Future.fromTry(
-          smrtLinkClient.pollForSuccessfulJob(job.id))
-        _ <- andLog(
-          s"Completed Successful Job ${successfulJob.id} for dataset UUID: ${miniMeta.uuid}")
-        dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
-      } yield dataset.uuid
+      def f2 =
+        for {
+          miniMeta <- Future.successful(
+            DataSetFileUtils.getDataSetMiniMeta(path))
+          job <- smrtLinkClient.importDataSet(path, dsMetaType)
+          successfulJob <- Future.fromTry(
+            smrtLinkClient.pollForSuccessfulJob(job.id))
+          _ <- andLog(
+            s"Completed Successful Job ${successfulJob.id} for dataset UUID: ${miniMeta.uuid}")
+          dataset <- smrtLinkClient.getDataSet(miniMeta.uuid)
+        } yield dataset.uuid
 
       f1.recoverWith { case NonFatal(_) => f2 }
     }
@@ -680,4 +688,97 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.runDbBackUpJob(user, comment).map(_.uuid)
 
   }
+
+  /**
+    * Run a dev pipeline that will generate a variable number of children datasets,
+    * then verify the number of generated children.
+    *
+    * This will copy the original SubreadSet, then run the dev_01_ds
+    * pipeline. Then verify the children by looking up the subreadsets (by job id. This is
+    * one of the motivation for the copy)
+    *
+    * This assumes the SubreadSet has already been imported
+    * @param sset SubreadSet UUID
+    * @param numChildren Number of children to Generate
+    */
+  case class RunDevPipelineAndVerifyChildren(
+      sset: Var[UUID],
+      maxTime: FiniteDuration = 1.minute,
+      numChildren: Int = 30,
+      pipelineId: String = "pbsmrtpipe.pipelines.dev_01_ds")
+      extends VarStep[String] {
+    override val name = "RunDevPipelineAndVerifyChildren"
+
+    private def toOptions(jobName: String,
+                          dataset: UUID): PbsmrtpipeJobOptions = {
+
+      PbsmrtpipeJobOptions(
+        Some(name),
+        Some(s"Description $jobName"),
+        pipelineId,
+        Seq(
+          BoundServiceEntryPoint("eid_subread",
+                                 "PacBio.DataSet.SubreadSet",
+                                 dataset)),
+        Seq(
+          ServiceTaskIntOption("pbsmrtpipe.task_options.num_subreadsets",
+                               numChildren,
+                               INT.optionTypeId)),
+        Seq.empty[ServiceTaskOptionBase]
+      )
+    }
+
+    private def toSearch(jobId: Int): DataSetSearchCriteria = {
+      DataSetSearchCriteria.default.copy(
+        jobId = Some(QueryOperators.IntEqQueryOperator(jobId)))
+    }
+
+    private def verifyOrFail(fx: => Boolean, msg: String): Future[String] = {
+      if (fx) andLog(s"Successful. $msg")
+      else Future.failed(new Exception(s"Failed. $msg"))
+    }
+
+    override def runWith: Future[String] = {
+      for {
+        _ <- andLog(s"Attempting to copy dataset ${sset.get}")
+        createdCopyDataSetJob <- smrtLinkClient.copyDataSet(
+          sset.get,
+          Nil,
+          Some(s"$name-copied"))
+        copyDataSetJob <- pollForSuccessfulJob(createdCopyDataSetJob.id,
+                                               maxTime)
+        copiedSubreadSets <- smrtLinkClient.getSubreadSets(
+          Some(toSearch(copyDataSetJob.id)))
+        _ <- verifyOrFail(
+          copiedSubreadSets.length == 1,
+          s"Expected 1 output SubreadSet from copy Job ${copyDataSetJob.id} got ${copiedSubreadSets.length} subreadsets")
+        copiedSubread <- Future.successful(copiedSubreadSets.head)
+        _ <- andLog(
+          s"Sucessfully copied SubreadSet to id:${copiedSubread.id} uuid:${copiedSubread.uuid}")
+        createdJob <- smrtLinkClient.runAnalysisPipeline(
+          toOptions(s"$name-${UUID.randomUUID()}", copiedSubread.uuid))
+        job <- pollForSuccessfulJob(createdJob.id, maxTime)
+        _ <- andLog(s"Completed running job ${job.id}")
+        ssets <- smrtLinkClient.getSubreadSets(Some(toSearch(job.id)))
+        _ <- andLog(
+          s"Found ${ssets.length} SubreadSets output from Job ${job.id}")
+        _ <- verifyOrFail(
+          ssets.length == numChildren,
+          s"Expected to find $numChildren children. Found ${ssets.length}")
+        updatedSubreadSet <- smrtLinkClient.getSubreadSet(copiedSubread.id)
+        _ <- andLog(
+          s"Got updated SubreadSet ${updatedSubreadSet.id} with numChildren ${updatedSubreadSet.numChildren}")
+        allChildren <- smrtLinkClient.getSubreadSets(
+          Some(
+            DataSetSearchCriteria.default.copy(parentUuid =
+              Some(QueryOperators.UUIDOptionEqOperator(copiedSubread.uuid)))))
+        _ <- verifyOrFail(
+          allChildren.length == updatedSubreadSet.numChildren,
+          s"Got updated SubreadSet ${updatedSubreadSet.id} with numChildren ${updatedSubreadSet.numChildren} to be ${allChildren.length}"
+        )
+      } yield
+        s"Successfully run $pipelineId from Job ${job.id} and verified $numChildren"
+    }
+  }
+
 }

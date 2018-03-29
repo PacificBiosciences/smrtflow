@@ -209,8 +209,9 @@ class SmrtLinkServiceClient(
       Put(toUri(ROOT_DS_URI_PATH / datasetId.toIdString),
           DataSetUpdateRequest(Some(false))))
 
-  def toDataSetUrlWithQuery(ds: DataSetMetaTypes.DataSetMetaType,
-                            c: Option[DataSetSearchCriteria]): Uri = {
+  protected def toDataSetUrlWithQuery(
+      ds: DataSetMetaTypes.DataSetMetaType,
+      c: Option[DataSetSearchCriteria]): Uri = {
     val q = c.map(_.toQuery).getOrElse(Uri.Query())
     toUri(ROOT_DS_URI_PATH / ds.shortName).withQuery(q)
   }
@@ -541,27 +542,29 @@ class SmrtLinkServiceClient(
   def deleteEula(version: String): Future[MessageResponse] =
     getMessageResponse(Delete(toUri(ROOT_EULA_URI_PATH / version)))
 
-  private def toJobQuery(showAll: Boolean, projectId: Option[Int]): Uri.Query = {
-    val ms: Map[String, Option[String]] = Map(
-      "showAll" -> Some(showAll.toString),
-      "projectId" -> projectId.map(_.toString)
-    )
-
-    val params: Map[String, String] = ms
-      .map {
-        case (k, vopt) => vopt.map(v => (k, v))
+  protected def toJobUrlWithQuery(jobType: String,
+                                  c: Option[JobSearchCriteria],
+                                  projectId: Option[Int] = None): Uri = {
+    val q = c
+      .map { sc =>
+        projectId
+          .map(p => sc.withProject(p))
+          .getOrElse(sc)
+          .toQuery
       }
-      .flatten
-      .toMap
-
-    Uri.Query(params)
+      .getOrElse {
+        projectId
+          .map(p => Uri.Query("projectId" -> p.toString))
+          .getOrElse(Uri.Query())
+      }
+    toUri(jobRoot(jobType)).withQuery(q)
   }
 
   def getJobsByType(jobType: String,
-                    showAll: Boolean = false,
+                    searchCriteria: Option[JobSearchCriteria] = None,
                     projectId: Option[Int] = None): Future[Seq[EngineJob]] =
     getObject[Seq[EngineJob]](
-      Get(toUri(jobRoot(jobType)).withQuery(toJobQuery(showAll, projectId))))
+      Get(toJobUrlWithQuery(jobType, searchCriteria, projectId)))
 
   def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = {
     val q = Uri.Query("projectId" -> projectId.toString)
@@ -578,23 +581,33 @@ class SmrtLinkServiceClient(
     getObject[PacBioComponentManifest](
       Get(toUri(ROOT_SERVICE_MANIFESTS_URI_PATH / manifestId)))
 
-  def getAnalysisJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.PBSMRTPIPE.id)
+  def getAnalysisJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.PBSMRTPIPE.id, searchCriteria)
 
-  def getImportJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.IMPORT_DATASET.id)
+  def getImportJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.IMPORT_DATASET.id, searchCriteria)
 
-  def getMergeJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.MERGE_DATASETS.id)
+  def getMergeJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.MERGE_DATASETS.id, searchCriteria)
 
-  def getFastaConvertJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.CONVERT_FASTA_REFERENCE.id)
+  def getFastaConvertJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.CONVERT_FASTA_REFERENCE.id, searchCriteria)
 
-  def getBarcodeConvertJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id)
+  def getBarcodeConvertJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.CONVERT_FASTA_BARCODES.id, searchCriteria)
 
-  def getDatasetDeleteJobs: Future[Seq[EngineJob]] =
-    getJobsByType(JobTypeIds.DELETE_DATASETS.id)
+  def getDatasetDeleteJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.DELETE_DATASETS.id, searchCriteria)
+
+  def getTsSystemBundleJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.TS_SYSTEM_STATUS.id, searchCriteria)
+
+  def getTsFailedJobBundleJobs(
+      searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.TS_JOB.id, searchCriteria)
+
+  def getDbBackUpJobs(searchCriteria: Option[JobSearchCriteria] = None) =
+    getJobsByType(JobTypeIds.DB_BACKUP.id, searchCriteria)
 
   def getAnalysisJobsForProject(projectId: Int): Future[Seq[EngineJob]] =
     getJobsByType(JobTypeIds.PBSMRTPIPE.id, projectId = Some(projectId))

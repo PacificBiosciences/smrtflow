@@ -192,6 +192,8 @@
             <xs:enumeration value="FinalBuffer"/>
             <xs:enumeration value="Empty11"/>
             <xs:enumeration value="Empty12"/>
+            <xs:enumeration value="Silwet"/>
+            <xs:enumeration value="WashBuffer2"/>
         </xs:restriction>
 	</xs:simpleType>
 </xs:schema>

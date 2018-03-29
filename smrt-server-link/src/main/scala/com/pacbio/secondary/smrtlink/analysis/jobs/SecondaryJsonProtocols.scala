@@ -18,6 +18,7 @@ import com.pacbio.common.models.{
 import com.pacbio.secondary.smrtlink.models.EngineConfig
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+import shapeless.cachedImplicit
 
 import scala.util.{Failure, Success, Try}
 
@@ -361,12 +362,8 @@ trait JsonProjectSupport {
   }
 }
 
-/**
-  * Custom JSON parser to handle backward compatibility
-  *
-  * Note, only Official SL releases are supported. (e.g. 5.1.0)
-  */
-trait EngineJobJsonSupport
+// Previous Release EngineJob Data Models. See comments below regarding the cachedImplicit usage
+trait EngineJob510JsonSupport
     extends DefaultJsonProtocol
     with JodaDateTimeProtocol
     with UUIDJsonProtocol
@@ -419,18 +416,53 @@ trait EngineJobJsonSupport
       )
   }
 
-  val engineJobJsonNewestFormat = jsonFormat22(EngineJob)
   val smrtLink510engineJobJson = jsonFormat20(SmrtLink510EngineJob)
+}
+
+object EngineJob510JsonSupport extends EngineJob510JsonSupport
+
+trait EngineJobNewestJsonSupport
+    extends DefaultJsonProtocol
+    with JodaDateTimeProtocol
+    with UUIDJsonProtocol
+    with JobStatesJsonProtocol {
+
+  lazy val engineJobJsonNewestFormat: RootJsonFormat[EngineJob] =
+    cachedImplicit
+}
+
+object EngineJobNewestJsonSupport extends EngineJobNewestJsonSupport
+
+/**
+  * Custom JSON parser to handle backward compatibility
+  *
+  * Note, only Official SL releases are supported. (e.g. 5.1.0)
+  *
+  * There's some oddness to avoid a StackOverflow error with using
+  * shapeless' cachedImplicit generated from duplicated
+  * RootJsonFormat[EngineJob] implicits (?)
+  *
+  */
+trait EngineJobJsonSupport
+    extends DefaultJsonProtocol
+    with JodaDateTimeProtocol
+    with UUIDJsonProtocol
+    with JobStatesJsonProtocol {
 
   implicit object EngineJobJsonFormat extends RootJsonFormat[EngineJob] {
+
     override def read(json: JsValue): EngineJob =
-      Try(engineJobJsonNewestFormat.read(json)) match {
+      Try(EngineJobNewestJsonSupport.engineJobJsonNewestFormat.read(json)) match {
         case Success(engineJob) => engineJob
-        case Failure(_) => smrtLink510engineJobJson.read(json).toEngineJob()
+        case Failure(_) =>
+          EngineJob510JsonSupport.smrtLink510engineJobJson
+            .read(json)
+            .toEngineJob()
       }
 
     override def write(obj: EngineJob): JsValue =
-      engineJobJsonNewestFormat.write(obj)
+      EngineJobNewestJsonSupport.engineJobJsonNewestFormat.write(obj)
+
   }
 }
 

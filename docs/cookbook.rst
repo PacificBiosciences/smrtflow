@@ -19,7 +19,7 @@ following steps:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/job-types
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/job-types
 
 2. Get the corresponding job type string. The job type can be found in the "jobTypeId" field.
 
@@ -27,7 +27,7 @@ following steps:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/{jobType}/{jobID}/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/{jobType}/{jobID}/reports
 
 
 Example
@@ -49,7 +49,7 @@ To get the job type, use the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/job-types
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/job-types
 
 Look for the appropriate jobTypeId in the response.
 
@@ -57,20 +57,20 @@ A SMRT Analysis job corresponds to the ‘pbsmrtpipe’ type, so the jobTypeId w
 
 .. code-block:: bash
 
-    http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/3957/reports
+    http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports
 
 Use the GET request with this endpoint to get a list of reports produced by the job with ID = 3957.
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/3957/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports
 
 Individual reports associated with a job can be retrieved by adding the
 report ID specified in the ``uuid`` field, for example:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/3957/reports/06dd155b-eb0f-4c26-9f07-2b9a76452dd9
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports/06dd155b-eb0f-4c26-9f07-2b9a76452dd9
 
 
 How to get the SMRT Link reports for dataset by UUID
@@ -83,7 +83,7 @@ To get reports for a dataset, given the dataset UUID, perform the following step
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/dataset-types
+    GET http://SMRTLinkServername.domain:9091/smrt-link/dataset-types
 
 2. Get the corresponding dataset type string. The dataset type can be found in the "shortName" field. Dataset types are explained in `Overview of Dataset
 Service <#Overview_of_Dataset_Service>`__.
@@ -92,7 +92,7 @@ Service <#Overview_of_Dataset_Service>`__.
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/{datasetType}/{datasetUUID}/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/{datasetType}/{datasetUUID}/reports
 
 
 Example
@@ -104,20 +104,20 @@ Use the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/dataset-types
+    GET http://SMRTLinkServername.domain:9091/smrt-link/dataset-types
 
 You see that the shortName of SubreadSets is “subreads”. The desired endpoint is:
 
 .. code-block:: bash
 
-    http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
+    http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
 
 Use the GET request with this endpoint to get reports that correspond to the SubreadSet with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
 
 Once you have the UUID for an individual report, it can be downloaded using
 the datastore files service:
@@ -125,7 +125,7 @@ the ``uuid`` field
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/519817b6-4bfe-4402-a54e-c16b29eb06eb/download
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/519817b6-4bfe-4402-a54e-c16b29eb06eb/download
 
 
 How to get QC reports for a particular SMRT Link Run
@@ -157,7 +157,7 @@ Retrieve the QC reports that correspond to this Collection: Use the Collection U
 
 .. code-block::
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/{collectionUUID}/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}/reports
 
 **Note:** See `How to get the SMRT Link reports for dataset by UUID`__ for
 more details.
@@ -169,7 +169,7 @@ more details.
 
 .. code-block::
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/{reportUUID}/download
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/{reportUUID}/download
 
 1. Repeat previous steps to download all desired reports associated for that specific Collection.
 
@@ -204,14 +204,14 @@ Take a UUID of a completed Collection, such as “uniqueId”: "59230aeb-a8e3-4b
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
 
 Take a UUID of some report, such as. “uuid”: “00c310ab-e989-4978-961e-c673b9a2b027”. With this report UUID, download the corresponding report file:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
 
 Repeat the last two API calls until you download all desired reports for all complete Collections.
 
@@ -227,7 +227,7 @@ perform the following steps:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/{collectionUUID}/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}/reports
 
 **Note:** See `How to get the SMRT Link reports for dataset by UUID`__ for
 more details.
@@ -244,7 +244,7 @@ The report UUIDs can be found in the "uuid" fields.
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/{reportUUID}/download
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/{reportUUID}/download
 
 4. Repeat Steps 2 - 3 to download all desired reports of the Collection.
 
@@ -255,13 +255,13 @@ Suppose you have a complete Collection with UUID = 59230aeb-a8e3-4b46-b1b1-24c78
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
 
 Take the UUID of a desired report, such as “uuid”: “00c310ab-e989-4978-961e-c673b9a2b027”. With this report UUID, download the corresponding report file:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
 
 Repeat the last API call until you download all desired reports associated with this Collection.
 
@@ -511,7 +511,7 @@ request with the following endpoint:
 
 .. code-block::
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/{jobTypeId}
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/{jobTypeId}
 
 The payload (request body) for this POST request is a JSON whose schema depends on the job type.  To specifically create a SMRT Analysis job, you need to create a job of type “pbsmrtpipe”, with the payload as the one shown in `How to setup an SMRT Link Analysis Job for a specific Pipeline`__.  You need to provide dataset IDs in the “entryPoints” array of the above payload.
 
@@ -560,7 +560,7 @@ corresponding SubreadSet object:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/{collectionUUID}
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}
 
 Get the dataset ID from the “id” field of the response.
 
@@ -575,7 +575,7 @@ with the following endpoint:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
 
 Example
 
@@ -673,7 +673,7 @@ SubreadSet object:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b
 
 The response will be a SubreadSet object, as in the following example:
 
@@ -702,7 +702,7 @@ SubreadSet object:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
 
 
 The response will be a SubreadSet object, as in the following example:
@@ -764,7 +764,7 @@ above in the following API call:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
 
 Verify that the job was created successfully. The return HTTP status should be **201 Created**.
 
@@ -802,7 +802,7 @@ Perform the following steps:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/delete-job
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
 
 1. If the previous API call succeeded, that is, the job may be safely
    deleted, then proceed with actually deleting the job.
@@ -812,7 +812,7 @@ Perform the following steps:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/delete-job
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
 
 
 Suppose you want to delete the job with UUID = 13957a79-1bbb-44ea-83f3-6c0595bf0d42. Define the payload as in the following example, and set the “dryRun” field in it to ‘true’:
@@ -831,7 +831,7 @@ following POST request:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/delete-job
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
 
 Verify that the response status is **201: Created**.
 
@@ -866,7 +866,7 @@ Create a job of type “delete-job”, using the above payload in the following 
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/delete-job
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
 
 Verify that the response status is **201: Created**. Notice that this time the response body contains JSON corresponding to the job of type “delete-job”, as in the following example:
 
@@ -882,8 +882,8 @@ Verify that the response status is **201: Created**. Notice that this time the r
         “comment” : “Deleting job 13957a79-1bbb-44ea-83f3-6c0595bf0d42”
     }
 
-How to setup an SMRT Link Analysis Job for a specific Pipeline
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to setup a SMRT Link Analysis Job for a specific Pipeline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To create an analysis job for a specific pipeline, you need to create a job of type “pbsmrtpipe” with the payload based on the template of the desired pipeline. Perform the following steps:
 
@@ -891,7 +891,7 @@ To create an analysis job for a specific pipeline, you need to create a job of t
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/resolved-pipeline-templates
+    GET http://SMRTLinkServername.domain:9091/smrt-link/resolved-pipeline-templates
 
 1. In the response, search for the name of the specific pipeline that
    you want to set up. Once the desired template is found, note the
@@ -905,7 +905,7 @@ To create an analysis job for a specific pipeline, you need to create a job of t
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads
 
 4. Repeat step 3. for the dataset types specified in the rest of elements of “entryPoints” array.
 
@@ -948,14 +948,14 @@ Use the request body built in the previous step in the POST request with the fol
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
 
 8. You may monitor the state of the job created on step 7 with the use of the following request:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe/{jobID}/events
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/{jobID}/events
 
 Where jobID is equal to the value received in “id” element of the response on step 7.
 
@@ -969,7 +969,7 @@ First, get the list of all pipeline templates used for creating analysis jobs:
 
 .. code-block::
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/resolved-pipeline-templates
+    GET http://SMRTLinkServername.domain:9091/smrt-link/resolved-pipeline-templates
 
 
 The response will be an array of pipeline template objects. In this response, do the search for the entry with “name” : “Resequencing”. The entry may look as in the following example:
@@ -1007,14 +1007,14 @@ In particular, for the type “fileTypeId” : “PacBio.DataSet.SubreadSet”, 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/subreads
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads
 
 And for the type “fileTypeId” : “PacBio.DataSet.ReferenceSet”, get the list of “references” datasets:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/secondary-analysis/datasets/references
+    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/references
 
 From the above lists of datasets, select IDs of the datasets that you
 want to use as entry points for the Resequencing pipeline you are about
@@ -1060,11 +1060,37 @@ Use the request body built above in the following API call:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/secondary-analysis/job-manager/jobs/pbsmrtpipe
+    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
 
 
 Verify that the job was created successfully. The return HTTP status
 should be **201 Created**.
+
+
+Querying Job History
+~~~~~~~~~~~~~~~~~~~~
+
+The job service endpoints provide a number of search criteria (plus paging
+support) that can be used to limit the return results.  A full list of
+available search criteria is provided in the the JSON Swagger API definition
+for the jobs endpoint.  The following search retrieves all failed Site
+Acceptance Test (SAT) pipeline jobs:
+
+.. code-block:: bash
+
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe?state=FAILED&subJobTypeId=pbsmrtpipe.pipelines.sa3_sat
+
+For most datatypes additional operators besides equality are allowed, for example:
+
+.. code-block:: bash
+    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe?createdAt=lt%3A2018-03-01T00:00:00.000Z&createdBy=myusername
+
+
+This retrieves all pbsmrtpipe jobs run before 2018-03-01 by a user with the
+login ID "myusername".  (Note that certain searches, especially partial text
+searches using `like:`, may be significantly slower to execute and can overload
+the server if called too frequently.)
+
 
     For Research Use Only. Not for use in diagnostic procedures. ©
     Copyright 2015 - 2017, Pacific Biosciences of California, Inc. All
