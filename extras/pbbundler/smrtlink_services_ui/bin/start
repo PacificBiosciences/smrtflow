@@ -217,7 +217,6 @@ env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
 env "$client_env" \
      ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \
        --api-name SMRTLink \
-       --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile}
 
@@ -226,7 +225,6 @@ env "$client_env" \
      ${AMCLIENT} proxy-admin \
        --api-name RemoteUserStoreManagerService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
-       --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --scope admin \
        --roles Internal/PbAdmin \
        --creds-json ${WSO2_CREDS} \
@@ -236,7 +234,6 @@ env "$client_env" \
      ${AMCLIENT} proxy-admin \
        --api-name ReadOnlyRemoteUserStoreService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
-       --app-config ${TOMCAT_DIR}/webapps/ROOT/sl/app-config.json \
        --scope userinfo \
        --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician \
        --creds-json ${WSO2_CREDS} \

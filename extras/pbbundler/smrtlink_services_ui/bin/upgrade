@@ -14,8 +14,6 @@ legacyConfig=${rootBundleDir}/migration-config.json
 migrationState=${rootBundleDir}/legacy-migration.json
 userRoles=${rootBundleDir}/user-roles.json
 adminCreds=${rootBundleDir}/wso2-credentials.json
-# for the wso2 consumer key/secret
-appConfig=${rootBundleDir}/tomcat_current/webapps/ROOT/sl/app-config.json
 newWso2=${rootBundleDir}/wso2am-2.0.0
 wso2Templates=${rootBundleDir}/templates/templates-wso2
 
