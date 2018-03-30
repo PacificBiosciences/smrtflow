@@ -1,6 +1,11 @@
 package com.pacbio.secondary.smrtlink.client
 
 object Wso2Models {
+  object Wso2Constants {
+    val CONSUMER_KEY = "KMLz5g7fbmx8RVFKKdu0NOrJic4a"
+    val CONSUMER_SECRET = "6NjRXBcFfLZOwHc0Xlidiz4ywcsa"
+  }
+
   // misc WSO2 models not included in the API manager store or publisher APIs
   case class ClientRegistrationRequest(callbackUrl: String,
                                        clientName: String,

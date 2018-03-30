@@ -15,8 +15,6 @@ import akka.stream.scaladsl.Flow
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
 
 trait SecureClientBase {
-  protected val CONSUMER_KEY = "KMLz5g7fbmx8RVFKKdu0NOrJic4a"
-  protected val CONSUMER_SECRET = "6NjRXBcFfLZOwHc0Xlidiz4ywcsa"
 
   implicit val actorSystem: ActorSystem
 

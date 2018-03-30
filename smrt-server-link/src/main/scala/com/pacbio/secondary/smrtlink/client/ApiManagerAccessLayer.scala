@@ -141,7 +141,7 @@ class ApiManagerAccessLayer(
   }
 
   def login(scopes: Set[String]): Future[OauthToken] =
-    login(CONSUMER_KEY, CONSUMER_SECRET, scopes)
+    login(Wso2Constants.CONSUMER_KEY, Wso2Constants.CONSUMER_SECRET, scopes)
 
   /**
     * Mechanism to see if wso2 has "completely" started up
