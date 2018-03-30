@@ -576,7 +576,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   }
 
   case class DeleteDataSets(dsType: Var[DataSetMetaType],
-                            ids: Var[Seq[Int]],
+                            ids: Var[Seq[IdAble]],
                             removeFiles: Var[Boolean] = Var(true))
       extends VarStep[UUID] {
     override val name = "DeleteDataSets"

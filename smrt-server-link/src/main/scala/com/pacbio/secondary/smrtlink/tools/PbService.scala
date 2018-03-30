@@ -14,11 +14,13 @@ import scala.language.postfixOps
 import scala.math._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Properties, Success, Try}
+
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 import spray.json._
+
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ResourceNotFoundError,
@@ -149,7 +151,9 @@ object PbServiceParser extends CommandLineToolVersion {
       searchSubJobType: Option[String] = None,
       force: Boolean = false,
       reserved: Boolean = false,
-      user: String = System.getProperty("user.name"),
+      user: String = Properties
+        .envOrNone("PB_SERVICE_AUTH_USER")
+        .getOrElse(System.getProperty("user.name")),
       password: Option[String] =
         Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
       usePassword: Boolean = false,
@@ -933,17 +937,16 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   private def importFasta(path: Path,
                           dsType: FileTypes.DataSetBaseType,
-                          runJob: => Future[EngineJob],
+                          runJob: (Option[Int]) => Future[EngineJob],
                           projectName: Option[String],
                           barcodeMode: Boolean = false): Future[String] = {
     for {
       projectId <- getProjectIdByName(projectName)
       contigs <- Future.successful(
         PacBioFastaValidator.validate(path, barcodeMode))
-      job <- runJob
+      job <- runJob(projectId)
       successfulJob <- engineDriver(job, Some(maxTime))
       dataset <- getDataSetResult(job.id, dsType)
-      _ <- addDataSetToProject(dataset.uuid, projectId)
     } yield toDataSetInfoSummary(dataset)
   }
 
@@ -952,13 +955,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                      organism: Option[String],
                      ploidy: Option[String],
                      projectName: Option[String] = None): Future[String] = {
-    importFasta(path,
-                FileTypes.DS_REFERENCE,
-                sal.importFasta(path,
-                                name,
-                                organism.getOrElse("unknown"),
-                                ploidy.getOrElse("unknown")),
-                projectName)
+    importFasta(
+      path,
+      FileTypes.DS_REFERENCE,
+      (projectId) =>
+        sal.importFasta(path,
+                        name,
+                        organism.getOrElse("unknown"),
+                        ploidy.getOrElse("unknown"),
+                        projectId = projectId),
+      projectName
+    )
   }
 
   def runImportBarcodes(path: Path,
@@ -966,7 +973,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                         projectName: Option[String] = None): Future[String] =
     importFasta(path,
                 FileTypes.DS_BARCODE,
-                sal.importFastaBarcodes(path, name),
+                (projectId) => sal.importFastaBarcodes(path, name, projectId),
                 projectName,
                 barcodeMode = true)
 
@@ -976,13 +983,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       organism: Option[String],
       ploidy: Option[String],
       projectName: Option[String] = None): Future[String] = {
-    importFasta(path,
-                FileTypes.DS_GMAP_REF,
-                sal.importFastaGmap(path,
-                                    name,
-                                    organism.getOrElse("unknown"),
-                                    ploidy.getOrElse("unknown")),
-                projectName)
+    importFasta(
+      path,
+      FileTypes.DS_GMAP_REF,
+      (projectId) =>
+        sal.importFastaGmap(path,
+                            name,
+                            organism.getOrElse("unknown"),
+                            ploidy.getOrElse("unknown"),
+                            projectId = projectId),
+      projectName
+    )
   }
 
   /**
@@ -1061,11 +1072,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       projectName: Option[String]): Future[String] = {
     for {
       projectId <- getProjectIdByName(projectName)
-      job <- sal.importDataSet(path, metatype)
+      job <- sal.importDataSet(path, metatype, projectId)
       completedJob <- engineDriver(job, maxTimeOut)
       summary <- jobSummaryOrFailure(completedJob, asJson)
-      dataset <- getDataSetResult(job.id, metatype.fileType)
-      _ <- addDataSetToProject(dataset.uuid, projectId)
     } yield summary
   }
 
@@ -1109,10 +1118,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def orCreate =
       for {
         projectId <- getProjectIdByName(projectName)
-        job <- sal.importDataSet(path, metatype)
+        job <- sal.importDataSet(path, metatype, projectId)
         completedJob <- engineDriver(job, maxTimeOut)
-        dataset <- getDataSetResult(job.id, metatype.fileType)
-        _ <- addDataSetToProject(dataset.uuid, projectId)
       } yield completedJob
 
     // This should have a tighter exception case
@@ -1384,8 +1391,9 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   }
 
   private def convertRsMovie(path: Path,
-                             name: Option[String]): Future[EngineJob] =
-    sal.convertRsMovie(path, name.getOrElse(dsNameFromRsMetadata(path)))
+                             name: Option[String],
+                             projectId: Option[Int]): Future[EngineJob] =
+    sal.convertRsMovie(path, name.getOrElse(dsNameFromRsMetadata(path)), None)
 
   protected def runImportRsMovie(
       path: Path,
@@ -1395,7 +1403,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       projectName: Option[String]): Future[String] = {
     for {
       projectId <- getProjectIdByName(projectName)
-      job <- convertRsMovie(path, name)
+      job <- convertRsMovie(path, name, projectId)
       job <- maxTimeOut
         .map(t => engineDriver(job, Some(t)))
         .getOrElse(Future.successful(job))
@@ -1404,9 +1412,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           getDataSetResult(job.uuid, FileTypes.DS_HDF_SUBREADS)
             .map(ds => Some(ds))
         }
-        .getOrElse(Future.successful(None))
-      _ <- dsFile
-        .map(ds => addDataSetToProject(ds.uuid, projectId))
         .getOrElse(Future.successful(None))
     } yield importSummary(job, dsFile, asJson)
   }
@@ -1434,42 +1439,27 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def doImportOne(p: Path) =
       runImportRsMovie(p, name, asJson, maxTimeOut, projectName)
 
-    def doImportMany(files: Seq[File]) = {
+    def doImportMany(files: Seq[File], projectId: Option[Int]) = {
       if (name.getOrElse("").isEmpty) {
         Future.failed(
           new RuntimeException(
             "--name option not allowed when path is a directory"))
       } else {
         runMultiImportXml(files,
-                          (p) => convertRsMovie(p, None),
+                          (p) => convertRsMovie(p, None, projectId),
                           maxTimeOut,
                           numMaxConcurrentImport)
       }
     }
 
     for {
+      projectId <- getProjectIdByName(projectName)
       msg <- execImportXml(path,
                            listMovieMetadataFiles,
                            isMovieMetadataFile,
                            doImportOne,
-                           doImportMany)
+                           (f) => doImportMany(f, projectId))
     } yield msg
-  }
-
-  protected def addDataSetToProject(
-      dsId: IdAble,
-      projectId: Int,
-      verbose: Boolean = false): Future[String] = {
-    if (projectId == 0) return Future.successful("Using general project ID")
-    for {
-      project <- sal.getProject(projectId)
-      ds <- sal.getDataSet(dsId)
-      request <- Future.successful(project.asRequest.appendDataSet(ds.id))
-      projectWithDs <- sal.updateProject(projectId, request)
-      _ <- Future.successful {
-        if (verbose) println(toProjectSummary(projectWithDs))
-      }
-    } yield s"Added dataset to project ${projectWithDs.name}"
   }
 
   def runDeleteDataSet(datasetId: IdAble): Future[String] = {
@@ -1478,7 +1468,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .map(response => response.message)
   }
 
-  protected def getProjectIdByName(projectName: Option[String]): Future[Int] = {
+  protected def getProjectIdByName(
+      projectName: Option[String]): Future[Option[Int]] = {
     projectName
       .map { name =>
         for {
@@ -1488,7 +1479,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           projectId <- projectsById
             .get(name)
             .map { id =>
-              Future.successful(id)
+              Future.successful(Some(id))
             }
             .getOrElse {
               Future.failed(
@@ -1496,7 +1487,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
             }
         } yield projectId
       }
-      .getOrElse(Future.successful(0))
+      .getOrElse(Future.successful(None))
   }
 
   def runCreateProject(name: String,
@@ -1972,10 +1963,14 @@ object PbService extends ClientAppUtils with LazyLogging {
     implicit val actorSystem = ActorSystem("pbservice")
 
     def toClient = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
-    def toAuthClient(t: String) =
+    def toAuthClient(t: String) = {
+      logger.info("Will route through WSO2 with user-supplied auth token")
       new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
-    def toAuthClientLogin(u: String, p: String) =
+    }
+    def toAuthClientLogin(u: String, p: String) = {
+      logger.info("Will authenticate with WSO2")
       AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
+    }
     try {
       val sal = c.authToken match {
         case Some(t) => toAuthClient(t)
