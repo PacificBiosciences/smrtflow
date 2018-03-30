@@ -74,6 +74,7 @@ object Modes {
   case object DATASETS extends Mode { val name = "get-datasets" }
   case object DELETE_DATASET extends Mode { val name = "delete-dataset" }
   case object CREATE_PROJECT extends Mode { val name = "create-project" }
+  case object GET_PROJECTS extends Mode { val name = "get-projects" }
   case object MANIFESTS extends Mode { val name = "get-manifests" }
   case object MANIFEST extends Mode { val name = "get-manifest" }
   case object BUNDLES extends Mode { val name = "get-bundles" }
@@ -606,7 +607,13 @@ object PbServiceParser extends CommandLineToolVersion {
       arg[String]("description") required () action { (d, c) =>
         c.copy(description = d)
       } text "Project description"
-    ) text "Start a new project"
+    ) text "Start a new project (requires authentication)"
+
+    cmd(Modes.GET_PROJECTS.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.GET_PROJECTS)
+      }
+      .text("Show a list of available projects (requires authentication)")
 
     note("\nTECH SUPPORT SYSTEM STATUS REQUEST\n")
     cmd(Modes.TS_STATUS.name) action { (_, c) =>
@@ -1498,6 +1505,15 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .map(project => toProjectSummary(project))
   }
 
+  def runGetProjects: Future[String] =
+    sal.getProjects
+      .flatMap { projects =>
+        Future.sequence(projects.map(p => sal.getProject(p.id)))
+      }
+      .map { projects =>
+        projects.map(toProjectSummary).mkString("\n")
+      }
+
   /**
     * Emit a template/example JSON file to supply to run-pipeline
     *
@@ -2052,6 +2068,7 @@ object PbService extends ClientAppUtils with LazyLogging {
         case Modes.ALARMS => ps.runGetAlarms
         case Modes.CREATE_PROJECT =>
           ps.runCreateProject(c.getName, c.description, Some(c.user))
+        case Modes.GET_PROJECTS => ps.runGetProjects
         case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
         case x =>
           Future.failed(new RuntimeException(s"Unsupported action '$x'"))
