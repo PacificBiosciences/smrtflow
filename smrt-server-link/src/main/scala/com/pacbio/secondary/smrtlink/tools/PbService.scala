@@ -1962,7 +1962,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 object PbService extends ClientAppUtils with LazyLogging {
   import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
 
-  protected def getPass = "foo"
+  protected def getPass: String = {
+    val standardIn = System.console()
+    print("Password: ")
+    standardIn.readPassword().mkString("")
+  }
 
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
@@ -1971,26 +1975,19 @@ object PbService extends ClientAppUtils with LazyLogging {
     def toAuthClient(t: String) =
       new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
     def toAuthClientLogin(u: String, p: String) =
-      Try {
-        AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
-      } match {
-        case Success(s) => s
-        case Failure(err) =>
-          System.err.println(s"${err.getMessage}")
-          System.err.println("Will fall back on unauthenticated client")
-          toClient
-      }
-    val sal = c.authToken match {
-      case Some(t) => toAuthClient(t)
-      case None =>
-        c.password match {
-          case Some(password) => toAuthClientLogin(c.user, password)
-          case None =>
-            if (c.usePassword) toAuthClientLogin(c.user, getPass) else toClient
-        }
-    }
-    val ps = new PbService(sal, c.maxTime)
+      AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
     try {
+      val sal = c.authToken match {
+        case Some(t) => toAuthClient(t)
+        case None =>
+          c.password match {
+            case Some(password) => toAuthClientLogin(c.user, password)
+            case None =>
+              if (c.usePassword) toAuthClientLogin(c.user, getPass)
+              else toClient
+          }
+      }
+      val ps = new PbService(sal, c.maxTime)
       val fx: Future[String] = c.mode match {
         case Modes.STATUS => ps.exeStatus(c.asJson)
         case Modes.IMPORT_DS =>
