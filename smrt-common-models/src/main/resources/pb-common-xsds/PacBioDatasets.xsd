@@ -57,7 +57,7 @@
 	</xs:element>
 	<xs:element name="Contigs">
 		<xs:annotation>
-			<xs:documentation>List of contigs in a ContigSet</xs:documentation>
+			<xs:documentation>DEPRECATED List of contigs in a ContigSet; optional and will be removed in the future</xs:documentation>
 		</xs:annotation>
 		<xs:complexType>
 			<xs:complexContent>
@@ -199,7 +199,7 @@
 				<xs:sequence>
 					<xs:element name="Organism" type="xs:string" minOccurs="0"/>
 					<xs:element name="Ploidy" type="xs:string" minOccurs="0"/>
-					<xs:element ref="Contigs"/>
+					<xs:element ref="Contigs" minOccurs="0"/>
 				</xs:sequence>
 			</xs:extension>
 		</xs:complexContent>
