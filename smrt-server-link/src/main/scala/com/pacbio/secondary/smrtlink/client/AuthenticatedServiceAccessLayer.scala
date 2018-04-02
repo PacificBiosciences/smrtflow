@@ -63,18 +63,18 @@ object AuthenticatedServiceAccessLayer {
                                  "openid",
                                  "userinfo")
 
-  def apply(host: String, port: Int, user: String, password: String)(
-      implicit actorSystem: ActorSystem): AuthenticatedServiceAccessLayer = {
+  def getClient(host: String, port: Int, user: String, password: String)(
+      implicit actorSystem: ActorSystem)
+    : Future[AuthenticatedServiceAccessLayer] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
     val wso2Client =
       new ApiManagerAccessLayer(host, user = user, password = password)(
         actorSystem)
-    val fx = wso2Client.login(clientScopes)
-    Try { Await.result(fx, 30.seconds) } match {
-      case Success(auth) =>
+    wso2Client
+      .login(clientScopes)
+      .map { auth =>
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
-      case Failure(err) =>
-        throw new RuntimeException(s"Can't authenticate: $err")
-    }
+      }
   }
 }

@@ -83,8 +83,6 @@ class ApiManagerAccessLayer(
       .via(adminPipeHttp)
       .runWith(Sink.head)
 
-  def toUrl(segment: String): String = segment
-
   /**
     * If we can connect to publisher at :9443/publisher on https, then
     * this is assumed to be "Successful" status
@@ -268,7 +266,7 @@ class ApiManagerAccessLayer(
   def searchApis(name: String,
                  token: OauthToken): Future[publisher.models.APIList] = {
     val request = (
-      Get(toUrl(s"/api/am/publisher/v0.10/apis?query=${name}"))
+      Get(s"/api/am/publisher/v0.10/apis?query=${name}")
         ~> addHeader("Authorization", s"Bearer ${token.access_token}")
     )
 
