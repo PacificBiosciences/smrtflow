@@ -147,6 +147,7 @@ object PbServiceParser extends CommandLineToolVersion {
       authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
       manifestId: String = "smrtlink",
       showReports: Boolean = false,
+      showFiles: Boolean = false,
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
       searchSubJobType: Option[String] = None,
@@ -510,7 +511,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Print JSON settings for job, suitable for input to 'pbservice run-analysis'",
       opt[Unit]("show-reports") action { (_, c) =>
         c.copy(showReports = true)
-      } text "Display job report attributes"
+      } text "Display job report attributes",
+      opt[Unit]("show-files") action { (_, c) =>
+        c.copy(showFiles = true)
+      } text "Display job output files from pbsmrtpipe datastore"
     ) text "Show job details"
 
     note("\nGET SMRTLINK JOB LIST\n")
@@ -887,7 +891,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runGetJobInfo(jobId: IdAble,
                     asJson: Boolean = false,
                     dumpJobSettings: Boolean = false,
-                    showReports: Boolean = false): Future[String] = {
+                    showReports: Boolean = false,
+                    showFiles: Boolean = false): Future[String] = {
     for {
       job <- sal.getJob(jobId)
       jobInfo <- Future.successful(formatJobInfo(job, asJson, dumpJobSettings))
@@ -903,7 +908,16 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       reportInfo <- Future.successful {
         reports.map(r => formatReportAttributes(r)).mkString("\n")
       }
-    } yield jobInfo + reportInfo
+      datastore <- {
+        if (showFiles) sal.getJobDataStore(jobId).map(ds => Some(ds))
+        else Future.successful(None)
+      }
+      fileInfo <- Future.successful {
+        datastore
+          .map(ds => formatDataStoreFiles(ds, Some(Paths.get(job.path))))
+          .getOrElse("")
+      }
+    } yield jobInfo + reportInfo + fileInfo
   }
 
   def runGetJobs(maxItems: Int,
@@ -2050,7 +2064,8 @@ object PbService extends ClientAppUtils with LazyLogging {
             ps.runGetJobInfo(c.jobId,
                              c.asJson,
                              c.dumpJobSettings,
-                             c.showReports)
+                             c.showReports,
+                             c.showFiles)
           case Modes.JOBS =>
             ps.runGetJobs(c.maxItems,
                           c.asJson,
