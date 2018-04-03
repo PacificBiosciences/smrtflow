@@ -17,7 +17,7 @@ import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure
 }
-import com.pacbio.secondary.smrtlink.client.Wso2Models.Wso2Constants
+import com.pacbio.secondary.smrtlink.client.Wso2Models
 import com.pacbio.secondary.smrtlink.models.ConfigModels.{
   RootSmrtflowConfig,
   Wso2Credentials
@@ -286,8 +286,8 @@ object ApplyConfigUtils extends LazyLogging {
 
     val nx = JsObject(
       "enableCellReuse" -> JsBoolean(enableCellReuse),
-      "consumerKey" -> JsString(Wso2Constants.CONSUMER_KEY),
-      "consumerSecret" -> JsString(Wso2Constants.CONSUMER_SECRET)
+      "consumerKey" -> JsString(Wso2Models.defaultClient.clientId),
+      "consumerSecret" -> JsString(Wso2Models.defaultClient.clientSecret)
     )
 
     val total = new JsObject(jx.asJsObject.fields ++ nx.fields)

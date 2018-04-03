@@ -16,7 +16,8 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{
   ApiManagerAccessLayer,
   ApiManagerJsonProtocols,
-  Retrying
+  Retrying,
+  Wso2Models
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
@@ -421,6 +422,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
   def createOrUpdateApi(
       conf: AmClientParser.AmClientOptions,
+      clientReg: ClientRegistrationResponse,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None)
     : Future[String] = {
 
@@ -444,9 +446,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
     for {
       _ <- andLog("Starting to Create or Update API")
-      token <- am.login(Wso2Constants.CONSUMER_KEY,
-                        Wso2Constants.CONSUMER_SECRET,
-                        scopes)
+      token <- am.login(clientReg.clientId, clientReg.clientSecret, scopes)
       apiList <- am.searchApis(conf.apiName, token)
       msg <- toOrCreate(token, apiList)
       _ <- andLog(msg)
@@ -455,10 +455,11 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
   def createOrUpdateApiWithRetry(
       c: AmClientParser.AmClientOptions,
+      clientReg: ClientRegistrationResponse,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None) =
-    retry(createOrUpdateApi(c, endpointSecurity), c.retryDelay, c.maxRetries)(
-      actorSystem.dispatcher,
-      actorSystem.scheduler)
+    retry(createOrUpdateApi(c, clientReg, endpointSecurity),
+          c.retryDelay,
+          c.maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
 
   def setSwagger(details: publisher.models.API,
                  swaggerOpt: Option[String]): publisher.models.API =
@@ -488,7 +489,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
 
-  def proxyAdmin(conf: AmClientParser.AmClientOptions): Future[String] = {
+  def proxyAdmin(conf: AmClientParser.AmClientOptions,
+                 clientReg: ClientRegistrationResponse): Future[String] = {
     // API manager uses a generic swagger definition for SOAP endpoints
     val soapSwagger = s"""
 {
@@ -557,7 +559,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
       Some(conf.user),
       Some(conf.pass))
 
-    createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
+    createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)),
+                      clientReg,
+                      Some(security))
   }
 
   private def writeRoles(jx: JsObject, output: Path): Path = {
@@ -600,6 +604,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 object AmClient extends LazyLogging {
 
   def apply(conf: AmClientParser.AmClientOptions): Int = {
+    import Wso2Models.defaultClient
+
     implicit val actorSystem = ActorSystem("amclient")
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
@@ -640,9 +646,9 @@ object AmClient extends LazyLogging {
         case AmClientModes.SET_ROLES_USERS =>
           amClient.setRoles(c)
         case AmClientModes.SET_API =>
-          amClient.createOrUpdateApiWithRetry(c)
+          amClient.createOrUpdateApiWithRetry(c, defaultClient)
         case AmClientModes.PROXY_ADMIN =>
-          amClient.proxyAdmin(c)
+          amClient.proxyAdmin(c, defaultClient)
         case x =>
           Future.failed(new Exception(s"Unsupported action '$x'"))
       }
