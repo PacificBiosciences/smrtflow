@@ -24,10 +24,10 @@ class BioFastaSpec extends Specification {
     val result = PacBioFastaValidator(Paths.get(x.toURI))
     result match {
       case Left(ex) =>
-        println(s"Fasta $name Validation Result $ex")
+        //println(s"Fasta $name Validation Result $ex")
         Some(ex)
       case Right(_) =>
-        println(s"Fasta $name is valid")
+        //println(s"Fasta $name is valid")
         None
     }
   }
@@ -130,6 +130,10 @@ class BioFastaSpec extends Specification {
     }
     "Bad: empty file" in {
       val name = "pacbio-fasta-spec-files/bad-empty_file.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
+    }
+    "Bad: first line blank" in {
+      val name = "pacbio-fasta-spec-files/bad-blank_first_line.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
     "Good: simple example" in {
