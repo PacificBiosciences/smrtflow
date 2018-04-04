@@ -109,6 +109,28 @@ The `get-jobs` subcommand allows searching for jobs by type, name (full or
 partial), job state, and/or pbsmrtpipe pipeline (if relevant).
 
 
+Authentication
+^^^^^^^^^^^^^^
+
+Use of pbservice to access a remote SMRT Link server (not running on localhost)
+requires user authentication over HTTPS; this is also required for some API
+calls that only work with authentication (projects are the most important such
+feature).  There are several ways to specify authentication credentials:
+
+1) Add `--ask-pass` to the command-line arguments, and pbservice will prompt
+   for a password.  This is recommended for interactive use since the password
+   stays private.  If your Unix login ID is different from the user ID you
+   wish to log in to SMRT Link with, you also need to add `--user <username>`.
+2) Add `--user <username> --password <password>` to the command line
+   arguments.  **Because this will display the password in shell history and/or
+   log files, you should never do this with a full Unix account.**  Users that
+   need this form (e.g. for scripting) should obtain SMRT Link login
+   credentials that do not provide access to any other systems.
+3) Set the environment variables `PB_SERVICE_AUTH_USER` and
+   `PB_SERVICE_AUTH_PASSWORD`.  Again, this should never be done with a Unix
+   account, only a limited SMRT Link-specific account.
+
+
 For further options, please use `pbservice --help` for more functionality.
 
 
