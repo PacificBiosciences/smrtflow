@@ -1332,7 +1332,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       filterFile: Path => Boolean,
       doImportOne: Path => Future[String],
       doImportMany: Seq[File] => Future[String]): Future[String] = {
-    if (path.toAbsolutePath.toFile.isDirectory) {
+    val absPath = path.toAbsolutePath
+    if (absPath.toFile.isDirectory) {
 
       val files: Seq[File] =
         if (path.toFile.isDirectory) listFiles(path.toFile).toSeq
@@ -1342,19 +1343,18 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         s"Found ${files.length} PacBio XML files from root dir $path")
 
       doImportMany(files)
-    } else if (path.toAbsolutePath.toFile.isFile && path.toAbsolutePath
-                 .endsWith(".fofn")) {
+    } else if (absPath.toFile.isFile && absPath.toString.endsWith(".fofn")) {
 
       logger.debug(s"Detected file of file names (FOFN) mode from $path")
 
       val files = Utils
-        .fofnToFiles(path.toAbsolutePath)
+        .fofnToFiles(absPath)
         .filter(filterFile)
         .map(_.toFile)
 
       doImportMany(files)
     } else {
-      doImportOne(path.toAbsolutePath)
+      doImportOne(absPath)
     }
   }
 
