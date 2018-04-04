@@ -14,11 +14,13 @@ import scala.language.postfixOps
 import scala.math._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Properties, Success, Try}
+
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 import spray.json._
+
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ResourceNotFoundError,
@@ -72,6 +74,7 @@ object Modes {
   case object DATASETS extends Mode { val name = "get-datasets" }
   case object DELETE_DATASET extends Mode { val name = "delete-dataset" }
   case object CREATE_PROJECT extends Mode { val name = "create-project" }
+  case object GET_PROJECTS extends Mode { val name = "get-projects" }
   case object MANIFESTS extends Mode { val name = "get-manifests" }
   case object MANIFEST extends Mode { val name = "get-manifest" }
   case object BUNDLES extends Mode { val name = "get-bundles" }
@@ -144,12 +147,15 @@ object PbServiceParser extends CommandLineToolVersion {
       authToken: Option[String] = Properties.envOrNone("PB_SERVICE_AUTH_TOKEN"),
       manifestId: String = "smrtlink",
       showReports: Boolean = false,
+      showFiles: Boolean = false,
       searchName: Option[String] = None,
       searchPath: Option[String] = None,
       searchSubJobType: Option[String] = None,
       force: Boolean = false,
       reserved: Boolean = false,
-      user: String = System.getProperty("user.name"),
+      user: String = Properties
+        .envOrNone("PB_SERVICE_AUTH_USER")
+        .getOrElse(System.getProperty("user.name")),
       password: Option[String] =
         Properties.envOrNone("PB_SERVICE_AUTH_PASSWORD"),
       usePassword: Boolean = false,
@@ -220,15 +226,15 @@ object PbServiceParser extends CommandLineToolVersion {
 
     opt[String]('u', "user") action { (u, c) =>
       c.copy(user = u)
-    } text "User ID (requires password if used for authentication)"
+    } text "User ID (requires password if used for authentication); defaults to the value of PB_SERVICE_AUTH_USER if set, otherwise the Unix user account name"
 
-    /*opt[String]("password") action { (p, c) =>
+    opt[String]("password") action { (p, c) =>
       c.copy(password = Some(p))
-    } text "Authentication password"
+    } text "Authentication password; defaults to the value of env var PB_SERVICE_AUTH_PASSWORD if set"
 
     opt[Unit]('p', "ask-pass") action { (_, c) =>
       c.copy(usePassword = true)
-    } text "Prompt for authentication password"*/
+    } text "Prompt for authentication password"
 
     opt[String]('t', "token") action { (t, c) =>
       c.copy(authToken = Some(getToken(t)))
@@ -505,7 +511,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Print JSON settings for job, suitable for input to 'pbservice run-analysis'",
       opt[Unit]("show-reports") action { (_, c) =>
         c.copy(showReports = true)
-      } text "Display job report attributes"
+      } text "Display job report attributes",
+      opt[Unit]("show-files") action { (_, c) =>
+        c.copy(showFiles = true)
+      } text "Display job output files from pbsmrtpipe datastore"
     ) text "Show job details"
 
     note("\nGET SMRTLINK JOB LIST\n")
@@ -602,7 +611,13 @@ object PbServiceParser extends CommandLineToolVersion {
       arg[String]("description") required () action { (d, c) =>
         c.copy(description = d)
       } text "Project description"
-    ) text "Start a new project"
+    ) text "Start a new project (requires authentication)"
+
+    cmd(Modes.GET_PROJECTS.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.GET_PROJECTS)
+      }
+      .text("Show a list of available projects (requires authentication)")
 
     note("\nTECH SUPPORT SYSTEM STATUS REQUEST\n")
     cmd(Modes.TS_STATUS.name) action { (_, c) =>
@@ -876,7 +891,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   def runGetJobInfo(jobId: IdAble,
                     asJson: Boolean = false,
                     dumpJobSettings: Boolean = false,
-                    showReports: Boolean = false): Future[String] = {
+                    showReports: Boolean = false,
+                    showFiles: Boolean = false): Future[String] = {
     for {
       job <- sal.getJob(jobId)
       jobInfo <- Future.successful(formatJobInfo(job, asJson, dumpJobSettings))
@@ -892,7 +908,16 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       reportInfo <- Future.successful {
         reports.map(r => formatReportAttributes(r)).mkString("\n")
       }
-    } yield jobInfo + reportInfo
+      datastore <- {
+        if (showFiles) sal.getJobDataStore(jobId).map(ds => Some(ds))
+        else Future.successful(None)
+      }
+      fileInfo <- Future.successful {
+        datastore
+          .map(ds => formatDataStoreFiles(ds, Some(Paths.get(job.path))))
+          .getOrElse("")
+      }
+    } yield jobInfo + reportInfo + fileInfo
   }
 
   def runGetJobs(maxItems: Int,
@@ -933,20 +958,16 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   private def importFasta(path: Path,
                           dsType: FileTypes.DataSetBaseType,
-                          runJob: => Future[EngineJob],
+                          runJob: (Option[Int]) => Future[EngineJob],
                           projectName: Option[String],
                           barcodeMode: Boolean = false): Future[String] = {
     for {
       projectId <- getProjectIdByName(projectName)
       contigs <- Future.successful(
         PacBioFastaValidator.validate(path, barcodeMode))
-      job <- runJob
+      job <- runJob(projectId)
       successfulJob <- engineDriver(job, Some(maxTime))
       dataset <- getDataSetResult(job.id, dsType)
-      _ <- {
-        if (projectId > 0) addDataSetToProject(dataset.uuid, projectId)
-        else Future.successful("Using general project ID")
-      }
     } yield toDataSetInfoSummary(dataset)
   }
 
@@ -955,13 +976,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                      organism: Option[String],
                      ploidy: Option[String],
                      projectName: Option[String] = None): Future[String] = {
-    importFasta(path,
-                FileTypes.DS_REFERENCE,
-                sal.importFasta(path,
-                                name,
-                                organism.getOrElse("unknown"),
-                                ploidy.getOrElse("unknown")),
-                projectName)
+    importFasta(
+      path,
+      FileTypes.DS_REFERENCE,
+      (projectId) =>
+        sal.importFasta(path,
+                        name,
+                        organism.getOrElse("unknown"),
+                        ploidy.getOrElse("unknown"),
+                        projectId = projectId),
+      projectName
+    )
   }
 
   def runImportBarcodes(path: Path,
@@ -969,7 +994,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                         projectName: Option[String] = None): Future[String] =
     importFasta(path,
                 FileTypes.DS_BARCODE,
-                sal.importFastaBarcodes(path, name),
+                (projectId) => sal.importFastaBarcodes(path, name, projectId),
                 projectName,
                 barcodeMode = true)
 
@@ -979,13 +1004,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       organism: Option[String],
       ploidy: Option[String],
       projectName: Option[String] = None): Future[String] = {
-    importFasta(path,
-                FileTypes.DS_GMAP_REF,
-                sal.importFastaGmap(path,
-                                    name,
-                                    organism.getOrElse("unknown"),
-                                    ploidy.getOrElse("unknown")),
-                projectName)
+    importFasta(
+      path,
+      FileTypes.DS_GMAP_REF,
+      (projectId) =>
+        sal.importFastaGmap(path,
+                            name,
+                            organism.getOrElse("unknown"),
+                            ploidy.getOrElse("unknown"),
+                            projectId = projectId),
+      projectName
+    )
   }
 
   /**
@@ -1007,19 +1036,6 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .filter(metaDataFilter) ++ allFiles
       .filter(_.isDirectory)
       .flatMap(listDataSetFiles)
-  }
-
-  /**
-    * Get Project by (unique) name or Fail future.
-    *
-    * @param name Project Name
-    * @return
-    */
-  protected def getProjectByName(name: String): Future[Project] = {
-    sal.getProjects.flatMap(
-      projects =>
-        failIfNone(s"Unable to find project $name")(
-          projects.find(_.name == name)))
   }
 
   /**
@@ -1073,9 +1089,11 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       path: Path,
       metatype: DataSetMetaTypes.DataSetMetaType,
       asJson: Boolean,
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[String] = {
     for {
-      job <- sal.importDataSet(path, metatype)
+      projectId <- getProjectIdByName(projectName)
+      job <- sal.importDataSet(path, metatype, projectId)
       completedJob <- engineDriver(job, maxTimeOut)
       summary <- jobSummaryOrFailure(completedJob, asJson)
     } yield summary
@@ -1094,7 +1112,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       uuid: UUID,
       metatype: DataSetMetaTypes.DataSetMetaType,
       path: Path,
-      maxTimeOut: Option[FiniteDuration]): Future[EngineJob] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[EngineJob] = {
 
     def logIfPathIsDifferent(ds: DataSetMetaDataSet): DataSetMetaDataSet = {
       if (ds.path != path.toString) {
@@ -1119,7 +1138,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     // Default to creating new Job if the dataset wasn't already imported into the system
     def orCreate =
       for {
-        job <- sal.importDataSet(path, metatype)
+        projectId <- getProjectIdByName(projectName)
+        job <- sal.importDataSet(path, metatype, projectId)
         completedJob <- engineDriver(job, maxTimeOut)
       } yield completedJob
 
@@ -1138,12 +1158,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   protected def runSingleLocalDataSetImport(
       path: Path,
       asJson: Boolean,
-      maxTimeOut: Option[FiniteDuration]): Future[EngineJob] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[EngineJob] = {
     logger.debug(s"Attempting to import dataset from $path")
 
     for {
       m <- Future.fromTry(Try(getDataSetMiniMeta(path)))
-      job <- getDataSetJobOrImport(m.uuid, m.metatype, path, maxTimeOut)
+      job <- getDataSetJobOrImport(m.uuid,
+                                   m.metatype,
+                                   path,
+                                   maxTimeOut,
+                                   projectName)
       completedJob <- engineDriver(job, maxTimeOut)
     } yield completedJob
   }
@@ -1171,7 +1196,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   protected def runSingleLocalDataSetImportWithSummary(
       path: Path,
       asJson: Boolean,
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[String] = {
 
     // Only when the maxTimeOut is provided will the job poll and complete. Then the dataset summary can
     // be displayed
@@ -1191,7 +1217,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
     for {
       m <- Future.fromTry(Try(getDataSetMiniMeta(path)))
-      completedJob <- runSingleLocalDataSetImport(path, asJson, maxTimeOut)
+      completedJob <- runSingleLocalDataSetImport(path,
+                                                  asJson,
+                                                  maxTimeOut,
+                                                  projectName)
       summary <- generateSummary(completedJob, m.uuid)
     } yield summary
   }
@@ -1240,9 +1269,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   protected def runMultiImportDataSet(
       files: Seq[File],
       maxTimeOut: Option[FiniteDuration],
-      numMaxConcurrentImport: Int): Future[String] = {
+      numMaxConcurrentImport: Int,
+      projectName: Option[String]): Future[String] = {
     def toJob(p: Path) =
-      runSingleLocalDataSetImport(p, asJson = false, maxTimeOut)
+      runSingleLocalDataSetImport(p, asJson = false, maxTimeOut, projectName)
     runMultiImportXml(files, toJob, maxTimeOut, numMaxConcurrentImport)
   }
 
@@ -1279,17 +1309,20 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       path: Path,
       datasetType: Option[DataSetMetaTypes.DataSetMetaType],
       asJson: Boolean,
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[String] = {
     datasetType match {
       case Some(dsType) =>
         runSingleNonLocalDataSetImport(path.toAbsolutePath,
                                        dsType,
                                        asJson,
-                                       maxTimeOut)
+                                       maxTimeOut,
+                                       projectName)
       case _ =>
         runSingleLocalDataSetImportWithSummary(path.toAbsolutePath,
                                                asJson,
-                                               maxTimeOut)
+                                               maxTimeOut,
+                                               projectName)
     }
   }
 
@@ -1299,7 +1332,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       filterFile: Path => Boolean,
       doImportOne: Path => Future[String],
       doImportMany: Seq[File] => Future[String]): Future[String] = {
-    if (path.toAbsolutePath.toFile.isDirectory) {
+    val absPath = path.toAbsolutePath
+    if (absPath.toFile.isDirectory) {
 
       val files: Seq[File] =
         if (path.toFile.isDirectory) listFiles(path.toFile).toSeq
@@ -1309,19 +1343,18 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
         s"Found ${files.length} PacBio XML files from root dir $path")
 
       doImportMany(files)
-    } else if (path.toAbsolutePath.toFile.isFile && path.toAbsolutePath
-                 .endsWith(".fofn")) {
+    } else if (absPath.toFile.isFile && absPath.toString.endsWith(".fofn")) {
 
       logger.debug(s"Detected file of file names (FOFN) mode from $path")
 
       val files = Utils
-        .fofnToFiles(path.toAbsolutePath)
+        .fofnToFiles(absPath)
         .filter(filterFile)
         .map(_.toFile)
 
       doImportMany(files)
     } else {
-      doImportOne(path.toAbsolutePath)
+      doImportOne(absPath)
     }
   }
 
@@ -1348,19 +1381,28 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     * @param blockingMode Block until job is completed (failed, or successful)
     * @return A summary of the import process
     */
-  def execImportDataSets(path: Path,
-                         datasetType: Option[DataSetMetaTypes.DataSetMetaType],
-                         asJson: Boolean = false,
-                         blockingMode: Boolean = true,
-                         numMaxConcurrentImport: Int = 5): Future[String] = {
+  def execImportDataSets(
+      path: Path,
+      datasetType: Option[DataSetMetaTypes.DataSetMetaType],
+      asJson: Boolean = false,
+      blockingMode: Boolean = true,
+      numMaxConcurrentImport: Int = 5,
+      projectName: Option[String] = None): Future[String] = {
 
     // In blocking model, set the default timeout to None
     val maxTimeOut = if (blockingMode) Some(maxTime) else None
 
     def doImportMany(files: Seq[File]) =
-      runMultiImportDataSet(files, maxTimeOut, numMaxConcurrentImport)
+      runMultiImportDataSet(files,
+                            maxTimeOut,
+                            numMaxConcurrentImport,
+                            projectName)
     def doImportOne(path: Path) =
-      runSingleDataSetImport(path, datasetType, asJson, maxTimeOut)
+      runSingleDataSetImport(path,
+                             datasetType,
+                             asJson,
+                             maxTimeOut,
+                             projectName)
     def filterFile(p: Path) = Try { getDataSetMiniMeta(p) }.isSuccess
     execImportXml(path,
                   listDataSetFiles,
@@ -1370,22 +1412,25 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   }
 
   private def convertRsMovie(path: Path,
-                             name: Option[String]): Future[EngineJob] =
-    sal.convertRsMovie(path, name.getOrElse(dsNameFromRsMetadata(path)))
+                             name: Option[String],
+                             projectId: Option[Int]): Future[EngineJob] =
+    sal.convertRsMovie(path, name.getOrElse(dsNameFromRsMetadata(path)), None)
 
   protected def runImportRsMovie(
       path: Path,
       name: Option[String],
       asJson: Boolean = false,
-      maxTimeOut: Option[FiniteDuration]): Future[String] = {
+      maxTimeOut: Option[FiniteDuration],
+      projectName: Option[String]): Future[String] = {
     for {
-      job <- convertRsMovie(path, name)
+      projectId <- getProjectIdByName(projectName)
+      job <- convertRsMovie(path, name, projectId)
       job <- maxTimeOut
         .map(t => engineDriver(job, Some(t)))
         .getOrElse(Future.successful(job))
       dsFile <- maxTimeOut
         .map { t =>
-          getDataSetResult(job.uuid, FileTypes.DS_GMAP_REF)
+          getDataSetResult(job.uuid, FileTypes.DS_HDF_SUBREADS)
             .map(ds => Some(ds))
         }
         .getOrElse(Future.successful(None))
@@ -1412,16 +1457,17 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                         numMaxConcurrentImport: Int = 5): Future[String] = {
     val maxTimeOut = if (blockingMode) Some(maxTime) else None
 
-    def doImportOne(p: Path) = runImportRsMovie(p, name, asJson, maxTimeOut)
+    def doImportOne(p: Path) =
+      runImportRsMovie(p, name, asJson, maxTimeOut, projectName)
 
-    def doImportMany(files: Seq[File]) = {
+    def doImportMany(files: Seq[File], projectId: Option[Int]) = {
       if (name.getOrElse("").isEmpty) {
         Future.failed(
           new RuntimeException(
             "--name option not allowed when path is a directory"))
       } else {
         runMultiImportXml(files,
-                          (p) => convertRsMovie(p, name),
+                          (p) => convertRsMovie(p, None, projectId),
                           maxTimeOut,
                           numMaxConcurrentImport)
       }
@@ -1433,23 +1479,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                            listMovieMetadataFiles,
                            isMovieMetadataFile,
                            doImportOne,
-                           doImportMany)
+                           (f) => doImportMany(f, projectId))
     } yield msg
-  }
-
-  protected def addDataSetToProject(
-      dsId: IdAble,
-      projectId: Int,
-      verbose: Boolean = false): Future[String] = {
-    for {
-      project <- sal.getProject(projectId)
-      ds <- sal.getDataSet(dsId)
-      request <- Future.successful(project.asRequest.appendDataSet(ds.id))
-      projectWithDs <- sal.updateProject(projectId, request)
-      _ <- Future.successful {
-        if (verbose) println(toProjectSummary(projectWithDs))
-      }
-    } yield s"Added dataset to project ${projectWithDs.name}"
   }
 
   def runDeleteDataSet(datasetId: IdAble): Future[String] = {
@@ -1458,7 +1489,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .map(response => response.message)
   }
 
-  protected def getProjectIdByName(projectName: Option[String]): Future[Int] = {
+  protected def getProjectIdByName(
+      projectName: Option[String]): Future[Option[Int]] = {
     projectName
       .map { name =>
         for {
@@ -1468,7 +1500,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
           projectId <- projectsById
             .get(name)
             .map { id =>
-              Future.successful(id)
+              Future.successful(Some(id))
             }
             .getOrElse {
               Future.failed(
@@ -1476,14 +1508,25 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
             }
         } yield projectId
       }
-      .getOrElse(Future.successful(0))
+      .getOrElse(Future.successful(None))
   }
 
-  def runCreateProject(name: String, description: String): Future[String] = {
+  def runCreateProject(name: String,
+                       description: String,
+                       userName: Option[String]): Future[String] = {
     sal
-      .createProject(name, description)
+      .createProject(name, description, userName)
       .map(project => toProjectSummary(project))
   }
+
+  def runGetProjects: Future[String] =
+    sal.getProjects
+      .flatMap { projects =>
+        Future.sequence(projects.map(p => sal.getProject(p.id)))
+      }
+      .map { projects =>
+        projects.map(toProjectSummary).mkString("\n")
+      }
 
   /**
     * Emit a template/example JSON file to supply to run-pipeline
@@ -1938,107 +1981,126 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 }
 
 object PbService extends ClientAppUtils with LazyLogging {
+  import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
 
-  protected def getPass = "foo"
+  protected def getPass: String = {
+    val standardIn = System.console()
+    print("Password: ")
+    standardIn.readPassword().mkString("")
+  }
 
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    def toClient = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
-    def toAuthClient(t: String) =
-      new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
-    def toAuthClientLogin(u: String, p: String) =
-      Try {
-        AuthenticatedServiceAccessLayer(c.host, c.port, u, p)(actorSystem)
-      } match {
-        case Success(s) => s
-        case Failure(err) =>
-          System.err.println(s"${err.getMessage}")
-          System.err.println("Will fall back on unauthenticated client")
-          toClient
-      }
-    val sal = c.authToken match {
-      case Some(t) => toAuthClient(t)
-      case None =>
-        c.password match {
-          case Some(password) => toAuthClientLogin(c.user, password)
-          case None =>
-            if (c.usePassword) toAuthClientLogin(c.user, getPass) else toClient
-        }
+    def toClient = Future.successful {
+      new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
     }
-    val ps = new PbService(sal, c.maxTime)
+    def toAuthClient(t: String) = {
+      logger.info("Will route through WSO2 with user-supplied auth token")
+      Future.successful {
+        new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
+      }
+    }
+    def toAuthClientLogin(u: String, p: String) = {
+      logger.info("Will authenticate with WSO2")
+      AuthenticatedServiceAccessLayer.getClient(c.host, c.port, u, p)(
+        actorSystem)
+    }
     try {
-      val fx: Future[String] = c.mode match {
-        case Modes.STATUS => ps.exeStatus(c.asJson)
-        case Modes.IMPORT_DS =>
-          ps.execImportDataSets(c.path,
-                                c.nonLocal,
-                                c.asJson,
-                                c.blockImportDataSet,
-                                c.numMaxConcurrentImport)
-        case Modes.IMPORT_FASTA =>
-          ps.runImportFasta(c.path, c.getName, c.organism, c.ploidy, c.project)
-        case Modes.IMPORT_FASTA_GMAP =>
-          ps.runImportFastaGmap(c.path,
-                                c.getName,
-                                c.organism,
-                                c.ploidy,
-                                c.project)
-        case Modes.IMPORT_BARCODES =>
-          ps.runImportBarcodes(c.path, c.getName, c.project)
-        case Modes.IMPORT_MOVIE =>
-          ps.runImportRsMovies(c.path,
-                               c.name,
-                               c.asJson,
-                               c.block,
-                               c.project,
-                               c.numMaxConcurrentImport)
-        case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
-        case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
-        case Modes.PIPELINE =>
-          ps.runPipeline(c.pipelineId,
-                         c.entryPoints,
-                         c.jobTitle,
-                         c.presetXml,
-                         c.block,
-                         taskOptions = c.taskOptions,
-                         asJson = c.asJson)
-        case Modes.SHOW_PIPELINES => ps.runShowPipelines
-        case Modes.JOB =>
-          ps.runGetJobInfo(c.jobId, c.asJson, c.dumpJobSettings, c.showReports)
-        case Modes.JOBS =>
-          ps.runGetJobs(c.maxItems,
-                        c.asJson,
-                        c.jobType,
-                        c.jobState,
-                        c.searchName,
-                        c.searchSubJobType)
-        case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-        case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
-        case Modes.EXPORT_JOB =>
-          ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
-        case Modes.IMPORT_JOB => ps.runImportJob(c.path)
-        case Modes.UPDATE_JOB =>
-          ps.runUpdateJob(c.jobId, c.name, c.comment, c.tags, c.asJson)
-        case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
-        case Modes.DATASETS =>
-          ps.runGetDataSets(c.datasetType,
-                            c.maxItems,
-                            c.asJson,
-                            c.searchName,
-                            c.searchPath)
-        case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
-        case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
-        case Modes.MANIFESTS => ps.runGetPacBioManifests
-        case Modes.BUNDLES => ps.runGetPacBioDataBundles
-        case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.getComment)
-        case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.getComment)
-        case Modes.ALARMS => ps.runGetAlarms
-        case Modes.CREATE_PROJECT =>
-          ps.runCreateProject(c.getName, c.description)
-        case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
-        case x =>
-          Future.failed(new RuntimeException(s"Unsupported action '$x'"))
+      val fclient: Future[SmrtLinkServiceClient] = c.authToken match {
+        case Some(t) => toAuthClient(t)
+        case None =>
+          c.password match {
+            case Some(password) => toAuthClientLogin(c.user, password)
+            case None =>
+              if (c.usePassword) toAuthClientLogin(c.user, getPass)
+              else toClient
+          }
+      }
+      val fx: Future[String] = fclient.flatMap { sal =>
+        val ps = new PbService(sal, c.maxTime)
+        c.mode match {
+          case Modes.STATUS => ps.exeStatus(c.asJson)
+          case Modes.IMPORT_DS =>
+            ps.execImportDataSets(c.path,
+                                  c.nonLocal,
+                                  c.asJson,
+                                  c.blockImportDataSet,
+                                  c.numMaxConcurrentImport,
+                                  c.project)
+          case Modes.IMPORT_FASTA =>
+            ps.runImportFasta(c.path,
+                              c.getName,
+                              c.organism,
+                              c.ploidy,
+                              c.project)
+          case Modes.IMPORT_FASTA_GMAP =>
+            ps.runImportFastaGmap(c.path,
+                                  c.getName,
+                                  c.organism,
+                                  c.ploidy,
+                                  c.project)
+          case Modes.IMPORT_BARCODES =>
+            ps.runImportBarcodes(c.path, c.getName, c.project)
+          case Modes.IMPORT_MOVIE =>
+            ps.runImportRsMovies(c.path,
+                                 c.name,
+                                 c.asJson,
+                                 c.block,
+                                 c.project,
+                                 c.numMaxConcurrentImport)
+          case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
+          case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+          case Modes.PIPELINE =>
+            ps.runPipeline(c.pipelineId,
+                           c.entryPoints,
+                           c.jobTitle,
+                           c.presetXml,
+                           c.block,
+                           taskOptions = c.taskOptions,
+                           asJson = c.asJson)
+          case Modes.SHOW_PIPELINES => ps.runShowPipelines
+          case Modes.JOB =>
+            ps.runGetJobInfo(c.jobId,
+                             c.asJson,
+                             c.dumpJobSettings,
+                             c.showReports,
+                             c.showFiles)
+          case Modes.JOBS =>
+            ps.runGetJobs(c.maxItems,
+                          c.asJson,
+                          c.jobType,
+                          c.jobState,
+                          c.searchName,
+                          c.searchSubJobType)
+          case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
+          case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
+          case Modes.EXPORT_JOB =>
+            ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
+          case Modes.IMPORT_JOB => ps.runImportJob(c.path)
+          case Modes.UPDATE_JOB =>
+            ps.runUpdateJob(c.jobId, c.name, c.comment, c.tags, c.asJson)
+          case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+          case Modes.DATASETS =>
+            ps.runGetDataSets(c.datasetType,
+                              c.maxItems,
+                              c.asJson,
+                              c.searchName,
+                              c.searchPath)
+          case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
+          case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
+          case Modes.MANIFESTS => ps.runGetPacBioManifests
+          case Modes.BUNDLES => ps.runGetPacBioDataBundles
+          case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.getComment)
+          case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.getComment)
+          case Modes.ALARMS => ps.runGetAlarms
+          case Modes.CREATE_PROJECT =>
+            ps.runCreateProject(c.getName, c.description, Some(c.user))
+          case Modes.GET_PROJECTS => ps.runGetProjects
+          case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
+          case x =>
+            Future.failed(new RuntimeException(s"Unsupported action '$x'"))
+        }
       }
       executeBlockAndSummary(fx, c.maxTime)
     } finally {

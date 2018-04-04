@@ -16,7 +16,8 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.Wso2Credentials
 import com.pacbio.secondary.smrtlink.client.{
   ApiManagerAccessLayer,
   ApiManagerJsonProtocols,
-  Retrying
+  Retrying,
+  Wso2Models
 }
 import com.pacbio.secondary.smrtlink.client.Wso2Models._
 import com.typesafe.config.ConfigFactory
@@ -38,7 +39,6 @@ object AmClientModes {
   case object STATUS extends Mode { val name = "get-status" }
   case object PROXY_ADMIN extends Mode { val name = "proxy-admin" }
   case object CREATE_ROLES extends Mode { val name = "create-roles" }
-  case object GET_KEY extends Mode { val name = "get-key" }
   case object GET_ROLES_USERS extends Mode { val name = "get-roles-users" }
   case object SET_ROLES_USERS extends Mode { val name = "set-roles-users" }
   case object SET_API extends Mode { val name = "set-api" }
@@ -112,7 +112,6 @@ object AmClientParser extends CommandLineToolVersion {
       // these Files are required in the commands that use them,
       // so they're not Options
       roleJson: File = null,
-      appConfig: File = null,
       maxRetries: Int = 3,
       retryDelay: FiniteDuration = 5.seconds,
       defaultTimeOut: FiniteDuration = 30.seconds,
@@ -197,15 +196,6 @@ object AmClientParser extends CommandLineToolVersion {
             s"Time in sec between WSO2 Retries (Default ${defaults.w2StartUpRetryDelay})")
       )
 
-    cmd(AmClientModes.GET_KEY.name)
-      .action((_, c) => c.copy(mode = AmClientModes.GET_KEY))
-      .text("get the consumer key/secret from DefaultApplication and write it to the app-config file")
-      .children(
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file"))
-
     cmd(AmClientModes.SET_API.name)
       .action((_, c) => c.copy(mode = AmClientModes.SET_API))
       .text("update backend target URL")
@@ -216,10 +206,6 @@ object AmClientParser extends CommandLineToolVersion {
         opt[String]("target")
           .action((x, c) => c.copy(target = Some(new URL(x))))
           .text("backend URL"),
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file"),
         opt[File]("swagger-file")
           .action((f, c) => c.copy(swagger = Some(loadFile(f))))
           .text("Path to swagger json file"),
@@ -260,11 +246,7 @@ object AmClientParser extends CommandLineToolVersion {
           .text("oauth scope for accessing admin api"),
         opt[String]("target")
           .action((x, c) => c.copy(target = Some(new URL(x))))
-          .text("backend URL"),
-        opt[File]("app-config")
-          .required()
-          .action((p, c) => c.copy(appConfig = p))
-          .text("path to app-config.json file")
+          .text("backend URL")
       )
 
     cmd(AmClientModes.GET_ROLES_USERS.name)
@@ -336,53 +318,6 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
   def createRolesWithRetry(c: AmClientParser.AmClientOptions): Future[String] =
     retry(createRoles(c), c.retryDelay, c.maxRetries)(actorSystem.dispatcher,
                                                       actorSystem.scheduler)
-
-  def updateAppConfigJson(appConfigFile: File,
-                          app: store.models.Application): File = {
-
-    app.keys.headOption match {
-      case Some(key) => {
-        // leaving appConfigJson as json (and not converting to a case
-        // class) because we only care about two keys in the app
-        // config file, and creating a case class containing all the
-        // structure from that file increases the coupling between
-        // this code and the UI code.
-        val appConfigJson = JsonParser(loadFile(appConfigFile))
-
-        val newAttribs = Map(
-          "consumerKey" -> JsString(key.consumerKey),
-          "consumerSecret" -> JsString(key.consumerSecret)
-        )
-
-        appConfigJson match {
-          case JsObject(fields) => {
-            val toSave = JsObject(fields ++ newAttribs).prettyPrint
-            Files.write(appConfigFile.toPath,
-                        toSave.getBytes(StandardCharsets.UTF_8))
-            appConfigFile
-          }
-          case _ => {
-            throw new Exception("unexpected app config structure")
-          }
-        }
-      }
-      case None =>
-        throw new Exception("unexpected app config structure")
-    }
-
-  }
-
-  // get DefaultApplication key from the server and save it in appConfigFile
-  def getKey(appConfigFile: File): Future[String] = {
-    for {
-      clientInfo <- am.register()
-      tok <- am.login(clientInfo.clientId, clientInfo.clientSecret, scopes)
-      appList <- am.searchApplications("DefaultApplication", tok)
-      app <- Future.successful(appList.list.head)
-      fullApp <- am.getApplication(app.applicationId.get, tok)
-      _ <- Future.successful(updateAppConfigJson(appConfigFile, fullApp))
-    } yield s"Successfully updated $appConfigFile"
-  }
 
   def createApi(
       apiName: String,
@@ -487,6 +422,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
   def createOrUpdateApi(
       conf: AmClientParser.AmClientOptions,
+      clientReg: ClientRegistrationResponse,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None)
     : Future[String] = {
 
@@ -510,11 +446,7 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
     for {
       _ <- andLog("Starting to Create or Update API")
-      clientInfo <- Future.successful(
-        JsonParser(loadFile(conf.appConfig)).convertTo[ClientInfo])
-      token <- am.login(clientInfo.consumerKey,
-                        clientInfo.consumerSecret,
-                        scopes)
+      token <- am.login(clientReg.clientId, clientReg.clientSecret, scopes)
       apiList <- am.searchApis(conf.apiName, token)
       msg <- toOrCreate(token, apiList)
       _ <- andLog(msg)
@@ -523,10 +455,11 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 
   def createOrUpdateApiWithRetry(
       c: AmClientParser.AmClientOptions,
+      clientReg: ClientRegistrationResponse,
       endpointSecurity: Option[publisher.models.API_endpointSecurity] = None) =
-    retry(createOrUpdateApi(c, endpointSecurity), c.retryDelay, c.maxRetries)(
-      actorSystem.dispatcher,
-      actorSystem.scheduler)
+    retry(createOrUpdateApi(c, clientReg, endpointSecurity),
+          c.retryDelay,
+          c.maxRetries)(actorSystem.dispatcher, actorSystem.scheduler)
 
   def setSwagger(details: publisher.models.API,
                  swaggerOpt: Option[String]): publisher.models.API =
@@ -556,7 +489,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
       .map(target => details.copy(endpointConfig = endpointConfig(target)))
       .getOrElse(details)
 
-  def proxyAdmin(conf: AmClientParser.AmClientOptions): Future[String] = {
+  def proxyAdmin(conf: AmClientParser.AmClientOptions,
+                 clientReg: ClientRegistrationResponse): Future[String] = {
     // API manager uses a generic swagger definition for SOAP endpoints
     val soapSwagger = s"""
 {
@@ -625,7 +559,9 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
       Some(conf.user),
       Some(conf.pass))
 
-    createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)), Some(security))
+    createOrUpdateApi(conf.copy(swagger = Some(soapSwagger)),
+                      clientReg,
+                      Some(security))
   }
 
   private def writeRoles(jx: JsObject, output: Path): Path = {
@@ -668,6 +604,8 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
 object AmClient extends LazyLogging {
 
   def apply(conf: AmClientParser.AmClientOptions): Int = {
+    import Wso2Models.defaultClient
+
     implicit val actorSystem = ActorSystem("amclient")
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
@@ -703,15 +641,14 @@ object AmClient extends LazyLogging {
           Future.successful("Successfully connected to WSO2")
         case AmClientModes.CREATE_ROLES =>
           amClient.createRoles(c)
-        case AmClientModes.GET_KEY => amClient.getKey(c.appConfig)
         case AmClientModes.GET_ROLES_USERS =>
           amClient.getAndWriteRoles(c)
         case AmClientModes.SET_ROLES_USERS =>
           amClient.setRoles(c)
         case AmClientModes.SET_API =>
-          amClient.createOrUpdateApiWithRetry(c)
+          amClient.createOrUpdateApiWithRetry(c, defaultClient)
         case AmClientModes.PROXY_ADMIN =>
-          amClient.proxyAdmin(c)
+          amClient.proxyAdmin(c, defaultClient)
         case x =>
           Future.failed(new Exception(s"Unsupported action '$x'"))
       }

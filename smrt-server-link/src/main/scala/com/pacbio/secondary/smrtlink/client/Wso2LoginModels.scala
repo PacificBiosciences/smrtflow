@@ -1,6 +1,7 @@
 package com.pacbio.secondary.smrtlink.client
 
 object Wso2Models {
+
   // misc WSO2 models not included in the API manager store or publisher APIs
   case class ClientRegistrationRequest(callbackUrl: String,
                                        clientName: String,
@@ -23,4 +24,13 @@ object Wso2Models {
                         scope: String,
                         token_type: String,
                         expires_in: Int)
+
+  final val defaultClient = ClientRegistrationResponse(
+    None,
+    None,
+    "",
+    false,
+    "",
+    clientId = "KMLz5g7fbmx8RVFKKdu0NOrJic4a",
+    clientSecret = "6NjRXBcFfLZOwHc0Xlidiz4ywcsa")
 }

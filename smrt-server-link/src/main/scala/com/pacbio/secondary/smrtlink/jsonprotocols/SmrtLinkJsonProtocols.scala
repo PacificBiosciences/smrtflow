@@ -326,8 +326,6 @@ trait SmrtLinkJsonProtocols
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
 
-  implicit val deleteDataSetsOptions = jsonFormat3(DataSetDeleteServiceOptions)
-
   implicit val pbThrowableResponseFormat = jsonFormat3(ThrowableResponse)
   implicit val pbComponentFormat = jsonFormat5(PacBioComponentManifest)
   implicit val pbServiceConfigFormat = jsonFormat2(ServerConfig)

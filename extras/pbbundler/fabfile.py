@@ -356,6 +356,7 @@ def _build_wso2_api_manager(wso2_api_manager_zip, output_bundle_root_dir):
     copy_template_to_wso2("logging-bridge.properties", 'repository/conf/etc/logging-bridge.properties')
     copy_template_to_wso2('api-manager.xml', 'repository/conf/api-manager.xml')
     copy_template_to_wso2('axis2.xml', 'repository/conf/axis2/axis2.xml')
+    copy_template_to_wso2("identity.xml", "repository/conf/identity/identity.xml")
 
     # enable CORS for OAuth2 endpoints
     copy_template_to_wso2('_RevokeAPI_.xml', 'repository/deployment/server/synapse-configs/default/api/_RevokeAPI_.xml')
