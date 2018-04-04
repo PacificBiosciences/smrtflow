@@ -508,11 +508,13 @@ class SmrtLinkServiceClient(
     getMessageResponse(Delete(getRunUrl(runId)))
 
   def getProjects: Future[Seq[Project]] =
-    getObject[Seq[Project]](Get(toUri(ROOT_PROJECTS_URI_PATH)))
+    getObject[Seq[Project]](
+      Get(toUri(ROOT_PROJECTS_URI_PATH)).withHeaders(headers: _*))
 
   def getProject(projectId: Int): Future[FullProject] =
     getObject[FullProject](
-      Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString)))
+      Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString))
+        .withHeaders(headers: _*))
 
   // XXX note that the project-related API calls require authentication and
   // aren't actually usable in this class; use AuthenticatedServiceAccessLayer
@@ -524,13 +526,15 @@ class SmrtLinkServiceClient(
       Seq(ProjectRequestUser(user, ProjectUserRole.OWNER))
     }
     val d = ProjectRequest(name, description, None, None, None, members)
-    getObject[FullProject](Post(toUri(ROOT_PROJECTS_URI_PATH), d))
+    getObject[FullProject](
+      Post(toUri(ROOT_PROJECTS_URI_PATH), d).withHeaders(headers: _*))
   }
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
     getObject[FullProject](
-      Put(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString), request))
+      Put(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString), request)
+        .withHeaders(headers: _*))
 
   // User agreements (not really a EULA)
   def getEula(version: String): Future[EulaRecord] =
