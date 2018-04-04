@@ -797,7 +797,7 @@ class ImportDataSetJobsService(override val dao: JobsDao,
     } yield engineJob
 
     f1.recoverWith {
-      case err: ResourceNotFoundError => super.createJob(opts, user)
+      case _: ResourceNotFoundError => super.createJob(opts, user)
     }
   }
 
@@ -971,11 +971,11 @@ class MultiAnalysisJobService(override val dao: JobsDao,
     if (opts.submit.getOrElse(false)) {
       for {
         job <- super.createJob(opts, user)
-        msg <- dao.updateMultiJobState(job.id,
-                                       AnalysisJobStates.SUBMITTED,
-                                       job.workflow.parseJson.asJsObject,
-                                       submitMsg,
-                                       None)
+        _ <- dao.updateMultiJobState(job.id,
+                                     AnalysisJobStates.SUBMITTED,
+                                     job.workflow.parseJson.asJsObject,
+                                     submitMsg,
+                                     None)
         updatedJob <- dao.getJobById(job.id)
       } yield updatedJob
     } else {
@@ -1040,7 +1040,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
                 job <- dao.getJobById(jobId)
                 _ <- validateStateIsCreated(
                   job,
-                  "ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
+                  s"ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
                 msg <- dao.deleteMultiJob(job.id)
               } yield msg
             }
