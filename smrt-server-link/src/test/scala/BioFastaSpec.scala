@@ -132,6 +132,10 @@ class BioFastaSpec extends Specification {
       val name = "pacbio-fasta-spec-files/bad-empty_file.fasta"
       validateFile(name) must beSome[InvalidPacBioFastaError]
     }
+    "Bad: first line blank" in {
+      val name = "pacbio-fasta-spec-files/bad-blank_first_line.fasta"
+      validateFile(name) must beSome[InvalidPacBioFastaError]
+    }
     "Good: simple example" in {
       val name = "pacbio-fasta-spec-files/good-simple_01.fasta"
       validateFile(name) must not beSome
