@@ -47,6 +47,19 @@ case class MultiAnalysisJobOptions(jobs: Seq[DeferredJob],
 
   override def toMultiJob() = new MultiAnalysisJob(this)
 
+  /**
+    * Warning, this is a bit different that the "Core" Job and the Entry Points
+    * might not be imported into the system yet (or ever).
+    *
+    * @param dao JobsDoa
+    * @return
+    */
+  override def resolveEntryPoints(
+      dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
+    jobs.flatMap(
+      _.entryPoints
+        .map(ep => EngineJobEntryPointRecord(ep.uuid, ep.fileTypeId)))
+  }
 }
 
 case class MultiAnalysisWorkflow(jobIds: Seq[Option[Int]])
