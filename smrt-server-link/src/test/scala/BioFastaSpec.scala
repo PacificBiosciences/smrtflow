@@ -24,10 +24,10 @@ class BioFastaSpec extends Specification {
     val result = PacBioFastaValidator(Paths.get(x.toURI))
     result match {
       case Left(ex) =>
-        println(s"Fasta $name Validation Result $ex")
+        //println(s"Fasta $name Validation Result $ex")
         Some(ex)
       case Right(_) =>
-        println(s"Fasta $name is valid")
+        //println(s"Fasta $name is valid")
         None
     }
   }
