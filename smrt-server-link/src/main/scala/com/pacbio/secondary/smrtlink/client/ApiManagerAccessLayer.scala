@@ -137,11 +137,18 @@ class ApiManagerAccessLayer(
       //~> logRequest((r: HttpRequest) => println(s"Request $r"))
     )
     apiPipe(request)
-      .flatMap(Unmarshal(_).to[OauthToken])
-      .recover {
-        case e: spray.json.DeserializationException =>
-          throw new AuthenticationError(
-            "Authentication failed.  Please check that the username and password are correct.")
+      .flatMap { response =>
+        response.status match {
+          case StatusCodes.OK | StatusCodes.Created =>
+            Unmarshal(response).to[OauthToken]
+          case _ =>
+            Unmarshal(response)
+              .to[ErrorResponse]
+              .flatMap { err =>
+                Future.failed(
+                  new AuthenticationError(s"${err.error}: ${err.description}"))
+              }
+        }
       }
   }
 
