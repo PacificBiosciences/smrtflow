@@ -95,14 +95,14 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                          job.projectId)
   }
 
-  private def createPbsmrtpipeJob(
-      dao: JobsDao,
-      entryPoints: Seq[BoundServiceEntryPoint],
-      job: DeferredJob,
-      parentJobId: Int,
-      createdBy: Option[String],
-      smrtLinkVersion: Option[String],
-      writer: JobResultsWriter): Future[EngineJob] = {
+  private def createPbsmrtpipeJob(dao: JobsDao,
+                                  entryPoints: Seq[BoundServiceEntryPoint],
+                                  job: DeferredJob,
+                                  parentJobId: Int,
+                                  createdBy: Option[String],
+                                  smrtLinkVersion: Option[String],
+                                  writer: JobResultsWriter,
+                                  submitJob: Boolean): Future[EngineJob] = {
     dao
       .createCoreJob(
         UUID.randomUUID(),
@@ -117,7 +117,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
         smrtLinkVersion = smrtLinkVersion,
         parentMultiJobId = Some(parentJobId),
         projectId = job.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID),
-        subJobTypeId = Some(job.pipelineId)
+        subJobTypeId = Some(job.pipelineId),
+        submitJob = submitJob
       )
       .map { job =>
         writer.writeLine(
@@ -151,7 +152,8 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
                               parentJobId,
                               user,
                               smrtLinkVersion,
-                              writer))
+                              writer,
+                              submitJob = true))
     } yield engineJob
   }
 

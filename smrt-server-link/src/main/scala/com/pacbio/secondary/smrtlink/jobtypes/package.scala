@@ -226,8 +226,15 @@ package object jobtypes {
     val name: Option[String]
     val description: Option[String]
     val projectId: Option[Int]
+    // To Enable default behavior for Core Jobs, Note, MultiJobs have a different Default Value.
+    //val submit: Option[Boolean] = Some(true)
 
-    // It's very important that these are defs
+    /**
+      * NOTE. It's VERY important that these are all defs, NOT vals, otherwise you'll
+      * see a runtime exception with the json serialization.
+      *
+      * @return
+      */
     def subJobTypeId: Option[String] = None
 
     /**

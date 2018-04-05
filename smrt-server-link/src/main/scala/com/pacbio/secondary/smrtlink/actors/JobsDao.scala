@@ -483,7 +483,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   /**
-    * Get next runnable job.
+    * Get next runnable job. Look for any SUBMITTED jobs and update the
+    * state to RUNNING.
     *
     * @param isQuick Only select quick job types.
     * @return
@@ -498,7 +499,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       .map(_.id)
       .toSet
 
-    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
+    val q0 = qGetEngineJobByState(AnalysisJobStates.SUBMITTED)
       .filter(_.isMultiJob === false)
     val q = if (isQuick) q0.filter(_.jobTypeId inSet quickJobTypeIds) else q0
     val q1 = q.sortBy(_.id).take(1)
@@ -511,14 +512,14 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         _ <- qEngineJobById(job.id)
           .map(j => (j.state, j.updatedAt, j.jobUpdatedAt))
           .update(
-            (AnalysisJobStates.SUBMITTED,
+            (AnalysisJobStates.RUNNING,
              JodaDateTime.now(),
              JodaDateTime.now()))
         _ <- jobEvents += JobEvent(
           UUID.randomUUID(),
           job.id,
-          AnalysisJobStates.SUBMITTED,
-          s"Updating state to ${AnalysisJobStates.SUBMITTED} (from get-next-job)",
+          AnalysisJobStates.RUNNING,
+          s"Updating state to ${AnalysisJobStates.RUNNING} (from get-next-job)",
           JodaDateTime.now())
         job <- qEngineJobById(job.id).result.head
       } yield job
@@ -592,9 +593,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       .run(xs.transactionally)
       .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
 
-    f.foreach {
-      case job: EngineJob =>
-        sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))
+    f.foreach { job: EngineJob =>
+      sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))
     }
 
     f
@@ -713,10 +713,19 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
   private def insertEngineJob(
       engineJob: EngineJob,
-      entryPoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
+      entryPoints: Seq[EngineJobEntryPointRecord],
+      submitJob: Boolean = false): Future[EngineJob] = {
+
+    val jobState =
+      if (submitJob) AnalysisJobStates.SUBMITTED else AnalysisJobStates.CREATED
+
+    // The original Job must be in the CREATED state.
+    val cEngineJob =
+      if (submitJob) engineJob.copy(state = jobState) else engineJob
+
     val updates = (engineJobs returning engineJobs.map(_.id) into (
         (j,
-         i) => j.copy(id = i)) += engineJob) flatMap { job =>
+         i) => j.copy(id = i)) += cEngineJob) flatMap { job =>
       val jobId = job.id
 
       // Using the RunnableJobWithId is a bit clumsy and heavy for such a simple task
@@ -724,13 +733,25 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       // Note, this will raise if the path can't be created
       val resolvedPath = resolver.resolve(jobId).toAbsolutePath.toString
 
-      val jobEvent = JobEvent(
+      val jobCreateEvent = JobEvent(
         UUID.randomUUID(),
         jobId,
         AnalysisJobStates.CREATED,
-        s"Created job $jobId type ${engineJob.jobTypeId} with ${engineJob.uuid.toString}",
+        s"Created job $jobId type ${cEngineJob.jobTypeId} with ${cEngineJob.uuid.toString}",
         JodaDateTime.now()
       )
+
+      val jobSubmitEvent = JobEvent(
+        UUID.randomUUID(),
+        jobId,
+        AnalysisJobStates.SUBMITTED,
+        s"Submitted job $jobId type ${cEngineJob.jobTypeId} with ${cEngineJob.uuid.toString}",
+        JodaDateTime.now()
+      )
+
+      val allEvents =
+        if (submitJob) Seq(jobCreateEvent, jobSubmitEvent)
+        else Seq(jobCreateEvent)
 
       DBIO
         .seq(
@@ -738,11 +759,11 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
             .filter(_.id === jobId)
             .map(_.path)
             .update(resolvedPath.toString),
-          jobEvents += jobEvent,
+          jobEvents ++= allEvents,
           engineJobsDataSets ++= entryPoints.map(e =>
             EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
         )
-        .map(_ => engineJob.copy(id = jobId, path = resolvedPath.toString))
+        .map(_ => cEngineJob.copy(id = jobId, path = resolvedPath.toString))
     }
 
     val action =
@@ -764,20 +785,22 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     f
   }
 
-  def createMultiJob(
-      uuid: UUID,
-      name: String,
-      description: String,
-      jobTypeId: JobTypeIds.JobType,
-      entryPoints: Seq[EngineJobEntryPointRecord] =
-        Seq.empty[EngineJobEntryPointRecord],
-      jsonSetting: JsObject,
-      createdBy: Option[String] = None,
-      createdByEmail: Option[String] = None,
-      smrtLinkVersion: Option[String] = None,
-      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-      workflow: JsObject = JsObject.empty,
-      subJobTypeId: Option[String] = None): Future[EngineJob] = {
+  def createMultiJob(uuid: UUID,
+                     name: String,
+                     description: String,
+                     jobTypeId: JobTypeIds.JobType,
+                     entryPoints: Seq[EngineJobEntryPointRecord] =
+                       Seq.empty[EngineJobEntryPointRecord],
+                     jsonSetting: JsObject,
+                     createdBy: Option[String] = None,
+                     createdByEmail: Option[String] = None,
+                     smrtLinkVersion: Option[String] = None,
+                     projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+                     workflow: JsObject = JsObject.empty,
+                     subJobTypeId: Option[String] = None,
+                     submitJob: Boolean = false): Future[EngineJob] = {
+
+    // FIXME. This should have Option[Path]
     val path = ""
     val createdAt = JodaDateTime.now()
 
@@ -802,7 +825,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       workflow = workflow.toString()
     )
 
-    insertEngineJob(engineJob, entryPoints)
+    insertEngineJob(engineJob, entryPoints, submitJob)
   }
 
   /** New Actor-less model **/
@@ -819,7 +842,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                     projectId: Int = JobConstants.GENERAL_PROJECT_ID,
                     parentMultiJobId: Option[Int] = None,
                     importedAt: Option[JodaDateTime] = None,
-                    subJobTypeId: Option[String] = None): Future[EngineJob] = {
+                    subJobTypeId: Option[String] = None,
+                    submitJob: Boolean = false): Future[EngineJob] = {
 
     // This is wrong.
     val path = ""
@@ -846,7 +870,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       subJobTypeId = subJobTypeId
     )
 
-    insertEngineJob(engineJob, entryPoints)
+    insertEngineJob(engineJob, entryPoints, submitJob)
   }
 
   /**
@@ -865,7 +889,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                                path = "",
                                projectId = parentJob.projectId,
                                importedAt = Some(JodaDateTime.now()))
-    insertEngineJob(importedJob, entryPoints)
+
+    // Submit must be false, otherwise the state will be mutated
+    insertEngineJob(importedJob, entryPoints, submitJob = false)
   }
 
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =

@@ -47,7 +47,8 @@ class DbBackupActor(dao: JobsDao) extends Actor with LazyLogging {
                          jobName,
                          comment,
                          opts.jobTypeId,
-                         jsonSetting = jopts)
+                         jsonSetting = jopts,
+                         submitJob = true)
           .map(j =>
             MessageResponse(s"Created DB Backup job id:${j.id} ${j.uuid}"))
 

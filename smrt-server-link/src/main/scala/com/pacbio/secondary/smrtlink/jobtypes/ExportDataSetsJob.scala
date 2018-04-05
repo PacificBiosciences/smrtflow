@@ -138,7 +138,8 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
         parentJob.createdBy,
         parentJob.createdByEmail,
         parentJob.smrtlinkVersion,
-        parentJob.projectId
+        parentJob.projectId,
+        submitJob = true
       )
     }
 

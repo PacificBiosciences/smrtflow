@@ -1665,6 +1665,7 @@ case class DbBackUpServiceJobOptions(user: String, comment: String)
 // Multi Job Options
 
 // Because this is a deferred entity, this must only be a UUID, not IdAble
+//FIXME. the fileTypeId needs to be at least FileTypeId or if possible more constrainted to DataSetMetaType.MetaTypeId
 case class DeferredEntryPoint(fileTypeId: String, uuid: UUID, entryId: String)
 
 // This is explicitly encoded to enable the client

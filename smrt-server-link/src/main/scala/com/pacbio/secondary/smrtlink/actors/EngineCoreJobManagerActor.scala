@@ -88,20 +88,18 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     * @param worker worker to send EngineJob to
     * @return
     */
-  def addJobToWorker(engineJob: EngineJob,
-                     workerQueue: mutable.Queue[ActorRef],
-                     worker: ActorRef): Future[String] = {
+  def addJobToWorker(
+      engineJob: EngineJob,
+      workerQueue: mutable.Queue[ActorRef],
+      worker: ActorRef,
+      workerTimeOut: FiniteDuration = 15.seconds): Future[String] = {
     // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
     // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    implicit val timeOut = Timeout(15.seconds)
+    implicit val timeOut = Timeout(workerTimeOut)
+
     val f: Future[String] = for {
-      job <- dao.updateJobState(engineJob.id,
-                                AnalysisJobStates.RUNNING,
-                                s"Updated to Running from $self")
       _ <- andLog(
-        s"Updated state of ${job.id} type:${job.jobTypeId} to state:${job.state} from $self")
-      _ <- andLog(
-        s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId}")
+        s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId} state:${engineJob.state}")
       _ <- worker ? RunEngineJob(engineJob)
       workerMsg <- andLog(
         s"Started job id:${engineJob.id} type:${engineJob.jobTypeId} on Engine worker $worker")

@@ -230,7 +230,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           user.flatMap(_.userEmail),
           config.smrtLinkVersion,
           projectId,
-          subJobTypeId = opts.subJobTypeId
+          subJobTypeId = opts.subJobTypeId,
+          submitJob = true
         )
       }
     }
