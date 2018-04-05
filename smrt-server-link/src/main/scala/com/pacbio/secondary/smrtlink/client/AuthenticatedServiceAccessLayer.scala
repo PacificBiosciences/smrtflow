@@ -76,5 +76,9 @@ object AuthenticatedServiceAccessLayer {
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
       }
+      .recover {
+        throw new AuthenticationError(
+          "Authentication failed.  Please check that the username and password are correct.")
+      }
   }
 }
