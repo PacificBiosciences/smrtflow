@@ -49,7 +49,8 @@ case class DeleteDataSetJobOptions(
     removeFiles: Boolean = true,
     name: Option[String],
     description: Option[String],
-    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
 
   import com.pacbio.common.models.CommonModelImplicits._

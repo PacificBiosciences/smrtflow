@@ -15,13 +15,14 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
   GmapReferenceSetIO
 }
 
-case class ImportFastaGmapJobOptions(path: String,
-                                     ploidy: String,
-                                     organism: String,
-                                     name: Option[String],
-                                     description: Option[String],
-                                     projectId: Option[Int] = Some(
-                                       JobConstants.GENERAL_PROJECT_ID))
+case class ImportFastaGmapJobOptions(
+    path: String,
+    ploidy: String,
+    organism: String,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ImportFastaBaseJobOptions {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_GMAPREFERENCE
 

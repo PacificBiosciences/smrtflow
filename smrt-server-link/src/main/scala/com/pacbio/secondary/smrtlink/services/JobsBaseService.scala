@@ -166,6 +166,11 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     }
   }
 
+  def validateStateIsCreated(job: EngineJob, msg: String): Future[EngineJob] = {
+    if (job.state == AnalysisJobStates.CREATED) Future.successful(job)
+    else Future.failed(UnprocessableEntityError(msg))
+  }
+
   /**
     * Optional Termination implementation of a Job. By default this method is not supported.
     *
@@ -204,6 +209,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
+      // this should be able to be collapsed into a single call and
+      // avoid the isMultiJob if dispatch
       if (opts.jobTypeId.isMultiJob) {
         dao.createMultiJob(
           uuid,
@@ -216,7 +223,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           user.flatMap(_.userEmail),
           config.smrtLinkVersion,
           projectId,
-          subJobTypeId = opts.subJobTypeId
+          subJobTypeId = opts.subJobTypeId,
+          submitJob = opts.getSubmit()
         )
       } else {
         dao.createCoreJob(
@@ -231,7 +239,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           config.smrtLinkVersion,
           projectId,
           subJobTypeId = opts.subJobTypeId,
-          submitJob = true
+          submitJob = opts.getSubmit()
         )
       }
     }
@@ -445,6 +453,24 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
       }
     }
 
+  def updateJobStateToSubmitted(
+      jobId: IdAble,
+      customExecutionContext: ExecutionContext): Future[EngineJob] = {
+    // implicit val customEc = customExecutionContext
+    (for {
+      job <- dao.getJobById(jobId)
+      _ <- validateStateIsCreated(
+        job,
+        s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
+      msg <- Future.successful(
+        s"Updating job ${job.id} state ${job.state} to SUBMITTED")
+      updatedJob <- dao.updateJobState(job.id,
+                                       AnalysisJobStates.SUBMITTED,
+                                       msg,
+                                       None)
+    } yield updatedJob)(customExecutionContext)
+  }
+
   def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
     pathPrefix(IdAbleMatcher) { jobId =>
       pathEndOrSingleSlash {
@@ -487,6 +513,15 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
             post {
               complete {
                 terminateJob(jobId)
+              }
+            }
+          }
+        } ~
+        path(JOB_SUBMIT_PREFIX) {
+          pathEndOrSingleSlash {
+            post {
+              complete {
+                updateJobStateToSubmitted(jobId, ec)
               }
             }
           }
@@ -950,67 +985,9 @@ class MultiAnalysisJobService(override val dao: JobsDao,
 
   override def jobTypeId = JobTypeIds.MJOB_MULTI_ANALYSIS
 
-  def validateStateIsCreated(job: EngineJob, msg: String): Future[EngineJob] = {
-    if (job.state == AnalysisJobStates.CREATED) Future.successful(job)
-    else Future.failed(new UnprocessableEntityError(msg))
-  }
-
-  /**
-    * Customization for to enable "auto" submit at creation time.
-    *
-    * For the submit case, this might need to have a more explicit
-    * interface to validate that entry points are resolvable
-    * when the job is moved to submitted. However, it depends on how the
-    * client wants to run the jobs.
-    *
-    */
-  override def createJob(opts: MultiAnalysisJobOptions,
-                         user: Option[UserRecord]): Future[EngineJob] = {
-
-    val submitMsg = "Submitted at Creation time by submit=true"
-
-    if (opts.submit.getOrElse(false)) {
-      for {
-        job <- super.createJob(opts, user)
-        _ <- dao.updateMultiJobState(job.id,
-                                     AnalysisJobStates.SUBMITTED,
-                                     job.workflow.parseJson.asJsObject,
-                                     submitMsg,
-                                     None)
-        updatedJob <- dao.getJobById(job.id)
-      } yield updatedJob
-    } else {
-      super.createJob(opts, user)
-    }
-  }
-
   // Note, there's several explicit calls to toJson(jwriter) to avoid ambiguous implicit issues.
 
-  // Change the state from CREATED to SUBMITTED. After this change the job is NO longer editable.
-  val submitJobRoute: Route = {
-    pathPrefix(IdAbleMatcher / "submit") { jobId =>
-      pathEndOrSingleSlash {
-        post {
-          complete {
-            for {
-              job <- dao.getJobById(jobId)
-              _ <- validateStateIsCreated(
-                job,
-                s"ONLY Jobs in the CREATED state can be submitted. Job ${job.id} is in state:${job.state}")
-              msg <- Future.successful(
-                s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-              _ <- dao.updateMultiJobState(job.id,
-                                           AnalysisJobStates.SUBMITTED,
-                                           JsObject.empty,
-                                           msg,
-                                           None)
-            } yield MessageResponse(msg)
-          }
-        }
-      }
-    }
-  }
-
+  // This can all be pushed into the Core job now that it has parity with the CoreJob model
   val updateAndDeleteRoute: Route = {
     pathPrefix(IdAbleMatcher) { jobId =>
       pathEndOrSingleSlash {
@@ -1094,7 +1071,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
 
   // If/When there are more multi-job types, this should be refactored out into it's own base.
   override def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
-    super.allIdAbleJobRoutes(ec) ~ submitJobRoute ~ childrenJobsRoute ~ updateAndDeleteRoute
+    super.allIdAbleJobRoutes(ec) ~ childrenJobsRoute ~ updateAndDeleteRoute
 }
 
 /**

@@ -227,7 +227,7 @@ package object jobtypes {
     val description: Option[String]
     val projectId: Option[Int]
     // To Enable default behavior for Core Jobs, Note, MultiJobs have a different Default Value.
-    //val submit: Option[Boolean] = Some(true)
+    val submit: Option[Boolean]
 
     /**
       * NOTE. It's VERY important that these are all defs, NOT vals, otherwise you'll
@@ -249,6 +249,9 @@ package object jobtypes {
     // "projectId" was private.
     def getProjectId(): Int =
       projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+
+    def getSubmit(): Boolean =
+      submit.getOrElse(JobConstants.SUBMIT_DEFAULT_CORE_JOB)
 
     // This needs to be defined at the job option level to be a globally unique type.
     def jobTypeId: JobTypeIds.JobType

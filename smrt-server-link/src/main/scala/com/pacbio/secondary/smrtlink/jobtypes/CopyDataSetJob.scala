@@ -30,12 +30,13 @@ import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
-case class CopyDataSetJobOptions(datasetId: IdAble,
-                                 filters: Seq[Seq[DataSetFilterProperty]],
-                                 name: Option[String],
-                                 description: Option[String],
-                                 projectId: Option[Int] = Some(
-                                   JobConstants.GENERAL_PROJECT_ID))
+case class CopyDataSetJobOptions(
+    datasetId: IdAble,
+    filters: Seq[Seq[DataSetFilterProperty]],
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   import CommonModelImplicits._
 
