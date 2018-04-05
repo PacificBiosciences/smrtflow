@@ -9,6 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
+import spray.json
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
@@ -135,7 +136,20 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
       //~> logRequest((r: HttpRequest) => println(s"Request $r"))
     )
-    apiPipe(request).flatMap(Unmarshal(_).to[OauthToken])
+    apiPipe(request)
+      .flatMap { response =>
+        response.status match {
+          case StatusCodes.OK | StatusCodes.Created =>
+            Unmarshal(response).to[OauthToken]
+          case _ =>
+            Unmarshal(response)
+              .to[ErrorResponse]
+              .flatMap { err =>
+                Future.failed(
+                  new AuthenticationError(s"${err.error}: ${err.description}"))
+              }
+        }
+      }
   }
 
   def login(scopes: Set[String]): Future[OauthToken] =

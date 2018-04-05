@@ -6,6 +6,7 @@ import javax.net.ssl._
 import java.net.URL
 
 import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
@@ -13,6 +14,10 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.Http.OutgoingConnection
 import akka.stream.scaladsl.Flow
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
+
+class AuthenticationError(msg: String)
+    extends RuntimeException(msg)
+    with NoStackTrace
 
 trait SecureClientBase {
 

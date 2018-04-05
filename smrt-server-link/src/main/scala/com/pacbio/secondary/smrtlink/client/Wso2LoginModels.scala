@@ -25,6 +25,8 @@ object Wso2Models {
                         token_type: String,
                         expires_in: Int)
 
+  case class ErrorResponse(error: String, description: String)
+
   final val defaultClient = ClientRegistrationResponse(
     None,
     None,
