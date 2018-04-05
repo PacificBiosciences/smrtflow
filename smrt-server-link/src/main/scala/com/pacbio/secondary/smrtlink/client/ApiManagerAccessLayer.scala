@@ -9,6 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.wso2.carbon.apimgt.rest.api.{publisher, store}
+import spray.json
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
@@ -135,7 +136,13 @@ class ApiManagerAccessLayer(
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))
       //~> logRequest((r: HttpRequest) => println(s"Request $r"))
     )
-    apiPipe(request).flatMap(Unmarshal(_).to[OauthToken])
+    apiPipe(request)
+      .flatMap(Unmarshal(_).to[OauthToken])
+      .recover {
+        case e: spray.json.DeserializationException =>
+          throw new AuthenticationError(
+            "Authentication failed.  Please check that the username and password are correct.")
+      }
   }
 
   def login(scopes: Set[String]): Future[OauthToken] =

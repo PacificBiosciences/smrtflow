@@ -10,7 +10,6 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 import com.typesafe.scalalogging.LazyLogging
-import spray.json
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
@@ -76,11 +75,6 @@ object AuthenticatedServiceAccessLayer {
       .map { auth =>
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
-      }
-      .recover {
-        case e: spray.json.DeserializationException =>
-          throw new AuthenticationError(
-            "Authentication failed.  Please check that the username and password are correct.")
       }
   }
 }
