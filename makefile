@@ -197,7 +197,12 @@ db-reset-test:
 	psql -f ./extras/test-db-drop.sql
 	psql -f ./extras/test-db-init.sql
 
-validate-swagger-smrtlink:
+format-swagger:
+	cp smrt-server-link/src/main/resources/smrtlink_swagger.json tmp.smrtlink_swagger.json
+	cat tmp.smrtlink_swagger.json | jq -rM '.' > smrt-server-link/src/main/resources/smrtlink_swagger.json
+	rm -f tmp.smrtlink_swagger.json
+
+validate-swagger-smrtlink: format-swagger
 	swagger-tools validate ./smrt-server-link/src/main/resources/smrtlink_swagger.json
 
 validate-swagger-eve:
