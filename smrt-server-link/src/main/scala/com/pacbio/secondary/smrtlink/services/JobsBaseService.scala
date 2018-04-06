@@ -209,8 +209,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
-      // this should be able to be collapsed into a single call and
-      // avoid the isMultiJob if dispatch
+      // For the MultiJob case, the createJob method will often have to completely be overriden
       if (opts.jobTypeId.isMultiJob) {
         dao.createMultiJob(
           uuid,
@@ -224,7 +223,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           config.smrtLinkVersion,
           projectId,
           subJobTypeId = opts.subJobTypeId,
-          submitJob = opts.getSubmit()
+          submitJob = opts.getSubmit(),
+          childJobs = Nil
         )
       } else {
         dao.createCoreJob(
@@ -984,6 +984,51 @@ class MultiAnalysisJobService(override val dao: JobsDao,
   import CommonModelSpraySupport._
 
   override def jobTypeId = JobTypeIds.MJOB_MULTI_ANALYSIS
+
+  /**
+    * Customization for to enable "auto" submit at creation time.
+    *
+    * For the submit case, this might need to have a more explicit
+    * interface to validate that entry points are resolvable
+    * when the job is moved to submitted. However, it depends on how the
+    * client wants to run the jobs.
+    *
+    */
+  override def createJob(opts: MultiAnalysisJobOptions,
+                         user: Option[UserRecord]): Future[EngineJob] = {
+    val uuid = UUID.randomUUID()
+
+    val name = opts.name.getOrElse(opts.jobTypeId.id)
+    val comment =
+      opts.description.getOrElse(s"Description for job ${opts.jobTypeId.name}")
+
+    val jsettings = jwriter.write(opts).asJsObject
+
+    val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+
+    def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] =
+      dao.createMultiJob(
+        uuid,
+        name,
+        comment,
+        opts.jobTypeId,
+        epoints,
+        jsettings,
+        user.map(_.userId),
+        user.flatMap(_.userEmail),
+        config.smrtLinkVersion,
+        projectId,
+        subJobTypeId = opts.subJobTypeId,
+        submitJob = opts.getSubmit(),
+        childJobs = opts.jobs
+      )
+
+    for {
+      vopts <- validator(opts, user) // This will fail the Future if any validation errors occur.
+      entryPoints <- Future(vopts.resolveEntryPoints(dao))
+      engineJob <- creator(entryPoints)
+    } yield engineJob
+  }
 
   // Note, there's several explicit calls to toJson(jwriter) to avoid ambiguous implicit issues.
 

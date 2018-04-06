@@ -47,11 +47,17 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
+import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
+import com.pacbio.secondary.smrtlink.jsonprotocols.{
+  ServiceJobTypeJsonProtocols,
+  SmrtLinkJsonProtocols
+}
 import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacificbiosciences.pacbiodatasets._
 import org.apache.commons.io.FileUtils
 import org.postgresql.util.PSQLException
 import spray.json.JsObject
+import spray.json._
 
 trait DalProvider {
   val db: Singleton[Database]
@@ -711,11 +717,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     f
   }
 
-  private def insertEngineJob(
-      engineJob: EngineJob,
-      entryPoints: Seq[EngineJobEntryPointRecord],
-      submitJob: Boolean = false): Future[EngineJob] = {
-
+  private def qInsertEngineJob(engineJob: EngineJob,
+                               entryPoints: Seq[EngineJobEntryPointRecord],
+                               submitJob: Boolean = false)
+    : DBIOAction[EngineJob, NoStream, Effect.Read with Effect.Write] = {
     val jobState =
       if (submitJob) AnalysisJobStates.SUBMITTED else AnalysisJobStates.CREATED
 
@@ -775,7 +780,16 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
               s"Project id ${engineJob.projectId} does not exist"))
       }
 
-    val f = db.run(action.transactionally)
+    action
+  }
+
+  private def insertEngineJob(
+      engineJob: EngineJob,
+      entryPoints: Seq[EngineJobEntryPointRecord],
+      submitJob: Boolean = false): Future[EngineJob] = {
+
+    val f = db.run(
+      qInsertEngineJob(engineJob, entryPoints, submitJob).transactionally)
 
     // Need to send an event to EngineManager to Check for work
     f.foreach { engineJob =>
@@ -783,6 +797,63 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     }
 
     f
+  }
+
+  private def deferredJobToEngineJob(job: DeferredJob,
+                                     defaultName: String,
+                                     parentJobId: Int,
+                                     projectId: Int,
+                                     createdBy: Option[String] = None,
+                                     createdByEmail: Option[String],
+                                     smrtLinkVersion: Option[String],
+                                     submitJob: Boolean = false): EngineJob = {
+
+    val path = ""
+    val createdAt = JodaDateTime.now()
+    val uuid = UUID.randomUUID()
+    val name = job.name.getOrElse(defaultName)
+    val entryPoints: Seq[BoundServiceEntryPoint] =
+      job.entryPoints.map(ep =>
+        BoundServiceEntryPoint(ep.entryId, ep.fileTypeId, ep.uuid))
+
+    val pbsmrtpipeJobOptions = PbsmrtpipeJobOptions(job.name,
+                                                    job.description,
+                                                    job.pipelineId,
+                                                    entryPoints,
+                                                    job.taskOptions,
+                                                    Nil,
+                                                    Some(projectId),
+                                                    submit = Some(submitJob))
+
+    // hack, this will be removed from the data model after the old Auto running code is deleted
+    val workflow = "{}"
+
+    // This is kinda brutal to drag this in
+    val jsonSettings: JsObject =
+      ServiceJobTypeJsonProtocols.pbsmrtpipeJobOptionsJsonFormat
+        .write(pbsmrtpipeJobOptions)
+        .asJsObject
+
+    EngineJob(
+      -1,
+      uuid,
+      s"Deferred Job ${defaultName}",
+      job.description.getOrElse(s"Deferred Job $name"),
+      createdAt,
+      createdAt,
+      createdAt,
+      AnalysisJobStates.CREATED,
+      JobTypeIds.PBSMRTPIPE.id,
+      path,
+      jsonSettings.toString(),
+      createdBy,
+      createdByEmail,
+      smrtLinkVersion,
+      projectId = projectId,
+      parentMultiJobId = Some(parentJobId),
+      isMultiJob = false,
+      workflow = workflow
+    )
   }
 
   def createMultiJob(uuid: UUID,
@@ -798,7 +869,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
                      workflow: JsObject = JsObject.empty,
                      subJobTypeId: Option[String] = None,
-                     submitJob: Boolean = false): Future[EngineJob] = {
+                     submitJob: Boolean = false,
+                     childJobs: Seq[DeferredJob]): Future[EngineJob] = {
 
     // FIXME. This should have Option[Path]
     val path = ""
@@ -825,7 +897,41 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       workflow = workflow.toString()
     )
 
-    insertEngineJob(engineJob, entryPoints, submitJob)
+    val numJobs = childJobs.length
+
+    def toChildrenJobs(parentJobId: Int): Seq[EngineJob] = {
+      childJobs.zipWithIndex.map { xs =>
+        val defaultName = s"Job ${xs._2 + 1}/$numJobs"
+        deferredJobToEngineJob(xs._1,
+                               defaultName,
+                               parentJobId,
+                               projectId,
+                               createdBy,
+                               createdByEmail,
+                               smrtLinkVersion)
+      }
+    }
+
+    // All Children Jobs have submit = false because after a
+    // MultiJob is changed state to submitted, that will trigger a
+    // check to see if the inputs are resolved for each child job.
+    def aToChildrenJobs(parentJobId: Int): DBIO[Seq[EngineJob]] =
+      DBIO.sequence(toChildrenJobs(parentJobId).map(cJob =>
+        qInsertEngineJob(cJob, Nil, submitJob = false)))
+
+    val qAction = qInsertEngineJob(engineJob, entryPoints, submitJob).flatMap {
+      createdMultiJob =>
+        aToChildrenJobs(createdMultiJob.id).map(_ => createdMultiJob)
+    }
+
+    val f = db.run(qAction.transactionally)
+
+    // Need to send an event to EngineManager to Check for work
+    f.foreach { engineJob =>
+      sendEventToManager(engineJob)
+    }
+
+    f
   }
 
   /** New Actor-less model **/
