@@ -408,7 +408,8 @@ case class UpdateJobRecord(name: Option[String],
                            comment: Option[String],
                            tags: Option[String])
 
-case class JobCompletedMessage(job: EngineJob)
+case class JobChangeStateMessage(job: EngineJob)
+case class RunChangedStateMessage(run: RunSummary)
 case class MultiJobSubmitted(jobId: Int)
 
 // New DataSet Service Models

@@ -22,11 +22,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
-import com.pacbio.secondary.smrtlink.models.{
-  EngineConfig,
-  ServiceDataSetMetadata,
-  _
-}
+import com.pacbio.secondary.smrtlink.models.{ServiceDataSetMetadata, _}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 
@@ -173,10 +169,6 @@ trait DaoFutureUtils {
         Future.traverse(items)(f).map(r => results ++ r)
     }
   }
-}
-
-trait EventComponent {
-  def sendEventToManager[T](message: T): Unit
 }
 
 trait ProjectDataStore extends LazyLogging {
@@ -544,24 +536,32 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   /**
-    * Jobs that are in SUBMITTED, RUNNING state are eligible "runnable" jobs. These jobs will
-    * have their state (potentially) updated in an idempotent model.
-    *
-    * @return
-    */
-  def getNextRunnableEngineMultiJobs(): Future[Seq[EngineJob]] = {
-    val runnableStates: Set[AnalysisJobStates.JobStates] =
-      Set(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    val q =
-      qGetEngineJobsByStates(runnableStates).filter(_.isMultiJob === true)
-    db.run(q.result)
-  }
-
-  /**
     * Get all the Job Events associated with a specific job
     */
   def getJobEventsByJobId(jobId: Int): Future[Seq[JobEvent]] =
     db.run(jobEvents.filter(_.jobId === jobId).result)
+
+  def qUpdateJobState(jobId: IdAble,
+                      state: AnalysisJobStates.JobStates,
+                      message: String,
+                      errorMessage: Option[String] = None)
+    : DBIOAction[EngineJob, NoStream, Effect.Read with Effect.Write] = {
+
+    logger.info(s"Updating job state of job-id ${jobId.toIdString} to $state")
+    val now = JodaDateTime.now()
+
+    // The error handling of this .head call needs to be improved
+    for {
+      job <- qEngineJobById(jobId).result.head
+      _ <- DBIO.seq(
+        qEngineJobById(jobId)
+          .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.errorMessage))
+          .update(state, now, now, errorMessage),
+        jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
+      )
+      updatedJob <- qEngineJobById(jobId).result.head
+    } yield updatedJob
+  }
 
   /**
     * Update the State of a Job
@@ -579,28 +579,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       message: String,
       errorMessage: Option[String] = None): Future[EngineJob] = {
 
-    logger.info(s"Updating job state of job-id ${jobId.toIdString} to $state")
-    val now = JodaDateTime.now()
+    val q = qUpdateJobState(jobId, state, message, errorMessage)
 
-    // The error handling of this .head call needs to be improved
-    def xs =
-      for {
-        job <- qEngineJobById(jobId).result.head
-        _ <- DBIO.seq(
-          qEngineJobById(jobId)
-            .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.errorMessage))
-            .update(state, now, now, errorMessage),
-          jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
-        )
-        updatedJob <- qEngineJobById(jobId).result.headOption
-      } yield updatedJob
-
-    val f: Future[EngineJob] = db
-      .run(xs.transactionally)
-      .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
+    val f: Future[EngineJob] = db.run(q.transactionally)
 
     f.foreach { job: EngineJob =>
-      sendEventToManager[JobCompletedMessage](JobCompletedMessage(job))
+      sendEventToManager[JobChangeStateMessage](JobChangeStateMessage(job))
     }
 
     f
@@ -646,6 +630,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(q.transactionally)
   }
 
+  // This can only be called when the Job is in the CREATED state
   def updateMultiJob(jobId: IdAble,
                      jsonSetting: JsObject,
                      name: String,
@@ -680,41 +665,57 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(action.transactionally)
   }
 
+  private def extractJobState(childJobs: Seq[EngineJob],
+                              multiJobState: AnalysisJobStates.JobStates)
+    : (AnalysisJobStates.JobStates, Option[String]) = {
+    def toS(j: EngineJob) =
+      s"${j.id} ${j.state} ${j.errorMessage.getOrElse("")}"
+
+    val errorMessage = childJobs
+      .filter(j => AnalysisJobStates.hasFailed(j.state))
+      .map(toS)
+      .reduceLeftOption(_ + _)
+
+    val finalState =
+      JobUtils.determineMultiJobState(childJobs.map(_.state), multiJobState)
+
+    (finalState, errorMessage)
+  }
+
   /**
     *
-    * Update the workflow state of the Multi-Job
+    * Trigger a check to update the MultiJob state from states of
+    * children jobs. Only MultiJobs in the SUBMITTED, or RUNNING state
+    * will be updated.
     */
-  def updateMultiJobState(jobId: IdAble,
-                          state: AnalysisJobStates.JobStates,
-                          workflow: JsObject,
-                          message: String,
-                          errorMessage: Option[String]): Future[EngineJob] = {
-    logger.info(s"Updating MultiJob state of id:${jobId.toIdString} to $state")
-    val now = JodaDateTime.now()
-    val xs = for {
-      job <- qEngineMultiJobById(jobId).result.head
-      _ <- DBIO.seq(
-        qEngineMultiJobById(jobId)
-          .map(j =>
-            (j.state, j.updatedAt, j.jobUpdatedAt, j.workflow, j.errorMessage))
-          .update(state, now, now, workflow.toString(), errorMessage),
-        jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
-      )
-      updatedJob <- qEngineJobById(jobId).result.headOption
-    } yield updatedJob
+  def triggerUpdateOfMultiJobState(jobId: IdAble): Future[EngineJob] = {
 
-    val f = db
-      .run(xs.transactionally)
-      .flatMap(failIfNone(s"Failed to find Job ${jobId.toIdString}"))
+    val multiJobStates =
+      Set(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
 
-    // Send message to the EngineMultiJobManager to Check for new multiJobs
-    if (state == AnalysisJobStates.SUBMITTED) {
-      f.foreach { updatedJob =>
-        sendEventToManager(MultiJobSubmitted(updatedJob.id))
-      }
+    val qGetParent =
+      qEngineMultiJobById(jobId).filter(_.state inSet multiJobStates)
+
+    val a1: DBIO[EngineJob] = for {
+      job <- qGetParent.result.head
+    } yield job
+
+    val action = a1.flatMap { parentJob =>
+      for {
+        childJobs <- engineJobs
+          .filter(_.parentMultiJobId === parentJob.id)
+          .result
+        updatedStateMessage <- DBIO.successful(
+          extractJobState(childJobs, parentJob.state))
+        updatedJob <- qUpdateJobState(
+          parentJob.id,
+          updatedStateMessage._1,
+          s"MultiJob ${parentJob.id} state:${parentJob.state} to ${updatedStateMessage._1}",
+          updatedStateMessage._2)
+      } yield updatedJob
     }
 
-    f
+    db.run(action.transactionally)
   }
 
   private def qInsertEngineJob(engineJob: EngineJob,
@@ -792,8 +793,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       qInsertEngineJob(engineJob, entryPoints, submitJob).transactionally)
 
     // Need to send an event to EngineManager to Check for work
-    f.foreach { engineJob =>
-      sendEventToManager(engineJob)
+    f.foreach { job: EngineJob =>
+      sendEventToManager[JobChangeStateMessage](JobChangeStateMessage(job))
     }
 
     f
@@ -837,7 +838,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     EngineJob(
       -1,
       uuid,
-      s"Deferred Job ${defaultName}",
+      name,
       job.description.getOrElse(s"Deferred Job $name"),
       createdAt,
       createdAt,
@@ -899,16 +900,20 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
     val numJobs = childJobs.length
 
-    def toChildrenJobs(parentJobId: Int): Seq[EngineJob] = {
+    def toChildrenJobs(
+        parentJobId: Int): Seq[(EngineJob, Seq[EngineJobEntryPointRecord])] = {
       childJobs.zipWithIndex.map { xs =>
         val defaultName = s"Job ${xs._2 + 1}/$numJobs"
-        deferredJobToEngineJob(xs._1,
-                               defaultName,
-                               parentJobId,
-                               projectId,
-                               createdBy,
-                               createdByEmail,
-                               smrtLinkVersion)
+        val eJob = deferredJobToEngineJob(xs._1,
+                                          defaultName,
+                                          parentJobId,
+                                          projectId,
+                                          createdBy,
+                                          createdByEmail,
+                                          smrtLinkVersion)
+        val ePoints = xs._1.entryPoints.map(e =>
+          EngineJobEntryPointRecord(e.uuid, e.fileTypeId))
+        (eJob, ePoints)
       }
     }
 
@@ -916,8 +921,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     // MultiJob is changed state to submitted, that will trigger a
     // check to see if the inputs are resolved for each child job.
     def aToChildrenJobs(parentJobId: Int): DBIO[Seq[EngineJob]] =
-      DBIO.sequence(toChildrenJobs(parentJobId).map(cJob =>
-        qInsertEngineJob(cJob, Nil, submitJob = false)))
+      DBIO.sequence(toChildrenJobs(parentJobId).map(out =>
+        qInsertEngineJob(out._1, out._2, submitJob = false)))
 
     val qAction = qInsertEngineJob(engineJob, entryPoints, submitJob).flatMap {
       createdMultiJob =>
@@ -927,10 +932,9 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val f = db.run(qAction.transactionally)
 
     // Need to send an event to EngineManager to Check for work
-    f.foreach { engineJob =>
-      sendEventToManager(engineJob)
+    f.foreach { job: EngineJob =>
+      sendEventToManager[JobChangeStateMessage](JobChangeStateMessage(job))
     }
-
     f
   }
 
@@ -1035,6 +1039,107 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(fx.transactionally)
       .map(_.headOption)
       .flatMap(failIfNone(errorMessage))
+  }
+
+  /**
+    * Check a Child Job in the CREATED state for Resolved Entry Points and change the
+    * job state from CREATED to SUBMITTED if all Resolved Entry Points are found.
+    *
+    * @param childJobId Child Job Id
+    * @return
+    */
+  def qCheckCreatedChildJobForResolvedEntryPoints(
+      childJobId: Int): DBIO[String] = {
+
+    implicit val jobStateMapper = jobStateType
+
+    val submitMessage =
+      s"All Entry points are resolved for child job. Submitting Child Job $childJobId"
+
+    val notSubmittedMessage =
+      "Job is not in CREATED state or ALL Entry Points are not resolved."
+
+    // Get the Child Job
+    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
+    val q1 = q0.filter(_.parentMultiJobId.isDefined)
+    val q2 = q1.filter(_.id === childJobId)
+
+    val qNumJobEntryPoints = for {
+      childJob <- q2
+      foundEpoints <- engineJobsDataSets.filter(_.jobId === childJob.id)
+    } yield foundEpoints
+
+    val qNumResolvedDataSets = for {
+      childJob <- q2
+      // Entry Points of the Job
+      childJobEntryPoints <- engineJobsDataSets.filter(_.jobId === childJob.id)
+      // Should this only include Active datasets?
+      resolvedDataSets <- dsMetaData2
+        .filter(_.uuid === childJobEntryPoints.datasetUUID)
+    } yield resolvedDataSets
+
+    // Simple comparison that the Job EntryPoints are all resolved to already imported DataSets
+    val q4 = for {
+      numEntryPoints <- qNumJobEntryPoints.result
+      numResolvedDataSets <- qNumResolvedDataSets.result
+    } yield numEntryPoints.length == numResolvedDataSets.length
+
+    val qSubmit = qUpdateJobState(childJobId,
+                                  AnalysisJobStates.SUBMITTED,
+                                  submitMessage,
+                                  None)
+      .map(updatedJob => submitMessage)
+
+    // If found All the EntryPoints are Resolved, then update the Child Job state to
+    // Submitted.
+    val totalAction = q4.flatMap {
+      case false =>
+        logger.info(notSubmittedMessage)
+        DBIO.successful(notSubmittedMessage)
+      case true =>
+        logger.info(submitMessage)
+        qSubmit
+    }
+
+    totalAction
+  }
+
+  def checkCreatedChildJobForResolvedEntryPoints(
+      childJobId: Int): Future[String] =
+    db.run(
+      qCheckCreatedChildJobForResolvedEntryPoints(childJobId).transactionally)
+
+  /**
+    * When a new DataSet is added to the System, see if any Children
+    * Jobs have
+    *
+    * @param datasetUUID
+    */
+  def checkCreatedChildrenJobsForNewlyEnteredDataSet(
+      datasetUUID: UUID): Future[String] = {
+
+    // Get all Valid Child Job Jobs
+    val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
+    val q1 = q0.filter(_.parentMultiJobId.isDefined)
+
+    val q3 = for {
+      validChildJobs <- q1
+      eJobIds <- engineJobsDataSets
+        .filter(_.datasetUUID === datasetUUID)
+        .filter(_.jobId === validChildJobs.id)
+        .map(_.jobId)
+    } yield eJobIds
+
+    val total: DBIO[Seq[String]] = q3.result.flatMap { jobIds =>
+      DBIO.sequence(jobIds.map(qCheckCreatedChildJobForResolvedEntryPoints))
+    }
+
+    db.run(total.transactionally)
+      .map(
+        updates =>
+          updates
+            .reduceLeftOption(_ ++ _)
+            .getOrElse(s"No Updates for $datasetUUID"))
   }
 
   /**
@@ -1529,6 +1634,15 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     db.run(q.sortBy(_.id).result)
   }
 
+  def getDataSetMetasByJobId(ix: IdAble): Future[Seq[DataSetMetaDataSet]] = {
+    val q1 = for {
+      jobs <- qEngineJobById(ix)
+      dsMetas <- dsMetaData2.filter(_.jobId === jobs.id)
+    } yield dsMetas
+
+    db.run(q1.result)
+  }
+
   /**
     * Update the
     * @param ids DataSetMetaSets that are to marked as InActive.
@@ -1696,7 +1810,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * 1. val files = Seq[DataStoreFile]
     * 2. val serviceFiles = Seq[DataStoreServiceFile] (turn into DataStore ServiceFile)
     * 3. val importAbleFiles: Seq[ImportAbleFile] = files.map(loadImportAbleFile) // Load from filesystem
-    * 4. val xs = Future.sequence(importableFiles.map(file => importImportAbleFile(file))): Future[Seq[MessageResponse]] // import into DB
+    * 4. val xs = Future.sequence(importableFiles.map(file => importImportAbleFile(file))) // import into DB
     */
   def loadImportAbleFile[T >: ImportAbleServiceFile](
       dsj: DsServiceJobFile): T = {
@@ -3199,7 +3313,7 @@ class JobsDao(val db: Database,
 
   // This is added to get around potential circular dependencies of the listener
   def addListener(listener: ActorRef): Unit = {
-    logger.info(s"Adding JobsDao Listener $listener")
+    logger.info(s"Adding Listener $listener to $this")
     eventListeners += listener
   }
 

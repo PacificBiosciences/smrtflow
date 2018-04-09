@@ -69,6 +69,8 @@ object AnalysisJobStates {
 
   def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
 
+  def hasFailed(state: JobStates): Boolean = !isSuccessful(state)
+
   def intToState(i: Int): Option[JobStates] =
     VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
 

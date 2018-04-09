@@ -123,7 +123,6 @@ package object jobtypes {
       * Util to add Stdout/Log "Master" DataStore File
       *
       * @param dao Jobs DAO
-      * @param path Path to the Master/StdoutLog file
       * @return
       */
     def addStdOutLogToDataStore(
@@ -394,16 +393,6 @@ package object jobtypes {
                      config: SystemJobConfig) = {
       throw new Exception("Direct call of Run on MultiJob is not supported")
     }
-
-    /**
-      * This is the core method that is called to run a Multi-Job. This should be completely self contained
-      * and omnipotent.
-      */
-    def runWorkflow(engineJob: EngineJob,
-                    resources: JobResourceBase,
-                    resultsWriter: JobResultsWriter,
-                    dao: JobsDao,
-                    config: SystemJobConfig): Future[MessageResponse]
   }
 
   trait Converters {

@@ -20,6 +20,7 @@ import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.models.JobChangeStateMessage
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -41,8 +42,8 @@ class EngineCoreJobManagerActor(dao: JobsDao,
 
   import CommonModelImplicits._
 
-  //MK Probably want to have better model for this
-  val checkForWorkInterval = 5.seconds
+  // The core model for this is to listen for Job state changes from CREATED to SUBMITTED.
+  val checkForWorkInterval = 30.seconds
 
   val checkForWorkTick = context.system.scheduler.schedule(
     5.seconds,
@@ -205,6 +206,13 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   override def receive: Receive = {
+    case JobChangeStateMessage(job) =>
+      if (job.state == AnalysisJobStates.SUBMITTED) {
+        log.info(
+          s"Triggered check for more work from Job:${job.id} in state ${job.state}")
+        self ! CheckForRunnableJob
+      }
+
     case CheckForRunnableJob => {
       Try(checkForWork()) match {
         case Success(msg) =>
