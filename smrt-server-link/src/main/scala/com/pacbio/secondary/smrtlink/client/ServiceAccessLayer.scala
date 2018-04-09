@@ -519,13 +519,17 @@ class SmrtLinkServiceClient(
   // XXX note that the project-related API calls require authentication and
   // aren't actually usable in this class; use AuthenticatedServiceAccessLayer
   // instead
-  def createProject(name: String,
-                    description: String,
-                    userName: Option[String] = None): Future[FullProject] = {
+  def createProject(
+      name: String,
+      description: String,
+      userName: Option[String] = None,
+      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None)
+    : Future[FullProject] = {
     val members = userName.map { user =>
       Seq(ProjectRequestUser(user, ProjectUserRole.OWNER))
     }
-    val d = ProjectRequest(name, description, None, None, None, members)
+    val d =
+      ProjectRequest(name, description, None, grantRoleToAll, None, members)
     getObject[FullProject](
       Post(toUri(ROOT_PROJECTS_URI_PATH), d).withHeaders(headers: _*))
   }
