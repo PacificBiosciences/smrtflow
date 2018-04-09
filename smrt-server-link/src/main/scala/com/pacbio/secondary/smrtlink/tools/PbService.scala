@@ -163,7 +163,8 @@ object PbServiceParser extends CommandLineToolVersion {
       includeEntryPoints: Boolean = false,
       blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
       numMaxConcurrentImport: Int = 10, // This number should be tuned.
-      tags: Option[String] = None
+      tags: Option[String] = None,
+      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None
   ) extends LoggerConfig {
     def getName =
       name.getOrElse(
@@ -610,7 +611,10 @@ object PbServiceParser extends CommandLineToolVersion {
       } text "Project name",
       arg[String]("description") required () action { (d, c) =>
         c.copy(description = d)
-      } text "Project description"
+      } text "Project description",
+      opt[String]("grant-role-to-all") action { (s, c) =>
+        c.copy(grantRoleToAll = Some(ProjectRequestRole.fromString(s)))
+      } text "Role to grant to all other users in the new project.  Choices are CAN_EDIT, CAN_VIEW, and NONE; the default is NONE, i.e. only the project owner will be able to view or edit the project and associated datasets."
     ) text "Start a new project (requires authentication)"
 
     cmd(Modes.GET_PROJECTS.name)
@@ -1511,11 +1515,14 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       .getOrElse(Future.successful(None))
   }
 
-  def runCreateProject(name: String,
-                       description: String,
-                       userName: Option[String]): Future[String] = {
+  def runCreateProject(
+      name: String,
+      description: String,
+      userName: Option[String],
+      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None)
+    : Future[String] = {
     sal
-      .createProject(name, description, userName)
+      .createProject(name, description, userName, grantRoleToAll)
       .map(project => toProjectSummary(project))
   }
 
@@ -2095,7 +2102,10 @@ object PbService extends ClientAppUtils with LazyLogging {
           case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.getComment)
           case Modes.ALARMS => ps.runGetAlarms
           case Modes.CREATE_PROJECT =>
-            ps.runCreateProject(c.getName, c.description, Some(c.user))
+            ps.runCreateProject(c.getName,
+                                c.description,
+                                Some(c.user),
+                                c.grantRoleToAll)
           case Modes.GET_PROJECTS => ps.runGetProjects
           case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
           case x =>
