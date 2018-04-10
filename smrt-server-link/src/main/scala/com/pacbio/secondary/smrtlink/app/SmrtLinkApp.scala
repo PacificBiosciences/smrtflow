@@ -171,7 +171,6 @@ trait SmrtLinkProviders
     with ReportViewRulesServiceProvider
     with JobsServiceProvider
     with EngineCoreJobManagerActorProvider
-    with EngineMultiJobEventManagerActorProvider
     with DbBackupActorProvider
     with SmrtLinkEveMetricsProcessActor {
 
@@ -209,10 +208,6 @@ trait SmrtLinkApi
   lazy val dataIntegrityManagerActor = providers.dataIntegrityManagerActor()
   lazy val alarmManagerRunnerActor = providers.alarmManagerRunnerActor()
   lazy val engineManagerActor = providers.engineManagerActor()
-  // Old Model
-  //lazy val engineMultiJobManagerActor = providers.engineMultiJobManagerActor()
-  lazy val engineMultiJobEventManagerActor =
-    providers.engineMultiJobEventManagerActor()
   lazy val dbBackupActor = providers.dbBackupActor()
 
   lazy val eventManagerActor = providers.eventManagerActor()
@@ -263,13 +258,10 @@ trait SmrtLinkApi
 
     jobsDao.addListener(eventManagerActor)
     jobsDao.addListener(engineManagerActor)
-    jobsDao.addListener(engineMultiJobEventManagerActor)
-    // Old Model
-    //jobsDao.addListener(engineMultiJobManagerActor)
     jobsDao.addListener(smrtLinkEveMetricsProcessActor)
 
     // Only Need listener for this Specific Actor
-    runDao.addListener(engineMultiJobEventManagerActor)
+    runDao.addListener(engineManagerActor)
 
     // Start Up validation
     for {
