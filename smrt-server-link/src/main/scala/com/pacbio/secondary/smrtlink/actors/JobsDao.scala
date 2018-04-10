@@ -468,13 +468,15 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
   def getMultiJobChildren(multiJobId: IdAble): Future[Seq[EngineJob]] = {
 
+    def qGetBy(ix: Rep[Int]) =
+      engineJobs.filter(_.parentMultiJobId === ix).sortBy(_.id)
+
     val q = multiJobId match {
-      case IntIdAble(ix) =>
-        engineJobs.filter(_.parentMultiJobId === ix).sortBy(_.id)
+      case IntIdAble(ix) => qGetBy(ix)
       case UUIDIdAble(_) =>
         for {
           job <- qEngineMultiJobById(multiJobId)
-          jobs <- engineJobs.filter(_.parentMultiJobId === job.id).sortBy(_.id)
+          jobs <- qGetBy(job.id)
         } yield jobs
     }
     db.run(q.result)
@@ -547,7 +549,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                       errorMessage: Option[String] = None)
     : DBIOAction[EngineJob, NoStream, Effect.Read with Effect.Write] = {
 
-    logger.info(s"Updating job state of job-id ${jobId.toIdString} to $state")
+    logger.info(s"Updating job state of JobId:${jobId.toIdString} to $state")
     val now = JodaDateTime.now()
 
     // The error handling of this .head call needs to be improved
@@ -696,23 +698,27 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val qGetParent =
       qEngineMultiJobById(jobId).filter(_.state inSet multiJobStates)
 
-    val a1: DBIO[EngineJob] = for {
-      job <- qGetParent.result.head
+    val a1: DBIO[Option[EngineJob]] = for {
+      job <- qGetParent.result.headOption
     } yield job
 
-    val action = a1.flatMap { parentJob =>
-      for {
-        childJobs <- engineJobs
-          .filter(_.parentMultiJobId === parentJob.id)
-          .result
-        updatedStateMessage <- DBIO.successful(
-          extractJobState(childJobs, parentJob.state))
-        updatedJob <- qUpdateJobState(
-          parentJob.id,
-          updatedStateMessage._1,
-          s"MultiJob ${parentJob.id} state:${parentJob.state} to ${updatedStateMessage._1}",
-          updatedStateMessage._2)
-      } yield updatedJob
+    val action = a1.flatMap {
+      case Some(parentJob) =>
+        for {
+          childJobs <- engineJobs
+            .filter(_.parentMultiJobId === parentJob.id)
+            .result
+          updatedStateMessage <- DBIO.successful(
+            extractJobState(childJobs, parentJob.state))
+          updatedJob <- qUpdateJobState(
+            parentJob.id,
+            updatedStateMessage._1,
+            s"MultiJob ${parentJob.id} state:${parentJob.state} to ${updatedStateMessage._1}",
+            updatedStateMessage._2)
+        } yield updatedJob
+      case _ =>
+        DBIO.failed(ResourceNotFoundError(
+          s"Failed to Find MultiJob ${jobId.toIdString}, or job state is not in $multiJobStates"))
     }
 
     db.run(action.transactionally)
@@ -1094,10 +1100,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     // Submitted.
     val totalAction = q4.flatMap {
       case false =>
-        logger.info(notSubmittedMessage)
+        // logger.info(notSubmittedMessage)
         DBIO.successful(notSubmittedMessage)
       case true =>
-        logger.info(submitMessage)
+        // logger.info(submitMessage)
         qSubmit
     }
 
