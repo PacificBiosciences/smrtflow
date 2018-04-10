@@ -96,17 +96,21 @@ trait JobUtils extends SecondaryJobJsonProtocol with LazyLogging {
       s2: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
     (s1, s2) match {
       case (AnalysisJobStates.CREATED, AnalysisJobStates.CREATED) =>
-        AnalysisJobStates.RUNNING
+        AnalysisJobStates.CREATED
       case (AnalysisJobStates.RUNNING, AnalysisJobStates.RUNNING) =>
         AnalysisJobStates.RUNNING
       case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUCCESSFUL) =>
         AnalysisJobStates.SUCCESSFUL
       case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUBMITTED) =>
-        AnalysisJobStates.RUNNING
+        AnalysisJobStates.SUBMITTED
       case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.CREATED) =>
-        AnalysisJobStates.RUNNING
+        AnalysisJobStates.SUBMITTED
       case (AnalysisJobStates.CREATED, AnalysisJobStates.SUBMITTED) =>
         AnalysisJobStates.RUNNING
+      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUCCESSFUL) =>
+        AnalysisJobStates.SUBMITTED
+      case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUBMITTED) =>
+        AnalysisJobStates.SUBMITTED
       // This is unclear what this means. Defaulting to Failed
       case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) =>
         AnalysisJobStates.FAILED
