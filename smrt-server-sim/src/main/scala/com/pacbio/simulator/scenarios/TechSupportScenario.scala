@@ -98,7 +98,9 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
         "pbsmrtpipe.pipelines.dev_diagnostic",
         Seq(ep),
         Seq(taskOption),
-        workflowOptions
+        workflowOptions,
+        None,
+        Some(true)
       ))
   }
 
