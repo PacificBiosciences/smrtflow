@@ -455,7 +455,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
 
   def updateJobStateToSubmitted(
       jobId: IdAble,
-      customExecutionContext: ExecutionContext): Future[EngineJob] = {
+      customExecutionContext: ExecutionContext): Future[MessageResponse] = {
     // implicit val customEc = customExecutionContext
     (for {
       job <- dao.getJobById(jobId)
@@ -468,7 +468,10 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                                        AnalysisJobStates.SUBMITTED,
                                        msg,
                                        None)
-    } yield updatedJob)(customExecutionContext)
+    } yield
+      MessageResponse(
+        s"Updated Job ${jobId.toIdString} to state ${job.state}"))(
+      customExecutionContext)
   }
 
   def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
