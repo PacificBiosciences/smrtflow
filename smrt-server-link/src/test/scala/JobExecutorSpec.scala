@@ -10,10 +10,8 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
-import com.pacbio.secondary.smrtlink.actors.{
-  EngineMultiJobEventManagerActorProvider,
-  _
-}
+import com.pacbio.secondary.smrtlink.actors._
+
 import com.pacbio.secondary.smrtlink.dependency.{
   ConfigProvider,
   SetBindings,
@@ -89,7 +87,6 @@ class JobExecutorSpec
       with ConfigProvider
       with FakeClockProvider
       with EngineCoreJobManagerActorProvider
-      with EngineMultiJobEventManagerActorProvider
       with SetBindings {
 
     override final val jwtUtils: Singleton[JwtUtils] = Singleton(() =>
@@ -112,10 +109,8 @@ class JobExecutorSpec
   // This needs to be manual triggered here because it doesn't have an explicit dependency.
   val engineManagerActor = TestProviders.engineManagerActor()
   val eventManagerActor = TestProviders.eventManagerActor()
-  val engineMultiJobEventManagerActor =
-    TestProviders.engineMultiJobEventManagerActor()
 
-  dao.addListener(engineMultiJobEventManagerActor)
+  dao.addListener(engineManagerActor)
 
   def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
