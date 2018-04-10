@@ -287,14 +287,14 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     }
   }
 
-  private def onJobRunner(f: EngineJob => Boolean,
-                          fx: Future[String]): EngineJob => Future[String] = {
-    job =>
-      if (f(job)) {
-        fx
-      } else {
-        Future.successful("")
-      }
+  private def onJobRunner(
+      f: EngineJob => Boolean,
+      fx: => Future[String]): EngineJob => Future[String] = { job =>
+    if (f(job)) {
+      fx
+    } else {
+      Future.successful("")
+    }
   }
 
   def onJobChangeCheckIfParentJob(job: EngineJob): Future[String] = {
