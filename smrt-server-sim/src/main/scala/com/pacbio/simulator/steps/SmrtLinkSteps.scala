@@ -6,12 +6,11 @@ import java.nio.file.Path
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
-
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
+import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
   DataSetFilterProperty
@@ -592,12 +591,15 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.getDatasetDeleteJobs().map(j => j.sortBy(_.id))
   }
 
-  case class GetBundle(typeId: Var[String]) extends VarStep[PacBioDataBundle] {
+  case class GetBundle(typeId: Var[String])
+      extends VarStep[PacBioDataBundle]
+      with DaoFutureUtils {
     override val name = "GetBundle"
     override def runWith =
       smrtLinkClient
         .getPacBioDataBundleByTypeId(typeId.get)
-        .map(b => b.filter(_.isActive == true).head)
+        .map(b => b.find(_.isActive == true))
+        .flatMap(failIfNone(s"Unable to find Bundle ${typeId.get}"))
   }
 
   case class CreateTsSystemStatusJob(user: Var[String], comment: Var[String])
