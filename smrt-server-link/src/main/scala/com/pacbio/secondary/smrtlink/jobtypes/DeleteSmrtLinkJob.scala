@@ -28,14 +28,15 @@ import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
-case class DeleteSmrtLinkJobOptions(jobId: IdAble,
-                                    name: Option[String],
-                                    description: Option[String],
-                                    removeFiles: Boolean = false,
-                                    dryRun: Option[Boolean] = None,
-                                    force: Option[Boolean] = None,
-                                    projectId: Option[Int] = Some(
-                                      JobConstants.GENERAL_PROJECT_ID))
+case class DeleteSmrtLinkJobOptions(
+    jobId: IdAble,
+    name: Option[String],
+    description: Option[String],
+    removeFiles: Boolean = false,
+    dryRun: Option[Boolean] = None,
+    force: Option[Boolean] = None,
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.DELETE_JOB
   override def validate(

@@ -26,7 +26,8 @@ case class MockPbsmrtpipeJobOptions(
     entryPoints: Seq[BoundServiceEntryPoint],
     taskOptions: Seq[ServiceTaskOptionBase],
     workflowOptions: Seq[ServiceTaskOptionBase],
-    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.MOCK_PBSMRTPIPE
   override def validate(dao: JobsDao, config: SystemJobConfig) = None

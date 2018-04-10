@@ -36,6 +36,8 @@ trait JobServiceConstants {
   // All Datastore files for the system
   val DATASTORE_FILES_PREFIX = "datastore-files"
 
+  val JOB_SUBMIT_PREFIX = "submit"
+
   // Not completely sure about wrapping the logger service.
   // The motivation is that the sourceId can be set/modified here so that the jobId isn't leaked to
   // the tool

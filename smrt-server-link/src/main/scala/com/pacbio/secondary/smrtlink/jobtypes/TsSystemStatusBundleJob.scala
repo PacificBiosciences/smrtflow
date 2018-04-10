@@ -28,12 +28,13 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-case class TsSystemStatusBundleJobOptions(user: String,
-                                          comment: String,
-                                          name: Option[String],
-                                          description: Option[String],
-                                          projectId: Option[Int] = Some(
-                                            JobConstants.GENERAL_PROJECT_ID))
+case class TsSystemStatusBundleJobOptions(
+    user: String,
+    comment: String,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions
     with TsJobValidationUtils {
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS

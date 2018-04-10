@@ -11,7 +11,7 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 import com.pacbio.secondary.smrtlink.actors._
-import com.pacbio.secondary.smrtlink.auth._
+
 import com.pacbio.secondary.smrtlink.dependency.{
   ConfigProvider,
   SetBindings,
@@ -35,6 +35,11 @@ import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.app._
+import com.pacbio.secondary.smrtlink.auth.{
+  JwtUtils,
+  JwtUtilsImpl,
+  JwtUtilsProvider
+}
 import com.pacbio.secondary.smrtlink.jobtypes.{
   DeleteSmrtLinkJobOptions,
   ExportSmrtLinkJobOptions,
@@ -103,6 +108,9 @@ class JobExecutorSpec
   val totalRoutes = TestProviders.newJobService().prefixedRoutes
   // This needs to be manual triggered here because it doesn't have an explicit dependency.
   val engineManagerActor = TestProviders.engineManagerActor()
+  val eventManagerActor = TestProviders.eventManagerActor()
+
+  dao.addListener(engineManagerActor)
 
   def toJobType(x: String) = s"/$ROOT_SA_PREFIX/job-manager/jobs/$x"
   def toJobTypeById(x: String, i: IdAble) = s"${toJobType(x)}/${i.toIdString}"
@@ -316,7 +324,8 @@ class JobExecutorSpec
     }
     "Export job" in {
       val tmpDir = Files.createTempDirectory("export-job")
-      val params = ExportSmrtLinkJobOptions(Seq(1), tmpDir, false, None, None)
+      val params =
+        ExportSmrtLinkJobOptions(Seq(1), tmpDir, false, None, None, None, None)
       Post(toJobType(JobTypeIds.EXPORT_JOBS.id), params) ~> totalRoutes ~> check {
         val jobs = responseAs[EngineJob]
         success
@@ -368,11 +377,12 @@ class JobExecutorSpec
                                             Some("Job Description"),
                                             removeFiles = true,
                                             dryRun = Some(false),
-                                            projectId = Some(projectId))
+                                            projectId = Some(projectId),
+                                            submit = Some(true))
 
       Post(toJobType(JobTypeIds.DELETE_JOB.id), params) ~> totalRoutes ~> check {
         // poll hack. We need a general mechanism to wait for a job to complete
-        Thread.sleep(10000)
+        Thread.sleep(50000)
         val job = responseAs[EngineJob]
         job.jobTypeId must beEqualTo(JobTypeIds.DELETE_JOB.id)
         job.projectId must beEqualTo(projectId)

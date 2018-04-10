@@ -69,6 +69,8 @@ object AnalysisJobStates {
 
   def isSuccessful(state: JobStates): Boolean = state == SUCCESSFUL
 
+  def hasFailed(state: JobStates): Boolean = !isSuccessful(state)
+
   def intToState(i: Int): Option[JobStates] =
     VALID_STATES.map(x => (x.stateId, x)).toMap.get(i)
 
@@ -130,6 +132,9 @@ object JobModels {
     val GENERAL_PROJECT_ID = 1
     // THIS MUST BE GLOBALLY UNIQUE
     val GENERAL_PROJECT_NAME = "General Project"
+
+    val SUBMIT_DEFAULT_CORE_JOB = true
+    val SUBMIT_DEFAULT_MULTI_JOB = false
   }
 
   // This needs to be made a proper type

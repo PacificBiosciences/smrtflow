@@ -73,7 +73,8 @@ case class ExportDataSetsJobOptions(
     deleteAfterExport: Option[Boolean],
     name: Option[String] = None,
     description: Option[String] = None,
-    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID))
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions
     with ValidateJobUtils {
 
@@ -138,7 +139,8 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
         parentJob.createdBy,
         parentJob.createdByEmail,
         parentJob.smrtlinkVersion,
-        parentJob.projectId
+        parentJob.projectId,
+        submitJob = true
       )
     }
 

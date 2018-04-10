@@ -57,12 +57,13 @@ trait ImportServiceUtils {
 
 object ImportUtils extends ImportServiceUtils with JobImportUtils {}
 
-case class ImportSmrtLinkJobOptions(zipPath: Path,
-                                    mockJobId: Option[Boolean] = None,
-                                    description: Option[String] = None,
-                                    name: Option[String] = None,
-                                    projectId: Option[Int] = Some(
-                                      JobConstants.GENERAL_PROJECT_ID))
+case class ImportSmrtLinkJobOptions(
+    zipPath: Path,
+    mockJobId: Option[Boolean] = None,
+    description: Option[String] = None,
+    name: Option[String] = None,
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions
     with ValidateJobUtils
     with ImportServiceUtils {

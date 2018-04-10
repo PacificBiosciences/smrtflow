@@ -242,7 +242,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
   }
 
   override def receive: Receive = {
-    case JobCompletedMessage(job) =>
+    case JobChangeStateMessage(job) =>
       if (sendJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id) && job.state.isCompleted) {
         convertToEngineMetrics(dao, job.id)
           .map(em => convertToEvent(em)) onComplete {

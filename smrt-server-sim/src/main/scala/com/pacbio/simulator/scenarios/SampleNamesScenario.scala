@@ -86,7 +86,9 @@ class SampleNamesScenario(host: String, port: Int)
         PIPELINE_ID,
         Seq(ep),
         taskOpts,
-        Seq.empty[ServiceTaskOptionBase]
+        Seq.empty[ServiceTaskOptionBase],
+        None,
+        Some(true)
       )
     }
   }

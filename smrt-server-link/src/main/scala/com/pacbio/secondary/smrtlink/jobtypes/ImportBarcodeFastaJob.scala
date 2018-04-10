@@ -27,11 +27,12 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
 //FIXME(mpkocher)(8-17-2017) There's a giant issue with the job "name" versus "name" used in job options.
-case class ImportBarcodeFastaJobOptions(path: Path,
-                                        name: Option[String],
-                                        description: Option[String],
-                                        projectId: Option[Int] = Some(
-                                          JobConstants.GENERAL_PROJECT_ID))
+case class ImportBarcodeFastaJobOptions(
+    path: Path,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
   override def toJob() = new ImportBarcodeFastaJob(this)

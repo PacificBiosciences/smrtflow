@@ -39,14 +39,15 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 /**
   * Created by mkocher on 8/17/17.
   */
-case class PbsmrtpipeJobOptions(name: Option[String],
-                                description: Option[String],
-                                pipelineId: String,
-                                entryPoints: Seq[BoundServiceEntryPoint],
-                                taskOptions: Seq[ServiceTaskOptionBase],
-                                workflowOptions: Seq[ServiceTaskOptionBase],
-                                projectId: Option[Int] = Some(
-                                  JobConstants.GENERAL_PROJECT_ID))
+case class PbsmrtpipeJobOptions(
+    name: Option[String],
+    description: Option[String],
+    pipelineId: String,
+    entryPoints: Seq[BoundServiceEntryPoint],
+    taskOptions: Seq[ServiceTaskOptionBase],
+    workflowOptions: Seq[ServiceTaskOptionBase],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.PBSMRTPIPE
 

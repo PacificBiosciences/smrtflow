@@ -30,13 +30,14 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
-case class ExportSmrtLinkJobOptions(ids: Seq[IdAble],
-                                    outputPath: Path,
-                                    includeEntryPoints: Boolean,
-                                    name: Option[String],
-                                    description: Option[String],
-                                    projectId: Option[Int] = Some(
-                                      JobConstants.GENERAL_PROJECT_ID))
+case class ExportSmrtLinkJobOptions(
+    ids: Seq[IdAble],
+    outputPath: Path,
+    includeEntryPoints: Boolean,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions
     with ValidateJobUtils {
 

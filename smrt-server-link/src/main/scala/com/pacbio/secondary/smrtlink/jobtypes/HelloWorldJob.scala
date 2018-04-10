@@ -5,11 +5,12 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobResultsWriter
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 
-case class HelloWorldJobOptions(x: Int,
-                                name: Option[String],
-                                description: Option[String],
-                                projectId: Option[Int] = Some(
-                                  JobConstants.GENERAL_PROJECT_ID))
+case class HelloWorldJobOptions(
+    x: Int,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.HELLO_WORLD
   override def validate(dao: JobsDao, config: SystemJobConfig) = None
