@@ -35,7 +35,7 @@ class DbBackUpJobSpec
   val backUpDir = Files.createTempDirectory("db-backup")
   val jobDir = Files.createTempDirectory("job-dir")
 
-  val jobOptions = DbBackUpJobOptions("admin", "test spec", None, None)
+  val jobOptions = DbBackUpJobOptions("admin", "test spec", None, None, None)
 
   def cleanUp(): Unit = {
     val files = Seq(backUpDir, jobDir)

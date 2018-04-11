@@ -16,45 +16,45 @@ trait ServiceJobTypeJsonProtocols
 
   import SmrtLinkJsonProtocols._
   // put these here for now
-  implicit val helloWorldJobOptionJsonFormat = jsonFormat4(
+  implicit val helloWorldJobOptionJsonFormat = jsonFormat5(
     HelloWorldJobOptions)
-  implicit val deleteDataSetobOptionJsonFormat = jsonFormat6(
+  implicit val deleteDataSetobOptionJsonFormat = jsonFormat7(
     DeleteDataSetJobOptions)
 
   // These are from NEW JobType Option data model
 
-  implicit val mergeDataSetJobOptionJsonFormat = jsonFormat5(
+  implicit val mergeDataSetJobOptionJsonFormat = jsonFormat6(
     MergeDataSetJobOptions)
   //implicit val importDataSetJobOptionJsonFormat = jsonFormat5(ImportDataSetJobOptions)
 
-  implicit val exportDataSetJobOptionJsonFormat = jsonFormat7(
+  implicit val exportDataSetJobOptionJsonFormat = jsonFormat8(
     ExportDataSetsJobOptions)
-  implicit val exportAnalysisJobOptionsFormat = jsonFormat6(
+  implicit val exportAnalysisJobOptionsFormat = jsonFormat7(
     ExportSmrtLinkJobOptions)
-  implicit val importJobOptionsFormat = jsonFormat5(ImportSmrtLinkJobOptions)
-  implicit val importBarcodeFastaJobOptionsJsonFormat = jsonFormat4(
+  implicit val importJobOptionsFormat = jsonFormat6(ImportSmrtLinkJobOptions)
+  implicit val importBarcodeFastaJobOptionsJsonFormat = jsonFormat5(
     ImportBarcodeFastaJobOptions)
-  implicit val importFastaJobOptionsJsonFormat = jsonFormat6(
+  implicit val importFastaJobOptionsJsonFormat = jsonFormat7(
     ImportFastaJobOptions)
-  implicit val importFastaGmapJobOptionsJsonFormat = jsonFormat6(
+  implicit val importFastaGmapJobOptionsJsonFormat = jsonFormat7(
     ImportFastaGmapJobOptions)
 
   // Renaming workaround
-  implicit val pbsmrtpipeJobOptionsJsonFormat = jsonFormat7(
+  implicit val pbsmrtpipeJobOptionsJsonFormat = jsonFormat8(
     PbsmrtpipeJobOptions)
-  implicit val mockPbsmrtpipeJobOptionsJsonFormat = jsonFormat7(
+  implicit val mockPbsmrtpipeJobOptionsJsonFormat = jsonFormat8(
     MockPbsmrtpipeJobOptions)
 
-  implicit val deleteSmrtLinkJobOptionsFormat = jsonFormat7(
+  implicit val deleteSmrtLinkJobOptionsFormat = jsonFormat8(
     DeleteSmrtLinkJobOptions)
-  implicit val helloWorldJobOptionsFormat = jsonFormat4(SimpleJobOptions)
+  implicit val helloWorldJobOptionsFormat = jsonFormat5(SimpleJobOptions)
 
-  implicit val rsConvertMovieToDataSetJobOptionsFormat = jsonFormat4(
+  implicit val rsConvertMovieToDataSetJobOptionsFormat = jsonFormat5(
     RsConvertMovieToDataSetJobOptions)
 
-  implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat5(
+  implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat6(
     TsSystemStatusBundleJobOptions)
-  implicit val techSupportJobBundleJobOptionsFormat = jsonFormat6(
+  implicit val techSupportJobBundleJobOptionsFormat = jsonFormat7(
     TsJobBundleJobOptions)
 
   implicit val entryPointDeferredJobFormat = jsonFormat3(DeferredEntryPoint)
@@ -62,8 +62,8 @@ trait ServiceJobTypeJsonProtocols
   implicit val multiAnalysisJobOptionsFormat = jsonFormat5(
     MultiAnalysisJobOptions)
 
-  implicit val dbBackUpJobOptionsFormat = jsonFormat5(DbBackUpJobOptions)
-  implicit val copyDataSetJobOptionsFormat = jsonFormat5(CopyDataSetJobOptions)
+  implicit val dbBackUpJobOptionsFormat = jsonFormat6(DbBackUpJobOptions)
+  implicit val copyDataSetJobOptionsFormat = jsonFormat6(CopyDataSetJobOptions)
 }
 
 object ServiceJobTypeJsonProtocols extends ServiceJobTypeJsonProtocols

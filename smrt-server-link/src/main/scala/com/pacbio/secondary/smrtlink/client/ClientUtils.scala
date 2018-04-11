@@ -1,5 +1,6 @@
 package com.pacbio.secondary.smrtlink.client
 
+import java.nio.file.{Path, Paths}
 import java.io.File
 
 import scala.math._
@@ -165,6 +166,21 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
     (Seq(s"${prefix}${r.title}:") ++ r.attributes.map { a =>
       s"  ${prefix}${a.name} = ${a.value}"
     }).mkString("\n")
+  }
+
+  def formatDataStoreFiles(files: Seq[DataStoreServiceFile],
+                           basePath: Option[Path] = None): String = {
+    def toPath(p: String) = {
+      val path = Paths.get(p)
+      basePath
+        .map { bp =>
+          if (path.startsWith(bp)) bp.relativize(path) else path
+        }
+        .getOrElse(path)
+    }
+    val rows =
+      files.map(f => Seq(f.name, f.fileTypeId, toPath(f.path).toString))
+    toTable(rows, Seq("Name", "Filetype", "Path"))
   }
 
   /**

@@ -351,7 +351,8 @@
             "type": "string",
             "name": "alarmId",
             "in": "path"
-          }],
+          }
+        ],
         "responses": {
           "200": {
             "description": "SMRT Link System Alarm Status by Id",
@@ -1235,7 +1236,6 @@
         ]
       }
     },
-
     "/smrt-link/dataset-types": {
       "get": {
         "description": "Get a Summary of each DataSet MetaType. Each model will have the 'short' name of the DataSet MetaType that is accessible at datasets/{ds-metatype}",
@@ -3891,8 +3891,6 @@
         "x-auth-type": "Application & Application User"
       }
     },
-
-
     "/smrt-link/datastore-files/{uuid}/download": {
       "get": {
         "description": "Download the datastore file with the specified UUID",
@@ -3977,7 +3975,7 @@
           "description": "Path to base directory of SMRT Server"
         },
         "taskOptions": {
-          "type": "array",          
+          "type": "array",
           "title": "Task Options",
           "description": "Task-level options available for the pipeline",
           "items": {
@@ -3992,12 +3990,12 @@
             }
           }
         }
-      }, 
+      },
       "required": [
-      "id",
-      "name",
-      "description",
-      "taskOptions"
+        "id",
+        "name",
+        "description",
+        "taskOptions"
       ],
       "example": {
         "id": "pbsmrtpipe.pipelines.sa3_sat",
@@ -4034,7 +4032,7 @@
         "updatedAt": {
           "type": "string",
           "title": "Updated At",
-          "description": ""
+          "description": "Datestamp when database record was last updated"
         },
         "description": {
           "type": "string",
@@ -4049,7 +4047,7 @@
         "createdAt": {
           "type": "string",
           "title": "Created At",
-          "description": ""
+          "description": "Datestamp when database record was created"
         },
         "shortName": {
           "type": "string",
@@ -4185,27 +4183,27 @@
         "uuid": {
           "type": "string",
           "title": "UUID",
-          "description": ""
+          "description": "Unique Identifier"
         },
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "createdAt": {
           "type": "string",
           "title": "Created At",
-          "description": ""
+          "description": "Datestamp when database record was created"
         },
         "updatedAt": {
           "type": "string",
           "title": "Updated At",
-          "description": ""
+          "description": "Datestamp when database record was last updated"
         },
         "importedAt": {
           "type": "string",
@@ -4215,12 +4213,12 @@
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "tags": {
           "type": "string",
@@ -4230,37 +4228,40 @@
         "version": {
           "type": "string",
           "title": "Version",
-          "description": ""
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
         },
         "comments": {
           "type": "string",
           "title": "Comments",
-          "description": ""
+          "description": "Miscellaneous comments"
         },
         "md5": {
           "type": "string",
           "title": "MD5 checksum",
-          "description": ""
+          "description": "MD5 checksum to check file integrity"
         },
         "createdBy": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Created by",
-          "description": ""
+          "description": "User ID responsible for importing the dataset"
         },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "projectId": {
           "type": "integer",
           "title": "Project ID",
-          "description": ""
+          "description": "Project ID"
         },
         "isActive": {
           "type": "boolean",
           "title": "Is active",
-          "description": ""
+          "description": "Setting this value to false marks it as deleted and excludes it from the default listing"
         },
         "numChildren": {
           "type": "integer",
@@ -4278,67 +4279,68 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
           "type": "string",
           "title": "Updated At",
-          "description": ""
+          "description": "Datestamp when database record was last updated"
         },
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
           "type": "string",
           "title": "Tags",
-          "description": ""
+          "description": "Comma-separated list of tags",
+          "example": "mapped,subreads"
         },
         "uuid": {
           "type": "string",
           "title": "UUID",
-          "description": ""
+          "description": "Unique ID"
         },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records"
         },
         "projectId": {
           "type": "integer",
           "title": "Project ID",
-          "description": ""
+          "description": "Project ID associated with this dataset"
         },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
           "type": "string",
           "title": "Version",
-          "description": ""
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
         },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Positive integer ID"
         },
         "md5": {
           "type": "string",
           "title": "MD5",
-          "description": ""
+          "description": "MD5 checksum"
         },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
           "type": "string",
           "title": "Created At",
-          "description": ""
+          "description": "Datestamp when database record was created"
         },
         "importedAt": {
           "type": "string",
@@ -4347,18 +4349,19 @@
         },
         "userId": {
           "type": "string",
-          "title": "integer",
-          "description": ""
+          "title": "User ID",
+          "description": "ID of user that created the record"
         },
         "datasetType": {
           "type": "string",
           "title": "Dataset Type",
-          "description": ""
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.AlignmentSet"
         },
         "comments": {
           "type": "string",
           "title": "Comments",
-          "description": ""
+          "description": "Comments associated with the dataset"
         },
         "numChildren": {
           "type": "integer",
@@ -4414,13 +4417,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -4429,110 +4432,115 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags"
+        },
         "instrumentName": {
           "type": "string",
           "title": "Instrument Name",
-          "description": ""
+          "description": "Name of RS II instrument that generated the data"
         },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "ID of project associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "wellSampleName": {
-               "type": "string",
-               "title": "Well Sample Name",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Well Sample Name",
+          "description": "Name of the physical sample loaded"
+        },
         "bioSampleName": {
           "type": "string",
           "title": "Biological Sample Name",
-          "description": ""
+          "description": "Biologically relevant sample name"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Positive integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "string",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "wellName": {
           "type": "string",
           "title": "Well Name",
-          "description": ""
+          "description": "Physical sample well name"
         },
         "cellIndex": {
-               "type": "integer",
-               "title": "Cell Index",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Cell Index",
+          "description": "Index of the cell within a run"
+        },
         "userId": {
           "type": "integer",
           "title": "User ID",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "metadataContextId": {
-               "type": "string",
-               "title": "Metadata Context ID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Metadata Context ID",
+          "description": "Automatically generated movie ID with datestamp",
+          "example": "m150404_101626_42267_c100807920800000001823174110291514_s1_p0"
+        },
         "runName": {
           "type": "string",
           "title": "Run Name",
-          "description": ""
+          "description": "Name of the instrument run that generated this dataset"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.HdfSubreadSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Parent DataSet UUID",
           "description": "Parent DataSet UUID"
         },
@@ -4606,13 +4614,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "isActive": {
           "default": true,
           "type": "boolean",
@@ -4630,116 +4638,125 @@
           "description": "Path of the dataset"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags",
+          "example": "subreads"
+        },
         "instrumentName": {
           "type": "string",
           "title": "Instrument Name",
-          "description": ""
+          "description": "Name of the instrument that generated this dataset"
         },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "wellSampleName": {
-               "type": "string",
-               "title": "Well Sample Name",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Well Sample Name",
+          "description": "Name of the physical sample loaded"
+        },
         "bioSampleName": {
           "type": "string",
           "title": "Biological Sample Name",
-          "description": ""
+          "description": "Biological sample name"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "wellName": {
           "type": "string",
           "title": "Well Name",
-          "description": ""
+          "description": "Physical sample name"
         },
         "cellIndex": {
-               "type": "integer",
-               "title": "Cell Index",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Cell Index",
+          "description": "ID of the cell within an instrument run"
+        },
         "userId": {
           "type": "integer",
           "title": "User ID",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "metadataContextId": {
-               "type": "string",
-               "title": "Metadata Context ID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Metadata Context ID",
+          "description": "Automatically generated movie ID with datestamp",
+          "example": "m54001_20180101_120101"
+        },
         "runName": {
           "type": "string",
           "title": "Run Name",
-          "description": ""
+          "description": "Name of the instrument run that generated this dataset"
         },
         "dnaBarcodeName": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "DNA Barcode Name",
           "description": "Barcode labels (may be null or multiple)"
         },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.SubreadSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "numChildren": {
           "type": "integer",
           "title": "Number of Children",
@@ -4811,13 +4828,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -4832,75 +4849,79 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.BarcodeSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -4962,13 +4983,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -4983,75 +5004,80 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags",
+          "example": "ccs,mapped"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.ConsensusAlignmentSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -5113,13 +5139,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -5134,75 +5160,79 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.ContigSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -5264,13 +5294,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -5285,75 +5315,79 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "userId": {
           "type": "string",
           "title": "integer",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.ConsensusReadSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -5415,13 +5449,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -5436,85 +5470,90 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "ploidy": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Ploidy of genome sequence",
+          "example": "haploid"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma-separated list of tags"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
-          "description": ""
+          "description": "Integer ID"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": ""
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "organism": {
-               "type": "string",
-               "title": "Organism",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Organism",
+          "description": "Source organism name"
+        },
         "userId": {
           "type": "integer",
           "title": "User ID",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.ReferenceSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -5580,13 +5619,13 @@
         "name": {
           "type": "string",
           "title": "Name",
-          "description": ""
+          "description": "Dataset name"
         },
         "updatedAt": {
-               "type": "string",
-               "title": "Updated At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Updated At",
+          "description": "Datestamp when database record was last updated"
+        },
         "importedAt": {
           "type": "string",
           "title": "Imported At",
@@ -5601,85 +5640,89 @@
         "path": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Dataset XML path"
         },
         "ploidy": {
           "type": "string",
           "title": "Path",
-          "description": ""
+          "description": "Ploidy of genome sequence"
         },
         "tags": {
-               "type": "string",
-               "title": "Tags",
-               "description": "Comma separated tag(s)"
-             },
+          "type": "string",
+          "title": "Tags",
+          "description": "Comma separated tag(s)"
+        },
         "uuid": {
-               "type": "string",
-               "title": "UUID",
-               "description": ""
-             },
+          "type": "string",
+          "title": "UUID",
+          "description": "Unique ID"
+        },
         "totalLength": {
           "type": "integer",
           "title": "Total Length",
-          "description": ""
+          "description": "Sum of lengths of all records (usually the total number of bases)"
         },
         "projectId": {
-               "type": "integer",
-               "title": "Project ID",
-               "description": ""
-             },
+          "type": "integer",
+          "title": "Project ID",
+          "description": "Project ID associated with this dataset"
+        },
         "numRecords": {
           "type": "integer",
           "title": "Number of Records",
-          "description": ""
+          "description": "Number of records in the dataset"
         },
         "version": {
-               "type": "string",
-               "title": "Version",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Version",
+          "description": "Dataset version, indicates revisions to the SMRT Link record and/or the XML file"
+        },
         "id": {
           "type": "integer",
           "title": "ID",
           "description": "Id of DataSet"
         },
         "md5": {
-               "type": "string",
-               "title": "MD5",
-               "description": ""
-             },
+          "type": "string",
+          "title": "MD5",
+          "description": "MD5 checksum"
+        },
         "jobId": {
           "type": "integer",
           "title": "Job ID",
-          "description": "Job Id that produced the DataSet"
+          "description": "ID of the job that created the database record for thie dataset"
         },
         "createdAt": {
-               "type": "string",
-               "title": "Created At",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Created At",
+          "description": "Datestamp when database record was created"
+        },
         "organism": {
-               "type": "string",
-               "title": "Organism",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Organism",
+          "description": "Source organism name"
+        },
         "userId": {
           "type": "integer",
           "title": "User ID",
-          "description": ""
+          "description": "ID of user that created the record"
         },
         "datasetType": {
-               "type": "string",
-               "title": "Dataset Type",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Dataset Type",
+          "description": "Dataset metatype field",
+          "example": "PacBio.DataSet.GmapReferenceSet"
+        },
         "comments": {
-               "type": "string",
-               "title": "Comments",
-               "description": ""
-             },
+          "type": "string",
+          "title": "Comments",
+          "description": "Miscellaneous comments"
+        },
         "parentUuid": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Parent DataSet UUID",
           "description": "UUID of parent Dataset (if any)"
@@ -5811,7 +5854,7 @@
         "reserved": {
           "type": "boolean",
           "title": "Reserved",
-          "description": ""
+          "description": "Flag for runs reserved for an instrument"
         },
         "name": {
           "type": "string",
@@ -5826,7 +5869,8 @@
         "context": {
           "type": "string",
           "title": "Context",
-          "description": ""
+          "description": "Automatically generated run ID with encoded timestamp",
+          "example": "r54001_20180101_120000"
         },
         "instrumentSwVersion": {
           "type": "string",
@@ -5885,7 +5929,10 @@
         },
         "multiJobId": {
           "default": null,
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "title": "MultiJob Id",
           "description": "Multi-Job Id if configured to run Analysis jobs when the Run collections/subreadsets has successfully been imported into SL"
         }
@@ -5939,7 +5986,9 @@
         },
         {
           "type": "object",
-          "required": ["dataModel"],
+          "required": [
+            "dataModel"
+          ],
           "properties": {
             "dataModel": {
               "type": "string",
@@ -6043,7 +6092,7 @@
         "uniqueId": "c93b843f-e534-4d15-a8b2-d6866b17eb70",
         "collectionPathUri": "",
         "runId": "9f9b5dcf-d1af-4943-9e88-3f5ff00952b5",
-        "movieMinutes": 5.0
+        "movieMinutes": 5
       }
     },
     "CollectionsDetails": {
@@ -6159,7 +6208,10 @@
           "description": "Datetime of when the job execution was last updated."
         },
         "importedAt": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "title": "Imported At",
           "description": "Imported Date of the Job (if job was imported, otherwise will be null)"
         },
@@ -6272,7 +6324,10 @@
           "description": "Tags for the dataset. These should be ',' separated values"
         },
         "subJobTypeId": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "SubJobTypeId",
           "default": null,
           "description": "The Job 'sub job type id'. This could be used to communicate a specific job type of the 'root' jobTypeId. For pbsmrtpipe/analysis jobs, the pipeline id is used."
@@ -6631,7 +6686,15 @@
           "type": "string",
           "title": "Option type",
           "description": "Option type ID, from restricted list",
-          "enum": ["integer", "string", "float", "boolean", "choice_string", "choice_integer", "choice_float"]
+          "enum": [
+            "integer",
+            "string",
+            "float",
+            "boolean",
+            "choice_string",
+            "choice_integer",
+            "choice_float"
+          ]
         },
         "name": {
           "type": "string",
@@ -6737,10 +6800,23 @@
           "type": "string",
           "title": "Option type",
           "description": "Option type ID, from restricted list",
-          "enum": ["integer", "string", "float", "boolean", "choice_string", "choice_integer", "choice_float"]
+          "enum": [
+            "integer",
+            "string",
+            "float",
+            "boolean",
+            "choice_string",
+            "choice_integer",
+            "choice_float"
+          ]
         },
         "value": {
-          "type": ["string", "integer", "number", "boolean"],
+          "type": [
+            "string",
+            "integer",
+            "number",
+            "boolean"
+          ],
           "title": "Option value",
           "description": "User-supplied value"
         }
@@ -6762,7 +6838,10 @@
           "example": "PacBio.DataSet.SubreadSet"
         },
         "datasetId": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "title": "Dataset ID",
           "description": "Either an integer ID or UUID of existing dataset"
         }
@@ -7001,7 +7080,10 @@
           "description": "Path to output ZIP file containing datasets, must not already exist"
         },
         "deleteAfterExport": {
-          "type": ["boolean", "null"],
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false,
           "title": "Delete datasets after exporting",
           "description": "If the export is successful and this option is true, a separate job will be started asynchronously to delete the exported datasets"
@@ -7016,7 +7098,10 @@
           "title": "Job IDs",
           "description": "Integer IDs or UUIDs of jobs in SMRT Link database",
           "items": {
-            "type": ["integer", "string"]
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "outputPath": {
@@ -7041,7 +7126,10 @@
           "description": "ZIP file of exported SMRT Link job"
         },
         "mockJobId": {
-          "type": ["boolean", "null"],
+          "type": [
+            "boolean",
+            "null"
+          ],
           "title": "Mock unique IDs",
           "description": "If present, UUIDs for the job and its datastore files will be mocked to facilitate export/import testing on the same system"
         }
@@ -7104,7 +7192,10 @@
       "type": "object",
       "properties": {
         "datasetId": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "title": "Dataset ID",
           "description": "Dataset ID"
         },
@@ -7116,19 +7207,28 @@
           "description": "List of dataset filters"
         },
         "name": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Output dataset name",
           "description": "Output dataset name"
         },
         "description": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Output description (unused)",
           "description": "Output dataset description (unused)"
         },
         "projectId": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "default": 1,
           "title": "Project ID",
           "description": "Project ID"
@@ -7367,7 +7467,7 @@
         },
         "importAt": {
           "type": "string",
-          "title": "Imported at", 
+          "title": "Imported at",
           "description": "Timestamp for file import"
         },
         "path": {
@@ -7452,7 +7552,15 @@
         "level": {
           "type": "string",
           "title": "log level",
-          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL"]
+          "enum": [
+            "TRACE",
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR",
+            "CRITICAL",
+            "FATAL"
+          ]
         },
         "message": {
           "type": "string",
@@ -7483,14 +7591,24 @@
         "message": {
           "description": "Details of the Alarm Status",
           "title": "Message Details",
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "severity": {
           "default": "CLEAR",
           "description": "An explanation about the purpose of this instance.",
           "title": "Severity",
           "type": "string",
-          "enum": ["CLEAR", "WARN", "ERROR", "CRITICAL", "FATAL", "FATAL_IMMEDIATE"]
+          "enum": [
+            "CLEAR",
+            "WARN",
+            "ERROR",
+            "CRITICAL",
+            "FATAL",
+            "FATAL_IMMEDIATE"
+          ]
         },
         "value": {
           "description": "Computed value of severity",
@@ -7504,7 +7622,12 @@
         }
       },
       "type": "object",
-      "required": ["id", "message", "severity", "value"],
+      "required": [
+        "id",
+        "message",
+        "severity",
+        "value"
+      ],
       "example": {
         "updatedAt": "2017-07-11T14:59:27.364Z",
         "id": "smrtlink.alarms.job_dir",
@@ -7651,7 +7774,7 @@
           "title": "Description",
           "type": "string"
         },
-           "name": {
+        "name": {
           "description": "Job Name",
           "title": "Job Name",
           "type": "string"
@@ -7666,7 +7789,10 @@
           "default": false,
           "description": "Automatically submit the job upon creation. This will yield the job uneditable.",
           "title": "Submit",
-          "type": ["null", "boolean"]
+          "type": [
+            "null",
+            "boolean"
+          ]
         }
       }
     },
@@ -7676,12 +7802,18 @@
       "properties": {
         "isActive": {
           "description": "If False, set dataset to inactive (hidden)",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Is active"
         },
         "bioSampleName": {
           "description": "Applies to SubreadSets only",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Biological sample name"
         }
       }
@@ -7760,17 +7892,26 @@
           "description": "Login ID of user"
         },
         "userEmail": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "User email",
           "description": "User email address"
         },
         "firstName": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "First name",
           "description": "First name"
         },
         "lastName": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Last name",
           "description": "Last name"
         },
@@ -7830,7 +7971,10 @@
           "description": "Updated at timestamp"
         },
         "errorMessage": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Error message",
           "description": "Optional error message"
         }
@@ -7895,7 +8039,10 @@
           "description": "Task message"
         },
         "errorMessage": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "title": "Error message",
           "description": "Optional error message"
         }
@@ -7938,13 +8085,19 @@
       "description": "Update job record fields",
       "properties": {
         "name": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Job name",
           "description": "New job name (optional)"
         },
         "comment": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "title": "Job comments",
           "description": "New job comments (optional)"
@@ -7952,5 +8105,4 @@
       }
     }
   }
-
 }

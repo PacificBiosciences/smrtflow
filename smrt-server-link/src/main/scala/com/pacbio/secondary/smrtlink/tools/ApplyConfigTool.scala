@@ -4,22 +4,24 @@ import java.io.File
 import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
+import scala.util.Try
+
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FileUtils
+import scopt.OptionParser
+import spray.json._
+import DefaultJsonProtocol._
+
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   CommandLineToolRunner,
   ToolFailure
 }
+import com.pacbio.secondary.smrtlink.client.Wso2Models
 import com.pacbio.secondary.smrtlink.models.ConfigModels.{
   RootSmrtflowConfig,
   Wso2Credentials
 }
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.FileUtils
-import scopt.OptionParser
-
-import scala.util.Try
-import spray.json._
-import DefaultJsonProtocol._
 import com.pacbio.secondary.smrtlink.io.XmlTemplateReader
 import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol
 
@@ -28,7 +30,6 @@ case class ApplyConfigToolOptions(rootDir: Path,
     extends LoggerConfig
 
 object ApplyConfigConstants {
-
   val TOMCAT_VERSION = "tomcat_current"
   val WSO2_VERSION = "wso2am-2.0.0"
 
@@ -283,7 +284,11 @@ object ApplyConfigUtils extends LazyLogging {
 
     val jx = loadJson(uiAppConfigJson)
 
-    val nx = JsObject("enableCellReuse" -> JsBoolean(enableCellReuse))
+    val nx = JsObject(
+      "enableCellReuse" -> JsBoolean(enableCellReuse),
+      "consumerKey" -> JsString(Wso2Models.defaultClient.clientId),
+      "consumerSecret" -> JsString(Wso2Models.defaultClient.clientSecret)
+    )
 
     val total = new JsObject(jx.asJsObject.fields ++ nx.fields)
 

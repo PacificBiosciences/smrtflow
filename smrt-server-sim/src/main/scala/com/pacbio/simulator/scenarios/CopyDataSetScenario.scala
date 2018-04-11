@@ -91,7 +91,9 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
       PIPELINE_ID,
       Seq(ep),
       taskOpts,
-      Seq.empty[ServiceTaskOptionBase]
+      Seq.empty[ServiceTaskOptionBase],
+      None,
+      Some(true)
     )
   }
 
@@ -113,17 +115,28 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
                                        name: String,
                                        numRecords: Int,
                                        totalLength: Int) = {
+
+    def toMsg(prefix: String, expected: String, got: String) =
+      s"$prefix Expected $expected. Got $got"
+
     for {
       copyJob <- Future.fromTry(client.pollForSuccessfulJob(jobId))
       dataStore <- client.getJobDataStore(copyJob.id)
       dsId <- Future.successful(getSubreadsId(dataStore))
       subreads <- client.getSubreadSet(dsId)
-      _ <- failIf(subreads.numRecords != numRecords, "Wrong numRecords")
-      _ <- failIf(subreads.totalLength != totalLength, "Wrong totalLength")
-      _ <- failIf(subreads.name != name, "Wrong dataset name")
+      _ <- failIf(subreads.numRecords != numRecords,
+                  toMsg("Wrong numRecords",
+                        numRecords.toString,
+                        subreads.numRecords.toString))
+      _ <- failIf(subreads.totalLength != totalLength,
+                  toMsg("Wrong totalLength",
+                        totalLength.toString,
+                        subreads.totalLength.toString))
+      _ <- failIf(subreads.name != name,
+                  toMsg("Wrong dataset name", name, subreads.name))
       analysisJob <- client.runAnalysisPipeline(
         toPbsmrtpipeOpts(name, dsId, numRecords, totalLength))
-      analysisJob <- Future.fromTry(
+      successfulJob <- Future.fromTry(
         client.pollForSuccessfulJob(analysisJob.id))
     } yield subreads
   }

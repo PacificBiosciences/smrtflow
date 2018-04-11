@@ -7,7 +7,7 @@ import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
 import akka.http.scaladsl.model.headers.{HttpEncodings, `Accept-Encoding`}
 import akka.pattern.after
@@ -23,9 +23,9 @@ import com.pacbio.secondary.smrtlink.models.ServiceStatus
 
 // Move this to a central location
 trait UrlUtils {
-  def convertToUrl(host: String, port: Int) = {
-    val h = host.replaceFirst("http://", "")
-    new URL(s"http://$h:$port")
+  def convertToUrl(host: String, port: Int, protocol: String = "http") = {
+    val h = host.replaceFirst(s"$protocol://", "")
+    new URL(s"$protocol://$h:$port")
   }
 }
 
@@ -64,8 +64,11 @@ trait ClientBase extends Retrying {
 
   lazy val statusUrl: Uri = toUri(Uri.Path("status"))
 
+  protected def sendRequest(request: HttpRequest): Future[HttpResponse] =
+    http.singleRequest(request)
+
   protected def getEndpoint(endpointUrl: Uri): Future[HttpResponse] =
-    http.singleRequest(Get(endpointUrl))
+    sendRequest(Get(endpointUrl))
 
   private def decodeResponse(response: HttpResponse): HttpResponse = {
     val decoder = response.encoding match {
@@ -102,7 +105,7 @@ trait ClientBase extends Retrying {
     val req = request.addHeader(
       `Accept-Encoding`(HttpEncodings.gzip, HttpEncodings.deflate))
 
-    http.singleRequest(req).flatMap { response =>
+    sendRequest(req).flatMap { response =>
       response.status match {
         case StatusCodes.OK | StatusCodes.Created =>
           // customLogResponse(response)

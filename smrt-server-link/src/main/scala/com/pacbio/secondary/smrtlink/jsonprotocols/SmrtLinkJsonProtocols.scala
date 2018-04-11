@@ -274,7 +274,7 @@ trait SmrtLinkJsonProtocols
   implicit val dataStoreReportFileFormat = jsonFormat2(DataStoreReportFile)
 
   // New Job Options model
-  implicit val importDataSetJobOptionJsonFormat = jsonFormat5(
+  implicit val importDataSetJobOptionJsonFormat = jsonFormat6(
     ImportDataSetJobOptions)
 
   implicit val projectFormat: RootJsonFormat[Project] = cachedImplicit
@@ -325,8 +325,6 @@ trait SmrtLinkJsonProtocols
 
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)
-
-  implicit val deleteDataSetsOptions = jsonFormat3(DataSetDeleteServiceOptions)
 
   implicit val pbThrowableResponseFormat = jsonFormat3(ThrowableResponse)
   implicit val pbComponentFormat = jsonFormat5(PacBioComponentManifest)

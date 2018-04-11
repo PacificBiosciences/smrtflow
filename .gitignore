@@ -8,6 +8,7 @@ smrt-server-link/db/*
 # these dirs will be automatically created on startup
 smrt-server-link/jobs-root
 smrt-server-link/pacbio-bundles
+smrtlink-events
 
 smrt-server-analysis/db/*
 smrt-server-analysis/jobs-root

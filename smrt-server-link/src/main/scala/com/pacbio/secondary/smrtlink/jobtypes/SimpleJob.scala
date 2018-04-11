@@ -13,11 +13,12 @@ import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 /**
   * Created by mkocher on 8/17/17.
   */
-case class SimpleJobOptions(n: Int,
-                            name: Option[String],
-                            description: Option[String],
-                            projectId: Option[Int] = Some(
-                              JobConstants.GENERAL_PROJECT_ID))
+case class SimpleJobOptions(
+    n: Int,
+    name: Option[String],
+    description: Option[String],
+    projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.SIMPLE
   override def validate(dao: JobsDao, config: SystemJobConfig) = None

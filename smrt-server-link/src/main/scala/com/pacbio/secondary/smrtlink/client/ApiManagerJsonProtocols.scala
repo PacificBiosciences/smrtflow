@@ -58,4 +58,7 @@ object ApiManagerJsonProtocols extends DefaultJsonProtocol with FamilyFormats {
   implicit val apiListFormat: RootJsonFormat[publisher.models.APIList] =
     cachedImplicit
   implicit val apiFormat: RootJsonFormat[publisher.models.API] = cachedImplicit
+
+  implicit val errorResponseFormat =
+    jsonFormat(ErrorResponse.apply, "error", "error_description")
 }

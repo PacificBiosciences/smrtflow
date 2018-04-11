@@ -87,7 +87,9 @@ object PacBioFastaValidator extends LazyLogging {
     Try {
       val sx = Source.fromFile(path.toFile)
       if (sx.hasNext) {
-        var prev: Char = 'X'
+        // setting the initial value to a newline allows us to catch an empty
+        // first line
+        var prev: Char = '\n'
         var (isUnix, isDos, haveEmptyLine) = (false, false, false)
         // XXX this is gross - Source.getLines no longer includes the newline
         // character(s) in the version of Scala that we use, so we have to

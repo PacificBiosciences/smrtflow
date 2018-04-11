@@ -26,7 +26,7 @@ class SmrtLinkModelsSpec extends Specification {
 
   "Test serialization of smrtlink models" should {
     "HelloWorldJobOptions" in {
-      val opts = HelloWorldJobOptions(4, Some("my job"), None)
+      val opts = HelloWorldJobOptions(4, Some("my job"), None, None)
       val opts2 = opts.toJson.convertTo[HelloWorldJobOptions]
       opts2.x === opts.x
       opts2.name must beSome

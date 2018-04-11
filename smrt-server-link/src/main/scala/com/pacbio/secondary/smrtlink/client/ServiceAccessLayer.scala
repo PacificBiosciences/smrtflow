@@ -7,6 +7,7 @@ import java.util.UUID
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -14,6 +15,8 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.client.RequestBuilding._
 import com.typesafe.scalalogging.LazyLogging
+import spray.json._
+
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
@@ -513,11 +516,23 @@ class SmrtLinkServiceClient(
       Get(toUri(ROOT_PROJECTS_URI_PATH / projectId.toString))
         .withHeaders(headers: _*))
 
-  def createProject(name: String, description: String): Future[FullProject] =
+  // XXX note that the project-related API calls require authentication and
+  // aren't actually usable in this class; use AuthenticatedServiceAccessLayer
+  // instead
+  def createProject(
+      name: String,
+      description: String,
+      userName: Option[String] = None,
+      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None)
+    : Future[FullProject] = {
+    val members = userName.map { user =>
+      Seq(ProjectRequestUser(user, ProjectUserRole.OWNER))
+    }
+    val d =
+      ProjectRequest(name, description, None, grantRoleToAll, None, members)
     getObject[FullProject](
-      Post(toUri(ROOT_PROJECTS_URI_PATH),
-           ProjectRequest(name, description, None, None, None, None))
-        .withHeaders(headers: _*))
+      Post(toUri(ROOT_PROJECTS_URI_PATH), d).withHeaders(headers: _*))
+  }
 
   def updateProject(projectId: Int,
                     request: ProjectRequest): Future[FullProject] =
@@ -632,7 +647,8 @@ class SmrtLinkServiceClient(
   def deleteJob(jobId: UUID,
                 removeFiles: Boolean = true,
                 dryRun: Boolean = false,
-                force: Boolean = false): Future[EngineJob] =
+                force: Boolean = false,
+                projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
       Post(
         toUri(jobRoot(JobTypeIds.DELETE_JOB.id)),
@@ -641,7 +657,8 @@ class SmrtLinkServiceClient(
                                  None,
                                  removeFiles,
                                  dryRun = Some(dryRun),
-                                 force = Some(force))
+                                 force = Some(force),
+                                 projectId = projectId)
       ))
 
   def getJobChildren(jobId: IdAble): Future[Seq[EngineJob]] =
@@ -669,68 +686,102 @@ class SmrtLinkServiceClient(
     getObject[ReportViewRule](
       Get(toUri(ROOT_REPORT_RULES_URI_PATH / reportId)))
 
-  def importDataSet(
-      path: Path,
-      dsMetaType: DataSetMetaTypes.DataSetMetaType): Future[EngineJob] =
+  def importDataSet(path: Path,
+                    dsMetaType: DataSetMetaTypes.DataSetMetaType,
+                    projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(
-        toUri(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
-        ImportDataSetJobOptions(path.toAbsolutePath, dsMetaType, None, None)))
+      Post(toUri(jobRoot(JobTypeIds.IMPORT_DATASET.id)),
+           ImportDataSetJobOptions(path.toAbsolutePath,
+                                   dsMetaType,
+                                   None,
+                                   None,
+                                   projectId = projectId)))
 
   def importFasta(path: Path,
                   name: String,
                   organism: String,
-                  ploidy: String): Future[EngineJob] =
+                  ploidy: String,
+                  projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(
-        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
-        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
+      Post(toUri(jobRoot(JobTypeIds.CONVERT_FASTA_REFERENCE.id)),
+           ImportFastaJobOptions(toP(path),
+                                 ploidy,
+                                 organism,
+                                 Some(name),
+                                 None,
+                                 projectId = projectId)))
 
-  def importFastaBarcodes(path: Path, name: String): Future[EngineJob] =
+  def importFastaBarcodes(path: Path,
+                          name: String,
+                          projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(
-        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
-        ImportBarcodeFastaJobOptions(path.toAbsolutePath, Some(name), None)))
+      Post(toUri(jobRoot(JobTypeIds.CONVERT_FASTA_BARCODES.id)),
+           ImportBarcodeFastaJobOptions(path.toAbsolutePath,
+                                        Some(name),
+                                        None,
+                                        projectId = projectId)))
 
   def importFastaGmap(path: Path,
                       name: String,
                       organism: String,
-                      ploidy: String): Future[EngineJob] =
+                      ploidy: String,
+                      projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
-      Post(
-        toUri(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
-        ImportFastaJobOptions(toP(path), ploidy, organism, Some(name), None)))
+      Post(toUri(jobRoot(JobTypeIds.CONVERT_FASTA_GMAPREFERENCE.id)),
+           ImportFastaJobOptions(toP(path),
+                                 ploidy,
+                                 organism,
+                                 Some(name),
+                                 None,
+                                 projectId = projectId)))
 
   def mergeDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                     ids: Seq[IdAble],
-                    name: String) =
+                    name: String,
+                    projectId: Option[Int] = None) =
     getObject[EngineJob](
       Post(toUri(jobRoot(JobTypeIds.MERGE_DATASETS.id)),
-           MergeDataSetJobOptions(datasetType, ids, Some(name), None)))
+           MergeDataSetJobOptions(datasetType,
+                                  ids,
+                                  Some(name),
+                                  None,
+                                  projectId = projectId)))
 
-  def convertRsMovie(path: Path, name: String) =
+  def convertRsMovie(path: Path, name: String, projectId: Option[Int] = None) =
     getObject[EngineJob](
       Post(toUri(jobRoot(JobTypeIds.CONVERT_RS_MOVIE.id)),
-           RsConvertMovieToDataSetJobOptions(toP(path), Some(name), None)))
+           RsConvertMovieToDataSetJobOptions(toP(path),
+                                             Some(name),
+                                             None,
+                                             projectId = projectId)))
 
   def exportDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
                      ids: Seq[IdAble],
                      outputPath: Path,
-                     deleteAfterExport: Boolean = false): Future[EngineJob] =
-    getObject[EngineJob](
-      Post(toUri(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
-           ExportDataSetsJobOptions(datasetType,
-                                    ids,
-                                    outputPath.toAbsolutePath,
-                                    Some(deleteAfterExport))))
-
-  def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
-                     ids: Seq[Int],
-                     removeFiles: Boolean = true): Future[EngineJob] =
+                     deleteAfterExport: Boolean = false,
+                     projectId: Option[Int] = None): Future[EngineJob] =
     getObject[EngineJob](
       Post(
-        toUri(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
-        DataSetDeleteServiceOptions(datasetType.toString, ids, removeFiles)))
+        toUri(jobRoot(JobTypeIds.EXPORT_DATASETS.id)),
+        ExportDataSetsJobOptions(datasetType,
+                                 ids,
+                                 outputPath.toAbsolutePath,
+                                 Some(deleteAfterExport),
+                                 projectId = projectId)
+      ))
+
+  def deleteDataSets(datasetType: DataSetMetaTypes.DataSetMetaType,
+                     ids: Seq[IdAble],
+                     removeFiles: Boolean = true,
+                     projectId: Option[Int] = None): Future[EngineJob] =
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.DELETE_DATASETS.id)),
+           DeleteDataSetJobOptions(ids,
+                                   datasetType,
+                                   removeFiles,
+                                   None,
+                                   None,
+                                   projectId = projectId)))
 
   def getPipelineTemplate(pipelineId: String): Future[PipelineTemplate] =
     getObject[PipelineTemplate](Get(toUri(ROOT_PT_URI_PATH / pipelineId)))

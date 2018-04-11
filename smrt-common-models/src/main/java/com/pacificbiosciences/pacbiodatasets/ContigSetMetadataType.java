@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
  *       &lt;sequence>
  *         &lt;element name="Organism" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
  *         &lt;element name="Ploidy" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
- *         &lt;element ref="{http://pacificbiosciences.com/PacBioDatasets.xsd}Contigs"/>
+ *         &lt;element ref="{http://pacificbiosciences.com/PacBioDatasets.xsd}Contigs" minOccurs="0"/>
  *       &lt;/sequence>
  *     &lt;/extension>
  *   &lt;/complexContent>
@@ -49,7 +49,7 @@ public class ContigSetMetadataType
     protected String organism;
     @XmlElement(name = "Ploidy")
     protected String ploidy;
-    @XmlElement(name = "Contigs", required = true)
+    @XmlElement(name = "Contigs")
     protected Contigs contigs;
 
     /**

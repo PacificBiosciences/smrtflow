@@ -19,7 +19,7 @@ import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetExporter
 import JobModels._
 
-trait JobUtils extends SecondaryJobJsonProtocol {
+trait JobUtils extends SecondaryJobJsonProtocol with LazyLogging {
 
   private def writeDataStore(ds: PacBioDataStore, out: Path): Path = {
     FileUtils.writeStringToFile(out.toFile, ds.toJson.prettyPrint, "UTF-8")
@@ -81,7 +81,85 @@ trait JobUtils extends SecondaryJobJsonProtocol {
           .relativize(rootPath)
       }
   }
+
+  /**
+    * Collapses a list of core job states into a single state that captures the state
+    * of the MultiJob.
+    *
+    * Any core job in Submitted, or Running state will translate into RUNNING at
+    * the mulit-job level
+    *
+    * @return
+    */
+  private def reduceJobStates(
+      s1: AnalysisJobStates.JobStates,
+      s2: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+    (s1, s2) match {
+      case (AnalysisJobStates.CREATED, AnalysisJobStates.CREATED) =>
+        AnalysisJobStates.CREATED
+      case (AnalysisJobStates.RUNNING, AnalysisJobStates.RUNNING) =>
+        AnalysisJobStates.RUNNING
+      case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUCCESSFUL) =>
+        AnalysisJobStates.SUCCESSFUL
+      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUBMITTED) =>
+        AnalysisJobStates.SUBMITTED
+      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.CREATED) =>
+        AnalysisJobStates.SUBMITTED
+      case (AnalysisJobStates.CREATED, AnalysisJobStates.SUBMITTED) =>
+        AnalysisJobStates.RUNNING
+      case (AnalysisJobStates.SUBMITTED, AnalysisJobStates.SUCCESSFUL) =>
+        AnalysisJobStates.SUBMITTED
+      case (AnalysisJobStates.SUCCESSFUL, AnalysisJobStates.SUBMITTED) =>
+        AnalysisJobStates.SUBMITTED
+      // This is unclear what this means. Defaulting to Failed
+      case (AnalysisJobStates.UNKNOWN, AnalysisJobStates.UNKNOWN) =>
+        AnalysisJobStates.FAILED
+      // If any child job has failed, then fail all jobs
+      case (AnalysisJobStates.FAILED, _) => AnalysisJobStates.FAILED
+      case (_, AnalysisJobStates.FAILED) => AnalysisJobStates.FAILED
+      // If any child job has been Terminated, then mark the MultiJob as failed
+      case (AnalysisJobStates.TERMINATED, _) => AnalysisJobStates.FAILED
+      case (_, AnalysisJobStates.TERMINATED) => AnalysisJobStates.FAILED
+      // If
+      case (AnalysisJobStates.RUNNING, _) => AnalysisJobStates.RUNNING
+      case (_, AnalysisJobStates.RUNNING) => AnalysisJobStates.RUNNING
+      case (_, AnalysisJobStates.CREATED) => AnalysisJobStates.RUNNING
+      case (AnalysisJobStates.CREATED, _) => AnalysisJobStates.RUNNING
+      case (_, _) =>
+        logger.error(
+          s"Unclear mapping of MultiJob state from $s1 and $s2. Defaulting to ${AnalysisJobStates.FAILED}")
+        AnalysisJobStates.FAILED
+    }
+  }
+
+  private def reduceFromSingleState(
+      state: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+    state match {
+      case AnalysisJobStates.CREATED => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.RUNNING => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.SUBMITTED => AnalysisJobStates.RUNNING
+      case AnalysisJobStates.FAILED => AnalysisJobStates.FAILED
+      case AnalysisJobStates.TERMINATED => AnalysisJobStates.FAILED
+      case AnalysisJobStates.UNKNOWN => AnalysisJobStates.FAILED
+      case AnalysisJobStates.SUCCESSFUL => AnalysisJobStates.SUCCESSFUL
+    }
+  }
+
+  /**
+    * Collapse the Children job states into a reflection of the overall state of the MultiJob
+    */
+  def determineMultiJobState(
+      states: Seq[AnalysisJobStates.JobStates],
+      default: AnalysisJobStates.JobStates): AnalysisJobStates.JobStates = {
+    states match {
+      case Nil => default
+      case s1 :: Nil => reduceFromSingleState(s1)
+      case _ => states.reduce(reduceJobStates)
+    }
+  }
 }
+
+object JobUtils extends JobUtils
 
 class JobExporter(job: EngineJob, zipPath: Path)
     extends DataSetExporter(zipPath)

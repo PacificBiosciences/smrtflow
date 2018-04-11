@@ -123,7 +123,6 @@ package object jobtypes {
       * Util to add Stdout/Log "Master" DataStore File
       *
       * @param dao Jobs DAO
-      * @param path Path to the Master/StdoutLog file
       * @return
       */
     def addStdOutLogToDataStore(
@@ -226,8 +225,15 @@ package object jobtypes {
     val name: Option[String]
     val description: Option[String]
     val projectId: Option[Int]
+    // To Enable default behavior for Core Jobs, Note, MultiJobs have a different Default Value.
+    val submit: Option[Boolean]
 
-    // It's very important that these are defs
+    /**
+      * NOTE. It's VERY important that these are all defs, NOT vals, otherwise you'll
+      * see a runtime exception with the json serialization.
+      *
+      * @return
+      */
     def subJobTypeId: Option[String] = None
 
     /**
@@ -242,6 +248,9 @@ package object jobtypes {
     // "projectId" was private.
     def getProjectId(): Int =
       projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
+
+    def getSubmit(): Boolean =
+      submit.getOrElse(JobConstants.SUBMIT_DEFAULT_CORE_JOB)
 
     // This needs to be defined at the job option level to be a globally unique type.
     def jobTypeId: JobTypeIds.JobType
@@ -384,16 +393,6 @@ package object jobtypes {
                      config: SystemJobConfig) = {
       throw new Exception("Direct call of Run on MultiJob is not supported")
     }
-
-    /**
-      * This is the core method that is called to run a Multi-Job. This should be completely self contained
-      * and omnipotent.
-      */
-    def runWorkflow(engineJob: EngineJob,
-                    resources: JobResourceBase,
-                    resultsWriter: JobResultsWriter,
-                    dao: JobsDao,
-                    config: SystemJobConfig): Future[MessageResponse]
   }
 
   trait Converters {

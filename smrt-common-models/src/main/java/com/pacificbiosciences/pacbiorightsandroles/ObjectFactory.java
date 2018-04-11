@@ -35,10 +35,10 @@ public class ObjectFactory {
     private final static QName _UserIdentity_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "UserIdentity");
     private final static QName _Project_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "Project");
     private final static QName _AuditableEvent_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "AuditableEvent");
-    private final static QName _AuditableEventReferencesAuditableEventReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "AuditableEventReference");
     private final static QName _UserIdentityReferencesUserIdentityReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "UserIdentityReference");
-    private final static QName _AccessRightReferencesAccessRightReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "AccessRightReference");
     private final static QName _RoleReferencesRoleReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "RoleReference");
+    private final static QName _AccessRightReferencesAccessRightReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "AccessRightReference");
+    private final static QName _AuditableEventReferencesAuditableEventReference_QNAME = new QName("http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", "AuditableEventReference");
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: com.pacificbiosciences.pacbiorightsandroles
@@ -246,20 +246,20 @@ public class ObjectFactory {
      * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
      * 
      */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "AuditableEventReference", scope = AuditableEventReferences.class)
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "UserIdentityReference", scope = UserIdentityReferences.class)
     @XmlIDREF
-    public JAXBElement<Object> createAuditableEventReferencesAuditableEventReference(Object value) {
-        return new JAXBElement<Object>(_AuditableEventReferencesAuditableEventReference_QNAME, Object.class, AuditableEventReferences.class, value);
+    public JAXBElement<Object> createUserIdentityReferencesUserIdentityReference(Object value) {
+        return new JAXBElement<Object>(_UserIdentityReferencesUserIdentityReference_QNAME, Object.class, UserIdentityReferences.class, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
      * 
      */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "UserIdentityReference", scope = UserIdentityReferences.class)
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "RoleReference", scope = RoleReferences.class)
     @XmlIDREF
-    public JAXBElement<Object> createUserIdentityReferencesUserIdentityReference(Object value) {
-        return new JAXBElement<Object>(_UserIdentityReferencesUserIdentityReference_QNAME, Object.class, UserIdentityReferences.class, value);
+    public JAXBElement<Object> createRoleReferencesRoleReference(Object value) {
+        return new JAXBElement<Object>(_RoleReferencesRoleReference_QNAME, Object.class, RoleReferences.class, value);
     }
 
     /**
@@ -276,10 +276,10 @@ public class ObjectFactory {
      * Create an instance of {@link JAXBElement }{@code <}{@link Object }{@code >}}
      * 
      */
-    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "RoleReference", scope = RoleReferences.class)
+    @XmlElementDecl(namespace = "http://pacificbiosciences.com/PacBioRightsAndRoles.xsd", name = "AuditableEventReference", scope = AuditableEventReferences.class)
     @XmlIDREF
-    public JAXBElement<Object> createRoleReferencesRoleReference(Object value) {
-        return new JAXBElement<Object>(_RoleReferencesRoleReference_QNAME, Object.class, RoleReferences.class, value);
+    public JAXBElement<Object> createAuditableEventReferencesAuditableEventReference(Object value) {
+        return new JAXBElement<Object>(_AuditableEventReferencesAuditableEventReference_QNAME, Object.class, AuditableEventReferences.class, value);
     }
 
 }
