@@ -679,12 +679,11 @@ class SmrtLinkServiceClient(
   def terminatePbsmrtpipeJob(jobId: Int): Future[MessageResponse] =
     getMessageResponse(Post(toJobResourceUrl(jobId, TERMINATE_JOB)))
 
-  def getReportViewRules: Future[Seq[ReportViewRule]] =
-    getObject[Seq[ReportViewRule]](Get(toUri(ROOT_REPORT_RULES_URI_PATH)))
+  def getReportViewRules: Future[Seq[JsonAble]] =
+    getObject[Seq[JsonAble]](Get(toUri(ROOT_REPORT_RULES_URI_PATH)))
 
-  def getReportViewRule(reportId: String): Future[ReportViewRule] =
-    getObject[ReportViewRule](
-      Get(toUri(ROOT_REPORT_RULES_URI_PATH / reportId)))
+  def getReportViewRule(reportId: String): Future[JsonAble] =
+    getObject[JsonAble](Get(toUri(ROOT_REPORT_RULES_URI_PATH / reportId)))
 
   def importDataSet(path: Path,
                     dsMetaType: DataSetMetaTypes.DataSetMetaType,
@@ -789,14 +788,11 @@ class SmrtLinkServiceClient(
   def getPipelineTemplates: Future[Seq[PipelineTemplate]] =
     getObject[Seq[PipelineTemplate]](Get(toUri(ROOT_PT_URI_PATH)))
 
-  def getPipelineTemplateViewRules: Future[Seq[PipelineTemplateViewRule]] =
-    getObject[Seq[PipelineTemplateViewRule]](
-      Get(toUri(ROOT_PT_RULES_URI_PATH)))
+  def getPipelineTemplateViewRules: Future[Seq[JsonAble]] =
+    getObject[Seq[JsonAble]](Get(toUri(ROOT_PT_RULES_URI_PATH)))
 
-  def getPipelineTemplateViewRule(
-      pipelineId: String): Future[PipelineTemplateViewRule] =
-    getObject[PipelineTemplateViewRule](
-      Get(toUri(ROOT_PT_RULES_URI_PATH / pipelineId)))
+  def getPipelineTemplateViewRule(pipelineId: String): Future[JsonAble] =
+    getObject[JsonAble](Get(toUri(ROOT_PT_RULES_URI_PATH / pipelineId)))
 
   def getPipelineDataStoreViewRules(
       pipelineId: String): Future[PipelineDataStoreViewRules] =

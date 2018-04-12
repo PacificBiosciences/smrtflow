@@ -1649,7 +1649,7 @@ case class TechSupportJobRecord(name: String, comment: String, jobId: Int)
 // POST creation of a job event
 case class JobEventRecord(state: String, message: String)
 
-case class ReportViewRule(id: String, rules: JsObject)
+case class JsonAble(id: String, item: JsObject)
 
 case class TsJobBundleJobServiceOptions(jobId: Int,
                                         user: String,
