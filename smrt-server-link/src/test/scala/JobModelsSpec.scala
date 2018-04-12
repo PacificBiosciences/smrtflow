@@ -231,16 +231,6 @@ class JobModelsSpec extends Specification with timeUtils {
       val ds4 = ds3.absolutize(Paths.get("/data/smrtlink"))
       ds4.files(0).path must beEqualTo("/data/smrtlink/tmp/report.json")
     }
-    "PipelineTemplateViewRule" in {
-      val path = Paths.get(
-        getClass
-          .getResource(
-            "pipeline-template-view-rules/pipeline_template_view_rules-sa3_ds_sv.json")
-          .toURI)
-      val json = Source.fromFile(path.toFile).getLines.mkString.parseJson
-      val rule = json.convertTo[PipelineTemplateViewRule]
-      rule.id === "pbsmrtpipe.pipelines.sa3_ds_sv"
-    }
     "PipelineDataStoreRules" in {
       val rules = Seq(
         DataStoreFileViewRule("pbsmrtpipe.tasks.task1-out-0",

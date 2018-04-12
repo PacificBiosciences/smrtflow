@@ -31,5 +31,11 @@ class PipelineTemplateViewRulesSpec
       val ptvr = jx.convertTo[JsonAble]
       1 mustEqual 1
     }
+    "PipelineTemplateViewRule" in {
+      val px = getTestResource("pipeline_template_view_rules-sa3_ds_sv.json")
+      val json = scala.io.Source.fromURI(px.toURI).getLines.mkString.parseJson
+      val rule = json.convertTo[JsonAble]
+      rule.id === "pbsmrtpipe.pipelines.sa3_ds_sv"
+    }
   }
 }
