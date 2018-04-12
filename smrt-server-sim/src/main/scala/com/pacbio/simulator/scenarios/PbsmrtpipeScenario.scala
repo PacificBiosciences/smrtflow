@@ -187,7 +187,7 @@ trait PbsmrtpipeScenarioCore
   protected val childJobs: Var[Seq[EngineJob]] = Var()
   protected val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
   protected val dsRules: Var[PipelineDataStoreViewRules] = Var()
-  protected val pipelineRules: Var[PipelineTemplateViewRule] = Var()
+  protected val pipelineRules: Var[JsonAble] = Var()
   protected val jobOptions: Var[PipelineTemplatePreset] = Var()
   protected val jobEvents: Var[Seq[JobEvent]] = Var()
   protected val jobTasks: Var[Seq[JobTask]] = Var()

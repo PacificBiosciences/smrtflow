@@ -500,11 +500,6 @@ trait JobTypeSettingProtocol
   implicit val jobResultFailureFormat = jsonFormat7(ResultFailed)
   implicit val jobResultFormat = jsonFormat2(JobCompletedResult)
 
-  implicit val pipelineOptionViewRule = jsonFormat4(PipelineOptionViewRule)
-  implicit val pipelineInputFilterRuleFormat = jsonFormat3(
-    PipelineInputFilterRule)
-  implicit val pipelineTemplateViewRule = jsonFormat7(PipelineTemplateViewRule)
-
   // Job Options
   implicit val directPbsmrtpipeJobOptionsFormat = jsonFormat5(
     PbsmrtpipeDirectJobOptions)

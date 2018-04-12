@@ -1,10 +1,7 @@
 package com.pacbio.secondary.smrtlink.services
 
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.models.{
-  PacBioComponentManifest,
-  ReportViewRule
-}
+import com.pacbio.secondary.smrtlink.models.{PacBioComponentManifest, JsonAble}
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
 import com.pacbio.secondary.smrtlink.loaders.ReportViewRulesResourceLoader
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -13,7 +10,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   *
   * Created by mkocher on 9/25/15.
   */
-class ReportViewRulesService(ptvrs: Seq[ReportViewRule])
+class ReportViewRulesService(ptvrs: Seq[JsonAble])
     extends SmrtLinkBaseRouteMicroService {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
