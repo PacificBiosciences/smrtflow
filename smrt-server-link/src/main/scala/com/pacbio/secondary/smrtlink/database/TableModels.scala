@@ -3,6 +3,7 @@ package com.pacbio.secondary.smrtlink.database
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.time.PacBioDateTimeDatabaseFormat
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
@@ -13,11 +14,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.models._
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedAcquisitionStates,
-  SupportedRunStates,
-  SupportedChipTypes
+  SupportedChipTypes,
+  SupportedRunStates
 }
 import org.joda.time.{DateTime => JodaDateTime}
-
 import slick.jdbc.PostgresProfile.api._
 import shapeless._
 import slickless._
@@ -122,8 +122,6 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
        errorMessage) <> (JobTask.tupled, JobTask.unapply)
 
     def jobFK = foreignKey("job_fk", jobId, engineJobs)(_.id)
-
-    def jobJoin = engineJobs.filter(_.id === jobId)
 
   }
 
@@ -241,6 +239,27 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
   def qGetEngineJobsByStates(states: Set[AnalysisJobStates.JobStates]) =
     engineJobs.filter(_.state inSet states)
+
+  def qEngineJobById(id: IdAble) = {
+    id match {
+      case IntIdAble(i) => engineJobs.filter(_.id === i)
+      case UUIDIdAble(uuid) => engineJobs.filter(_.uuid === uuid)
+    }
+  }
+
+  def qGetEngineJobsByIdAndStates(id: IdAble,
+                                  states: Set[AnalysisJobStates.JobStates]) =
+    qEngineJobById(id).filter(_.state inSet states)
+
+  def qGetEngineMultiJobById(id: IdAble) =
+    qEngineJobById(id).filter(_.isMultiJob === true)
+
+  def qGetEngineMultiJobsByIdAndStates(
+      id: IdAble,
+      states: Set[AnalysisJobStates.JobStates]) =
+    qEngineJobById(id)
+      .filter(_.state inSet states)
+      .filter(_.isMultiJob === true)
 
   implicit val projectStateType =
     MappedColumnType.base[ProjectState.ProjectState, String](
