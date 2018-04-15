@@ -43,7 +43,10 @@ import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
-import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
+import com.pacbio.secondary.smrtlink.jobtypes.{
+  MultiAnalysisJobOptions,
+  PbsmrtpipeJobOptions
+}
 import com.pacbio.secondary.smrtlink.jsonprotocols.{
   ServiceJobTypeJsonProtocols,
   SmrtLinkJsonProtocols
@@ -641,18 +644,24 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   // This can only be called when the Job is in the CREATED state
-  def updateMultiJob(jobId: Int,
-                     jsonSetting: JsObject,
-                     name: String,
-                     description: String,
-                     createdBy: Option[String],
-                     createdByEmail: Option[String],
-                     smrtlinkVersion: Option[String],
-                     projectId: Int,
-                     childJobs: Seq[DeferredJob]): Future[EngineJob] = {
+  def updateMultiAnalysisJob(
+      jobId: Int,
+      opts: MultiAnalysisJobOptions,
+      jsonSetting: JsObject,
+      createdBy: Option[String],
+      createdByEmail: Option[String],
+      smrtlinkVersion: Option[String]): Future[EngineJob] = {
+    val childJobs = opts.jobs
+    val projectId = opts.getProjectId()
+
     val now = JodaDateTime.now()
     logger.info(
       s"Attempting to update MultiJob ${jobId.toIdString} job with ${childJobs.length} child jobs. Settings ${jsonSetting.prettyPrint.toString}")
+
+    val updatedEntryPoints: Set[EngineJobEntryPoint] = childJobs
+      .flatten(_.entryPoints.map(e =>
+        EngineJobEntryPoint(jobId, e.uuid, e.fileTypeId)))
+      .toSet
 
     def aToChildrenJobs(parentJobId: Int): DBIO[Seq[EngineJob]] =
       DBIO.sequence(
@@ -680,9 +689,11 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
           .update(now,
                   now,
                   jsonSetting.toString(),
-                  name,
-                  description,
+                  opts.name.getOrElse(job.name),
+                  opts.description.getOrElse(job.comment),
                   projectId),
+        engineJobsDataSets.filter(_.jobId === job.id).delete,
+        engineJobsDataSets ++= updatedEntryPoints.toList,
         // Delete an Children Jobs from previous
         getAllChildJobEvents(job.id).delete,
         qGetEngineJobByState(AnalysisJobStates.CREATED)
@@ -708,6 +719,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val q = for {
       job <- qGetEngineMultiJobsByIdAndStates(jobId, states).result.head
       _ <- jobEvents.filter(_.jobId === job.id).delete
+      _ <- engineJobsDataSets.filter(_.jobId === job.id).delete
       _ <- qEngineJobById(jobId).delete
       // Delete all Children and companion JobEvents
       _ <- getAllChildJobEvents(job.id).delete
@@ -776,7 +788,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   private def qInsertEngineJob(engineJob: EngineJob,
-                               entryPoints: Seq[EngineJobEntryPointRecord],
+                               entryPoints: Set[EngineJobEntryPointRecord],
                                submitJob: Boolean = false)
     : DBIOAction[EngineJob, NoStream, Effect.Read with Effect.Write] = {
     val jobState =
@@ -823,7 +835,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
             .map(_.path)
             .update(resolvedPath.toString),
           jobEvents ++= allEvents,
-          engineJobsDataSets ++= entryPoints.map(e =>
+          engineJobsDataSets ++= entryPoints.toList.map(e =>
             EngineJobEntryPoint(jobId, e.datasetUUID, e.datasetType))
         )
         .map(_ => cEngineJob.copy(id = jobId, path = resolvedPath.toString))
@@ -843,7 +855,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
   private def insertEngineJob(
       engineJob: EngineJob,
-      entryPoints: Seq[EngineJobEntryPointRecord],
+      entryPoints: Set[EngineJobEntryPointRecord],
       submitJob: Boolean = false): Future[EngineJob] = {
 
     val f = db.run(
@@ -918,7 +930,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                                         projectId: Int,
                                         createdBy: Option[String],
                                         smrtlinkVersion: Option[String])
-    : Int => Seq[(EngineJob, Seq[EngineJobEntryPointRecord])] = {
+    : Int => Seq[(EngineJob, Set[EngineJobEntryPointRecord])] = {
     parentJobId =>
       val numJobs = childJobs.length
 
@@ -935,7 +947,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
         val ePoints = xs._1.entryPoints.map(e =>
           EngineJobEntryPointRecord(e.uuid, e.fileTypeId))
-        (eJob, ePoints)
+        (eJob, ePoints.toSet)
       }
   }
 
@@ -943,8 +955,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                      name: String,
                      description: String,
                      jobTypeId: JobTypeIds.JobType,
-                     entryPoints: Seq[EngineJobEntryPointRecord] =
-                       Seq.empty[EngineJobEntryPointRecord],
+                     entryPoints: Set[EngineJobEntryPointRecord] =
+                       Set.empty[EngineJobEntryPointRecord],
                      jsonSetting: JsObject,
                      createdBy: Option[String] = None,
                      createdByEmail: Option[String] = None,
@@ -991,10 +1003,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                                   smrtLinkVersion)(parentJobId).map(out =>
           qInsertEngineJob(out._1, out._2, submitJob = false)))
 
-    val qAction = qInsertEngineJob(engineJob, entryPoints, submitJob).flatMap {
-      createdMultiJob =>
-        aToChildrenJobs(createdMultiJob.id).map(_ => createdMultiJob)
-    }
+    // For the Parent Job we remove duplicate EntryPoints
+    val qAction =
+      qInsertEngineJob(engineJob, entryPoints.toSet, submitJob)
+        .flatMap { createdMultiJob =>
+          aToChildrenJobs(createdMultiJob.id).map(_ => createdMultiJob)
+        }
 
     val f = db.run(qAction.transactionally)
 
@@ -1010,8 +1024,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
                     name: String,
                     description: String,
                     jobTypeId: JobTypeIds.JobType,
-                    entryPoints: Seq[EngineJobEntryPointRecord] =
-                      Seq.empty[EngineJobEntryPointRecord],
+                    entryPoints: Set[EngineJobEntryPointRecord] =
+                      Set.empty[EngineJobEntryPointRecord],
                     jsonSetting: JsObject,
                     createdBy: Option[String] = None,
                     createdByEmail: Option[String] = None,
@@ -1060,8 +1074,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   def importRawEngineJob(
       job: EngineJob,
       parentJob: EngineJob,
-      entryPoints: Seq[EngineJobEntryPointRecord] =
-        Seq.empty[EngineJobEntryPointRecord]): Future[EngineJob] = {
+      entryPoints: Set[EngineJobEntryPointRecord] =
+        Set.empty[EngineJobEntryPointRecord]): Future[EngineJob] = {
     val importedJob = job.copy(id = -1,
                                path = "",
                                projectId = parentJob.projectId,
@@ -1543,7 +1557,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     db.run(engineJobsDataSets.filter(_.jobId === jobId).result)
 
   def deleteJobById(jobId: IdAble): Future[EngineJob] = {
-    logger.info(s"Setting isActive=false for job-id ${jobId.toIdString}")
+    logger.info(s"Setting isActive=false for Job id:${jobId.toIdString}")
     val now = JodaDateTime.now()
     db.run(for {
         _ <- qEngineJobById(jobId)
@@ -1552,7 +1566,7 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
         job <- qEngineJobById(jobId).result.headOption
       } yield job)
       .flatMap(failIfNone(
-        s"Unable to Delete job. Unable to find job id ${jobId.toIdString}"))
+        s"Unable to Delete job. Unable to find Job id:${jobId.toIdString}"))
   }
 }
 

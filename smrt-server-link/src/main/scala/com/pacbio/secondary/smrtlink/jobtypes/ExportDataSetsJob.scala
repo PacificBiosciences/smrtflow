@@ -134,7 +134,7 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
         name,
         desc,
         dOpts.jobTypeId,
-        epoints.map(_.toRecord),
+        epoints.map(_.toRecord).toSet,
         jsettings,
         parentJob.createdBy,
         parentJob.createdByEmail,

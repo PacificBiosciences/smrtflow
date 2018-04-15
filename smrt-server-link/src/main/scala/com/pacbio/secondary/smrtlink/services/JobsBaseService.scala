@@ -209,14 +209,14 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
-      // For the MultiJob case, the createJob method will often have to completely be overriden
+      // For the MultiJob case, the createJob method will often have to completely be overridden
       if (opts.jobTypeId.isMultiJob) {
         dao.createMultiJob(
           uuid,
           name,
           comment,
           opts.jobTypeId,
-          epoints,
+          epoints.toSet,
           jsettings,
           user.map(_.userId),
           user.flatMap(_.userEmail),
@@ -232,7 +232,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           name,
           comment,
           opts.jobTypeId,
-          epoints,
+          epoints.toSet,
           jsettings,
           user.map(_.userId),
           user.flatMap(_.userEmail),
@@ -1034,7 +1034,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
         name,
         comment,
         opts.jobTypeId,
-        epoints,
+        epoints.toSet,
         jsettings,
         user.map(_.userId),
         user.flatMap(_.userEmail),
@@ -1065,16 +1065,13 @@ class MultiAnalysisJobService(override val dao: JobsDao,
                 job,
                 s"ONLY Jobs in the CREATED state can be updated. Job is in state: ${job.state}")
               msg <- Future.successful(s"Updating job ${job.id}")
-              updatedJob <- dao.updateMultiJob(
+              updatedJob <- dao.updateMultiAnalysisJob(
                 job.id,
+                opts,
                 opts.toJson(jwriter).asJsObject,
-                opts.name.getOrElse(job.name),
-                opts.description.getOrElse(job.comment),
                 job.createdBy,
                 job.createdByEmail,
-                job.smrtlinkVersion,
-                opts.getProjectId(),
-                opts.jobs
+                job.smrtlinkVersion
               )
             } yield updatedJob
           }
