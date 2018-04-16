@@ -243,7 +243,7 @@ class PbsmrtpipeJob(opts: PbsmrtpipeJobOptions)
       s"Starting to run Analysis/pbsmrtpipe Job ${resources.jobId}")
 
     val rootUpdateURL = new URL(
-      s"http://${config.host}:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
+      s"http://localhost:${config.port}/$ROOT_SA_PREFIX/$JOB_MANAGER_PREFIX/jobs/pbsmrtpipe")
 
     // These need to be pulled from the System config
     val envPath: Option[Path] = None
