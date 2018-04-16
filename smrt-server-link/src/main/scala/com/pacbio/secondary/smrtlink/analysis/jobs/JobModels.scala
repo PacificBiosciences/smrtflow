@@ -135,6 +135,8 @@ object JobModels {
 
     val SUBMIT_DEFAULT_CORE_JOB = true
     val SUBMIT_DEFAULT_MULTI_JOB = false
+
+    val BARCODE_SET_MAX_NUM_RECORDS = 384
   }
 
   // This needs to be made a proper type
