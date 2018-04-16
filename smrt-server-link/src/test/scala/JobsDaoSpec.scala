@@ -5,11 +5,9 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
-
 import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable.Specification
 import slick.jdbc.PostgresProfile.api._
-
 import com.pacbio.common.models.CommonModelImplicits._
 import com.pacbio.secondary.smrtlink.actors.{JobsDao, SmrtLinkTestDalProvider}
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -20,20 +18,19 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   DataStoreFile,
   EngineJob,
+  JobConstants,
   JobTypeIds
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   PacBioIntJobResolver
 }
-import com.pacbio.secondary.smrtlink.models.{
-  DataSetSearchCriteria,
-  JobSearchCriteria,
-  ReferenceServiceDataSet,
-  QueryOperators
-}
+import com.pacbio.secondary.smrtlink.jobtypes.MultiAnalysisJobOptions
+import com.pacbio.secondary.smrtlink.jsonprotocols.ServiceJobTypeJsonProtocols
+import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
+import spray.json._
 
 class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
   sequential
@@ -211,6 +208,106 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       }
     }
 
+    "Validate Creating and Updating MultiJob" in {
+
+      def runBlock[T](fx: => Future[T]): T = Await.result(fx, timeout)
+
+      def toEp(ix: String) =
+        DeferredEntryPoint(FileTypes.DS_SUBREADS.fileTypeId,
+                           UUID.randomUUID(),
+                           ix)
+
+      val deferredEntryPointIds = Seq("a", "b", "c")
+      val deferredEntryPoints: Seq[DeferredEntryPoint] =
+        deferredEntryPointIds.map(toEp)
+
+      def toD(n: String): DeferredJob = {
+        DeferredJob(deferredEntryPoints,
+                    "test.pipeline.id",
+                    Nil,
+                    Nil,
+                    Some(n),
+                    None,
+                    Some(JobConstants.GENERAL_PROJECT_ID))
+      }
+
+      def toJ(m: MultiAnalysisJobOptions): JsObject =
+        ServiceJobTypeJsonProtocols.multiAnalysisJobOptionsFormat
+          .write(m)
+          .asJsObject
+
+      def toEngineEntryPoints(items: Seq[DeferredJob]) =
+        items.flatten(_.entryPoints.map(e =>
+          EngineJobEntryPointRecord(e.uuid, e.fileTypeId)))
+
+      val childJobNames = Seq("alpha", "beta", "gamma")
+      val jobs = childJobNames.map(toD)
+
+      val uuid = UUID.randomUUID()
+
+      val jobName = "MultiJob Test"
+      val description = s"$jobName"
+      val multiJobOptions =
+        MultiAnalysisJobOptions(jobs, Some(jobName), None, None, None)
+
+      val entryPoints = toEngineEntryPoints(multiJobOptions.jobs)
+
+      val f1 = dao.createMultiJob(uuid,
+                                  jobName,
+                                  description,
+                                  JobTypeIds.MJOB_MULTI_ANALYSIS,
+                                  entryPoints.toSet,
+                                  toJ(multiJobOptions),
+                                  None,
+                                  None,
+                                  None,
+                                  childJobs = jobs)
+
+      val createdMultiJob = runBlock(f1)
+      createdMultiJob.state === AnalysisJobStates.CREATED
+      createdMultiJob.isMultiJob === true
+
+      val createdEntryPoints =
+        runBlock(dao.getJobEntryPoints(createdMultiJob.id))
+      createdEntryPoints.length === entryPoints.toSet.toList.length
+
+      val children = runBlock(dao.getMultiJobChildren(createdMultiJob.id))
+      children.length === childJobNames.length
+
+      // There's a bug in here. This will generate a slick runtime error
+      // slick.SlickTreeException: Unreachable reference to s69 after resolving monadic joins
+      //val children2 = runBlock(dao.getMultiJobChildren(createdJob.uuid))
+      //children2.length === childJobNames.length
+
+      // Test Update
+      val updatedName = "Updated Job Name"
+      val updatedDescription = "Updated Desc"
+      val updateChildJobNames = Seq("epsilon", "delta")
+      val updatedChildJobs = updateChildJobNames.map(toD)
+      val updatedEntryPoints = toEngineEntryPoints(updatedChildJobs)
+      val updatedMultiJobOptions =
+        multiJobOptions.copy(name = Some(updatedName),
+                             description = Some(updatedDescription),
+                             jobs = updatedChildJobs)
+
+      val f2 = dao.updateMultiAnalysisJob(createdMultiJob.id,
+                                          updatedMultiJobOptions,
+                                          toJ(updatedMultiJobOptions),
+                                          None,
+                                          None,
+                                          None)
+
+      val updatedJob = runBlock(f2)
+      updatedJob.name === updatedName
+
+      val updatedChildren = runBlock(dao.getMultiJobChildren(updatedJob.id))
+      updatedChildren.length === updateChildJobNames.length
+      updatedChildren.map(_.name).toSet ==== updateChildJobNames.toSet
+
+      val updatedCreatedEntryPoints =
+        runBlock(dao.getJobEntryPoints(createdMultiJob.id))
+      updatedCreatedEntryPoints.length === updatedEntryPoints.toSet.toList.length
+    }
   }
 
   step(cleanUpJobDir(tmpJobDir))

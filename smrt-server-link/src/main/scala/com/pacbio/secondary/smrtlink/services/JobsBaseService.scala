@@ -209,14 +209,14 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
     val projectId = opts.projectId.getOrElse(JobConstants.GENERAL_PROJECT_ID)
 
     def creator(epoints: Seq[EngineJobEntryPointRecord]): Future[EngineJob] = {
-      // For the MultiJob case, the createJob method will often have to completely be overriden
+      // For the MultiJob case, the createJob method will often have to completely be overridden
       if (opts.jobTypeId.isMultiJob) {
         dao.createMultiJob(
           uuid,
           name,
           comment,
           opts.jobTypeId,
-          epoints,
+          epoints.toSet,
           jsettings,
           user.map(_.userId),
           user.flatMap(_.userEmail),
@@ -232,7 +232,7 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           name,
           comment,
           opts.jobTypeId,
-          epoints,
+          epoints.toSet,
           jsettings,
           user.map(_.userId),
           user.flatMap(_.userEmail),
@@ -470,8 +470,32 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
                                        None)
     } yield
       MessageResponse(
-        s"Updated Job ${jobId.toIdString} to state ${job.state}"))(
+        s"Updated Job ${jobId.toIdString} to state ${updatedJob.state}"))(
       customExecutionContext)
+  }
+
+  def updateJobRoute(jobId: IdAble) = {
+    put {
+      entity(as[UpdateJobRecord]) { update =>
+        complete {
+          dao.updateJob(jobId, update.name, update.comment, update.tags)
+        }
+      }
+    }
+  }
+
+  def deleteJobRoute(jobId: IdAble) = {
+    delete {
+      complete {
+        for {
+          job <- dao.getJobById(jobId)
+          _ <- validateStateIsCreated(
+            job,
+            s"ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
+          msg <- dao.deleteMultiJob(job.id)
+        } yield msg
+      }
+    }
   }
 
   def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
@@ -481,13 +505,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           complete {
             dao.getJobById(jobId)
           }
-        } ~ put {
-          entity(as[UpdateJobRecord]) { update =>
-            complete {
-              dao.updateJob(jobId, update.name, update.comment, update.tags)
-            }
-          }
-        }
+        } ~ updateJobRoute(jobId) ~
+          deleteJobRoute(jobId)
       } ~
         path(LOG_PREFIX) {
           pathEndOrSingleSlash {
@@ -1015,7 +1034,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
         name,
         comment,
         opts.jobTypeId,
-        epoints,
+        epoints.toSet,
         jsettings,
         user.map(_.userId),
         user.flatMap(_.userEmail),
@@ -1033,71 +1052,28 @@ class MultiAnalysisJobService(override val dao: JobsDao,
     } yield engineJob
   }
 
-  // Note, there's several explicit calls to toJson(jwriter) to avoid ambiguous implicit issues.
-
-  // This can all be pushed into the Core job now that it has parity with the CoreJob model
-  val updateAndDeleteRoute: Route = {
-    pathPrefix(IdAbleMatcher) { jobId =>
-      pathEndOrSingleSlash {
-        put {
-          entity(as[MultiAnalysisJobOptions]) { opts =>
-            complete {
-              StatusCodes.Created -> {
-                for {
-                  job <- dao.getJobById(jobId)
-                  _ <- validateStateIsCreated(
-                    job,
-                    s"ONLY Jobs in the CREATED state can be updated. Job is in state: ${job.state}")
-                  msg <- Future.successful(s"Updating job ${job.id}")
-                  updatedJob <- dao.updateMultiJob(
-                    job.id,
-                    opts.toJson(jwriter).asJsObject,
-                    opts.name.getOrElse(job.name),
-                    opts.description.getOrElse(job.comment),
-                    opts.getProjectId())
-                } yield updatedJob
-              }
-            }
-          }
-        } ~
-          delete {
-            complete {
-              for {
-                job <- dao.getJobById(jobId)
-                _ <- validateStateIsCreated(
-                  job,
-                  s"ONLY Jobs in the CREATED state can be DELETED. Job is in state: ${job.state}")
-                msg <- dao.deleteMultiJob(job.id)
-              } yield msg
-            }
-          }
-      }
-    }
-  }
-
-  val deleteJobRoute: Route = {
-    pathPrefix(IdAbleMatcher) { jobId =>
-      pathEndOrSingleSlash {
-        put {
-          entity(as[MultiAnalysisJobOptions]) { opts =>
-            complete {
-              StatusCodes.Created -> {
-                for {
-                  job <- dao.getJobById(jobId)
-                  _ <- validateStateIsCreated(
-                    job,
-                    "ONLY Jobs in the CREATED state can be updated.")
-                  msg <- Future.successful(
-                    s"Updating job ${job.id} state ${job.state} to SUBMITTED")
-                  _ <- dao.updateMultiJob(
-                    job.id,
-                    opts.toJson(jwriter).asJsObject,
-                    opts.name.getOrElse(job.name),
-                    opts.description.getOrElse(job.comment),
-                    opts.getProjectId())
-                } yield MessageResponse(msg)
-              }
-            }
+  override def updateJobRoute(jobId: IdAble) = {
+    put {
+      entity(as[MultiAnalysisJobOptions]) { opts =>
+        complete {
+          StatusCodes.Created -> {
+            for {
+              _ <- Future.successful(
+                andLog(s"Attempting to update multi-job state with $opts"))
+              job <- dao.getJobById(jobId)
+              _ <- validateStateIsCreated(
+                job,
+                s"ONLY Jobs in the CREATED state can be updated. Job is in state: ${job.state}")
+              msg <- Future.successful(s"Updating job ${job.id}")
+              updatedJob <- dao.updateMultiAnalysisJob(
+                job.id,
+                opts,
+                opts.toJson(jwriter).asJsObject,
+                job.createdBy,
+                job.createdByEmail,
+                job.smrtlinkVersion
+              )
+            } yield updatedJob
           }
         }
       }
@@ -1119,7 +1095,7 @@ class MultiAnalysisJobService(override val dao: JobsDao,
 
   // If/When there are more multi-job types, this should be refactored out into it's own base.
   override def allIdAbleJobRoutes(implicit ec: ExecutionContext): Route =
-    super.allIdAbleJobRoutes(ec) ~ childrenJobsRoute ~ updateAndDeleteRoute
+    super.allIdAbleJobRoutes(ec) ~ childrenJobsRoute
 }
 
 /**
@@ -1145,7 +1121,7 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
   override val manifest = PacBioComponentManifest(
     toServiceId("new_job_service"),
     "New Job Service",
-    "0.1.0",
+    "0.2.0",
     "New Job Service")
 
   def getServiceMultiJobs(): Seq[JobServiceRoutes] = Seq(
