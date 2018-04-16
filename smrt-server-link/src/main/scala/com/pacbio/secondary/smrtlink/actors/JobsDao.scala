@@ -40,6 +40,7 @@ import akka.actor.ActorRef
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetLoader.BarcodeSetLoader
 import com.pacbio.secondary.smrtlink.database.{
   SmrtLinkDatabaseConfig => SmrtLinkDbConfig
 }
@@ -2308,6 +2309,37 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     sx
   }
 
+  private def validateBarcodeSetFile(
+      path: Path,
+      maxNumRecords: Int): Future[MessageResponse] = {
+    val barcodeSet = BarcodeSetLoader.load(path)
+    val numRecords: Int = barcodeSet.getDataSetMetadata.getNumRecords
+    if (numRecords > maxNumRecords)
+      Future.failed(UnprocessableEntityError(
+        s"Cannot import: Barcode Set with $numRecords barcodes contains more than the maximum of $maxNumRecords barcodes"))
+    else
+      Future.successful(
+        MessageResponse(
+          s"Valid barcode set with $numRecords <= $maxNumRecords"))
+  }
+
+  /**
+    * General Interface to do pre-validation of DataStoreServiceFiles prior to import.
+    *
+    * @param files
+    * @param maxNumRecords
+    * @return
+    */
+  private def validateServiceDataStoreFiles(
+      files: Seq[DataStoreServiceFile],
+      maxNumRecords: Int): Future[Seq[DataStoreServiceFile]] =
+    for {
+      barcodeFiles <- Future.successful(
+        files.filter(_.fileTypeId == FileTypes.DS_BARCODE.fileTypeId))
+      _ <- Future.sequence(barcodeFiles.map(b =>
+        validateBarcodeSetFile(Paths.get(b.path), maxNumRecords)))
+    } yield files
+
   /**
     *
     * THIS IS THE NEW PUBLIC INTERFACE THAT SHOULD BE USED from the Job interface to
@@ -2352,6 +2384,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       serviceFiles <- Future.successful(files.map(f =>
         toDataStoreServiceFile(f, job.id, job.uuid, isActive = true)))
       _ <- andLog(toMessage(importPrefix, job.id))
+      _ <- validateServiceDataStoreFiles(
+        serviceFiles,
+        JobConstants.BARCODE_SET_MAX_NUM_RECORDS)
       importAbleFiles <- loadServiceFiles(serviceFiles,
                                           job.createdBy,
                                           projectId.getOrElse(job.projectId))
