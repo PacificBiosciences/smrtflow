@@ -5,12 +5,18 @@ import java.util.UUID
 
 import com.google.common.annotations.VisibleForTesting
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{ResourceNotFoundError, UnprocessableEntityError}
+import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
+  ResourceNotFoundError,
+  UnprocessableEntityError
+}
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.{DataSetJsonUtils, DataSetLoader}
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  DataSetJsonUtils,
+  DataSetLoader
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
@@ -35,9 +41,14 @@ import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.ImplicitDataSetLoader.BarcodeSetLoader
-import com.pacbio.secondary.smrtlink.database.{SmrtLinkDatabaseConfig => SmrtLinkDbConfig}
+import com.pacbio.secondary.smrtlink.database.{
+  SmrtLinkDatabaseConfig => SmrtLinkDbConfig
+}
 import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
-import com.pacbio.secondary.smrtlink.jsonprotocols.{ServiceJobTypeJsonProtocols, SmrtLinkJsonProtocols}
+import com.pacbio.secondary.smrtlink.jsonprotocols.{
+  ServiceJobTypeJsonProtocols,
+  SmrtLinkJsonProtocols
+}
 import com.pacbio.secondary.smrtlink.models.QueryOperators._
 import com.pacificbiosciences.pacbiodatasets._
 import org.apache.commons.io.FileUtils
@@ -2224,8 +2235,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   }
 
   private def validateBarcodeSetFile(
-                                      path: Path,
-                                      maxNumRecords: Int): Future[MessageResponse] = {
+      path: Path,
+      maxNumRecords: Int): Future[MessageResponse] = {
     val barcodeSet = BarcodeSetLoader.load(path)
     val numRecords: Int = barcodeSet.getDataSetMetadata.getNumRecords
     if (numRecords > maxNumRecords)
@@ -2245,16 +2256,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     * @return
     */
   private def validateServiceDataStoreFiles(
-                                             files: Seq[DataStoreServiceFile],
-                                             maxNumRecords: Int): Future[Seq[DataStoreServiceFile]] =
+      files: Seq[DataStoreServiceFile],
+      maxNumRecords: Int): Future[Seq[DataStoreServiceFile]] =
     for {
       barcodeFiles <- Future.successful(
         files.filter(_.fileTypeId == FileTypes.DS_BARCODE.fileTypeId))
       _ <- Future.sequence(barcodeFiles.map(b =>
         validateBarcodeSetFile(Paths.get(b.path), maxNumRecords)))
     } yield files
-
-
 
   /**
     *
@@ -2300,7 +2309,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       serviceFiles <- Future.successful(files.map(f =>
         toDataStoreServiceFile(f, job.id, job.uuid, isActive = true)))
       _ <- andLog(toMessage(importPrefix, job.id))
-      _ <- validateServiceDataStoreFiles(serviceFiles, JobConstants.BARCODE_SET_MAX_NUM_RECORDS)
+      _ <- validateServiceDataStoreFiles(
+        serviceFiles,
+        JobConstants.BARCODE_SET_MAX_NUM_RECORDS)
       importAbleFiles <- loadServiceFiles(serviceFiles,
                                           job.createdBy,
                                           projectId.getOrElse(job.projectId))
