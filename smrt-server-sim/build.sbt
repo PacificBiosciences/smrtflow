@@ -32,25 +32,23 @@ getSmrtLinkAssemblyJar := {
 val smrtLinkServerRunner =
   taskKey[SmrtLinkServerRunner]("Integration Test SMRT Link Server Runner")
 
-//smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner(
-//  getSmrtLinkAssemblyJar.value,
-//  streams.value.log)
-//
-//testOptions in IntegrationTest := {
-//  val r = smrtLinkServerRunner.value
-//  r.start()
-//  (testOptions in IntegrationTest).value
-//}
-//
-//val runInt =
-//  taskKey[String](
-//    "Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
-//
-//runInt := {
-//  val r = smrtLinkServerRunner.value
-//  //r.start()
-//  // FIXME. This needs to the set the PATH to included exe's from pack and a task dependency on sbt-pack
-//  (executeTests in IntegrationTest).value
-//  r.stop()
-//  "Completed running integration tests"
-//}
+smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner(
+  getSmrtLinkAssemblyJar.value,
+  streams.value.log)
+
+testOptions in IntegrationTest := {
+  val r = smrtLinkServerRunner.value
+  r.start()
+  (testOptions in IntegrationTest).value
+}
+
+val runInt =
+  taskKey[String](
+    "Start Development server and run integration tests. This requires external setup  and hence, must be called from the makefile via make test-int")
+
+runInt := {
+  val r = smrtLinkServerRunner.value
+  (executeTests in IntegrationTest).value
+  r.stop()
+  "Completed running integration tests"
+}

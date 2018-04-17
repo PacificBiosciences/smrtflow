@@ -21,6 +21,7 @@ extras/pbbundler/built-bundles/*
 PacBioTestData
 # Misc repos used for integration testing and data
 repos/*
+repos
 
 test-data/smrtserver-testdata
 test-output/*
