@@ -36,6 +36,10 @@ smrtLinkServerRunner := new SmrtLinkAnalysisServerRunner(
   getSmrtLinkAssemblyJar.value,
   streams.value.log)
 
+testOptions in IntegrationTest += Tests.Argument(TestFrameworks.Specs2,
+                                                 "junitxml",
+                                                 "console")
+
 testOptions in IntegrationTest := {
   val r = smrtLinkServerRunner.value
   r.start()
