@@ -99,7 +99,6 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
     }
     "MultiAnalysis Scenario" in {
       runScenario("MultiAnalysisScenario") must beNone
-      Some("asdf") must beNone
     }
   }
 }
