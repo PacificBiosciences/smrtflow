@@ -8,7 +8,10 @@ import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 
 import scala.collection._
 import com.typesafe.config.Config
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetMetaTypes,
+  DataSetMiniMeta
+}
 import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
@@ -97,15 +100,16 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
   override val name = "MultiAnalysisScenario"
   override val smrtLinkClient = client
 
-  def toJobOptions(subreadset: TestDataResource,
-                   uuid: UUID,
+  private def toDefEntryPoint(uuid: UUID) =
+    DeferredEntryPoint(DataSetMetaTypes.Subread.fileType.fileTypeId,
+                       uuid,
+                       "eid_subread")
+
+  def toJobOptions(uuid: UUID,
                    numJobs: Int,
                    jobName: Option[String] = Some("Scenario Multi-job"))
     : MultiAnalysisJobOptions = {
-    val entryPoint = DeferredEntryPoint(
-      DataSetMetaTypes.Subread.fileType.fileTypeId,
-      uuid,
-      "eid_subread")
+    val entryPoint = toDefEntryPoint(uuid)
 
     val numSubreadsetOpt = ServiceTaskIntOption(
       "pbsmrtpipe.task_options.num_subreadsets",
@@ -156,27 +160,51 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       .getOrElse("No Jobs")
   }
 
-  // Giving up on the Step approach. It's easier to write a single future and avoid the
-  // Var mechanism. Futures also compose, Steps do not.
-  def runSanityTest(subreadsetTestFileId: String,
-                    numJobs: Int,
-                    jobName: Option[String]): Future[Seq[EngineJob]] = {
+  def getOrImportSuccessfully(path: Path): Future[DataSetMiniMeta] = {
     for {
-      _ <- andLog(
-        s"Starting to Run MultiJob ScenarioStep with numJobs:$numJobs")
-      subreadset <- getFileOrFail(subreadsetTestFileId)
-      _ <- andLog(s"Loaded TestDataFile $subreadset")
-      msg <- client.getStatus
-      _ <- andLog(
-        s"Successfully connected to SMRT Link Server: ${client.RootUri} ${msg.message}")
-      dst <- Future.successful(getDataSetMiniMeta(subreadset.path))
-      importJob <- client.importDataSet(subreadset.path, dst.metatype)
+      dst <- Future.successful(getDataSetMiniMeta(path))
+      importJob <- client.importDataSet(path, dst.metatype)
       _ <- andLog(s"Created import-dataset job ${importJob.id}")
       successfulImportJob <- Future.fromTry(
         client.pollForSuccessfulJob(importJob.id))
       _ <- andLog(s"Successfully imported dataset ${successfulImportJob.id}")
+    } yield dst
+  }
+
+  def getOrRunImportTestFile(subreadSetTestFileId: String)
+    : Future[(DataSetMiniMeta, TestDataResource)] = {
+    for {
+      subreadset <- getFileOrFail(subreadSetTestFileId)
+      _ <- andLog(s"Loaded TestDataFile $subreadset")
+      msg <- client.getStatus
+      _ <- andLog(
+        s"Successfully connected to SMRT Link Server: ${client.RootUri} ${msg.message}")
+      dst <- getOrImportSuccessfully(subreadset.path)
+    } yield (dst, subreadset)
+  }
+
+  // Giving up on the Step approach. It's easier to write a single future and avoid the
+  // Var mechanism. Futures also compose, Steps do not.
+
+  /**
+    * Runs a Simple MultiJob MultiAnalysis Job with N child jobs created from a single
+    * SubreadSet.
+    *
+    * @param subreadsetTestFileId Test File Id
+    * @param numJobs              Number of Child Jobs to Create
+    * @param jobName              Name of the MultiJob
+    * @return
+    */
+  def runMultiJobSanityTest(
+      subreadsetTestFileId: String,
+      numJobs: Int,
+      jobName: Option[String]): Future[Seq[EngineJob]] = {
+    for {
+      _ <- andLog(
+        s"Starting to Run MultiJob ScenarioStep with numJobs:$numJobs")
+      dstAndsubreadset <- getOrRunImportTestFile(subreadsetTestFileId)
       multiJob <- client.createMultiAnalysisJob(
-        toJobOptions(subreadset, dst.uuid, numJobs, jobName))
+        toJobOptions(dstAndsubreadset._1.uuid, numJobs, jobName))
       _ <- andLog(
         s"Successfully Created MultiJob ${multiJob.id} in state:${multiJob.state}")
       updateMsg <- client.updateMultiAnalysisJobToSubmit(multiJob.id)
@@ -194,13 +222,82 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield jobs
   }
 
+  def runMultiJobDeferredSanityTest(
+      subreadsetTestFileId: String,
+      jobName: String): Future[Seq[EngineJob]] = {
+
+    val jobAlpha = s"job-alpha-${UUID.randomUUID()}"
+    val jobBeta = s"job-beta-${UUID.randomUUID()}"
+
+    def toOpt(ssetA: UUID, ssetB: UUID): MultiAnalysisJobOptions = {
+
+      val numSubreadsetOpt = ServiceTaskIntOption(
+        "pbsmrtpipe.task_options.num_subreadsets",
+        numSubreadSets)
+      val taskOptions: Seq[ServiceTaskOptionBase] = Seq(numSubreadsetOpt)
+      val workflowOptions = Seq.empty[ServiceTaskOptionBase]
+
+      def toDefJob(entryPoint: DeferredEntryPoint, name: String) = {
+        DeferredJob(Seq(entryPoint),
+                    "pbsmrtpipe.pipelines.dev_01_ds",
+                    taskOptions,
+                    workflowOptions,
+                    Some(name),
+                    None,
+                    None)
+      }
+
+      val alpha = toDefJob(toDefEntryPoint(ssetA), jobAlpha)
+      val beta = toDefJob(toDefEntryPoint(ssetB), jobBeta)
+
+      val jobs = Seq(alpha, beta)
+      MultiAnalysisJobOptions(jobs, Some(jobName), None, None, Some(true))
+    }
+
+    def getJobByNameOrFail(jobs: Seq[EngineJob],
+                           name: String): Future[EngineJob] = {
+      jobs
+        .find(_.name == name)
+        .map(Future.successful)
+        .getOrElse(Future.failed(new Exception(
+          s"Unable to find job $name. Job names ${jobs.map(_.name)}")))
+    }
+
+    for {
+      dstAndsubreadset <- getOrRunImportTestFile(subreadsetTestFileId)
+      copiedTestFile <- getFileOrFail(subreadsetTestFileId).map(
+        _.getTempDataSetFile(setNewUuid = true))
+      copiedDst <- Future.successful(getDataSetMiniMeta(copiedTestFile.path))
+      createdMultiJob <- client.createMultiAnalysisJob(
+        toOpt(dstAndsubreadset._1.uuid, copiedDst.uuid))
+      childJobs <- client.getMultiAnalysisChildrenJobs(createdMultiJob.id)
+      childJobAlpha <- getJobByNameOrFail(childJobs, jobAlpha)
+      successfulChildAlpha <- Future.fromTry(
+        client.pollForSuccessfulJob(childJobAlpha.id))
+      _ <- andLog(
+        s"Successful ran Child job ${successfulChildAlpha.id} ${successfulChildAlpha.name}")
+      _ <- getOrImportSuccessfully(copiedTestFile.path)
+      childJobBeta <- getJobByNameOrFail(childJobs, jobBeta)
+      successfulChildBeta <- Future.fromTry(
+        client.pollForSuccessfulJob(childJobBeta.id))
+      _ <- andLog(
+        s"Successful ran Child job ${successfulChildBeta.id} ${successfulChildBeta.name}")
+      successfulMultiJob <- Future.fromTry(
+        client.pollForSuccessfulJob(createdMultiJob.id))
+      _ <- andLog(
+        s"Successful ran Child job ${successfulMultiJob.id} ${successfulMultiJob.name}")
+      successfulChildJobs <- client.getMultiAnalysisChildrenJobs(
+        createdMultiJob.id)
+    } yield successfulChildJobs
+  }
+
   case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
                                            numJobs: Int,
                                            jobName: String)
       extends VarStep[Seq[EngineJob]] {
     override val name: String = "RunMultiJobAnalysisSanity"
     override def runWith =
-      runSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
+      runMultiJobSanityTest(subreadsetTestFileId, numJobs, Some(jobName))
   }
 
   case class ImportTestData(subreadSetTestId: String)
@@ -222,6 +319,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield msg
   }
 
+  case class RunMultiJobDeferredStep(subreadSetTestFileId: String,
+                                     jobName: String)
+      extends VarStep[Seq[EngineJob]] {
+    override val name: String = "RunMultiJobDeferredStep"
+    override def runWith: Future[Seq[EngineJob]] =
+      runMultiJobDeferredSanityTest(subreadSetTestFileId, jobName)
+  }
+
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
@@ -230,8 +335,11 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       RunMultiJobAnalysisSanityStep(testSubreadSetId, n, s"Multi-job-${i + 1}")
   }
 
+  lazy val multiDeferredSteps: Seq[Step] = Seq(
+    RunMultiJobDeferredStep(testSubreadSetId, "Deferred JobTest"))
+
   // When only running this Scenario, Add a centalizing importing of the TestData
   // make the test run quicker.
-  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps
+  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps ++ multiDeferredSteps
 
 }
