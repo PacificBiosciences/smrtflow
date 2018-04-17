@@ -7,13 +7,25 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, EngineManagerStatus, JobTypeIds, NoAvailableWorkError}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  EngineManagerStatus,
+  JobTypeIds,
+  NoAvailableWorkError
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobResourceResolver
+}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.models.{JobChangeStateMessage, RunChangedStateMessage, RunSummary}
+import com.pacbio.secondary.smrtlink.models.{
+  JobChangeStateMessage,
+  RunChangedStateMessage,
+  RunSummary
+}
 import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates
 
 import scala.collection.mutable
@@ -312,7 +324,8 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   def onRunSummary(run: RunSummary): Future[String] = {
-    val failedRunStates: Set[SupportedRunStates] = Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
+    val failedRunStates: Set[SupportedRunStates] =
+      Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
     if (failedRunStates contains run.status) {
       dao.checkForMultiJobsFromRun(run.uniqueId)
     } else {
@@ -365,19 +378,21 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       * will never be imported. In this case, update the Child Job state to FAILED with a specific error message.
       * */
     case RunChangedStateMessage(runSummary) =>
-      runSummary.multiJobId match {
-        case Some(multiJobId) =>
-          logResultsMessage(
-            for {
-              m1 <- submitMultiJobIfCreated(multiJobId)
-              m2 <- onRunSummary(runSummary)
-              m3 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-            } yield Seq(m1, m2, m3).reduce(_ ++ _)
-          )
-        // Need to very carefully handle the Success and Failure cases here
-        case _ =>
-          log.debug(
-            "Run without MultiJob. Skipping MultiJob analysis Updating.")
+      if (runSummary.reserved) {
+        runSummary.multiJobId match {
+          case Some(multiJobId) =>
+            logResultsMessage(
+              for {
+                m1 <- submitMultiJobIfCreated(multiJobId)
+                m2 <- onRunSummary(runSummary)
+                m3 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+              } yield Seq(m1, m2, m3).reduce(_ ++ _)
+            )
+          // Need to very carefully handle the Success and Failure cases here
+          case _ =>
+            log.debug(
+              "Run without MultiJob. Skipping MultiJob analysis Updating.")
+        }
       }
 
     case CheckForRunnableJob => {
