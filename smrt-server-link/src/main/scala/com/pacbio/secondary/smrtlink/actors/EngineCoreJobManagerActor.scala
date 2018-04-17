@@ -366,18 +366,20 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       * will never be imported. In this case, update the Child Job state to FAILED with a specific error message.
       * */
     case RunChangedStateMessage(runSummary) =>
-      runSummary.multiJobId match {
-        case Some(multiJobId) =>
-          logResultsMessage(
-            for {
-              m1 <- submitMultiJobIfCreated(multiJobId)
-              m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-            } yield s"$m1 $m2"
-          )
-        // Need to very carefully handle the Success and Failure cases here
-        case _ =>
-          log.debug(
-            "Run without MultiJob. Skipping MultiJob analysis Updating.")
+      if (runSummary.reserved) {
+        runSummary.multiJobId match {
+          case Some(multiJobId) =>
+            logResultsMessage(
+              for {
+                m1 <- submitMultiJobIfCreated(multiJobId)
+                m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+              } yield s"$m1 $m2"
+            )
+          // Need to very carefully handle the Success and Failure cases here
+          case _ =>
+            log.debug(
+              "Run without MultiJob. Skipping MultiJob analysis Updating.")
+        }
       }
 
     case CheckForRunnableJob => {
