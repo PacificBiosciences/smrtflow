@@ -842,6 +842,12 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def idx = index("collection_metadata_run_id", runId)
   }
 
+  def qGetRunCollectionMetadataByRunIdAndState(
+      runId: UUID,
+      states: Set[SupportedAcquisitionStates]) = {
+    collectionMetadata.filter(_.runId === runId).filter(_.status inSet states)
+  }
+
   class SampleT(tag: Tag) extends Table[Sample](tag, "SAMPLE") {
 
     def details: Rep[String] = column[String]("DETAILS")
