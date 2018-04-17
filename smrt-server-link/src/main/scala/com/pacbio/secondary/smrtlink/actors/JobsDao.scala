@@ -53,6 +53,7 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.{
   SmrtLinkJsonProtocols
 }
 import com.pacbio.secondary.smrtlink.models.QueryOperators._
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedAcquisitionStates
 import com.pacificbiosciences.pacbiodatasets._
 import org.apache.commons.io.FileUtils
 import org.postgresql.util.PSQLException
@@ -3400,6 +3401,57 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def removeEula(version: String): Future[Int] =
     db.run(eulas.filter(_.smrtlinkVersion === version).delete)
+
+  /**
+    * This overlaps with the RunDao this should be fixed.
+    *
+    * This will check for look for Acq/CollectionMeta(s) that
+    * have Failed, and will update the companion Child Job of a
+    * MultiJob to FAILED.
+    *
+    * @param runId Run UniqueId
+    */
+  def checkForMultiJobsFromRun(runId: UUID): Future[String] = {
+
+    val errorMessage = s"Run $runId Failed. Unable to Run MultiJob"
+
+    val childJobStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.CREATED)
+
+    val failedAcqStates: Set[SupportedAcquisitionStates] =
+      Set(SupportedAcquisitionStates.FAILED,
+          SupportedAcquisitionStates.ERROR,
+          SupportedAcquisitionStates.ABORTED,
+          SupportedAcquisitionStates.TRANSFER_FAILED)
+
+    val q1 = {
+      for {
+        collections <- qGetRunCollectionMetadataByRunIdAndState(
+          runId,
+          failedAcqStates)
+        failedDataSets <- engineJobsDataSets.filter(
+          _.datasetUUID === collections.uniqueId)
+        childJobs <- qGetEngineJobsByStates(childJobStates)
+          .filter(_.isMultiJob === false)
+          .filter(_.id === failedDataSets.jobId)
+      } yield childJobs.id
+    }
+
+    def updateFailedRuns(jobIds: Seq[Int]) =
+      DBIO.sequence(jobIds.map(ix =>
+        qUpdateJobState(ix, AnalysisJobStates.FAILED, errorMessage)))
+
+    val q2 = q1.result.flatMap(updateFailedRuns)
+
+    def toS(j: EngineJob) =
+      s"ChildJob ${j.id} ${j.state} ${j.parentMultiJobId.map(i => s"(parent $i)").getOrElse("")}"
+
+    def toJ(jobs: Seq[EngineJob]) =
+      jobs.map(toS).reduceLeftOption(_ ++ " " ++ _).getOrElse("")
+
+    db.run(q2.transactionally).map(jobs => s"Updated Run $runId ${toJ(jobs)}")
+  }
+
 }
 
 /**

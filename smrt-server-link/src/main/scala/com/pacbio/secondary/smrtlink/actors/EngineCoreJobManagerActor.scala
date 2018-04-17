@@ -7,24 +7,14 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  EngineJob,
-  EngineManagerStatus,
-  JobTypeIds,
-  NoAvailableWorkError
-}
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  AnalysisJobStates,
-  JobResourceResolver
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{EngineJob, EngineManagerStatus, JobTypeIds, NoAvailableWorkError}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{AnalysisJobStates, JobResourceResolver}
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.models.{
-  JobChangeStateMessage,
-  RunChangedStateMessage
-}
+import com.pacbio.secondary.smrtlink.models.{JobChangeStateMessage, RunChangedStateMessage, RunSummary}
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -321,6 +311,15 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     onJobRunner(jobFilter, checkAllChildrenJobsOfMultiJob(job.id))(job)
   }
 
+  def onRunSummary(run: RunSummary): Future[String] = {
+    val failedRunStates: Set[SupportedRunStates] = Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
+    if (failedRunStates contains run.status) {
+      dao.checkForMultiJobsFromRun(run.uniqueId)
+    } else {
+      Future.successful("")
+    }
+  }
+
   override def receive: Receive = {
 
     /**
@@ -371,8 +370,9 @@ class EngineCoreJobManagerActor(dao: JobsDao,
           logResultsMessage(
             for {
               m1 <- submitMultiJobIfCreated(multiJobId)
-              m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-            } yield s"$m1 $m2"
+              m2 <- onRunSummary(runSummary)
+              m3 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+            } yield Seq(m1, m2, m3).reduce(_ ++ _)
           )
         // Need to very carefully handle the Success and Failure cases here
         case _ =>
