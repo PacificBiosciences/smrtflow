@@ -228,17 +228,16 @@ env "$client_env" \
        --scope admin \
        --roles Internal/PbAdmin \
        --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile} \
-     && \
-     env "$client_env" \
+       --host localhost --log-file ${logStartFile}
+env "$client_env" \
      ${AMCLIENT} proxy-admin \
        --api-name ReadOnlyRemoteUserStoreService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --scope userinfo \
        --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician \
        --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile} \
-     && echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"
+       --host localhost --log-file ${logStartFile}
+echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"
 
 # This is a bit odd, SMRT View is started by a different layer of the software stack.
 # This layer only start 3 of the 4 sub-components of the system up.
