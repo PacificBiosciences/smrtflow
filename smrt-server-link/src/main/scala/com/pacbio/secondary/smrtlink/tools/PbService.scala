@@ -82,6 +82,7 @@ object Modes {
   case object TS_JOB extends Mode { val name = "ts-failed-job" }
   case object ALARMS extends Mode { val name = "get-alarms" }
   case object IMPORT_RUN extends Mode { val name = "import-run" }
+  case object GET_RUN extends Mode { val name = "get-run" }
   case object UNKNOWN extends Mode { val name = "unknown" }
 }
 
@@ -125,6 +126,7 @@ object PbServiceParser extends CommandLineToolVersion {
       command: CustomConfig => Unit = showDefaults,
       datasetId: IdAble = 0,
       jobId: IdAble = 0,
+      runId: UUID = UUID.randomUUID(),
       path: Path = null,
       name: Option[String] = None,
       organism: Option[String] = None,
@@ -164,7 +166,8 @@ object PbServiceParser extends CommandLineToolVersion {
       blockImportDataSet: Boolean = true, // this is duplicated with "block". This should be collapsed to have consistent behavior within pbservice
       numMaxConcurrentImport: Int = 10, // This number should be tuned.
       tags: Option[String] = None,
-      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None
+      grantRoleToAll: Option[ProjectRequestRole.ProjectRequestRole] = None,
+      asXml: Boolean = false
   ) extends LoggerConfig {
     def getName =
       name.getOrElse(
@@ -665,6 +668,22 @@ object PbServiceParser extends CommandLineToolVersion {
         opt[Unit]("reserved")
           .action((_, c) => c.copy(reserved = true))
           .text("Set reserved=True")
+      )
+
+    note("\tRETRIEVE RUN DESIGN\n")
+    cmd(Modes.GET_RUN.name)
+      .action { (_, c) =>
+        c.copy(command = (c) => println(c), mode = Modes.GET_RUN)
+      }
+      .text("Display a SMRT Link instrument run design")
+      .children(
+        arg[String]("run-id")
+          .required()
+          .action((i, c) => c.copy(runId = UUID.fromString(i)))
+          .text("Run unique ID (UUID)"),
+        opt[Unit]("xml")
+          .action((_, c) => c.copy(asXml = true))
+          .text("Output run design XML")
       )
 
     // Don't show the help if validation error
@@ -1977,14 +1996,21 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runGetAlarms: Future[String] = sal.getAlarms().map(alarmsSummary)
 
-  def runImportRun(xmlFile: Path, reserved: Boolean = false): Future[String] = {
+  def runImportRun(xmlFile: Path,
+                   reserved: Boolean = false,
+                   asJson: Boolean = true): Future[String] = {
     for {
       runSummary <- sal.createRun(FileUtils.readFileToString(xmlFile.toFile))
       runSummary <- if (reserved) {
         sal.updateRun(runSummary.uniqueId, reserved = Some(true))
       } else Future.successful(runSummary)
-    } yield runSummary.toJson.prettyPrint.toString
+    } yield toRunSummary(runSummary.withDataModel(""), asJson)
   }
+
+  def runGetRun(runId: UUID,
+                asJson: Boolean = false,
+                asXml: Boolean = false): Future[String] =
+    sal.getRun(runId).map(run => toRunSummary(run, asJson, asXml))
 }
 
 object PbService extends ClientAppUtils with LazyLogging {
@@ -2107,7 +2133,9 @@ object PbService extends ClientAppUtils with LazyLogging {
                                 Some(c.user),
                                 c.grantRoleToAll)
           case Modes.GET_PROJECTS => ps.runGetProjects
-          case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
+          case Modes.IMPORT_RUN =>
+            ps.runImportRun(c.path, c.reserved, c.asJson)
+          case Modes.GET_RUN => ps.runGetRun(c.runId, c.asJson, c.asXml)
           case x =>
             Future.failed(new RuntimeException(s"Unsupported action '$x'"))
         }
