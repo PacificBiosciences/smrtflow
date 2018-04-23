@@ -2007,15 +2007,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runGetRun(runId: UUID,
                 asJson: Boolean = false,
-                asXml: Boolean = false): Future[String] = {
-    sal
-      .getRun(runId)
-      .map { run =>
-        if (asJson) run.toJson.prettyPrint.toString
-        else if (asXml) run.dataModel
-        else toRunSummary(run)
-      }
-  }
+                asXml: Boolean = false): Future[String] =
+    sal.getRun(runId).map(run => toRunSummary(run, asJson, asXml))
 }
 
 object PbService extends ClientAppUtils with LazyLogging {

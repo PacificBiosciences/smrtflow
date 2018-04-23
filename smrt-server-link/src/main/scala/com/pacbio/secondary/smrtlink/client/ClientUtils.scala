@@ -147,22 +147,31 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
   private def getOrNA(date: Option[JodaDateTime]): String =
     date.map(_.toString).getOrElse("N/A")
 
-  def toRunSummary(run: Run): String =
-    s"""
-      |RUN SUMMARY:
-      |                 id: ${run.uniqueId}
-      |               name: ${run.name}
-      |           reserved: ${run.reserved}
-      |             status: ${run.status}
-      |            created: ${getOrNA(run.createdAt)}
-      |         created by: ${getOrUnknown(run.createdBy)}
-      |            started: ${getOrNA(run.startedAt)}
-      |            context: ${getOrUnknown(run.context)}
-      |         instrument: ${getOrUnknown(run.instrumentName)}
-      |      instrument SW: ${getOrUnknown(run.instrumentSwVersion)}
-      |  # completed cells: ${run.numCellsCompleted}
-      |          completed: ${getOrNA(run.completedAt)}
-    """.stripMargin
+  def toRunSummary(run: Run,
+                   asJson: Boolean = false,
+                   asXml: Boolean = false): String = {
+    if (asJson) {
+      run.toJson.prettyPrint.toString
+    } else if (asXml) {
+      run.dataModel
+    } else {
+      s"""
+        |RUN SUMMARY:
+        |                 id: ${run.uniqueId}
+        |               name: ${run.name}
+        |           reserved: ${run.reserved}
+        |             status: ${run.status}
+        |            created: ${getOrNA(run.createdAt)}
+        |         created by: ${getOrUnknown(run.createdBy)}
+        |            started: ${getOrNA(run.startedAt)}
+        |            context: ${getOrUnknown(run.context)}
+        |         instrument: ${getOrUnknown(run.instrumentName)}
+        |      instrument SW: ${getOrUnknown(run.instrumentSwVersion)}
+        |  # completed cells: ${run.numCellsCompleted}
+        |          completed: ${getOrNA(run.completedAt)}
+      """.stripMargin
+    }
+  }
 
   // Create a Table as String. This should be better model with a streaming
   // solution that passes in the "printer"
