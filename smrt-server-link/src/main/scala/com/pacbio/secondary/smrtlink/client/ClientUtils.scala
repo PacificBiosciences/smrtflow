@@ -12,6 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 import com.typesafe.scalalogging.LazyLogging
+import org.joda.time.{DateTime => JodaDateTime}
 
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
@@ -141,6 +142,27 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
       |  datasets: ${project.datasets.size}
       |  members: ${project.members.size}
      """.stripMargin
+
+  private def getOrUnknown(s: Option[String]): String = s.getOrElse("unknown")
+  private def getOrNA(date: Option[JodaDateTime]): String =
+    date.map(_.toString).getOrElse("N/A")
+
+  def toRunSummary(run: Run): String =
+    s"""
+      |RUN SUMMARY:
+      |                 id: ${run.uniqueId}
+      |               name: ${run.name}
+      |           reserved: ${run.reserved}
+      |             status: ${run.status}
+      |            created: ${getOrNA(run.createdAt)}
+      |         created by: ${getOrUnknown(run.createdBy)}
+      |            started: ${getOrNA(run.startedAt)}
+      |            context: ${getOrUnknown(run.context)}
+      |         instrument: ${getOrUnknown(run.instrumentName)}
+      |      instrument SW: ${getOrUnknown(run.instrumentSwVersion)}
+      |  # completed cells: ${run.numCellsCompleted}
+      |          completed: ${getOrNA(run.completedAt)}
+    """.stripMargin
 
   // Create a Table as String. This should be better model with a streaming
   // solution that passes in the "printer"
