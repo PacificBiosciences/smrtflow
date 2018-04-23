@@ -151,7 +151,7 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
                    asJson: Boolean = false,
                    asXml: Boolean = false): String = {
     if (asJson) {
-      run.toJson.prettyPrint.toString
+      run.summarize.toJson.prettyPrint.toString
     } else if (asXml) {
       run.dataModel
     } else {

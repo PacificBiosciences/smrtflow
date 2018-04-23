@@ -1996,13 +1996,15 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
 
   def runGetAlarms: Future[String] = sal.getAlarms().map(alarmsSummary)
 
-  def runImportRun(xmlFile: Path, reserved: Boolean = false): Future[String] = {
+  def runImportRun(xmlFile: Path,
+                   reserved: Boolean = false,
+                   asJson: Boolean = true): Future[String] = {
     for {
       runSummary <- sal.createRun(FileUtils.readFileToString(xmlFile.toFile))
       runSummary <- if (reserved) {
         sal.updateRun(runSummary.uniqueId, reserved = Some(true))
       } else Future.successful(runSummary)
-    } yield runSummary.toJson.prettyPrint.toString
+    } yield toRunSummary(runSummary.withDataModel(""), asJson)
   }
 
   def runGetRun(runId: UUID,
@@ -2131,7 +2133,8 @@ object PbService extends ClientAppUtils with LazyLogging {
                                 Some(c.user),
                                 c.grantRoleToAll)
           case Modes.GET_PROJECTS => ps.runGetProjects
-          case Modes.IMPORT_RUN => ps.runImportRun(c.path, c.reserved)
+          case Modes.IMPORT_RUN =>
+            ps.runImportRun(c.path, c.reserved, c.asJson)
           case Modes.GET_RUN => ps.runGetRun(c.runId, c.asJson, c.asXml)
           case x =>
             Future.failed(new RuntimeException(s"Unsupported action '$x'"))
