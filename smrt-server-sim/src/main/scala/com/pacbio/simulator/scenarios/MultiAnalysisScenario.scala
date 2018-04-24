@@ -5,8 +5,6 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
-
-import scala.collection._
 import com.typesafe.config.Config
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetMetaTypes,
@@ -15,7 +13,10 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
+import com.pacbio.secondary.smrtlink.io.{
+  PacBioDataBundleIOUtils,
+  XmlTemplateReader
+}
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
@@ -24,9 +25,16 @@ import com.pacbio.secondary.smrtlink.jobtypes.MultiAnalysisJobOptions
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedAcquisitionStates,
+  SupportedRunStates
+}
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.util.Try
+import scala.xml.Node
 
 object MultiAnalysisScenarioLoader extends ScenarioLoader {
 
@@ -171,16 +179,23 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield dst
   }
 
-  def getOrRunImportTestFile(subreadSetTestFileId: String)
+  def loadAndCopyTestFile(subreadSetTestFileId: String)
     : Future[(DataSetMiniMeta, TestDataResource)] = {
     for {
       subreadset <- getFileOrFail(subreadSetTestFileId)
-      _ <- andLog(s"Loaded TestDataFile $subreadset")
-      msg <- client.getStatus
-      _ <- andLog(
-        s"Successfully connected to SMRT Link Server: ${client.RootUri} ${msg.message}")
-      dst <- getOrImportSuccessfully(subreadset.path)
-    } yield (dst, subreadset)
+      copiedSubreadSet <- Future.successful(
+        subreadset.getTempDataSetFile(setNewUuid = true))
+      _ <- andLog(s"Loaded and Copied TestDataFile $copiedSubreadSet")
+      dst <- Future.successful(getDataSetMiniMeta(copiedSubreadSet.path))
+    } yield (dst, copiedSubreadSet)
+  }
+
+  def getOrRunImportTestFile(subreadSetTestFileId: String)
+    : Future[(DataSetMiniMeta, TestDataResource)] = {
+    for {
+      xs <- loadAndCopyTestFile(subreadSetTestFileId)
+      dst <- getOrImportSuccessfully(xs._2.path)
+    } yield (dst, xs._2)
   }
 
   // Giving up on the Step approach. It's easier to write a single future and avoid the
@@ -222,37 +237,47 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield jobs
   }
 
+  private def toMultiJobWithTwoChildren(
+      multiJobName: String,
+      ssetA: UUID,
+      jobNameA: String,
+      ssetB: UUID,
+      jobNameB: String): MultiAnalysisJobOptions = {
+    val numSubreadsetOpt = ServiceTaskIntOption(
+      "pbsmrtpipe.task_options.num_subreadsets",
+      numSubreadSets)
+    val taskOptions: Seq[ServiceTaskOptionBase] = Seq(numSubreadsetOpt)
+    val workflowOptions = Seq.empty[ServiceTaskOptionBase]
+
+    def toDefJob(entryPoint: DeferredEntryPoint, name: String) = {
+      DeferredJob(Seq(entryPoint),
+                  "pbsmrtpipe.pipelines.dev_01_ds",
+                  taskOptions,
+                  workflowOptions,
+                  Some(name),
+                  None,
+                  None)
+    }
+
+    val alpha = toDefJob(toDefEntryPoint(ssetA), jobNameA)
+    val beta = toDefJob(toDefEntryPoint(ssetB), jobNameB)
+
+    val jobs = Seq(alpha, beta)
+    MultiAnalysisJobOptions(jobs, Some(multiJobName), None, None, Some(true))
+  }
+
+  /**
+    * Start a MultiJob with one job that has entry point resolved and one that will be
+    * imported after the first job completes. Will poll for each child job and parent
+    * multijob to complete.
+    *
+    */
   def runMultiJobDeferredSanityTest(
       subreadsetTestFileId: String,
       jobName: String): Future[Seq[EngineJob]] = {
 
     val jobAlpha = s"job-alpha-${UUID.randomUUID()}"
     val jobBeta = s"job-beta-${UUID.randomUUID()}"
-
-    def toOpt(ssetA: UUID, ssetB: UUID): MultiAnalysisJobOptions = {
-
-      val numSubreadsetOpt = ServiceTaskIntOption(
-        "pbsmrtpipe.task_options.num_subreadsets",
-        numSubreadSets)
-      val taskOptions: Seq[ServiceTaskOptionBase] = Seq(numSubreadsetOpt)
-      val workflowOptions = Seq.empty[ServiceTaskOptionBase]
-
-      def toDefJob(entryPoint: DeferredEntryPoint, name: String) = {
-        DeferredJob(Seq(entryPoint),
-                    "pbsmrtpipe.pipelines.dev_01_ds",
-                    taskOptions,
-                    workflowOptions,
-                    Some(name),
-                    None,
-                    None)
-      }
-
-      val alpha = toDefJob(toDefEntryPoint(ssetA), jobAlpha)
-      val beta = toDefJob(toDefEntryPoint(ssetB), jobBeta)
-
-      val jobs = Seq(alpha, beta)
-      MultiAnalysisJobOptions(jobs, Some(jobName), None, None, Some(true))
-    }
 
     def getJobByNameOrFail(jobs: Seq[EngineJob],
                            name: String): Future[EngineJob] = {
@@ -268,8 +293,13 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       copiedTestFile <- getFileOrFail(subreadsetTestFileId).map(
         _.getTempDataSetFile(setNewUuid = true))
       copiedDst <- Future.successful(getDataSetMiniMeta(copiedTestFile.path))
-      createdMultiJob <- client.createMultiAnalysisJob(
-        toOpt(dstAndsubreadset._1.uuid, copiedDst.uuid))
+      multiJobOpts <- Future.successful(
+        toMultiJobWithTwoChildren(jobName,
+                                  dstAndsubreadset._1.uuid,
+                                  jobAlpha,
+                                  copiedDst.uuid,
+                                  jobBeta))
+      createdMultiJob <- client.createMultiAnalysisJob(multiJobOpts)
       childJobs <- client.getMultiAnalysisChildrenJobs(createdMultiJob.id)
       childJobAlpha <- getJobByNameOrFail(childJobs, jobAlpha)
       successfulChildAlpha <- Future.fromTry(
@@ -289,6 +319,109 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       successfulChildJobs <- client.getMultiAnalysisChildrenJobs(
         createdMultiJob.id)
     } yield successfulChildJobs
+  }
+
+  private val RUN_XML_TEMPLATE = "/multi-job-run-xml-template.xml"
+
+  private case class TemplateInput(runId: UUID,
+                                   state: SupportedRunStates,
+                                   sset1: UUID,
+                                   sset1State: SupportedAcquisitionStates,
+                                   sset2: UUID,
+                                   sset2State: SupportedAcquisitionStates,
+                                   multiJobId: Int) {
+
+    def toSubMap(): XmlTemplateReader.Subs = {
+
+      val map: XmlTemplateReader.Subs = Map(
+        "{RUN_UUID}" -> (() => runId.toString),
+        "{RUN_STATE}" -> (() => state.value()),
+        "{SSET_1_UUID}" -> (() => sset1.toString),
+        "{SSET_1_STATE}" -> (() => sset1State.value()),
+        "{SSET_2_UUID}" -> (() => sset2.toString),
+        "{SSET_2_STATE}" -> (() => sset2State.value()),
+        "{MULTI_JOB_ID}" -> (() => multiJobId.toString)
+      )
+      map
+    }
+  }
+
+  private def generateRunXml(resourceId: String, input: TemplateInput): Node = {
+
+    XmlTemplateReader
+      .fromStream(getClass.getResourceAsStream(resourceId))
+      .globally()
+      .substituteMap(input.toSubMap())
+      .result()
+  }
+
+  /**
+    *
+    * @param subreadsetTestFileId Id of the SubreadSet in PacBioTestData
+    * @param jobName MultiJob name
+    *
+    *  1. Create a MultiJob with 2 deferred entry points
+    *  2. Create/Import a Run XML with Run in Ready State
+    *  3. Verify MultiJob is still in CREATED state
+    *  4. Generate new run with Run State in non-Ready State
+    *  5. Verify MultiJob is in SUBMITTED state
+    *  6. Verify Children jobs are in CREATED state
+    *  6. Import Both SubreadSets
+    *  7. Poll For both Children jobs to successfully complete
+    *  8. Poll for parent MultiJob to successfully complete
+    */
+  def runMutiJobFromRunXml(subreadsetTestFileId: String,
+                           jobName: String): Future[Seq[EngineJob]] = {
+
+    val acqReady = SupportedAcquisitionStates.READY
+    val runId = UUID.randomUUID()
+    val jobCreatedStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.CREATED)
+    val jobSubmittedStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.SUBMITTED)
+
+    for {
+      dst1 <- loadAndCopyTestFile(subreadsetTestFileId)
+      dst2 <- loadAndCopyTestFile(subreadsetTestFileId)
+      multiJobOpts <- Future.successful(
+        toMultiJobWithTwoChildren(jobName,
+                                  dst1._1.uuid,
+                                  "JobA",
+                                  dst2._1.uuid,
+                                  "JobB"))
+      createdMultiJob <- client.createMultiAnalysisJob(
+        multiJobOpts.copy(submit = Some(false)))
+      templateReadyInput <- Future.successful(
+        TemplateInput(runId,
+                      SupportedRunStates.READY,
+                      dst1._1.uuid,
+                      acqReady,
+                      dst2._1.uuid,
+                      acqReady,
+                      createdMultiJob.id))
+      runReadyXml <- Future.successful(
+        generateRunXml(RUN_XML_TEMPLATE, templateReadyInput))
+      runRunningXml <- Future.successful(
+        generateRunXml(
+          RUN_XML_TEMPLATE,
+          templateReadyInput.copy(state = SupportedRunStates.RUNNING)))
+      createdRun <- client.createRun(runReadyXml.mkString)
+      _ <- andLog(s"Created Run ${runReadyXml.mkString}")
+      _ <- andLog(s"Created Run $runId state:${createdRun.status}")
+      _ <- client.pollForJobInState(createdMultiJob.id, jobCreatedStates)
+      updatedRun <- client.updateRun(createdRun.uniqueId,
+                                     dataModel = Some(runRunningXml.mkString),
+                                     reserved = Some(true))
+      _ <- andLog(s"Updated Run $runId state:${updatedRun.status}")
+      _ <- client.pollForJobInState(createdMultiJob.id, jobSubmittedStates)
+      // Import SubreadSets
+      _ <- getOrImportSuccessfully(dst1._2.path)
+      _ <- getOrImportSuccessfully(dst2._2.path)
+      // Poll for Children Jobs to Complete
+      childrenJobs <- client.getMultiAnalysisChildrenJobs(createdMultiJob.id)
+      // Poll for MultiJob to Complete
+      _ <- Future.fromTry(client.pollForSuccessfulJob(createdMultiJob.id))
+    } yield childrenJobs
   }
 
   case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
@@ -327,6 +460,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       runMultiJobDeferredSanityTest(subreadSetTestFileId, jobName)
   }
 
+  case class RunMultiJobRunXmlStep(subreadSetTestFileId: String,
+                                   jobName: String)
+      extends VarStep[Seq[EngineJob]] {
+    override val name: String = "RunMultiJobRunXmlStep"
+    override def runWith: Future[Seq[EngineJob]] =
+      runMutiJobFromRunXml(subreadSetTestFileId, jobName)
+  }
+
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
@@ -338,8 +479,11 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
   lazy val multiDeferredSteps: Seq[Step] = Seq(
     RunMultiJobDeferredStep(testSubreadSetId, "Deferred JobTest"))
 
+  lazy val multiJobRunXmlSteps: Seq[Step] = Seq(
+    RunMultiJobRunXmlStep(testSubreadSetId, "MultiJob with Run XML"))
+
   // When only running this Scenario, Add a centalizing importing of the TestData
   // make the test run quicker.
-  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps ++ multiDeferredSteps
+  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps ++ multiDeferredSteps ++ multiJobRunXmlSteps
 
 }
