@@ -3418,6 +3418,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val childJobStates: Set[AnalysisJobStates.JobStates] = Set(
       AnalysisJobStates.CREATED)
 
+    // This should probably be lifted out to a central location
     val failedAcqStates: Set[SupportedAcquisitionStates] =
       Set(SupportedAcquisitionStates.FAILED,
           SupportedAcquisitionStates.ERROR,
