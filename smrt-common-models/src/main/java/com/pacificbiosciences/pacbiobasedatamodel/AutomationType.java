@@ -43,6 +43,7 @@ import javax.xml.bind.annotation.XmlType;
  *       &lt;attribute name="PartNumber" type="{http://www.w3.org/2001/XMLSchema}string" />
  *       &lt;attribute name="IsRestricted" type="{http://www.w3.org/2001/XMLSchema}boolean" default="false" />
  *       &lt;attribute name="IsObsolete" type="{http://www.w3.org/2001/XMLSchema}boolean" default="false" />
+ *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="AllChips" />
  *       &lt;attribute name="IsDefault" type="{http://www.w3.org/2001/XMLSchema}boolean" default="false" />
  *     &lt;/extension>
  *   &lt;/complexContent>
@@ -70,6 +71,8 @@ public class AutomationType
     protected Boolean isRestricted;
     @XmlAttribute(name = "IsObsolete")
     protected Boolean isObsolete;
+    @XmlAttribute(name = "ChipType")
+    protected SupportedChipTypes chipType;
     @XmlAttribute(name = "IsDefault")
     protected Boolean isDefault;
 
@@ -199,6 +202,34 @@ public class AutomationType
      */
     public void setIsObsolete(Boolean value) {
         this.isObsolete = value;
+    }
+
+    /**
+     * Gets the value of the chipType property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public SupportedChipTypes getChipType() {
+        if (chipType == null) {
+            return SupportedChipTypes.ALL_CHIPS;
+        } else {
+            return chipType;
+        }
+    }
+
+    /**
+     * Sets the value of the chipType property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link SupportedChipTypes }
+     *     
+     */
+    public void setChipType(SupportedChipTypes value) {
+        this.chipType = value;
     }
 
     /**

@@ -319,6 +319,11 @@ Each value is a probability, in the range of [0, 1].</xs:documentation>
 						<xs:documentation>Allows for an automation to be marked as obsolete</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
+			  <xs:attribute name="ChipType" type="SupportedChipTypes" use="optional" default="AllChips">
+			    <xs:annotation>
+			      <xs:documentation>Chip platform supported by this automation type</xs:documentation>
+			    </xs:annotation>
+			  </xs:attribute>
 				<xs:attribute name="IsDefault" type="xs:boolean" use="optional" default="false">
 					<xs:annotation>
 						<xs:documentation>Allows for an automation to be marked as a default for a kit with which it's compatible</xs:documentation>
