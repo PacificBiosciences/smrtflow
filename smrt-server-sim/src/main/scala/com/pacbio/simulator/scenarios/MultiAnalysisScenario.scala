@@ -386,9 +386,9 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       multiJobOpts <- Future.successful(
         toMultiJobWithTwoChildren(jobName,
                                   dst1._1.uuid,
-                                  "JobA",
+                                  s"$jobName-JobA",
                                   dst2._1.uuid,
-                                  "JobB"))
+                                  s"$jobName-JobB"))
       createdMultiJob <- client.createMultiAnalysisJob(
         multiJobOpts.copy(submit = Some(false)))
       templateReadyInput <- Future.successful(
