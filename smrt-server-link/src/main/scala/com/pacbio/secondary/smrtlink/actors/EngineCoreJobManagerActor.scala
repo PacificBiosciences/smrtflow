@@ -23,8 +23,10 @@ import com.pacbio.secondary.smrtlink.jobtypes.ServiceJobRunner
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.models.{
   JobChangeStateMessage,
-  RunChangedStateMessage
+  RunChangedStateMessage,
+  RunSummary
 }
+import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -321,6 +323,16 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     onJobRunner(jobFilter, checkAllChildrenJobsOfMultiJob(job.id))(job)
   }
 
+  def onRunSummary(run: RunSummary): Future[String] = {
+    val failedRunStates: Set[SupportedRunStates] =
+      Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
+    if (failedRunStates contains run.status) {
+      dao.checkForMultiJobsFromRun(run.uniqueId)
+    } else {
+      Future.successful("")
+    }
+  }
+
   override def receive: Receive = {
 
     /**
@@ -366,14 +378,15 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       * will never be imported. In this case, update the Child Job state to FAILED with a specific error message.
       * */
     case RunChangedStateMessage(runSummary) =>
-      if (runSummary.reserved) {
+      if (runSummary.reserved && (runSummary.status == SupportedRunStates.RUNNING)) {
         runSummary.multiJobId match {
           case Some(multiJobId) =>
             logResultsMessage(
               for {
                 m1 <- submitMultiJobIfCreated(multiJobId)
-                m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-              } yield s"$m1 $m2"
+                m2 <- onRunSummary(runSummary)
+                m3 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+              } yield Seq(m1, m2, m3).reduce(_ ++ _)
             )
           // Need to very carefully handle the Success and Failure cases here
           case _ =>
