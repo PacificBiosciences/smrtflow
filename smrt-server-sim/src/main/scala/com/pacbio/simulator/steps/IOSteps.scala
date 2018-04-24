@@ -46,7 +46,7 @@ trait IOSteps extends ClientUtils { this: Scenario with VarSteps =>
 
     override def runWith = Future {
       var xml = new RunDesignTemplateReader(Paths.get(pathVar.get)).readStr
-      println(s"xml :  $xml")
+      //println(s"xml :  $xml")
       xml.mkString
     }
   }
@@ -59,8 +59,8 @@ trait IOSteps extends ClientUtils { this: Scenario with VarSteps =>
     override def runWith = Future {
       var runDesignInfo =
         new RunDesignTemplateReader(Paths.get(pathVar.get)).readRundesignTemplateInfo
-      println(s"xml :  ${runDesignInfo.xml}")
-      println(s"subreadSet :  ${runDesignInfo.subreadsetUuid.toString}")
+      // println(s"xml :  ${runDesignInfo.xml}")
+      // println(s"subreadSet :  ${runDesignInfo.subreadsetUuid.toString}")
       runDesignInfo
     }
   }
@@ -110,7 +110,7 @@ trait IOSteps extends ClientUtils { this: Scenario with VarSteps =>
       val dd = DataSetLoader.loadSubreadSet(subreads.get)
       dd.setUniqueId(uuid)
 
-      println(s"setting subreadset uuid : $uuid")
+      //println(s"setting subreadset uuid : $uuid")
       DataSetWriter.writeSubreadSet(dd, subreads.get)
     }
 
