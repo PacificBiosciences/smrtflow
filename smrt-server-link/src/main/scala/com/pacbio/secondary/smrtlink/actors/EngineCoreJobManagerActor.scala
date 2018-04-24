@@ -48,6 +48,10 @@ class EngineCoreJobManagerActor(dao: JobsDao,
 
   import CommonModelImplicits._
 
+  // This should probably be lifted out to a central location
+  val FAILED_RUN_STATES: Set[SupportedRunStates] =
+    Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
+
   // The core model for this is to listen for Job state changes from CREATED to SUBMITTED.
   val checkForWorkInterval = 60.seconds
 
@@ -324,9 +328,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   def onRunSummary(run: RunSummary): Future[String] = {
-    val failedRunStates: Set[SupportedRunStates] =
-      Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
-    if (failedRunStates contains run.status) {
+    if (FAILED_RUN_STATES contains run.status) {
       dao.checkForMultiJobsFromRun(run.uniqueId)
     } else {
       Future.successful("")
@@ -384,9 +386,27 @@ class EngineCoreJobManagerActor(dao: JobsDao,
             logResultsMessage(
               for {
                 m1 <- submitMultiJobIfCreated(multiJobId)
+                m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+              } yield Seq(m1, m2).reduce(_ ++ _)
+            )
+          // Need to very carefully handle the Success and Failure cases here
+          case _ =>
+            log.debug(
+              "Run without MultiJob. Skipping MultiJob analysis Updating.")
+        }
+      }
+
+      // Failed Case
+      if (FAILED_RUN_STATES contains runSummary.status) {
+        runSummary.multiJobId match {
+          case Some(multiJobId) =>
+            logResultsMessage(
+              for {
+                _ <- andLog(
+                  s"Detected failed Run ${runSummary.uniqueId} state:${runSummary.status}. Triggering Update of MultiJob $multiJobId")
                 m2 <- onRunSummary(runSummary)
                 m3 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-              } yield Seq(m1, m2, m3).reduce(_ ++ _)
+              } yield Seq(m2, m3).reduce(_ ++ _)
             )
           // Need to very carefully handle the Success and Failure cases here
           case _ =>
