@@ -1073,4 +1073,23 @@ class SmrtLinkServiceClient(
     }
   }
 
+  def pollForJobInState(
+      jobId: Int,
+      states: Set[AnalysisJobStates.JobStates],
+      numRetries: Int = 10,
+      retryDelay: FiniteDuration = 5.seconds): Future[EngineJob] = {
+
+    def validateState(job: EngineJob): Future[EngineJob] = {
+      if (states contains job.state) Future.successful(job)
+      else
+        Future.failed(
+          new Exception(
+            s"Job $jobId Found ${job.state} expected state $states"))
+    }
+
+    retry(getJob(jobId).flatMap(validateState), retryDelay, numRetries)(
+      actorSystem.dispatcher,
+      actorSystem.scheduler)
+  }
+
 }
