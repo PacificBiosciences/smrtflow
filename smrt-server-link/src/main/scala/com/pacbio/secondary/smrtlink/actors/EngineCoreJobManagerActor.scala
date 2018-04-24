@@ -378,7 +378,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       * will never be imported. In this case, update the Child Job state to FAILED with a specific error message.
       * */
     case RunChangedStateMessage(runSummary) =>
-      if (runSummary.reserved) {
+      if (runSummary.reserved && (runSummary.status != SupportedRunStates.READY)) {
         runSummary.multiJobId match {
           case Some(multiJobId) =>
             logResultsMessage(
