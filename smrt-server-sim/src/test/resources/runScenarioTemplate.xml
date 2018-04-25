@@ -14,13 +14,14 @@
                                 <pbds:TotalLength>0</pbds:TotalLength>
                                 <pbds:NumRecords>0</pbds:NumRecords>
                                 <pbmeta:Collections>
-                                    <pbmeta:CollectionMetadata UniqueId="9c59c345-0029-4c63-b7a2-1dcedec55cab" MetaType="CollectionMetadata" TimeStampedName="" CreatedAt="2017-02-27T18:10:11.254Z" ModifiedAt="0001-01-01T00:00:00" Status="Ready" InstrumentId="" InstrumentName="">
+                                    <!-- Note, by convention, the Collection must have the UniqueId as the Parent (companion) SubreadSet -->
+                                    <pbmeta:CollectionMetadata UniqueId="{SUBREAD_ID}" MetaType="CollectionMetadata" TimeStampedName="" CreatedAt="2017-02-27T18:10:11.254Z" ModifiedAt="0001-01-01T00:00:00" Status="Ready" InstrumentId="" InstrumentName="">
                                         <pbmeta:InstCtrlVer>String</pbmeta:InstCtrlVer>
                                         <pbmeta:SigProcVer>String</pbmeta:SigProcVer>
                                         <pbmeta:RunDetails>
                                             <pbmeta:TimeStampedName>DefaultTimeStampedRunName</pbmeta:TimeStampedName>
                                             <pbmeta:Name>1Cell_MB</pbmeta:Name>
-                                            <pbmeta:CreatedBy></pbmeta:CreatedBy>
+                                            <pbmeta:CreatedBy>Ralph</pbmeta:CreatedBy>
                                             <pbmeta:WhenCreated>2017-02-27T18:10:11.254Z</pbmeta:WhenCreated>
                                             <pbmeta:WhenStarted>0001-01-01T00:00:00</pbmeta:WhenStarted>
                                         </pbmeta:RunDetails>
@@ -47,9 +48,18 @@
                                         <pbmeta:BindingKit Name="Sequel™ Binding Kit 2.0" PartNumber="100-862-200" LotNumber="000000" Barcode="000000100862200123120" ExpirationDate="2020-12-31"/>
                                         <pbmeta:SequencingKitPlate Name="Sequel™ Sequencing Plate 2.0" PartNumber="100-861-800" LotNumber="000000" Barcode="000000100861800123120" ExpirationDate="2020-12-31"/>
                                         <pbmeta:Primary>
-                                            <pbmeta:AutomationName></pbmeta:AutomationName>
-                                            <pbmeta:ConfigFileName></pbmeta:ConfigFileName>
+                                            <pbmeta:AutomationName/>
+                                            <pbmeta:ConfigFileName/>
                                             <pbmeta:SequencingCondition>DefaultPrimarySequencingCondition</pbmeta:SequencingCondition>
+                                            <pbmeta:OutputOptions>
+                                                <pbmeta:ResultsFolder>folder</pbmeta:ResultsFolder>
+                                                <pbmeta:CollectionPathUri>output</pbmeta:CollectionPathUri>
+                                                <pbmeta:CopyFiles>
+                                                    <pbmeta:CollectionFileCopy>Bam</pbmeta:CollectionFileCopy>
+                                                </pbmeta:CopyFiles>
+                                                <pbmeta:Readout>Bases</pbmeta:Readout>
+                                                <pbmeta:MetricsVerbosity>High</pbmeta:MetricsVerbosity>
+                                            </pbmeta:OutputOptions>
                                         </pbmeta:Primary>
                                         <pbmeta:Secondary>
                                             <pbmeta:AutomationName>DefaultSecondaryAutomationName</pbmeta:AutomationName>

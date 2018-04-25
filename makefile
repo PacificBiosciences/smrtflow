@@ -8,7 +8,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 clean:
 	rm -f secondary-smrt-server*.log 
 	rm -rf smrt-server-link/{db,jobs-root}
-	sbt clean
+	sbt -no-colors clean
 
 jsonclean:
 	find smrt-server-link/src/main/resources/resolved-pipeline-templates -name "*.json" | grep -v "dev_diagnostic" | xargs rm -f
@@ -19,13 +19,13 @@ dataclean:
 	rm -rf test-data
 
 build: 
-	sbt compile
+	sbt -no-colors compile
 
 tools:
-	sbt clean pack
+	sbt -no-colors clean pack
 
 tools-smrt-server-sim:
-	sbt smrt-server-sim/{compile,pack}
+	sbt -no-colors smrt-server-sim/{compile,pack}
 
 xsd-java:
 	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
@@ -41,7 +41,7 @@ tools-tarball:
 	@echo SHA is ${SHA}
 	rm -f pbscala*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	sbt smrt-server-link/{compile,pack}
+	sbt -no-colors smrt-server-link/{compile,pack}
 	cd smrt-server-link && tar cvfz ../pbscala-packed-${SHA}.tar.gz target/pack
 
 tools-sim-tarball:
@@ -49,7 +49,7 @@ tools-sim-tarball:
 	@echo SHA is ${SHA}
 	rm -f smrtflow-sim*.tar.gz
 	rm -rf smrt-*/target/pack/*
-	sbt smrt-server-sim/{compile,pack}
+	sbt -no-colors smrt-server-sim/{compile,pack}
 	cd smrt-server-sim && tar cvfz ../smrtflow-sim-packed-${SHA}.tar.gz target/pack
 
 
@@ -76,21 +76,21 @@ insert-pbdata:
 	pbservice import-dataset repos/pacbiotestdata --debug
 
 insert-mock-data:
-	sbt "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
+	sbt -no-colors "smrt-server-link/run-main com.pacbio.secondary.smrtlink.tools.InsertMockData"
 
 insert-mock-data-summary: tools-smrt-server-link
 	./smrt-server-link/target/pack/bin/smrt-db-tool
 
 start-smrt-server-link:
-	sbt "smrt-server-link/run"
+	sbt -no-colors "smrt-server-link/run"
 
 start-smrt-server-link-jar:
-	sbt "smrt-server-link/{compile,pack}"
+	sbt -no-colors "smrt-server-link/{compile,pack}"
 	./smrt-server-link/target/pack/bin/smrt-server-link-analysis
 
 test: validate-pacbio-manifests
-	sbt scalafmt::test
-	sbt -batch "testOnly -- junitxml console"
+	sbt -no-colors scalafmt::test
+	sbt -no-colors -batch "testOnly -- junitxml console"
 
 test-int-clean: db-reset-prod
 	rm -rf jobs-root
@@ -154,7 +154,7 @@ validate-resources: validate-report-view-rules validate-pipeline-view-rules
 
 # e.g., make full-stress-run STRESS_RUNS=2
 full-stress-run: test-data/smrtserver-testdata
-	sbt smrt-server-link/pack
+	sbt -no-colors smrt-server-link/pack
 	@for i in `seq 1 $(STRESS_RUNS)`; do \
 	    RUN=$(STRESS_NAME)-$$(date +%F-%T) && \
 	    RUNDIR=test-output/stress-runs && \

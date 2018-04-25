@@ -135,6 +135,8 @@ object JobModels {
 
     val SUBMIT_DEFAULT_CORE_JOB = true
     val SUBMIT_DEFAULT_MULTI_JOB = false
+
+    val BARCODE_SET_MAX_NUM_RECORDS = 384
   }
 
   // This needs to be made a proper type
@@ -857,25 +859,6 @@ object JobModels {
                                     pipelineId: String,
                                     options: Seq[ServiceTaskOptionBase],
                                     taskOptions: Seq[ServiceTaskOptionBase])
-
-  // View Rules Models
-  case class PipelineOptionViewRule(id: String,
-                                    hidden: Boolean,
-                                    advanced: Boolean,
-                                    required: Option[Boolean] = Some(false))
-
-  case class PipelineInputFilterRule(field: String,
-                                     operator: String,
-                                     value: String)
-
-  case class PipelineTemplateViewRule(
-      id: String,
-      name: String,
-      description: String,
-      taskOptions: Seq[PipelineOptionViewRule],
-      allowParentDatasets: Option[Boolean] = Some(false),
-      allowChildDatasets: Option[Boolean] = Some(true),
-      inputFilters: Option[Seq[PipelineInputFilterRule]] = None)
 
   // FIXME(mkocher)(2016-8-18) All of these View rules should probable be migrated to a central location
   case class DataStoreFileViewRule(sourceId: String,

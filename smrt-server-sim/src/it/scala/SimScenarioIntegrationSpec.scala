@@ -1,4 +1,5 @@
 import java.nio.file.{Files, Path}
+import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
@@ -59,14 +60,28 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
   def runScenario(scenarioType: String): Option[ExternalCmdFailure] = {
     val cmd = toCmd(scenarioType)
     logger.info(s"Scenario cmd $cmd")
-    ExternalToolsUtils.runCheckCall(cmd) match {
-      case Some(ex) =>
-        logger.error(s"Error running scenario $scenarioType with error $ex")
+
+    val prefix = s"$scenarioType-${UUID.randomUUID()}"
+    val stdout = Files.createTempFile(prefix, "stdout")
+    val stderr = Files.createTempFile(prefix, "stderr")
+
+    def cleanup(): Unit = {
+      Seq(stdout, stderr).map(_.toFile).foreach(FileUtils.deleteQuietly)
+    }
+
+    val result = ExternalToolsUtils.runCmd(cmd, stdout, stderr) match {
+      case Left(ex) =>
+        val msg = s"Error running scenario $scenarioType in ${ex.runTime} sec with error ${ex.msg}"
+        logger.error(msg)
+        System.err.print(msg)
         Some(ex)
-      case _ =>
-        logger.info(s"Successfully completed running $scenarioType")
+      case Right(sx) =>
+        logger.info(s"Successfully completed running $scenarioType in ${sx.runTime} sec")
         None
     }
+
+    cleanup()
+    result
   }
 
   step(writeScenarioConf(loadPort(), output = simScenarioConf))

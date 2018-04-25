@@ -1,11 +1,8 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
-import java.util.UUID
-
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels._
 import CommonModelImplicits._
-import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.actors.{DaoFutureUtils, JobsDao}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
@@ -74,13 +71,4 @@ class MultiAnalysisJob(opts: MultiAnalysisJobOptions)
     with LazyLogging {
   type Out = Int
 
-  import CommonModelImplicits._
-  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
-
-  private def resolveEntryPoints(dao: JobsDao,
-                                 entryPoints: Seq[DeferredEntryPoint])
-    : Future[Seq[(DeferredEntryPoint, DataSetMetaDataSet)]] = {
-    Future.sequence(
-      entryPoints.map(ep => dao.getDataSetById(ep.uuid).map(d => (ep, d))))
-  }
 }

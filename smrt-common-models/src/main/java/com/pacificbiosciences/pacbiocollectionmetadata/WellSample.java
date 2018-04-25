@@ -29,6 +29,7 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSamples;
  *       &lt;sequence>
  *         &lt;element name="WellName" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *         &lt;element name="Concentration" type="{http://www.w3.org/2001/XMLSchema}double"/>
+ *         &lt;element name="OnPlateLoadingConcentration" type="{http://www.w3.org/2001/XMLSchema}double" minOccurs="0"/>
  *         &lt;element name="InsertSize" type="{http://www.w3.org/2001/XMLSchema}int"/>
  *         &lt;element name="SampleReuseEnabled" type="{http://www.w3.org/2001/XMLSchema}boolean"/>
  *         &lt;element name="StageHotstartEnabled" type="{http://www.w3.org/2001/XMLSchema}boolean"/>
@@ -48,6 +49,7 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSamples;
 @XmlType(name = "", propOrder = {
     "wellName",
     "concentration",
+    "onPlateLoadingConcentration",
     "insertSize",
     "sampleReuseEnabled",
     "stageHotstartEnabled",
@@ -65,6 +67,8 @@ public class WellSample
     protected String wellName;
     @XmlElement(name = "Concentration")
     protected double concentration;
+    @XmlElement(name = "OnPlateLoadingConcentration")
+    protected Double onPlateLoadingConcentration;
     @XmlElement(name = "InsertSize")
     protected int insertSize;
     @XmlElement(name = "SampleReuseEnabled")
@@ -118,6 +122,30 @@ public class WellSample
      */
     public void setConcentration(double value) {
         this.concentration = value;
+    }
+
+    /**
+     * Gets the value of the onPlateLoadingConcentration property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Double }
+     *     
+     */
+    public Double getOnPlateLoadingConcentration() {
+        return onPlateLoadingConcentration;
+    }
+
+    /**
+     * Sets the value of the onPlateLoadingConcentration property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Double }
+     *     
+     */
+    public void setOnPlateLoadingConcentration(Double value) {
+        this.onPlateLoadingConcentration = value;
     }
 
     /**

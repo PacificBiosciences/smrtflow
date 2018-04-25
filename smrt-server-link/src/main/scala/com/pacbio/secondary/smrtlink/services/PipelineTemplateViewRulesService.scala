@@ -2,9 +2,8 @@ package com.pacbio.secondary.smrtlink.services
 
 import com.pacbio.secondary.smrtlink.dependency.Singleton
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.ResourceNotFoundError
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.PipelineTemplateViewRule
 import com.pacbio.secondary.smrtlink.loaders.PipelineTemplateViewRulesResourceLoader
-import com.pacbio.secondary.smrtlink.models.PacBioComponentManifest
+import com.pacbio.secondary.smrtlink.models.{JsonAble, PacBioComponentManifest}
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
@@ -12,7 +11,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   *
   * Created by mkocher on 9/24/15.
   */
-class PipelineTemplateViewRulesService(ptvs: Seq[PipelineTemplateViewRule])
+class PipelineTemplateViewRulesService(ptvs: Seq[JsonAble])
     extends SmrtLinkBaseRouteMicroService {
 
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._

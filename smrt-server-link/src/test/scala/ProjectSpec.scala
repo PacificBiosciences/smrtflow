@@ -457,7 +457,7 @@ class ProjectSpec
                                        jobName,
                                        jobDescription,
                                        jobType,
-                                       Seq(entryPoint),
+                                       Set(entryPoint),
                                        jsonSettings,
                                        None,
                                        None,

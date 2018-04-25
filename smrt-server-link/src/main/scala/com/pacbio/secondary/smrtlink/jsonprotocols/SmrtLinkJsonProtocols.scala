@@ -101,19 +101,6 @@ trait BoundServiceEntryPointJsonProtocol
     BoundServiceEntryPoint)
 }
 
-trait ReportViewRuleProtocol extends DefaultJsonProtocol {
-  implicit object reportViewRuleFormat extends RootJsonFormat[ReportViewRule] {
-    def write(r: ReportViewRule) = r.rules
-    def read(value: JsValue) = {
-      val rules = value.asJsObject
-      rules.getFields("id") match {
-        case Seq(JsString(id)) => ReportViewRule(id, rules)
-        case x => deserializationError(s"Expected ReportViewRule, got $x")
-      }
-    }
-  }
-}
-
 //FIXME(mpkocher)(8-22-2017) This is duplicated yet different
 trait JodaDateTimeProtocol extends DefaultJsonProtocol with FamilyFormats {
   import PacBioDateTimeFormat.DATE_TIME_FORMAT
@@ -190,6 +177,20 @@ trait DirectoryResourceProtocol extends DefaultJsonProtocol {
   }
 }
 
+trait JsonAbleProtocol extends DefaultJsonProtocol {
+  implicit object jsonAbleFormat extends RootJsonFormat[JsonAble] {
+    def write(r: JsonAble) = r.item
+    def read(value: JsValue) = {
+      val item = value.asJsObject
+      item.getFields("id") match {
+        case Seq(JsString(id)) => JsonAble(id, item)
+        case x =>
+          deserializationError(s"Expected JsonAble, got $x")
+      }
+    }
+  }
+}
+
 trait SmrtLinkJsonProtocols
     extends UUIDJsonProtocol
     with JodaDateTimeProtocol
@@ -207,7 +208,7 @@ trait SmrtLinkJsonProtocols
     with LogLevelProtocol
     with DataSetMetaTypesProtocol
     with BoundServiceEntryPointJsonProtocol
-    with ReportViewRuleProtocol
+    with JsonAbleProtocol
     with ReportJsonProtocol
     with DataSetJsonProtocols
     with FamilyFormats {
@@ -320,8 +321,6 @@ trait SmrtLinkJsonProtocols
   // of namespace conflicts.
   implicit val pipelineTemplateFormat =
     SecondaryJobProtocols.pipelineTemplateFormat
-  implicit val pipelineTemplateViewRule =
-    SecondaryJobProtocols.pipelineTemplateViewRule
 
   // Jobs
   implicit val jobEventRecordFormat = jsonFormat2(JobEventRecord)

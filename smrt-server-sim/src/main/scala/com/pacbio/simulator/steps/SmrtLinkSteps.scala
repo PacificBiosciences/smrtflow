@@ -515,7 +515,7 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
   }
 
   case class GetPipelineTemplateViewRule(pipelineId: Var[String])
-      extends VarStep[PipelineTemplateViewRule] {
+      extends VarStep[JsonAble] {
     override val name = "GetPipelineTemplateViewRule"
     override def runWith =
       smrtLinkClient.getPipelineTemplateViewRule(pipelineId.get)
