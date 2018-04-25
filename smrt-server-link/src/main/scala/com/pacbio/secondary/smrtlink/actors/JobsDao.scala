@@ -1137,10 +1137,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     implicit val jobStateMapper = jobStateType
 
     val submitMessage =
-      s"All Entry points are resolved for child job. Submitting Child Job $childJobId"
+      s"All Entry points are resolved for child job $childJobId. Submitting Child Job $childJobId"
 
     val notSubmittedMessage =
-      "Job is not in CREATED state or ALL Entry Points are not resolved."
+      s"Cannot Submit. Child Job $childJobId is not in the CREATED state or ALL Entry Points are not resolved."
 
     // Get the Child Job
     val q0 = qGetEngineJobByState(AnalysisJobStates.CREATED)
@@ -3418,17 +3418,11 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val childJobStates: Set[AnalysisJobStates.JobStates] = Set(
       AnalysisJobStates.CREATED)
 
-    val failedAcqStates: Set[SupportedAcquisitionStates] =
-      Set(SupportedAcquisitionStates.FAILED,
-          SupportedAcquisitionStates.ERROR,
-          SupportedAcquisitionStates.ABORTED,
-          SupportedAcquisitionStates.TRANSFER_FAILED)
-
     val q1 = {
       for {
         collections <- qGetRunCollectionMetadataByRunIdAndState(
           runId,
-          failedAcqStates)
+          SmrtLinkConstants.FAILED_ACQ_STATES)
         failedDataSets <- engineJobsDataSets.filter(
           _.datasetUUID === collections.uniqueId)
         childJobs <- qGetEngineJobsByStates(childJobStates)

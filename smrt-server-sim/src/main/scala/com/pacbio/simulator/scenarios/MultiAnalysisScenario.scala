@@ -266,6 +266,15 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     MultiAnalysisJobOptions(jobs, Some(multiJobName), None, None, Some(true))
   }
 
+  private def getJobByNameOrFail(jobs: Seq[EngineJob],
+                                 name: String): Future[EngineJob] = {
+    jobs
+      .find(_.name == name)
+      .map(Future.successful)
+      .getOrElse(Future.failed(new Exception(
+        s"Unable to find job $name. Job names ${jobs.map(_.name)}")))
+  }
+
   /**
     * Start a MultiJob with one job that has entry point resolved and one that will be
     * imported after the first job completes. Will poll for each child job and parent
@@ -278,15 +287,6 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
 
     val jobAlpha = s"job-alpha-${UUID.randomUUID()}"
     val jobBeta = s"job-beta-${UUID.randomUUID()}"
-
-    def getJobByNameOrFail(jobs: Seq[EngineJob],
-                           name: String): Future[EngineJob] = {
-      jobs
-        .find(_.name == name)
-        .map(Future.successful)
-        .getOrElse(Future.failed(new Exception(
-          s"Unable to find job $name. Job names ${jobs.map(_.name)}")))
-    }
 
     for {
       dstAndsubreadset <- getOrRunImportTestFile(subreadsetTestFileId)
@@ -424,6 +424,101 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield childrenJobs
   }
 
+  def runMutiJobFromRunXmlWithFailedAcq(
+      subreadSetTestFileId: String,
+      jobName: String): Future[Seq[EngineJob]] = {
+
+    val acqReady = SupportedAcquisitionStates.READY
+    val runId = UUID.randomUUID()
+    val jobCreatedStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.CREATED)
+    val jobSubmittedStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.SUBMITTED)
+
+    val jobSuccessStates: Set[AnalysisJobStates.JobStates] = Set(
+      AnalysisJobStates.SUCCESSFUL)
+
+    // Subreadset/Job 1 will be the successful, SubreadSet/Acq/Job2 will Fail
+    val jobName1 = s"$jobName-Job1"
+    val jobName2 = s"EXPECTED-TO-FAIL-$jobName-Job2"
+
+    // numRetries * retryDelay will the max time that the job will
+    // poll. This will be system/load dependent.
+    def pollForState(
+        jobId: Int,
+        states: Set[AnalysisJobStates.JobStates]): Future[EngineJob] =
+      client.pollForJobInState(jobId,
+                               states,
+                               numRetries = 40,
+                               retryDelay = 2.seconds)
+
+    for {
+      dst1 <- loadAndCopyTestFile(subreadSetTestFileId)
+      dst2 <- loadAndCopyTestFile(subreadSetTestFileId)
+      multiJobOpts <- Future.successful(
+        toMultiJobWithTwoChildren(jobName,
+                                  dst1._1.uuid,
+                                  jobName1,
+                                  dst2._1.uuid,
+                                  jobName2))
+      createdMultiJob <- client.createMultiAnalysisJob(
+        multiJobOpts.copy(submit = Some(false)))
+      templateReadyInput <- Future.successful(
+        TemplateInput(runId,
+                      SupportedRunStates.READY,
+                      dst1._1.uuid,
+                      acqReady,
+                      dst2._1.uuid,
+                      acqReady,
+                      createdMultiJob.id))
+      runReadyXml <- Future.successful(
+        generateRunXml(RUN_XML_TEMPLATE, templateReadyInput))
+      runRunningXml <- Future.successful(
+        generateRunXml(RUN_XML_TEMPLATE,
+                       templateReadyInput.copy(
+                         state = SupportedRunStates.RUNNING,
+                         sset1State = SupportedAcquisitionStates.COMPLETE)))
+      runFailedXml <- Future.successful(
+        generateRunXml(RUN_XML_TEMPLATE,
+                       templateReadyInput.copy(
+                         state = SupportedRunStates.TERMINATED,
+                         sset2State = SupportedAcquisitionStates.ERROR)))
+      createdRun <- client.createRun(runReadyXml.mkString)
+      _ <- andLog(s"Created Run ${runReadyXml.mkString}")
+      _ <- andLog(s"Created Run $runId state:${createdRun.status}")
+      _ <- client.pollForJobInState(createdMultiJob.id, jobCreatedStates)
+      // This will Trigger the MultiJob to Submit status
+      updatedRun <- client.updateRun(createdRun.uniqueId,
+                                     dataModel = Some(runRunningXml.mkString),
+                                     reserved = Some(true))
+      _ <- andLog(s"Updated Run $runId state:${updatedRun.status}")
+      _ <- client.pollForJobInState(createdMultiJob.id, jobSubmittedStates)
+      // Import the Subread from the Successful Run
+      _ <- getOrImportSuccessfully(dst1._2.path)
+      // Poll for this job to successfully complete
+      childrenJobs <- client.getMultiAnalysisChildrenJobs(createdMultiJob.id)
+      childJob1 <- getJobByNameOrFail(childrenJobs, jobName1)
+      childJob2 <- getJobByNameOrFail(childrenJobs, jobName2)
+      successfulChildJob1 <- pollForState(childJob1.id, jobSubmittedStates)
+      // This will trigger the update of the
+      updatedFailedRun <- client.updateRun(createdRun.uniqueId,
+                                           Some(runFailedXml.mkString),
+                                           Some(true))
+      expectedFailedChildJob2 <- pollForState(
+        childJob2.id,
+        AnalysisJobStates.FAILURE_STATES.toSet)
+      _ <- andLog(
+        s"Found expected failed Child Job ${expectedFailedChildJob2.id} ${expectedFailedChildJob2.errorMessage
+          .getOrElse("")}")
+      expectedFailedMultiJob <- pollForState(
+        createdMultiJob.id,
+        AnalysisJobStates.FAILURE_STATES.toSet)
+      _ <- andLog(
+        s"Found expected failed MultiJob ${expectedFailedMultiJob.id} ${expectedFailedMultiJob.errorMessage
+          .getOrElse("")}")
+    } yield Seq(successfulChildJob1, expectedFailedChildJob2)
+  }
+
   case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
                                            numJobs: Int,
                                            jobName: String)
@@ -468,6 +563,15 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
       runMutiJobFromRunXml(subreadSetTestFileId, jobName)
   }
 
+  case class RunMultiJobRunXmlWithFailedAcq(subreadSetTestFiledId: String,
+                                            jobName: String)
+      extends VarStep[Seq[EngineJob]] {
+    override val name: String = "RunMultiJobRunXmlWithFailedAcq"
+
+    override def runWith: Future[Seq[EngineJob]] =
+      runMutiJobFromRunXmlWithFailedAcq(subreadSetTestFiledId, jobName)
+  }
+
   val numJobsPerMultiJob: Seq[Int] =
     (0 until max2nNumJobs).map(x => math.pow(2, x).toInt)
 
@@ -482,8 +586,11 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
   lazy val multiJobRunXmlSteps: Seq[Step] = Seq(
     RunMultiJobRunXmlStep(testSubreadSetId, "MultiJob with Run XML"))
 
+  lazy val multiJobRunXmlExpectFailSteps: Seq[Step] = Seq(
+    RunMultiJobRunXmlWithFailedAcq(testSubreadSetId, "MultiJobExpectFail"))
+
   // When only running this Scenario, Add a centalizing importing of the TestData
   // make the test run quicker.
-  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps ++ multiDeferredSteps ++ multiJobRunXmlSteps
+  override val steps = Seq(ImportTestData(testSubreadSetId)) ++ multiJobSteps ++ multiDeferredSteps ++ multiJobRunXmlSteps ++ multiJobRunXmlExpectFailSteps
 
 }

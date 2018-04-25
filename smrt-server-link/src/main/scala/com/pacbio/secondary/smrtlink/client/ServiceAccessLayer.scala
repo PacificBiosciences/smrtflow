@@ -1084,7 +1084,7 @@ class SmrtLinkServiceClient(
       else
         Future.failed(
           new Exception(
-            s"Job $jobId Found ${job.state} expected state $states"))
+            s"Job id:$jobId name:${job.name} Found state:${job.state} expected state $states"))
     }
 
     retry(getJob(jobId).flatMap(validateState), retryDelay, numRetries)(
