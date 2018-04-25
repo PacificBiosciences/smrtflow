@@ -442,12 +442,14 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     val jobName1 = s"$jobName-Job1"
     val jobName2 = s"EXPECTED-TO-FAIL-$jobName-Job2"
 
+    // numRetries * retryDelay will the max time that the job will
+    // poll. This will be system/load dependent.
     def pollForState(
         jobId: Int,
         states: Set[AnalysisJobStates.JobStates]): Future[EngineJob] =
       client.pollForJobInState(jobId,
                                states,
-                               numRetries = 20,
+                               numRetries = 40,
                                retryDelay = 2.seconds)
 
     for {
