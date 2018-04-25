@@ -6,6 +6,7 @@ import akka.pattern._
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.pacbio.common.models.CommonModelImplicits
+import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.actors.CommonMessages._
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
@@ -47,10 +48,6 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     with ActorLogging {
 
   import CommonModelImplicits._
-
-  // This should probably be lifted out to a central location
-  val FAILED_RUN_STATES: Set[SupportedRunStates] =
-    Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
 
   // The core model for this is to listen for Job state changes from CREATED to SUBMITTED.
   val checkForWorkInterval = 60.seconds
@@ -328,7 +325,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   def onRunSummary(run: RunSummary): Future[String] = {
-    if (FAILED_RUN_STATES contains run.status) {
+    if (SmrtLinkConstants.FAILED_RUN_STATES contains run.status) {
       dao.checkForMultiJobsFromRun(run.uniqueId)
     } else {
       Future.successful("")
@@ -409,7 +406,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
         }
 
         // Failed Case
-        if (FAILED_RUN_STATES contains runSummary.status) {
+        if (SmrtLinkConstants.FAILED_RUN_STATES contains runSummary.status) {
           val msg =
             s"Detected failed Run ${runSummary.uniqueId} state:${runSummary.status}. Triggering Update of MultiJob ${runSummary.multiJobId}"
           log.info(msg)

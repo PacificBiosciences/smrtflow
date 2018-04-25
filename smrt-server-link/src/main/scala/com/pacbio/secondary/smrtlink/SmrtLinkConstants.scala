@@ -2,6 +2,10 @@ package com.pacbio.secondary.smrtlink
 
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.TGZ
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobConstants
+import com.pacificbiosciences.pacbiobasedatamodel.{
+  SupportedAcquisitionStates,
+  SupportedRunStates
+}
 
 trait SmrtLinkConstants {
   val BASE_PREFIX = "smrt-link"
@@ -9,7 +13,19 @@ trait SmrtLinkConstants {
   // Default project ID; all datasets that aren't
   // in more specific projects get this ID
   val GENERAL_PROJECT_ID = JobConstants.GENERAL_PROJECT_ID
+
+  // Both of these should probably still be pushed back to smrt-common-models
+  val FAILED_RUN_STATES: Set[SupportedRunStates] =
+    Set(SupportedRunStates.TERMINATED, SupportedRunStates.ABORTED)
+
+  val FAILED_ACQ_STATES: Set[SupportedAcquisitionStates] =
+    Set(SupportedAcquisitionStates.FAILED,
+        SupportedAcquisitionStates.ERROR,
+        SupportedAcquisitionStates.ABORTED,
+        SupportedAcquisitionStates.TRANSFER_FAILED)
 }
+
+object SmrtLinkConstants extends SmrtLinkConstants
 
 trait JobServiceConstants {
   val ROOT_SL_PREFIX = "smrt-link"

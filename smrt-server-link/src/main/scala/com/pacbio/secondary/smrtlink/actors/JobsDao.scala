@@ -3418,18 +3418,11 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val childJobStates: Set[AnalysisJobStates.JobStates] = Set(
       AnalysisJobStates.CREATED)
 
-    // This should probably be lifted out to a central location
-    val failedAcqStates: Set[SupportedAcquisitionStates] =
-      Set(SupportedAcquisitionStates.FAILED,
-          SupportedAcquisitionStates.ERROR,
-          SupportedAcquisitionStates.ABORTED,
-          SupportedAcquisitionStates.TRANSFER_FAILED)
-
     val q1 = {
       for {
         collections <- qGetRunCollectionMetadataByRunIdAndState(
           runId,
-          failedAcqStates)
+          SmrtLinkConstants.FAILED_ACQ_STATES)
         failedDataSets <- engineJobsDataSets.filter(
           _.datasetUUID === collections.uniqueId)
         childJobs <- qGetEngineJobsByStates(childJobStates)
