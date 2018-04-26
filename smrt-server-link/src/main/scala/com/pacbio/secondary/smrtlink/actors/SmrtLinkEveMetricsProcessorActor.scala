@@ -11,9 +11,15 @@ import com.pacbio.secondary.smrtlink.actors.EventManagerActor.{
   CreateEvent,
   UploadTechSupportTgz
 }
+import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
+  EngineJob,
+  JobTypeIds
+}
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.techsupport.TechSupportUtils
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.dependency.Singleton
@@ -22,7 +28,7 @@ import com.pacbio.secondary.smrtlink.models._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 import spray.json._
@@ -138,16 +144,23 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
       )
   }
 
-  def convertToEvent(engineJobMetrics: EngineJobMetrics): SmrtLinkEvent = {
-    // If the EngineJobMetrics data model/schema changes,
+  private def toSmrtLinkEvent(eventTypeId: String,
+                              jsObject: JsObject,
+                              schemaVersion: Int = 1): SmrtLinkEvent = {
     // The schema version should be incremented
-    val schemaVersion = 1
-    SmrtLinkEvent(EventTypes.JOB_METRICS,
+    SmrtLinkEvent(eventTypeId,
                   schemaVersion,
                   UUID.randomUUID(),
                   JodaDateTime.now(),
-                  engineJobMetrics.toJson.asJsObject)
+                  jsObject)
   }
+
+  def convertToEngineJobMetricsEvent(
+      engineJobMetrics: EngineJobMetrics): SmrtLinkEvent =
+    toSmrtLinkEvent(EventTypes.JOB_METRICS, engineJobMetrics.toJson.asJsObject)
+
+  def convertToCompletedJobEvent(job: CompletedEngineJob): SmrtLinkEvent =
+    toSmrtLinkEvent(EventTypes.JOB_METRICS_INTERNAL, job.toJson.asJsObject)
 
   /**
     *
@@ -204,6 +217,48 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     }
   }
 
+  private def fetchEntryPoint(dao: JobsDao, e: EngineJobEntryPoint)(
+      implicit ec: ExecutionContext)
+    : Future[CompletedBoundServiceEntryPoint] = {
+    for {
+      dsMetaData <- dao.getDataSetMetaData(e.datasetUUID)
+    } yield
+      CompletedBoundServiceEntryPoint(e.datasetType,
+                                      dsMetaData.id,
+                                      dsMetaData.uuid,
+                                      dsMetaData.numRecords,
+                                      dsMetaData.totalLength)
+  }
+
+  private def fetchReport(dao: JobsDao, path: Path)(
+      implicit ec: ExecutionContext): Future[Report] = Future {
+    blocking {
+      ReportUtils.loadReport(path)
+    }
+  }
+
+  def createCompletedJob(dao: JobsDao, jobId: Int)(
+      implicit ec: ExecutionContext): Future[CompletedEngineJob] = {
+
+    val fetchEntryPointFromDao = fetchEntryPoint(dao, _: EngineJobEntryPoint)
+    val fetchReportFromDao = fetchReport(dao, _: Path)
+
+    for {
+      job <- dao.getJobById(jobId)
+      datastoreFiles <- dao.getDataStoreFilesByJobId(job.id)
+      entryPoints <- dao.getJobEntryPoints(job.id)
+      completedEntryPoints <- Future.traverse(entryPoints)(
+        fetchEntryPointFromDao)
+      events <- dao.getJobEventsByJobId(job.id)
+      dsReportFiles <- Future.successful(
+        datastoreFiles.filter(
+          _.dataStoreFile.fileTypeId == FileTypes.REPORT.fileTypeId))
+      reports <- Future.traverse(dsReportFiles.map(x =>
+        Paths.get(x.dataStoreFile.path)))(fetchReportFromDao)
+    } yield CompletedEngineJob(job, completedEntryPoints, reports, events)
+
+  }
+
 }
 
 object SmrtLinkEveMetricsProcessActor {
@@ -216,14 +271,16 @@ object SmrtLinkEveMetricsProcessActor {
   * SmrtLink Events that are sent to Event Manager. These events will
   * sent to Eve (if the system is configured to do so).
   *
-  * @param dao               Jobs Dao
-  * @param sendEveJobMetrics Initial configuration of enable or disable processing/converting of Completed Jobs
-  * @param smrtLinkSystemId  SL System UUID (this can be removed post 5.2)
-  * @param dnsName           DNS name of the system (this can be removed post 5.2)
-  * @param eventManagerActor Event Manager to send processed Events to
+  * @param dao                   Jobs Dao
+  * @param sendEveJobMetrics     Initial configuration of enable or disable processing/converting of Completed Jobs
+  * @param enableInternalMetrics Send Internal Metrics to Eve
+  * @param smrtLinkSystemId      SL System UUID (this can be removed post 5.2)
+  * @param dnsName               DNS name of the system (this can be removed post 5.2)
+  * @param eventManagerActor     Event Manager to send processed Events to
   */
 class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
                                        sendEveJobMetrics: Boolean,
+                                       enableInternalMetrics: Boolean,
                                        smrtLinkSystemId: UUID,
                                        dnsName: Option[String],
                                        eventManagerActor: ActorRef)
@@ -238,22 +295,40 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
   implicit val executionContext = context.dispatcher
 
   override def preStart() = {
-    logger.info(s"Starting $self with sendJobMetrics=$sendJobMetrics")
+    logger.info(
+      s"Starting $self with sendJobMetrics=$sendJobMetrics and enableInternalMetrics=$enableInternalMetrics")
+  }
+
+  private def convertAndSend(job: EngineJob,
+                             fx: => Future[SmrtLinkEvent]): Unit = {
+    fx onComplete {
+      case Success(event) =>
+        logger.info(s"Event $event")
+        logger.debug(
+          s"Successfully converted Job ${job.id} to SmrtLinkEvent eventTypeId:${event.eventTypeId} uuid:${event.uuid}")
+        eventManagerActor ! CreateEvent(event)
+      case Failure(ex) =>
+        logger.error(
+          s"Failed to convert Job ${job.id} to SmrtLinkEvent Error:${ex.getMessage}")
+    }
   }
 
   override def receive: Receive = {
     case JobChangeStateMessage(job) =>
-      if (sendJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id) && job.state.isCompleted) {
-        convertToEngineMetrics(dao, job.id)
-          .map(em => convertToEvent(em)) onComplete {
-          case Success(event) =>
-            logger.info(s"Event $event")
-            logger.debug(
-              s"Successfully converted Job ${job.id} to EngineJobMetric with SmrtLinkEvent ${event.uuid}")
-            eventManagerActor ! CreateEvent(event)
-          case Failure(ex) =>
-            logger.error(
-              s"Failed to convert Job ${job.id} to EngineJobMetrics/SmrtLinkEvent Error:${ex.getMessage}")
+      if (job.state.isCompleted) {
+
+        // Customer facing Metrics
+        if (sendJobMetrics && (job.jobTypeId == JobTypeIds.PBSMRTPIPE.id)) {
+          convertAndSend(job,
+                         convertToEngineMetrics(dao, job.id)
+                           .map(convertToEngineJobMetricsEvent))
+        }
+
+        // Internal Metrics
+        if (enableInternalMetrics) {
+          convertAndSend(
+            job,
+            createCompletedJob(dao, job.id).map(convertToCompletedJobEvent))
         }
       }
 
@@ -308,6 +383,7 @@ trait SmrtLinkEveMetricsProcessActor {
         Props(classOf[SmrtLinkEveMetricsProcessorActor],
               jobsDao(),
               sendEveJobMetrics,
+              enableInternalMetrics(),
               serverId(),
               dnsName(),
               eventManagerActor()))
