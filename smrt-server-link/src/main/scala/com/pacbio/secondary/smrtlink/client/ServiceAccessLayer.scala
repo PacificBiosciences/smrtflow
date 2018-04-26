@@ -1082,9 +1082,8 @@ class SmrtLinkServiceClient(
     def validateState(job: EngineJob): Future[EngineJob] = {
       if (states contains job.state) Future.successful(job)
       else
-        Future.failed(
-          new Exception(
-            s"Job id:$jobId name:${job.name} Found state:${job.state} expected state $states"))
+        Future.failed(new Exception(
+          s"Job id:$jobId name:${job.name} Found state:${job.state} expected state $states"))
     }
 
     retry(getJob(jobId).flatMap(validateState), retryDelay, numRetries)(

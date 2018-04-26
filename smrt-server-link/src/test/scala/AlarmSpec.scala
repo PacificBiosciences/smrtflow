@@ -64,6 +64,7 @@ class AlarmSpec
       with PbsmrtpipeConfigLoader
       with AlarmDaoActorProvider
       with AlarmRunnerLoaderProvider
+      with EventManagerActorProvider
       with AlarmManagerRunnerProvider
       with AlarmServiceProvider
       with JavaFileSystemUtilProvider {
