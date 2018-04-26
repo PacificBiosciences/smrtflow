@@ -1622,6 +1622,18 @@ case class SmrtLinkEvent(eventTypeId: String,
                          createdAt: JodaDateTime,
                          message: JsObject)
 
+object SmrtLinkEvent {
+  def from(eventTypeId: String,
+           message: JsObject,
+           eventTypeVersion: Int = 1): SmrtLinkEvent = {
+    SmrtLinkEvent(eventTypeId,
+                  eventTypeVersion,
+                  UUID.randomUUID(),
+                  JodaDateTime.now(),
+                  message)
+  }
+}
+
 object EventTypes {
   //  eventTypeId These need to be prefixed with "sl" for downstream analysis via ElasticSearch
   val INST_UPGRADE_NOTIFICATION = "sl_inst_upgrade_notification"
@@ -1631,6 +1643,7 @@ object EventTypes {
   val JOB_METRICS = "sl_job_metrics"
   // Internal Job metrics
   val JOB_METRICS_INTERNAL = "sl_job_metrics_internal"
+  val ALARMS = "sl_alarms"
   // A Test Event. This should be used by any testing related code.
   val TEST = "sl_test_event"
 }
@@ -1708,3 +1721,6 @@ case class CompletedEngineJob(
     entryPoints: Seq[CompletedBoundServiceEntryPoint],
     reports: Seq[Report],
     events: Seq[JobEvent])
+
+// Internal Alarm Message For Eve
+case class InternalAlarms(alarms: Seq[AlarmStatus])
