@@ -234,7 +234,7 @@ env "$client_env" \
        --api-name ReadOnlyRemoteUserStoreService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --scope userinfo \
-       --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician \
+       --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician,Internal/PbInstrument \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile}
 echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"

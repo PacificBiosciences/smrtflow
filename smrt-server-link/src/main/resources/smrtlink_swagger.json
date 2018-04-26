@@ -14,13 +14,13 @@
     "apim": {
       "x-wso2-scopes": [
         {
-          "roles": "Internal/PbAdmin,Internal/PbLabTech",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbInstrument",
           "name": "run-design",
           "key": "run-design",
           "description": "Run Design Authorization"
         },
         {
-          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician,Internal/PbInstrument",
           "name": "run-qc",
           "key": "run-qc",
           "description": "Run QC Authorization"
@@ -32,13 +32,13 @@
           "description": "Sample Setup Authorization"
         },
         {
-          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician,Internal/PbInstrument",
           "name": "data-management",
           "key": "data-management",
           "description": "Data Management Authorization"
         },
         {
-          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician",
+          "roles": "Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician,Internal/PbInstrument",
           "name": "analysis",
           "key": "analysis",
           "description": "SMRT Analysis Authorization"
