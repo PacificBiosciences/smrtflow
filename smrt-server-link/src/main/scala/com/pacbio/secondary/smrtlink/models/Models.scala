@@ -17,6 +17,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes._
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import spray.json.JsObject
 
 import scala.concurrent.duration._
@@ -1628,6 +1629,8 @@ object EventTypes {
   val IMPORT_BUNDLE = "sl_ts_import_bundle"
   val CHEMISTRY_ACTIVATE_BUNDLE = "sl_chemistry_activate_bundle"
   val JOB_METRICS = "sl_job_metrics"
+  // Internal Job metrics
+  val JOB_METRICS_INTERNAL = "sl_job_metrics_internal"
   // A Test Event. This should be used by any testing related code.
   val TEST = "sl_test_event"
 }
@@ -1693,3 +1696,15 @@ case class EngineJobMetrics(id: Int,
                             isActive: Boolean = true,
                             isMultiJob: Boolean = false,
                             importedAt: Option[JodaDateTime] = None)
+
+// Internal Job Metrics
+case class CompletedBoundServiceEntryPoint(fileTypeId: String,
+                                           datasetId: Int,
+                                           datasetUUID: UUID,
+                                           numRecords: Long,
+                                           totalLength: Long)
+case class CompletedEngineJob(
+    job: EngineJob,
+    entryPoints: Seq[CompletedBoundServiceEntryPoint],
+    reports: Seq[Report],
+    events: Seq[JobEvent])
