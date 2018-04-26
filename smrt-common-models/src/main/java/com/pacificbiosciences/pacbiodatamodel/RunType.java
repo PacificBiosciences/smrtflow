@@ -77,7 +77,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.SupportedRunStates;
  *         &lt;/element>
  *       &lt;/sequence>
  *       &lt;attribute name="Status" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedRunStates" />
- *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="1mChip" />
+ *       &lt;attribute name="ChipType" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedChipTypes" default="AllChips" />
  *       &lt;attribute name="InstrumentId" type="{http://www.w3.org/2001/XMLSchema}string" />
  *       &lt;attribute name="InstrumentName" type="{http://www.w3.org/2001/XMLSchema}string" />
  *       &lt;attribute name="CreatedBy" type="{http://www.w3.org/2001/XMLSchema}string" />
@@ -294,7 +294,7 @@ public class RunType
      */
     public SupportedChipTypes getChipType() {
         if (chipType == null) {
-            return SupportedChipTypes.ONE_M_CHIP;
+            return SupportedChipTypes.ALL_CHIPS;
         } else {
             return chipType;
         }
