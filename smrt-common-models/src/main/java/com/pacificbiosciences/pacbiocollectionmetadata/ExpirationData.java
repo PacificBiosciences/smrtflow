@@ -55,9 +55,9 @@ public class ExpirationData {
         @XmlElementRef(name = "TemplatePrepKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
         @XmlElementRef(name = "SequencingTube0PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
         @XmlElementRef(name = "CellPacPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
-        @XmlElementRef(name = "BindingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
+        @XmlElementRef(name = "SequencingTube1PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
         @XmlElementRef(name = "SequencingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false),
-        @XmlElementRef(name = "SequencingTube1PastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false)
+        @XmlElementRef(name = "BindingKitPastExpiration", namespace = "http://pacificbiosciences.com/PacBioCollectionMetadata.xsd", type = JAXBElement.class, required = false)
     })
     protected List<JAXBElement<Integer>> content;
 
