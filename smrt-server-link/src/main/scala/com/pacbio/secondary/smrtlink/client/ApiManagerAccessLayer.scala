@@ -339,6 +339,15 @@ class ApiManagerAccessLayer(
                              body: NodeSeq,
                              user: String,
                              password: String): Future[NodeSeq] = {
+    def handleFault(x: NodeSeq) = {
+      val fault = (x \ "Body" \ "Fault" \ "faultstring")
+      if (!fault.isEmpty) {
+        logger.error(x.toString)
+        Future.failed(new RuntimeException(fault.text))
+      } else {
+        Future.successful(x)
+      }
+    }
     val request = (
       Post(endpoint, body)
         ~> addCredentials(BasicHttpCredentials(user, password))
@@ -346,15 +355,7 @@ class ApiManagerAccessLayer(
     )
     adminPipe(request)
       .flatMap(Unmarshal(_).to[NodeSeq])
-      .flatMap { x =>
-        val fault = (x \ "Body" \ "Fault" \ "faultstring")
-        if (!fault.isEmpty) {
-          logger.error(x.toString)
-          Future.failed(new RuntimeException(fault.text))
-        } else {
-          Future.successful(x)
-        }
-      }
+      .flatMap(handleFault)
   }
 
   def soapCall(action: String,

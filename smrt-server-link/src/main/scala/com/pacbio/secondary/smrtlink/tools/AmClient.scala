@@ -342,22 +342,25 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
                                                       actorSystem.scheduler)
 
   def createUser(c: AmClientParser.AmClientOptions): Future[String] = {
-    for {
-      isExisting <- am.isExistingUser(c.user, c.pass, c.newUser)
-      userResponse <- if (isExisting) {
+
+    def toResult(x: Boolean) =
+      if (x) {
+        Future.successful(s"Added user ${c.newUser} with role ${c.roles.head}")
+      } else {
+        Future.failed(new RuntimeException(s"Couldn't add user ${c.newUser}"))
+      }
+
+    def addUser(isExisting: Boolean) =
+      if (isExisting) {
         Future.successful(s"User '${c.newUser}' already exists")
       } else {
         am.addUser(c.user, c.pass, c.newUser, c.newPassword, c.roles.head)
-          .flatMap { x =>
-            if (x) {
-              Future.successful(
-                s"Added user ${c.newUser} with role ${c.roles.head}")
-            } else {
-              Future.failed(
-                new RuntimeException(s"Couldn't add user ${c.newUser}"))
-            }
-          }
+          .flatMap(toResult)
       }
+
+    for {
+      isExisting <- am.isExistingUser(c.user, c.pass, c.newUser)
+      userResponse <- addUser(isExisting)
     } yield userResponse.toString
   }
 
