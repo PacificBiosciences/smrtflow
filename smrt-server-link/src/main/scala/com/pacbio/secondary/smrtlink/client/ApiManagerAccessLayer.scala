@@ -334,23 +334,43 @@ class ApiManagerAccessLayer(
   val userStoreUrl =
     "/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint"
 
-  def soapCall(action: String,
-               content: Elem,
-               user: String,
-               password: String): Future[NodeSeq] = {
-    val body =
-      <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
-                 <soap-env:Body>
-                   {content}
-                 </soap-env:Body>
-               </soap-env:Envelope>
+  protected def postSoapCall(endpoint: String,
+                             action: String,
+                             body: NodeSeq,
+                             user: String,
+                             password: String): Future[NodeSeq] = {
+    def handleFault(x: NodeSeq) = {
+      val fault = (x \ "Body" \ "Fault" \ "faultstring")
+      if (!fault.isEmpty) {
+        logger.error(x.toString)
+        Future.failed(new RuntimeException(fault.text))
+      } else {
+        Future.successful(x)
+      }
+    }
     val request = (
-      Post(userStoreUrl, body)
+      Post(endpoint, body)
         ~> addCredentials(BasicHttpCredentials(user, password))
         ~> addHeader("SOAPAction", action)
     )
     adminPipe(request)
       .flatMap(Unmarshal(_).to[NodeSeq])
+      .flatMap(handleFault)
+  }
+
+  def soapCall(action: String,
+               content: Elem,
+               user: String,
+               password: String,
+               endpoint: String = userStoreUrl): Future[NodeSeq] = {
+    val body =
+      <soap-env:Envelope xmlns:soap-env='http://schemas.xmlsoap.org/soap/envelope/'>
+        <soap-env:Header/>
+        <soap-env:Body>
+          {content}
+        </soap-env:Body>
+      </soap-env:Envelope>
+    postSoapCall(endpoint, action, body, user, password)
   }
 
   def getRoleNames(user: String, password: String): Future[Seq[String]] = {
@@ -392,5 +412,49 @@ class ApiManagerAccessLayer(
                    {newUserList}
                  </wso2um:updateUserListOfRole>
     soapCall("urn:updateUserListOfRole", params, user, password)
+  }
+
+  def addUser(user: String,
+              password: String,
+              newUser: String,
+              newPassword: String,
+              role: String): Future[Boolean] = {
+    val userAdminUrl = "/services/UserAdmin.UserAdminHttpsSoap11Endpoint"
+    val body =
+      <soap-env:Envelope
+          xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/"
+          xmlns:xsd="http://org.apache.axis2/xsd">
+        <soap-env:Header/>
+        <soap-env:Body>
+          <xsd:addUser>
+            <xsd:userName>{newUser}</xsd:userName>
+            <xsd:password>{newPassword}</xsd:password>
+            <xsd:roles>{role}</xsd:roles>
+          </xsd:addUser>
+        </soap-env:Body>
+      </soap-env:Envelope>
+    postSoapCall(userAdminUrl, "urn:addUser", body, user, password)
+      .recoverWith {
+        case ex: Throwable =>
+          Future.failed {
+            new RuntimeException(
+              s"Failed adding user ${newUser} to WSO2: ${ex.getMessage}")
+          }
+      }
+      .map { x =>
+        (x \ "Body" \ "addUserResponse" \ "return" \ "@nil").text.isEmpty
+      }
+  }
+
+  def isExistingUser(user: String,
+                     password: String,
+                     newUser: String): Future[Boolean] = {
+    val params =
+      <wso2um:isExistingUser xmlns:wso2um='http://service.ws.um.carbon.wso2.org'>
+        <wso2um:userName>{newUser}</wso2um:userName>
+      </wso2um:isExistingUser>
+    soapCall("urn:isExistingUser", params, user, password)
+      .map(x => (x \ "Body" \ "isExistingUserResponse" \ "return").map(_.text))
+      .map(_.head.toBoolean)
   }
 }

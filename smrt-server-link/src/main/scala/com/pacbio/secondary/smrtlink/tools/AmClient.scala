@@ -39,6 +39,7 @@ object AmClientModes {
   case object STATUS extends Mode { val name = "get-status" }
   case object PROXY_ADMIN extends Mode { val name = "proxy-admin" }
   case object CREATE_ROLES extends Mode { val name = "create-roles" }
+  case object CREATE_USER extends Mode { val name = "create-user" }
   case object GET_ROLES_USERS extends Mode { val name = "get-roles-users" }
   case object SET_ROLES_USERS extends Mode { val name = "set-roles-users" }
   case object SET_API extends Mode { val name = "set-api" }
@@ -105,7 +106,8 @@ object AmClientParser extends CommandLineToolVersion {
       target: Option[URL] = target,
       roles: Seq[String] = List("Internal/PbAdmin",
                                 "Internal/PbLabTech",
-                                "Internal/PbBioinformatician"),
+                                "Internal/PbBioinformatician",
+                                "Internal/PbInstrument"),
       scope: String = null,
       adminService: String = "RemoteUserStoreManagerService",
       swagger: Option[String] = None,
@@ -116,7 +118,9 @@ object AmClientParser extends CommandLineToolVersion {
       retryDelay: FiniteDuration = 5.seconds,
       defaultTimeOut: FiniteDuration = 30.seconds,
       w2StartUpRetries: Int = 60,
-      w2StartUpRetryDelay: FiniteDuration = 10.seconds
+      w2StartUpRetryDelay: FiniteDuration = 10.seconds,
+      newUser: String = null,
+      newPassword: String = null
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
 
@@ -271,6 +275,24 @@ object AmClientParser extends CommandLineToolVersion {
           .action((roleJson, c) => c.copy(roleJson = roleJson))
           .text("json input file; should contain an object with <role>: [<list of user IDs>] mappings"))
 
+    cmd(AmClientModes.CREATE_USER.name)
+      .action((_, c) => c.copy(mode = AmClientModes.CREATE_USER))
+      .text("Add a user to WSO2")
+      .children(
+        opt[String]("new-user")
+          .required()
+          .action((newUser, c) => c.copy(newUser = newUser))
+          .text("Login ID of new user"),
+        opt[String]("new-password")
+          .required()
+          .action((newPassword, c) => c.copy(newPassword = newPassword))
+          .text("Password of new user"),
+        opt[String]("role")
+          .required()
+          .action((newRole, c) => c.copy(roles = Seq(newRole)))
+          .text("Role of new user")
+      )
+
     opt[Unit]('h', "help") action { (x, c) =>
       showUsage
       sys.exit(0)
@@ -318,6 +340,29 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
   def createRolesWithRetry(c: AmClientParser.AmClientOptions): Future[String] =
     retry(createRoles(c), c.retryDelay, c.maxRetries)(actorSystem.dispatcher,
                                                       actorSystem.scheduler)
+
+  def createUser(c: AmClientParser.AmClientOptions): Future[String] = {
+
+    def toResult(x: Boolean) =
+      if (x) {
+        Future.successful(s"Added user ${c.newUser} with role ${c.roles.head}")
+      } else {
+        Future.failed(new RuntimeException(s"Couldn't add user ${c.newUser}"))
+      }
+
+    def addUser(isExisting: Boolean) =
+      if (isExisting) {
+        Future.successful(s"User '${c.newUser}' already exists")
+      } else {
+        am.addUser(c.user, c.pass, c.newUser, c.newPassword, c.roles.head)
+          .flatMap(toResult)
+      }
+
+    for {
+      isExisting <- am.isExistingUser(c.user, c.pass, c.newUser)
+      userResponse <- addUser(isExisting)
+    } yield userResponse.toString
+  }
 
   def createApi(
       apiName: String,
@@ -641,6 +686,8 @@ object AmClient extends LazyLogging {
           Future.successful("Successfully connected to WSO2")
         case AmClientModes.CREATE_ROLES =>
           amClient.createRoles(c)
+        case AmClientModes.CREATE_USER =>
+          amClient.createUser(c)
         case AmClientModes.GET_ROLES_USERS =>
           amClient.getAndWriteRoles(c)
         case AmClientModes.SET_ROLES_USERS =>
