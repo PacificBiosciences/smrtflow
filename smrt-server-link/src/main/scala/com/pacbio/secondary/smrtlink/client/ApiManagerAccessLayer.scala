@@ -346,6 +346,15 @@ class ApiManagerAccessLayer(
     )
     adminPipe(request)
       .flatMap(Unmarshal(_).to[NodeSeq])
+      .flatMap { x =>
+        val fault = (x \ "Body" \ "Fault" \ "faultstring")
+        if (!fault.isEmpty) {
+          logger.error(x.toString)
+          Future.failed(new RuntimeException(fault.text))
+        } else {
+          Future.successful(x)
+        }
+      }
   }
 
   def soapCall(action: String,
@@ -424,17 +433,15 @@ class ApiManagerAccessLayer(
         </soap-env:Body>
       </soap-env:Envelope>
     postSoapCall(userAdminUrl, "urn:addUser", body, user, password)
-      .flatMap { x =>
-        logger.info(x.toString)
-        val fault = (x \ "Body" \ "Fault" \ "faultstring")
-        val response = (x \ "Body" \ "addUserResponse" \ "return")
-        if (!fault.isEmpty) {
-          Future.failed(
+      .recoverWith {
+        case ex: Throwable =>
+          Future.failed {
             new RuntimeException(
-              s"Failed adding user ${newUser} to WSO2: ${fault.text}"))
-        } else {
-          Future.successful((response \ "@nil").text.isEmpty)
-        }
+              s"Failed adding user ${newUser} to WSO2: ${ex.getMessage}")
+          }
+      }
+      .map { x =>
+        (x \ "Body" \ "addUserResponse" \ "return" \ "@nil").text.isEmpty
       }
   }
 
