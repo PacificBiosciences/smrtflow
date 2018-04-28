@@ -214,7 +214,7 @@ env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile}
 
-ADD_USER="$(env "$client_env" ${AM_CLIENT} create-user \
+ADD_USER="$(env \"$client_env\" ${AMCLIENT} create-user \
     --user icsuser --password icspassword \
     --role Internal/PbInstrument \
     --creds-json ${WSO2_CREDS} \
