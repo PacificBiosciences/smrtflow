@@ -214,11 +214,11 @@ env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
        --creds-json ${WSO2_CREDS} \
        --host localhost --log-file ${logStartFile}
 
-ADD_USER="$(env \"$client_env\" ${AMCLIENT} create-user \
+ADD_USER=$(env "$client_env" ${AMCLIENT} create-user \
     --user icsuser --password icspassword \
     --role Internal/PbInstrument \
     --creds-json ${WSO2_CREDS} \
-    --host localhost --log-file ${logStartFile})"
+    --host localhost --log-file ${logStartFile})
 if [[ $ADD_USER =~ "Added user" ]]; then
   echo "Added 'icsuser' account to allow instrument access to SMRT Link"
   echo "services.  We recommend that you change the password from the"
