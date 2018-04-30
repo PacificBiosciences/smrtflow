@@ -218,7 +218,7 @@ env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
 ADD_USER=$(env "$client_env" ${AMCLIENT} create-user \
     --new-user icsuser --new-password icspassword \
     --role Internal/PbInstrument \
-    $clientArgs
+    $clientArgs)
 if [[ $ADD_USER =~ "Added user" ]]; then
   echo "Added 'icsuser' account to allow instrument access to SMRT Link"
   echo "services.  We recommend that you change the password from the"
