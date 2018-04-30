@@ -202,23 +202,23 @@ bash ${WSO2_DIR}/bin/wso2server.sh --start
 echo "Attempting to configure API Manager for SL Analysis backend..."
 client_env="JAVA_OPTS=${JAVA_OPTS:-} -Xmx256m -Xms256m  -Dconfig.file=${SL_SERVICES_APP_CONF} -Djava.io.tmpdir=${pbTmpDir}"
 
+clientArgs="--host localhost --log-file ${logStartFile}"
+
 echo "Attempting to connect to WSO2"
 # Do this as a separate call for clarity
-env "$client_env" ${AMCLIENT} get-status --host localhost --log-file ${logStartFile}
+env "$client_env" ${AMCLIENT} get-status $clientArgs
 
-env "$client_env" ${AMCLIENT} create-roles \
-       --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile}
+# subsequent calls require the admin credentials
+clientArgs="--creds-json ${WSO2_CREDS} $clientArgs"
+env "$client_env" ${AMCLIENT} create-roles $clientArgs
 
 env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
-       --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile}
+    $clientArgs
 
 ADD_USER=$(env "$client_env" ${AMCLIENT} create-user \
-    --user icsuser --password icspassword \
+    --new-user icsuser --new-password icspassword \
     --role Internal/PbInstrument \
-    --creds-json ${WSO2_CREDS} \
-    --host localhost --log-file ${logStartFile})
+    $clientArgs
 if [[ $ADD_USER =~ "Added user" ]]; then
   echo "Added 'icsuser' account to allow instrument access to SMRT Link"
   echo "services.  We recommend that you change the password from the"
@@ -231,8 +231,7 @@ fi
 env "$client_env" \
      ${AMCLIENT} set-api --swagger-resource /smrtlink_swagger.json \
        --api-name SMRTLink \
-       --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile}
+       $clientArgs
 
 echo "Attempting to configure API Manager admin proxy..."
 env "$client_env" \
@@ -241,16 +240,14 @@ env "$client_env" \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --scope admin \
        --roles Internal/PbAdmin \
-       --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile}
+       $clientArgs
 env "$client_env" \
      ${AMCLIENT} proxy-admin \
        --api-name ReadOnlyRemoteUserStoreService \
        --target https://localhost:9443/services/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint \
        --scope userinfo \
        --roles Internal/PbAdmin,Internal/PbLabTech,Internal/PbBioinformatician,Internal/PbInstrument \
-       --creds-json ${WSO2_CREDS} \
-       --host localhost --log-file ${logStartFile}
+       $clientArgs
 echo "Successfully started up and configured WSO2 API Manager for SL Analysis backend"
 
 # This is a bit odd, SMRT View is started by a different layer of the software stack.
