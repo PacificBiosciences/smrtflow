@@ -43,12 +43,22 @@ Each value is a probability, in the range of [0, 1].</xs:documentation>
 							<xs:documentation>The 1-sigma fractional variation of the intra-pulse signal, independent of any Shot noise associated with that signal</xs:documentation>
 						</xs:annotation>
 					</xs:element>
-					<xs:element name="InterPulseXsnCV" type="xs:float">
-						<xs:annotation>
-							<xs:documentation>The 1-sigma fractional variation, pulse-to-pulse, of the mean signal level (i.e., the pkMid).</xs:documentation>
-						</xs:annotation>
-					</xs:element>
-					<xs:element name="DiffusionXsnCV" type="xs:float"/>
+          <xs:element name="InterPulseXsnCV" type="xs:float">
+            <xs:annotation>
+              <xs:documentation>The 1-sigma fractional variation, pulse-to-pulse, of the mean signal level (i.e., the pkMid).</xs:documentation>
+            </xs:annotation>
+				  </xs:element>
+          <xs:element name="Pw2SlowStepRatio" type="xs:float" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The pulse-width two slow-step ratio.</xs:documentation>
+            </xs:annotation>
+		  </xs:element>
+		  <xs:element name="Ipd2SlowStepRatio" type="xs:float" minOccurs="0">
+			<xs:annotation>
+			  <xs:documentation>The inter-pulse distance (IPD) two slow-step ratio.</xs:documentation>
+			</xs:annotation>
+		  </xs:element>
+          <xs:element name="DiffusionXsnCV" type="xs:float"/>
                     <xs:element name="PulseWidthMeanSeconds" type="xs:float" minOccurs="0"/>
                     <xs:element name="IpdMeanSeconds" type="xs:float" minOccurs="0"/>
 				</xs:sequence>
