@@ -71,8 +71,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.StrictEntityType;
     TranscriptSetType.class,
     AlignmentSetType.class,
     BarcodeSetType.class,
-    ContigSetType.class,
-    ReadSetType.class
+    ReadSetType.class,
+    ContigSetType.class
 })
 public class DataSetType
     extends StrictEntityType

@@ -53,6 +53,8 @@ import javax.xml.bind.annotation.XmlType;
  *         &lt;element name="RelativeAmplitude" type="{http://www.w3.org/2001/XMLSchema}float"/>
  *         &lt;element name="IntraPulseXsnCV" type="{http://www.w3.org/2001/XMLSchema}float"/>
  *         &lt;element name="InterPulseXsnCV" type="{http://www.w3.org/2001/XMLSchema}float"/>
+ *         &lt;element name="Pw2SlowStepRatio" type="{http://www.w3.org/2001/XMLSchema}float" minOccurs="0"/>
+ *         &lt;element name="Ipd2SlowStepRatio" type="{http://www.w3.org/2001/XMLSchema}float" minOccurs="0"/>
  *         &lt;element name="DiffusionXsnCV" type="{http://www.w3.org/2001/XMLSchema}float"/>
  *         &lt;element name="PulseWidthMeanSeconds" type="{http://www.w3.org/2001/XMLSchema}float" minOccurs="0"/>
  *         &lt;element name="IpdMeanSeconds" type="{http://www.w3.org/2001/XMLSchema}float" minOccurs="0"/>
@@ -75,6 +77,8 @@ import javax.xml.bind.annotation.XmlType;
     "relativeAmplitude",
     "intraPulseXsnCV",
     "interPulseXsnCV",
+    "pw2SlowStepRatio",
+    "ipd2SlowStepRatio",
     "diffusionXsnCV",
     "pulseWidthMeanSeconds",
     "ipdMeanSeconds"
@@ -95,6 +99,10 @@ public class AnalogType
     protected float intraPulseXsnCV;
     @XmlElement(name = "InterPulseXsnCV")
     protected float interPulseXsnCV;
+    @XmlElement(name = "Pw2SlowStepRatio")
+    protected Float pw2SlowStepRatio;
+    @XmlElement(name = "Ipd2SlowStepRatio")
+    protected Float ipd2SlowStepRatio;
     @XmlElement(name = "DiffusionXsnCV")
     protected float diffusionXsnCV;
     @XmlElement(name = "PulseWidthMeanSeconds")
@@ -182,6 +190,54 @@ public class AnalogType
      */
     public void setInterPulseXsnCV(float value) {
         this.interPulseXsnCV = value;
+    }
+
+    /**
+     * Gets the value of the pw2SlowStepRatio property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Float }
+     *     
+     */
+    public Float getPw2SlowStepRatio() {
+        return pw2SlowStepRatio;
+    }
+
+    /**
+     * Sets the value of the pw2SlowStepRatio property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Float }
+     *     
+     */
+    public void setPw2SlowStepRatio(Float value) {
+        this.pw2SlowStepRatio = value;
+    }
+
+    /**
+     * Gets the value of the ipd2SlowStepRatio property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Float }
+     *     
+     */
+    public Float getIpd2SlowStepRatio() {
+        return ipd2SlowStepRatio;
+    }
+
+    /**
+     * Sets the value of the ipd2SlowStepRatio property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Float }
+     *     
+     */
+    public void setIpd2SlowStepRatio(Float value) {
+        this.ipd2SlowStepRatio = value;
     }
 
     /**

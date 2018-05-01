@@ -82,27 +82,27 @@ import com.pacificbiosciences.pacbiosampleinfo.BioSampleType;
     "extensions"
 })
 @XmlSeeAlso({
+    BioSampleType.DNABarcodes.class,
+    BioSampleType.class,
+    AutomationType.class,
     StatsTimeSeriesType.class,
     DNABarcode.class,
     IncompatiblePairType.class,
     StatsDiscreteDistType.class,
     StatsContinuousDistType.class,
-    AutomationType.class,
     com.pacificbiosciences.pacbiobasedatamodel.SequencingChemistry.DyeSet.class,
     ReagentTubeType.class,
     ReagentKitType.class,
     ReagentType.class,
     ReagentPlateRowType.class,
-    BioSampleType.DNABarcodes.class,
-    BioSampleType.class,
-    ExperimentContainerType.class,
-    Contigs.Contig.class,
     AutomationConstraintType.class,
+    Contigs.Contig.class,
+    ExperimentContainerType.class,
     Contigs.class,
-    WellSample.class,
     DataEntityType.class,
-    StrictEntityType.class,
-    AnalogType.class
+    AnalogType.class,
+    WellSample.class,
+    StrictEntityType.class
 })
 public class BaseEntityType {
 
