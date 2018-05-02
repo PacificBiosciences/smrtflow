@@ -55,6 +55,7 @@ SL_SERVICES_APP_CONF=${__root}/application.json
 SL_SERVICES_TOOLS_DIR=${__root}/tools
 AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json
+NEW_USER_CREDS=${__root}/ics-default-credentials.json
 BASE_ROLES=${__root}/base-role-assignments.json
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 SMRTLINK_GUI_MAX_RETRIES=60
@@ -215,12 +216,13 @@ env "$client_env" ${AMCLIENT} create-roles $clientArgs
 env "$client_env" ${AMCLIENT} set-roles-users --role-json ${BASE_ROLES} \
     $clientArgs
 
+ICS_USER=$(python -c "import json,os,sys; d=json.load(open(sys.argv[1])); print d['wso2User']" ${NEW_USER_CREDS})
 ADD_USER=$(env "$client_env" ${AMCLIENT} create-user \
-    --new-user icsuser --new-password icspassword \
+    --new-user-creds-json $NEW_USER_CREDS \
     --role Internal/PbInstrument \
     $clientArgs)
 if [[ $ADD_USER =~ "Added user" ]]; then
-  echo "Added 'icsuser' account to allow instrument access to SMRT Link"
+  echo "Added '${ICS_USER}' account to allow instrument access to SMRT Link"
   echo "services.  We recommend that you change the password from the"
   echo "default value; please consult the documentation for instructions"
   echo "for setting a new password on the instrument and SMRT Link."
