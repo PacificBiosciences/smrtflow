@@ -173,9 +173,9 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     SmrtLinkEvent.from(EventTypes.JOB_METRICS,
                        engineJobMetrics.toJson.asJsObject)
 
-  def convertToCompletedJobEvent(job: CompletedEngineJob): SmrtLinkEvent = {
-    val rawJsObject = job.toJson.asJsObject
-    val jsObject = Try(workaroundForJsonSettings(rawJsObject, job.job))
+  def convertToCompletedJobEvent(completedJob: CompletedEngineJob): SmrtLinkEvent = {
+    val rawJsObject = completedJob.toJson.asJsObject
+    val jsObject = Try(workaroundForJsonSettings(rawJsObject, completedJob.job))
       .getOrElse(rawJsObject)
 
     SmrtLinkEvent.from(EventTypes.JOB_METRICS_INTERNAL, jsObject)

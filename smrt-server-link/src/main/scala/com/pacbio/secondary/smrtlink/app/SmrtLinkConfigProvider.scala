@@ -125,7 +125,7 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val enableInternalMetrics: Singleton[Boolean] =
     Singleton(
       () =>
-        Try(conf.getBoolean("smrtflow.server.enableInternalMetrics"))
+        Try(conf.getBoolean("smrtflowInternal.enableInternalMetrics"))
           .getOrElse(false))
 
   val externalEveUrl: Singleton[Option[URL]] =
