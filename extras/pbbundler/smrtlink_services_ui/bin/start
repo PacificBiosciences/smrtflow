@@ -55,7 +55,7 @@ SL_SERVICES_APP_CONF=${__root}/application.json
 SL_SERVICES_TOOLS_DIR=${__root}/tools
 AMCLIENT=${SL_SERVICES_TOOLS_DIR}/bin/amclient
 WSO2_CREDS=${__root}/wso2-credentials.json
-NEW_USER_CREDS=${__root}/ics-credentials.json
+NEW_USER_CREDS=${__root}/ics-default-credentials.json
 BASE_ROLES=${__root}/base-role-assignments.json
 # Max number of retries to call sub-component get-status -i {my-component} --max-retries {X}
 SMRTLINK_GUI_MAX_RETRIES=60

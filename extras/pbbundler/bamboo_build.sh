@@ -49,8 +49,8 @@ if [ -z "$PB_ICS_USER" ] || [ -z "$PB_ICS_PASSWORD" ]; then
   echo "ERROR: PB_ICS_USER and PB_ICS_PASSWORD must be defined first"
   exit 1
 fi
-echo "{\"wso2User\": \"$PB_ICS_USER\", \"wso2Password\": \"$PB_ICS_PASSWORD\"}" > $BUNDLER_ROOT/smrtlink_services_ui/ics-credentials.json
-chmod 600 $BUNDLER_ROOT/smrtlink_services_ui/ics-credentials.json
+echo "{\"wso2User\": \"$PB_ICS_USER\", \"wso2Password\": \"$PB_ICS_PASSWORD\"}" > $BUNDLER_ROOT/smrtlink_services_ui/ics-default-credentials.json
+chmod 400 $BUNDLER_ROOT/smrtlink_services_ui/ics-default-credentials.json
 
 WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0-stock-plus-postgres.zip
 if [ -z "$TOMCAT_TGZ" ] ; then
