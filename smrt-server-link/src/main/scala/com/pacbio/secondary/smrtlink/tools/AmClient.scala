@@ -119,10 +119,17 @@ object AmClientParser extends CommandLineToolVersion {
       defaultTimeOut: FiniteDuration = 30.seconds,
       w2StartUpRetries: Int = 60,
       w2StartUpRetryDelay: FiniteDuration = 10.seconds,
-      newUser: String = null,
-      newPassword: String = null
+      newUser: Option[String] = None,
+      newPassword: Option[String] = None,
+      newUserJson: Option[File] = None
   ) extends LoggerConfig {
     import ConfigModelsJsonProtocol._
+
+    private def toWso2Credentials(f: File) =
+      FileUtils
+        .readFileToString(f, "UTF-8")
+        .parseJson
+        .convertTo[Wso2Credentials]
 
     def validate(): AmClientOptions = (user, pass, credsJson) match {
       case (null, null, None) =>
@@ -130,14 +137,22 @@ object AmClientParser extends CommandLineToolVersion {
       case (_: String, _: String, None) =>
         this
       case (null, null, Some(f)) =>
-        val creds = FileUtils
-          .readFileToString(f, "UTF-8")
-          .parseJson
-          .convertTo[Wso2Credentials]
+        val creds = toWso2Credentials(f)
         copy(user = creds.wso2User, pass = creds.wso2Password)
       case _ =>
         throw new IllegalStateException("Failed to validate credentials")
     }
+
+    def getNewUserCreds: Wso2Credentials =
+      (newUser, newPassword, newUserJson) match {
+        case (None, None, Some(f)) =>
+          toWso2Credentials(f)
+        case (Some(user), Some(password), None) =>
+          Wso2Credentials(user, password)
+        case _ =>
+          throw new IllegalStateException(
+            "Either --new-user-creds OR --new-user and --new-password is required")
+      }
   }
 
   lazy val defaults = AmClientOptions()
@@ -280,13 +295,14 @@ object AmClientParser extends CommandLineToolVersion {
       .text("Add a user to WSO2")
       .children(
         opt[String]("new-user")
-          .required()
-          .action((newUser, c) => c.copy(newUser = newUser))
+          .action((newUser, c) => c.copy(newUser = Some(newUser)))
           .text("Login ID of new user"),
         opt[String]("new-password")
-          .required()
-          .action((newPassword, c) => c.copy(newPassword = newPassword))
+          .action((newPassword, c) => c.copy(newPassword = Some(newPassword)))
           .text("Password of new user"),
+        opt[File]("new-user-creds-json")
+          .action((x, c) => c.copy(newUserJson = Some(x)))
+          .text("Path to new user credentials json file"),
         opt[String]("role")
           .required()
           .action((newRole, c) => c.copy(roles = Seq(newRole)))
@@ -342,24 +358,31 @@ class AmClient(am: ApiManagerAccessLayer)(implicit actorSystem: ActorSystem)
                                                       actorSystem.scheduler)
 
   def createUser(c: AmClientParser.AmClientOptions): Future[String] = {
+    val creds = c.getNewUserCreds
 
     def toResult(x: Boolean) =
       if (x) {
-        Future.successful(s"Added user ${c.newUser} with role ${c.roles.head}")
+        Future.successful(
+          s"Added user ${creds.wso2User} with role ${c.roles.head}")
       } else {
-        Future.failed(new RuntimeException(s"Couldn't add user ${c.newUser}"))
+        Future.failed(
+          new RuntimeException(s"Couldn't add user ${creds.wso2User}"))
       }
 
     def addUser(isExisting: Boolean) =
       if (isExisting) {
-        Future.successful(s"User '${c.newUser}' already exists")
+        Future.successful(s"User '${creds.wso2User}' already exists")
       } else {
-        am.addUser(c.user, c.pass, c.newUser, c.newPassword, c.roles.head)
+        am.addUser(c.user,
+                   c.pass,
+                   creds.wso2User,
+                   creds.wso2Password,
+                   c.roles.head)
           .flatMap(toResult)
       }
 
     for {
-      isExisting <- am.isExistingUser(c.user, c.pass, c.newUser)
+      isExisting <- am.isExistingUser(c.user, c.pass, creds.wso2User)
       userResponse <- addUser(isExisting)
     } yield userResponse.toString
   }
