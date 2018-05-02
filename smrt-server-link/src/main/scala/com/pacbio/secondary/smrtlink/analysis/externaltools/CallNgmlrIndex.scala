@@ -13,7 +13,7 @@ object CallNgmlrIndex extends ExternalToolsUtils {
   val EXE = "ngmlr"
   private val SUFFICES = Seq("-enc.2.ngm", "-ht-13-2.2.ngm")
 
-  def isAvailable(): Boolean = isExeAvailable(Seq(EXE, "--help"))
+  def isAvailable(): Boolean = isExeAvailable(Seq(EXE, "--version"))
 
   /**
     * Will generate the NGMLR index files and delete any

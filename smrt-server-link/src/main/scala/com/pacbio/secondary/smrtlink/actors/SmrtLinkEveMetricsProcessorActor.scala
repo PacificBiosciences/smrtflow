@@ -7,6 +7,7 @@ import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
 import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.common.models.CommonModelImplicits._
+import com.pacbio.common.models.{JodaDateTimeProtocol, UUIDJsonProtocol}
 import com.pacbio.secondary.smrtlink.actors.EventManagerActor.{
   CreateEvent,
   UploadTechSupportTgz
@@ -14,8 +15,13 @@ import com.pacbio.secondary.smrtlink.actors.EventManagerActor.{
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
+import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
+  JobStatesJsonProtocol
+}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   EngineJob,
+  JobConstants,
   JobTypeIds
 }
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
@@ -144,23 +150,36 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
       )
   }
 
-  private def toSmrtLinkEvent(eventTypeId: String,
-                              jsObject: JsObject,
-                              schemaVersion: Int = 1): SmrtLinkEvent = {
-    // The schema version should be incremented
-    SmrtLinkEvent(eventTypeId,
-                  schemaVersion,
-                  UUID.randomUUID(),
-                  JodaDateTime.now(),
-                  jsObject)
+  // This is a workaround for changing the raw jsonSettings (str) to proper JsObject
+  // to be used in elastic search. This should be resolved by SE-1227
+  private def workaroundForJsonSettings(jsObject: JsObject,
+                                        job: EngineJob): JsObject = {
+
+    import DefaultJsonProtocol._
+
+    val jsonSettings: JsObject = job.jsonSettings.parseJson.asJsObject()
+    val update: Map[String, JsValue] = Map("jsonSettings" -> jsonSettings)
+
+    val jsJob: JsObject = job.toJson.asJsObject
+
+    val jsUpdatedJob = jsJob.copy(update)
+
+    val jobUpdate: Map[String, JsValue] = Map("job" -> jsUpdatedJob)
+    jsObject.copy(jobUpdate)
   }
 
   def convertToEngineJobMetricsEvent(
       engineJobMetrics: EngineJobMetrics): SmrtLinkEvent =
-    toSmrtLinkEvent(EventTypes.JOB_METRICS, engineJobMetrics.toJson.asJsObject)
+    SmrtLinkEvent.from(EventTypes.JOB_METRICS,
+                       engineJobMetrics.toJson.asJsObject)
 
-  def convertToCompletedJobEvent(job: CompletedEngineJob): SmrtLinkEvent =
-    toSmrtLinkEvent(EventTypes.JOB_METRICS_INTERNAL, job.toJson.asJsObject)
+  def convertToCompletedJobEvent(job: CompletedEngineJob): SmrtLinkEvent = {
+    val rawJsObject = job.toJson.asJsObject
+    val jsObject = Try(workaroundForJsonSettings(rawJsObject, job.job))
+      .getOrElse(rawJsObject)
+
+    SmrtLinkEvent.from(EventTypes.JOB_METRICS_INTERNAL, jsObject)
+  }
 
   /**
     *
