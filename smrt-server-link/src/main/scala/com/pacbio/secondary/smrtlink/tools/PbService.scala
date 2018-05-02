@@ -1923,7 +1923,8 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   protected def manifestsSummary(
       manifests: Seq[PacBioComponentManifest]): String = {
     val headers = Seq("id", "version", "name")
-    val table = manifests.map(m => Seq(m.id, m.version, m.name))
+    val table =
+      manifests.sortWith(_.id < _.id).map(m => Seq(m.id, m.version, m.name))
     toTable(table, headers)
   }
 
