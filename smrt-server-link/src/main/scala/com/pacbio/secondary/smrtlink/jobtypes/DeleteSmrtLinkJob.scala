@@ -111,11 +111,6 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
 
     val reportPath = job.path.resolve("delete_report.json")
 
-    def f2(path: Path): Future[String] =
-      if (dryMode)
-        Future.successful(s"Running in drymode.  Skipping file deletion")
-      else deleteJobDirFiles(path, removeFiles, reportPath)
-
     //FIXME(mpkocher)(8-31-2017) The order of this should be clearer. And perhaps handle a rollback if possible.
     def f3: Future[String] =
       for {
@@ -137,7 +132,7 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
     // There's a bit of clumsy composition here between the Either and Try
     for {
       path <- runAndBlock(f1, timeOut)
-      report <- Try(f2(path))
+      report <- Try(deleteJobDirFiles(path, removeFiles, reportPath))
       msgUpdate <- runAndBlock(updater, timeOut)
       _ <- Try(resultsWriter.writeLine(msgUpdate))
     } yield report
