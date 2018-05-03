@@ -4,7 +4,6 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.UUID
 
-import akka.actor.Status.Success
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
 import akka.actor.{Actor, ActorRef, Props}
@@ -15,16 +14,14 @@ import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._
 import com.pacbio.secondary.smrtlink.dependency.Singleton
-import com.pacbio.common.models.Constants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.client.EventServerClient
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
-import com.pacbio.secondary.smrtlink.mail.PbMailer
 import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
+import scala.util.{Try, Failure, Success}
 import scala.util.control.NonFatal
 
 object EventManagerActor {
@@ -89,12 +86,24 @@ class EventManagerActor(smrtLinkId: UUID,
                         dnsName)
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
-    Try {
-      client.map { c =>
+
+    val fx: Future[String] = client
+      .map { c =>
         logger.info(s"Attempting to send message to external Server $e")
         c.sendSmrtLinkSystemEvent(e)
+          .map(ev =>
+            s"Successfully Sent Event ${ev.uuid} type:${ev.eventTypeId}")
       }
+      .getOrElse(Future.successful(
+        s"System is Not configured to Send Event. Can not send event ${e.uuid} ${e.eventTypeId}"))
+
+    fx onComplete {
+      case Success(msg) => logger.info(msg)
+      case Failure(ex) =>
+        logger.warn(s"Failed to send external event to Eve. ${ex.getMessage}")
+
     }
+
   }
 
   // Should this spawn a "worker" actor to run this call?
