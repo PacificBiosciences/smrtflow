@@ -112,7 +112,7 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
     val reportPath = job.path.resolve("delete_report.json")
 
     //FIXME(mpkocher)(8-31-2017) The order of this should be clearer. And perhaps handle a rollback if possible.
-    def f2: Future[String] =
+    def f3: Future[String] =
       for {
         _ <- dao.deleteJobById(jobId)
         updatedJob <- dao.getJobById(jobId)
@@ -127,12 +127,12 @@ class DeleteSmrtLinkJob(opts: DeleteSmrtLinkJobOptions)
       if (dryMode)
         Future.successful(
           s"Running in drymode. Skipping DB updating of $jobId")
-      else f2
+      else f3
 
     // There's a bit of clumsy composition here between the Either and Try
     for {
       path <- runAndBlock(f1, timeOut)
-      report <- Try(deleteJobDirFiles(path, opts.removeFiles, reportPath))
+      report <- Try(deleteJobDirFiles(path, removeFiles, reportPath))
       msgUpdate <- runAndBlock(updater, timeOut)
       _ <- Try(resultsWriter.writeLine(msgUpdate))
     } yield report
