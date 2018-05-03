@@ -158,14 +158,14 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     import DefaultJsonProtocol._
 
     val jsonSettings: JsObject = job.jsonSettings.parseJson.asJsObject()
-    val update: Map[String, JsValue] = Map("jsonSettings" -> jsonSettings)
+    val update = JsObject("jsonSettings" -> jsonSettings)
 
     val jsJob: JsObject = job.toJson.asJsObject
 
-    val jsUpdatedJob = jsJob.copy(update)
+    val jsUpdatedJob = new JsObject(jsJob.fields ++ update.fields)
 
-    val jobUpdate: Map[String, JsValue] = Map("job" -> jsUpdatedJob)
-    jsObject.copy(jobUpdate)
+    val jobUpdate = JsObject("job" -> jsUpdatedJob)
+    new JsObject(jsObject.fields ++ jobUpdate.fields)
   }
 
   def convertToEngineJobMetricsEvent(
@@ -173,12 +173,17 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
     SmrtLinkEvent.from(EventTypes.JOB_METRICS,
                        engineJobMetrics.toJson.asJsObject)
 
-  def convertToCompletedJobEvent(completedJob: CompletedEngineJob): SmrtLinkEvent = {
-    val rawJsObject = completedJob.toJson.asJsObject
-    val jsObject = Try(workaroundForJsonSettings(rawJsObject, completedJob.job))
-      .getOrElse(rawJsObject)
 
-    SmrtLinkEvent.from(EventTypes.JOB_METRICS_INTERNAL, jsObject)
+  def convertToCompletedJobEvent(
+      completedJob: CompletedEngineJob): SmrtLinkEvent = {
+    val rawJsObject = completedJob.toJson.asJsObject
+    val jsObject =
+      Try(workaroundForJsonSettings(rawJsObject, completedJob.job))
+        .getOrElse(rawJsObject)
+
+    SmrtLinkEvent.from(EventTypes.JOB_METRICS_INTERNAL,
+                       jsObject,
+                       eventTypeVersion = 2)
   }
 
   /**
