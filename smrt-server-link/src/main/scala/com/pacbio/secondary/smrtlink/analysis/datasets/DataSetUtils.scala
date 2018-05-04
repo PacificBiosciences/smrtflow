@@ -436,7 +436,8 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     val createdAt = DatatypeFactory
       .newInstance()
       .newXMLGregorianCalendar(new JodaDateTime().toGregorianCalendar)
-    setParent(ds, ds) // the original dataset becomes the parent
+    // XXX 2018-05-04 (nechols): disabled for now, pending SL-2806
+    //setParent(ds, ds) // the original dataset becomes the parent
     val name = dsName.getOrElse(s"${ds.getName} (filtered)")
     val timeStampName = toTimeStampName(name.toLowerCase)
     ds.setCreatedAt(createdAt)
