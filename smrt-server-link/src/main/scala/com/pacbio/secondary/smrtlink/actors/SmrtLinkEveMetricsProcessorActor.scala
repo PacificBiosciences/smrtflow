@@ -253,10 +253,15 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
                                       dsMetaData.totalLength)
   }
 
+  /**
+    * Load a Report from file system. We strip out the tables and plot groups
+    * to make the payload smaller. We are only interested in the
+    * report attributes.
+    */
   private def fetchReport(dao: JobsDao, path: Path)(
       implicit ec: ExecutionContext): Future[Report] = Future {
     blocking {
-      ReportUtils.loadReport(path)
+      ReportUtils.loadReport(path).copy(plotGroups = Nil, tables = Nil)
     }
   }
 
@@ -326,13 +331,13 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
                              fx: => Future[SmrtLinkEvent]): Unit = {
     fx onComplete {
       case Success(event) =>
-        logger.info(s"Event $event")
-        logger.debug(
-          s"Successfully converted Job ${job.id} to SmrtLinkEvent eventTypeId:${event.eventTypeId} uuid:${event.uuid}")
+        logger.debug(s"Event $event")
+        logger.info(
+          s"Successfully converted Job id:${job.id} type:${job.jobTypeId} to SmrtLinkEvent eventTypeId:${event.eventTypeId} uuid:${event.uuid}")
         eventManagerActor ! CreateEvent(event)
       case Failure(ex) =>
         logger.error(
-          s"Failed to convert Job ${job.id} to SmrtLinkEvent Error:${ex.getMessage}")
+          s"Failed to convert Job id:${job.id} type:${job.jobTypeId} to SmrtLinkEvent Error:${ex.getMessage}")
     }
   }
 
@@ -382,7 +387,8 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
 
     case e: EulaRecord =>
       sendJobMetrics = e.enableJobMetrics
-      logger.info(s"Updated sendJobMetrics=$sendJobMetrics")
+      logger.info(
+        s"Updated sendJobMetrics=$sendJobMetrics (with enableInternalMetrics=$enableInternalMetrics)")
       // This can be deleted after 5.2 release
       if (sendJobMetrics) {
         self ! HarvestAnalysisJobs(e.user, e.smrtlinkVersion)

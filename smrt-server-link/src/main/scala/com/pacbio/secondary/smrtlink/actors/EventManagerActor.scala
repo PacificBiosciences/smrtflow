@@ -21,7 +21,7 @@ import com.pacbio.secondary.smrtlink.models._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 object EventManagerActor {
@@ -89,7 +89,8 @@ class EventManagerActor(smrtLinkId: UUID,
 
     val fx: Future[String] = client
       .map { c =>
-        logger.info(s"Attempting to send message to external Server $e")
+        logger.info(
+          s"Attempting to send message to external Server ${e.uuid} ${e.eventTypeId}")
         c.sendSmrtLinkSystemEvent(e)
           .map(ev =>
             s"Successfully Sent Event ${ev.uuid} type:${ev.eventTypeId}")
