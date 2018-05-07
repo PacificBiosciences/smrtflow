@@ -1,0 +1,24 @@
+{
+  "dataset_uuids": [
+    "6b8db144-a601-4577-ab04-ba64cadc0548"
+  ],
+  "uuid": "e1ff0e55-eaf5-48c9-9126-b958d26c6f8b",
+  "plotGroups": [],
+  "attributes": [
+    {
+      "id": "coverage.depth_coverage_mean",
+      "name": "Mean Coverage",
+      "value": null
+    },
+    {
+      "id": "coverage.missing_bases_pct",
+      "name": "Missing Bases",
+      "value": 100.0
+    }
+  ],
+  "version": "1.0.0",
+  "id": "coverage",
+  "_comment": "Generated with pbcommand version 1.0.0 at 2018-05-07T01:34:13.128591",
+  "title": "Report coverage",
+  "tables": []
+}

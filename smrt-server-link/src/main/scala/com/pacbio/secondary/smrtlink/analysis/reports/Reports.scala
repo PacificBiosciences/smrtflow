@@ -34,6 +34,12 @@ object ReportModels {
   case class ReportBooleanAttribute(id: String, name: String, value: Boolean)
       extends ReportAttribute
 
+  // This is a bit goofy, but literal "NA" values should be mapped to this data model
+  case class ReportNullAttribute(id: String,
+                                 name: String,
+                                 value: Option[String] = None)
+      extends ReportAttribute
+
   case class ReportPlot(id: String,
                         image: String,
                         caption: Option[String] = None)
@@ -140,12 +146,15 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
   implicit val reportLongAttributeFormat = jsonFormat3(ReportLongAttribute)
   implicit val reportStrAttributeFormat = jsonFormat3(ReportStrAttribute)
   implicit val reportDoubleAttributeFormat = jsonFormat3(ReportDoubleAttribute)
+  implicit val reportNullAttributeFormat = jsonFormat3(ReportNullAttribute)
+
   implicit object reportAttributeFormat extends JsonFormat[ReportAttribute] {
     def write(ra: ReportAttribute) = ra match {
       case rla: ReportLongAttribute => rla.toJson
       case rsa: ReportStrAttribute => rsa.toJson
       case rda: ReportDoubleAttribute => rda.toJson
       case rba: ReportBooleanAttribute => rba.toJson
+      case rna: ReportNullAttribute => rna.toJson
     }
 
     def read(jsonAttr: JsValue): ReportAttribute = {
@@ -158,6 +167,8 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           ReportBooleanAttribute(id, name, value)
         case Seq(JsString(id), JsString(name), JsString(value)) =>
           ReportStrAttribute(id, name, value.toString)
+        case Seq(JsString(id), JsString(name), JsNull) =>
+          ReportNullAttribute(id, name)
       }
     }
   }
