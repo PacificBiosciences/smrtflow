@@ -161,30 +161,25 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
       s"Attribute Name $attributeId"
 
     def read(jsonAttr: JsValue): ReportAttribute = {
-      jsonAttr.asJsObject.getFields("id", "name", "value") match {
-        case Seq(JsString(id), JsString(name), JsNumber(value)) => {
-          if (value.isValidInt) ReportLongAttribute(id, name, value.toLong)
-          else ReportDoubleAttribute(id, name, value.toDouble)
-        }
-        case Seq(JsString(id), JsString(name), JsBoolean(value)) =>
-          ReportBooleanAttribute(id, name, value)
-        case Seq(JsString(id), JsString(name), JsString(value)) =>
-          ReportStrAttribute(id, name, value.toString)
-        case Seq(JsString(id), JsString(name), JsNull) =>
-          ReportNullAttribute(id, name)
+      val jsonObj = jsonAttr.asJsObject
 
-        case Seq(JsString(id), JsNull, JsNumber(value)) => {
+      def getName(id: String) = jsonObj.getFields("name") match {
+        case Seq(JsString(name)) => name
+        case Seq(JsNull) => defaultReportAttrName(id)
+      }
+
+      jsonAttr.asJsObject.getFields("id", "value") match {
+        case Seq(JsString(id), JsNumber(value)) => {
           if (value.isValidInt)
-            ReportLongAttribute(id, defaultReportAttrName(id), value.toLong)
-          else ReportDoubleAttribute(id, s"Name $id", value.toDouble)
+            ReportLongAttribute(id, getName(id), value.toLong)
+          else ReportDoubleAttribute(id, getName(id), value.toDouble)
         }
-        case Seq(JsString(id), JsNull, JsBoolean(value)) =>
-          ReportBooleanAttribute(id, defaultReportAttrName(id), value)
-        case Seq(JsString(id), JsNull, JsString(value)) =>
-          ReportStrAttribute(id, defaultReportAttrName(id), value.toString)
-        case Seq(JsString(id), JsNull, JsNull) =>
-          ReportNullAttribute(id, defaultReportAttrName(id))
-
+        case Seq(JsString(id), JsBoolean(value)) =>
+          ReportBooleanAttribute(id, getName(id), value)
+        case Seq(JsString(id), JsString(value)) =>
+          ReportStrAttribute(id, getName(id), value.toString)
+        case Seq(JsString(id), JsNull) =>
+          ReportNullAttribute(id, getName(id))
       }
     }
   }
