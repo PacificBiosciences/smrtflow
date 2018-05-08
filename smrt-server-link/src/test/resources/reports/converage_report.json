@@ -11,6 +11,11 @@
       "value": null
     },
     {
+      "id": "coverage.no_name",
+      "name": null,
+      "value": null
+    },
+    {
       "id": "coverage.missing_bases_pct",
       "name": "Missing Bases",
       "value": 100.0
