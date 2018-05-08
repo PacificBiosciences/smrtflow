@@ -82,6 +82,7 @@ class ReportsSpec
     "Sanity Load Report with Null Attribute" in {
       val name = "converage_report.json"
       val rpt = loadTestReport(name)
+      // println(s"Report ${rpt.attributes}")
       rpt.id must beEqualTo("coverage")
     }
   }

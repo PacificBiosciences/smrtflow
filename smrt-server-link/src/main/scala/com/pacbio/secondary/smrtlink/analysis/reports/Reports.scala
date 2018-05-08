@@ -157,6 +157,9 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
       case rna: ReportNullAttribute => rna.toJson
     }
 
+    private def defaultReportAttrName(attributeId: String): String =
+      s"Attribute Name $attributeId"
+
     def read(jsonAttr: JsValue): ReportAttribute = {
       jsonAttr.asJsObject.getFields("id", "name", "value") match {
         case Seq(JsString(id), JsString(name), JsNumber(value)) => {
@@ -169,6 +172,19 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
           ReportStrAttribute(id, name, value.toString)
         case Seq(JsString(id), JsString(name), JsNull) =>
           ReportNullAttribute(id, name)
+
+        case Seq(JsString(id), JsNull, JsNumber(value)) => {
+          if (value.isValidInt)
+            ReportLongAttribute(id, defaultReportAttrName(id), value.toLong)
+          else ReportDoubleAttribute(id, s"Name $id", value.toDouble)
+        }
+        case Seq(JsString(id), JsNull, JsBoolean(value)) =>
+          ReportBooleanAttribute(id, defaultReportAttrName(id), value)
+        case Seq(JsString(id), JsNull, JsString(value)) =>
+          ReportStrAttribute(id, defaultReportAttrName(id), value.toString)
+        case Seq(JsString(id), JsNull, JsNull) =>
+          ReportNullAttribute(id, defaultReportAttrName(id))
+
       }
     }
   }
