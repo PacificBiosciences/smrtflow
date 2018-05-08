@@ -60,6 +60,13 @@ class EventManagerActor(smrtLinkId: UUID,
     logger.info("DNS name: " + dnsName.getOrElse("NONE"))
   }
 
+  override def postRestart(reason: Throwable) {
+    super.postRestart(reason)
+    // This can potentially be a problem. The enableExternalMessages state
+    // can be out of sync
+    logger.warn(s"Restarted $self because of ${reason.getMessage}")
+  }
+
   def checkExternalServerStatus(): Option[Future[String]] = {
     client.map(c =>
       c.getStatus
@@ -87,16 +94,25 @@ class EventManagerActor(smrtLinkId: UUID,
 
   private def sendSystemEvent(e: SmrtLinkSystemEvent): Unit = {
 
+    def eventSender(c: EventServerClient): Future[String] = {
+      c.sendSmrtLinkSystemWithRetry(e)
+        .map(ev =>
+          s"Successfully Sent Event ${ev.uuid} type:${ev.eventTypeId}")
+        .recoverWith {
+          case NonFatal(ex) =>
+            Future.successful(
+              s"Failed to send event ${e.uuid} type:${e.eventTypeId} ${ex.getMessage}")
+        }
+    }
+
     val fx: Future[String] = client
       .map { c =>
         logger.info(
           s"Attempting to send message to external Server ${e.uuid} ${e.eventTypeId}")
-        c.sendSmrtLinkSystemEvent(e)
-          .map(ev =>
-            s"Successfully Sent Event ${ev.uuid} type:${ev.eventTypeId}")
+        eventSender(c)
       }
       .getOrElse(Future.successful(
-        s"System is Not configured to Send Event. Can not send event ${e.uuid} ${e.eventTypeId}"))
+        s"System is Not configured to Send Event (enableExternalMessages=$enableExternalMessages). Can not send event ${e.uuid} ${e.eventTypeId}"))
 
     fx onComplete {
       case Success(msg) => logger.info(msg)
@@ -131,7 +147,11 @@ class EventManagerActor(smrtLinkId: UUID,
     case EnableExternalMessages(enable) =>
       // Unless the system is Configured with a Eve URL, this has no impact
       enableExternalMessages = enable
-      val msx = s"Enabled External Messages to ${client.map(_.RootUri)}"
+      val msx = client
+        .map(c => s"Enabled External Messages to ${c.RootUri}")
+        .getOrElse(
+          "System is not configured with an Eve URL. Can not send message")
+
       sender ! msx
 
     case CreateEvent(e) =>
@@ -142,7 +162,7 @@ class EventManagerActor(smrtLinkId: UUID,
       } else {
         // This should send a failed message back
         logger.warn(
-          s"External Event Sending is disabled. Unable to send event $e")
+          s"External Event Sending is disabled. Unable to send event ${e.uuid} ${e.eventTypeId}")
       }
 
     case e: EulaRecord =>
