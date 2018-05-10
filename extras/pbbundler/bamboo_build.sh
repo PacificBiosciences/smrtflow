@@ -77,7 +77,7 @@ if [ -z "$PBBUNDLER_NO_VIRTUALENV" ]; then
   echo "Creating Virtualenv $ve"
   python /mnt/software/v/virtualenv/13.0.1/virtualenv.py $ve
   source $ve/bin/activate
-  pip install fabric
+  pip install fabric==1.14.0
   pip install sphinx
 fi
 
