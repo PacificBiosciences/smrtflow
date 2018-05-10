@@ -2026,8 +2026,15 @@ object PbService extends ClientAppUtils with LazyLogging {
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    def toClient = Future.successful {
-      new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
+    def toClient = {
+      if (c.host != "localhost") {
+        Future.failed(new IllegalArgumentException(
+          "Authentication required when connecting to a remote SMRT Link server.  Please specify a username (--user or PB_SERVICE_AUTH_USER environment variable) and a password (--ask-pass, --password, or PB_SERVICE_AUTH_PASSWORD environment variable)."))
+      } else {
+        Future.successful {
+          new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
+        }
+      }
     }
     def toAuthClient(t: String) = {
       logger.info("Will route through WSO2 with user-supplied auth token")
