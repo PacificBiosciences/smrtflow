@@ -249,10 +249,7 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(asJson = true)
     } text "Display output as JSON"
 
-    opt[Unit]('h', "help") action { (x, c) =>
-      showUsage
-      sys.exit(0)
-    } text "Show options and exit"
+    help("help")
 
     opt[Unit]("version") action { (x, c) =>
       showVersion
