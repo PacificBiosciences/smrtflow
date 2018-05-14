@@ -6,13 +6,15 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 import org.joda.time.{DateTime => JodaDateTime}
 
 object ScenarioConstants {
   val HOST = "smrtflow.server.host"
   val PORT = "smrtflow.server.port"
+  val USER = "user"
+  val PASSWORD = "password"
 }
 
 trait ScenarioLoader {
@@ -27,6 +29,10 @@ trait ScenarioLoader {
 
   protected def getHost(c: Config) = c.getString(ScenarioConstants.HOST)
   protected def getPort(c: Config) = getInt(c, ScenarioConstants.PORT)
+  protected def getUser(c: Config) =
+    Try { c.getString(ScenarioConstants.USER) }.toOption
+  protected def getPassword(c: Config) =
+    Try { c.getString(ScenarioConstants.PASSWORD) }.toOption
 }
 
 trait Scenario extends LazyLogging {
