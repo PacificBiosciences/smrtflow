@@ -15,7 +15,7 @@ General Overview
 System Overview
 ---------------
 
-Eve is a SMRT Server instance that enables SMRT Link to send Events and TechSupport TGZ file uploads.
+Eve is a SMRT Server instance that enables SMRT Link to send Events and TechSupport TGZ file uploads. Eve is in sbt subproject *smrt-server-eve* in smrtflow.
 
 Events that are sent to Eve are written to disk and imported into ElasticSearch and are accessible from Kibana.
 
@@ -40,10 +40,10 @@ Build
 
 ::
 
-    $> sbt smrt-server-link/{compile,pack}
+    $> sbt smrt-server-eve/{compile,pack}
 
 
-Generates exes in *smrt-server-link/target/pack/bin*. Specifically, *smrt-server-eve*
+Generates exes in *smrt-server-eve/target/pack/bin*. Specifically, *smrt-server-eve*
 
 For demo and testing purposes the system is configured to write the events to a directory.
 
@@ -95,7 +95,7 @@ Start the Server
 
 ::
 
-    $> smrt-server-link/target/pack/bin/smrt-server-eve
+    $> smrt-server-eve/target/pack/bin/smrt-server-eve
 
 Command line args
 
@@ -129,7 +129,7 @@ Building Tools
 
 ::
 
-    $>sbt smrt-server-link/{compile,pack}
+    $>sbt smrt-server-eve/{compile,pack}
 
 
 Generates tools, such as *pbservice*, *tech-support-bundler* and *tech-support-uploader*. See the *--help* in each tool for details.
