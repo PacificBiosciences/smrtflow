@@ -378,7 +378,7 @@ trait SmrtLinkApi
   * This is used for spray-can http server which can be started via 'sbt run'
   */
 object SmrtLinkSmrtServer extends App with SmrtLinkApi with LazyLogging {
-  final val host = "localhost"
+  lazy val host = providers.serverHost()
   lazy val port = providers.serverPort()
 
   // Not sure if this is the greatest place for this.
