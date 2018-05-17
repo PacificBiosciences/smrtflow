@@ -32,7 +32,7 @@ package object app {
       with SmrtServerIdUtils {
     lazy val systemName = "smrt-server"
     lazy val systemPort = conf.getInt("smrtflow.server.port")
-    lazy val systemHost = "0.0.0.0"
+    lazy val systemHost = conf.getString("smrtflow.server.host")
     lazy val systemUUID = getSystemUUID(conf)
     lazy val apiSecret = conf.getString("smrtflow.event.apiSecret")
   }
