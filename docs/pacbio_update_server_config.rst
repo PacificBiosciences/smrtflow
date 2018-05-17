@@ -1,7 +1,7 @@
 PacBio Update Server 
 ====================
 
-A PacBio update server is a system configured to run Stand Alone Chemistry Update Bundle Server process.
+A PacBio update server is a system configured to run Stand Alone Chemistry Update Bundle Server process. The Update Bundle Server is in sbt subproject *smrt-server-bundle* in smrtflow.
 
 
 Requirements
@@ -13,7 +13,7 @@ Requirements
 Packaging Chemistry Update Bundle Server Build
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See build instructions here:  http://bitbucket.nanofluidics.com:7990/projects/SL/repos/smrtflow/browse/docs/pacbio_bundles.rst
+For Manual build, *sbt smrt-server-bundle/{compile,pack}* will produce an exe in *smrt-server-bundle/target/pack/bin*. See detailed build instructions here:  http://bitbucket.nanofluidics.com:7990/projects/SL/repos/smrtflow/browse/docs/pacbio_bundles.rst
 
 Build Update Bundle server, using the instructions in section "Building a Stand Alone Chemistry Update Bundle Server".
 

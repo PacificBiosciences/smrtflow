@@ -145,7 +145,7 @@ make validate-swagger
 
 [UI Editor](http://editor.swagger.io/#/) to import and edit the swagger file from a file or URL.
 
-### PacBio Common Models
+## SubProject: PacBio Common Models
 
 Many core data models are described using XSDs.
 
@@ -154,6 +154,14 @@ See [Resources Dir](https://github.com/PacificBiosciences/smrtflow/tree/master/s
 See the [Readme](https://github.com/PacificBiosciences/smrtflow/blob/master/smrt-common-models/README.md) for generating the java classes from the XSDs.
 
 Also see the common model (e.g., Report, ToolContract, DataStore, Pipeline, PipelineView Rules) [schemas here](https://github.com/PacificBiosciences/pbcommand/tree/master/pbcommand/schemas)
+
+## SubProject Eve
+
+(Internal) Pacbio Eve (Event) Server. See *smrt-server-eve* or http://smrtflow.readthedocs.io/en/latest/eve_server.html or the companion RST doc under *docs* directory.
+
+## SubProject Update Server
+
+(Internal) Pacbio (Chemistry) Update Server. See *smrt-server-eve* or http://smrtflow.readthedocs.io/en/latest/pacbio_update_server_config.html or the companion RST doc under *docs* directory.
 
 ### REPL
 
