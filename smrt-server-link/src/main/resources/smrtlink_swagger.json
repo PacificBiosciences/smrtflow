@@ -68,6 +68,24 @@
         "x-auth-type": "Application & Application User"
       }
     },
+    "/smrt-link/swagger": {
+      "get": {
+        "description": "Retrieve swagger file contents",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Contents of swagger file"
+          }
+        },
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/smrt-link/user": {
       "get": {
         "description": "From the header JWT, convert to a UserRecord",
