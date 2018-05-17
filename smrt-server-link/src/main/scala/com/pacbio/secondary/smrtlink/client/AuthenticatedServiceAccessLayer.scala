@@ -78,3 +78,56 @@ object AuthenticatedServiceAccessLayer {
       }
   }
 }
+
+trait SmrtLinkClientProvider extends LazyLogging {
+
+  protected def getPass: String = {
+    val standardIn = System.console()
+    print("Password: ")
+    standardIn.readPassword().mkString("")
+  }
+
+  def getClient(host: String,
+                port: Int,
+                user: Option[String] = None,
+                password: Option[String] = None,
+                authToken: Option[String] = None,
+                usePassword: Boolean = false)(
+      implicit actorSystem: ActorSystem): Future[SmrtLinkServiceClient] = {
+    def toClient = {
+      if (host != "localhost") {
+        Future.failed(new IllegalArgumentException(
+          "Authentication required when connecting to a remote SMRT Link server.  Please specify a username (--user or PB_SERVICE_AUTH_USER environment variable) and a password (--ask-pass, --password, or PB_SERVICE_AUTH_PASSWORD environment variable)."))
+      } else {
+        Future.successful {
+          new SmrtLinkServiceClient(host, port)(actorSystem)
+        }
+      }
+    }
+
+    def toAuthClient(t: String) = {
+      logger.info("Will route through WSO2 with user-supplied auth token")
+      Future.successful {
+        new AuthenticatedServiceAccessLayer(host, port, t)(actorSystem)
+      }
+    }
+
+    def toAuthClientLogin(u: String, p: String) = {
+      logger.info("Will authenticate with WSO2")
+      AuthenticatedServiceAccessLayer.getClient(host, port, u, p)(actorSystem)
+    }
+
+    authToken match {
+      case Some(t) => toAuthClient(t)
+      case None =>
+        (user, password) match {
+          case (Some(u), Some(p)) => toAuthClientLogin(u, p)
+          case (Some(u), None) => {
+            if (usePassword) toAuthClientLogin(u, getPass)
+            else toClient
+          }
+          case _ => toClient
+        }
+    }
+  }
+}

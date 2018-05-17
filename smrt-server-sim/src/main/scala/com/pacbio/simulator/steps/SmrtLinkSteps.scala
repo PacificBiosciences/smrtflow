@@ -328,11 +328,15 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     override def runWith = smrtLinkClient.getProject(projectId.get)
   }
 
-  case class CreateProject(projectName: Var[String], description: Var[String])
+  case class CreateProject(projectName: Var[String],
+                           description: Var[String],
+                           userName: Var[String])
       extends VarStep[Int] {
     override val name = "CreateProject"
     override def runWith =
-      smrtLinkClient.createProject(projectName.get, description.get).map(_.id)
+      smrtLinkClient
+        .createProject(projectName.get, description.get, Some(userName.get))
+        .map(_.id)
   }
 
   case class UpdateProject(projectId: Var[Int], request: Var[ProjectRequest])

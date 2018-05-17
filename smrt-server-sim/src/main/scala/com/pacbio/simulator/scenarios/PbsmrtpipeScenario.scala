@@ -35,21 +35,16 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
-object PbsmrtpipeScenarioLoader extends ScenarioLoader {
-  override def load(config: Option[Config])(
-      implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for PbsmrtpipeScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for PbsmrtpipeScenario")
-    val c: Config = config.get
-
-    new PbsmrtpipeScenario(getHost(c), getPort(c))
-  }
+object PbsmrtpipeScenarioLoader extends SmrtLinkScenarioLoader {
+  override def toScenario(host: String,
+                          port: Int,
+                          user: Option[String],
+                          password: Option[String]): Scenario =
+    new PbsmrtpipeScenario(host, port, user, password)
 }
 
 trait PbsmrtpipeScenarioCore
-    extends Scenario
+    extends SmrtLinkScenario
     with VarSteps
     with ConditionalSteps
     with IOSteps
@@ -62,25 +57,13 @@ trait PbsmrtpipeScenarioCore
 
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
 
-  protected val EXIT_SUCCESS: Var[Int] = Var(0)
-  protected val EXIT_FAILURE: Var[Int] = Var(1)
-
   protected val tmpDir = Files.createTempDirectory("export-job")
-  protected val testdata = PacBioTestData()
-  protected def getSubreads =
-    testdata.getTempDataSet("subreads-xml",
-                            true,
-                            tmpDirBase = "dataset contents")
   protected def getReference = testdata.getTempDataSet("lambdaNEB")
 
   protected val reference = Var(getReference)
   protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
   protected val subreads = Var(getSubreads)
   protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
-  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(
-    DataSetMetaTypes.Subread)
-  val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(
-    DataSetMetaTypes.Reference)
 
   // Randomize project name to avoid collisions
   protected val projectName = Var(s"Project-${UUID.randomUUID()}")
@@ -195,10 +178,10 @@ trait PbsmrtpipeScenarioCore
   protected val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(subreads, ftSubreads),
+    jobId := ImportDataSet(subreads, FILETYPE_SUBREADS),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
-    jobId := ImportDataSet(subreads, ftSubreads),
+    jobId := ImportDataSet(reference, FILETYPE_REFERENCE),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     childJobs := GetJobChildren(jobId),
@@ -207,7 +190,10 @@ trait PbsmrtpipeScenarioCore
   )
 }
 
-class PbsmrtpipeScenario(host: String, port: Int)
+class PbsmrtpipeScenario(host: String,
+                         port: Int,
+                         user: Option[String],
+                         password: Option[String])
     extends PbsmrtpipeScenarioCore {
 
   import OptionTypes._
@@ -215,8 +201,7 @@ class PbsmrtpipeScenario(host: String, port: Int)
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   override val name = "PbsmrtpipeScenario"
-  override val smrtLinkClient =
-    new SmrtLinkServiceClient(host, port, Some("jsnow"))
+  override val smrtLinkClient = getClient(host, port, user, password)(system)
 
   private def getLastJob(jobs: Seq[EngineJob]) =
     jobs.sortWith(_.id > _.id).head
@@ -245,7 +230,9 @@ class PbsmrtpipeScenario(host: String, port: Int)
   }
 
   val diagnosticJobTests = Seq(
-    projectId := CreateProject(projectName, projectDesc),
+    projectId := CreateProject(projectName,
+                               projectDesc,
+                               Var(user.getOrElse("admin"))),
     jobId := RunAnalysisPipeline(diagnosticOpts),
     WaitForSuccessfulJob(jobId),
     //fail("Pipeline job failed") IF jobStatus !=? EXIT_SUCCESS,

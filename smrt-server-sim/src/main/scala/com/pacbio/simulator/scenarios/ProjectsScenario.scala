@@ -21,30 +21,21 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
-/**
-  * Example config:
-  *
-  * {{{
-  *   smrt-link-host = "smrtlink-bihourly"
-  *   smrt-link-port = 8081
-  * }}}
-  */
-// FIXME too much code duplication
-object ProjectsScenarioLoader extends ScenarioLoader {
-  override def load(config: Option[Config])(
-      implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for ProjectsScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for ProjectsScenario")
-    val c: Config = config.get
+object ProjectsScenarioLoader extends SmrtLinkScenarioLoader {
+  override val REQUIRE_AUTH = true
 
-    new ProjectsScenario(getHost(c), getPort(c))
-  }
+  def toScenario(host: String,
+                 port: Int,
+                 user: Option[String],
+                 password: Option[String]): Scenario =
+    new ProjectsScenario(host, port, user, password)
 }
 
-class ProjectsScenario(host: String, port: Int)
-    extends Scenario
+class ProjectsScenario(host: String,
+                       port: Int,
+                       user: Option[String],
+                       password: Option[String])
+    extends SmrtLinkScenario
     with VarSteps
     with ConditionalSteps
     with IOSteps
@@ -53,54 +44,47 @@ class ProjectsScenario(host: String, port: Int)
 
   override val name = "ProjectsScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient =
+    getClient(host, port, user, password)(system)
 
-  val MSG_PROJ_ERR =
-    "Project database should be initially have just one project"
-  val MSG_DS_ERR = "DataSet database should be initially empty"
-  val EXIT_SUCCESS: Var[Int] = Var(0)
-  val EXIT_FAILURE: Var[Int] = Var(1)
+  protected val projectName = Var(s"Project-${UUID.randomUUID()}")
+  protected val projectDesc = Var("Project Description")
+  protected val jobStatus: Var[Int] = Var()
+  protected val projId: Var[Int] = Var()
+  protected val projects: Var[Seq[Project]] = Var()
+  protected val project: Var[FullProject] = Var()
+  protected val subreads = Var(getSubreads)
+  protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
+  protected val subreadDs: Var[DataSetMetaDataSet] = Var()
+  protected val jobId: Var[UUID] = Var()
+  protected val dsId: Var[Int] = Var()
 
-  val jobStatus: Var[Int] = Var()
-  val projId: Var[Int] = Var()
-  val projects: Var[Seq[Project]] = Var()
-  val project: Var[FullProject] = Var()
-  val testdata = PacBioTestData()
-  val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(
-    DataSetMetaTypes.Subread)
-  val subreads1 = Var(testdata.getFile("subreads-xml"))
-  val subreadsUuid1 = Var(getDataSetMiniMeta(subreads1.get).uuid)
-  val subreadSets: Var[Seq[SubreadServiceDataSet]] = Var()
-  val jobId: Var[UUID] = Var()
-  val dsId: Var[Int] = Var()
+  private def datasetInProject(p: FullProject) =
+    p.datasets.map(_.uuid).toSet contains subreadsUuid.get
 
   val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
   )
   val projectTests = Seq(
-    projects := GetProjects,
-    fail(MSG_PROJ_ERR) IF projects.mapWith(_.size) !=? 1,
-    projId := CreateProject(Var("test-project"), Var("A test project")),
+    projId := CreateProject(projectName, projectDesc, Var(user.get)),
     project := GetProject(projId),
-    subreadSets := GetSubreadSets,
-    fail(MSG_DS_ERR) IF subreadSets ? (_.nonEmpty),
-    jobId := ImportDataSet(subreads1, ftSubreads),
+    jobId := ImportDataSet(subreads, FILETYPE_SUBREADS),
     jobStatus := WaitForJob(jobId),
     fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
     project := GetProject(Var(1)),
-    fail("Expected one dataset in General Project") IF project.mapWith(
-      _.datasets.size) !=? 1,
-    subreadSets := GetSubreadSets,
+    fail("Expected dataset in General Project") IF project.mapWith(
+      datasetInProject) !=? true,
+    project := GetProject(projId),
+    subreadDs := GetDataSet(subreadsUuid),
     project := UpdateProject(
       projId,
-      project.mapWith(
-        _.asRequest.appendDataSet(subreadSets.mapWith(_(0).id).get))),
+      project.mapWith(_.asRequest.appendDataSet(subreadDs.mapWith(_.id).get))),
     fail("Expected one dataset in project") IF project
       .mapWith(_.datasets.size) !=? 1,
     project := GetProject(Var(1)),
-    fail("Expected no datasets in General Project") IF project.mapWith(
-      _.datasets.size) !=? 0
+    fail("Expected no dataset in General Project") IF project.mapWith(
+      datasetInProject) !=? false
   )
   override val steps = setupSteps ++ projectTests
 }

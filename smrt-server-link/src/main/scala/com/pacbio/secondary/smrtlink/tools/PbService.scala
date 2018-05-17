@@ -249,10 +249,7 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(asJson = true)
     } text "Display output as JSON"
 
-    opt[Unit]('h', "help") action { (x, c) =>
-      showUsage
-      sys.exit(0)
-    } text "Show options and exit"
+    help("help")
 
     opt[Unit]("version") action { (x, c) =>
       showVersion
@@ -2014,133 +2011,115 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     sal.getRun(runId).map(run => toRunSummary(run, asJson, asXml))
 }
 
-object PbService extends ClientAppUtils with LazyLogging {
+object PbService
+    extends ClientAppUtils
+    with SmrtLinkClientProvider
+    with LazyLogging {
   import com.pacbio.secondary.smrtlink.jsonprotocols.ConfigModelsJsonProtocol._
-
-  protected def getPass: String = {
-    val standardIn = System.console()
-    print("Password: ")
-    standardIn.readPassword().mkString("")
-  }
 
   def apply(c: PbServiceParser.CustomConfig): Int = {
     implicit val actorSystem = ActorSystem("pbservice")
 
-    def toClient = Future.successful {
-      new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
-    }
-    def toAuthClient(t: String) = {
-      logger.info("Will route through WSO2 with user-supplied auth token")
-      Future.successful {
-        new AuthenticatedServiceAccessLayer(c.host, c.port, t)(actorSystem)
-      }
-    }
-    def toAuthClientLogin(u: String, p: String) = {
-      logger.info("Will authenticate with WSO2")
-      AuthenticatedServiceAccessLayer.getClient(c.host, c.port, u, p)(
-        actorSystem)
-    }
     try {
-      val fclient: Future[SmrtLinkServiceClient] = c.authToken match {
-        case Some(t) => toAuthClient(t)
-        case None =>
-          c.password match {
-            case Some(password) => toAuthClientLogin(c.user, password)
-            case None =>
-              if (c.usePassword) toAuthClientLogin(c.user, getPass)
-              else toClient
-          }
-      }
-      val fx: Future[String] = fclient.flatMap { sal =>
-        val ps = new PbService(sal, c.maxTime)
-        c.mode match {
-          case Modes.STATUS => ps.exeStatus(c.asJson)
-          case Modes.IMPORT_DS =>
-            ps.execImportDataSets(c.path,
-                                  c.nonLocal,
-                                  c.asJson,
-                                  c.blockImportDataSet,
-                                  c.numMaxConcurrentImport,
-                                  c.project)
-          case Modes.IMPORT_FASTA =>
-            ps.runImportFasta(c.path,
-                              c.getName,
-                              c.organism,
-                              c.ploidy,
-                              c.project)
-          case Modes.IMPORT_FASTA_GMAP =>
-            ps.runImportFastaGmap(c.path,
+      val fx: Future[String] =
+        getClient(c.host,
+                  c.port,
+                  Some(c.user),
+                  c.password,
+                  c.authToken,
+                  c.usePassword)(actorSystem)
+          .flatMap { sal =>
+            val ps = new PbService(sal, c.maxTime)
+            c.mode match {
+              case Modes.STATUS => ps.exeStatus(c.asJson)
+              case Modes.IMPORT_DS =>
+                ps.execImportDataSets(c.path,
+                                      c.nonLocal,
+                                      c.asJson,
+                                      c.blockImportDataSet,
+                                      c.numMaxConcurrentImport,
+                                      c.project)
+              case Modes.IMPORT_FASTA =>
+                ps.runImportFasta(c.path,
                                   c.getName,
                                   c.organism,
                                   c.ploidy,
                                   c.project)
-          case Modes.IMPORT_BARCODES =>
-            ps.runImportBarcodes(c.path, c.getName, c.project)
-          case Modes.IMPORT_MOVIE =>
-            ps.runImportRsMovies(c.path,
-                                 c.name,
+              case Modes.IMPORT_FASTA_GMAP =>
+                ps.runImportFastaGmap(c.path,
+                                      c.getName,
+                                      c.organism,
+                                      c.ploidy,
+                                      c.project)
+              case Modes.IMPORT_BARCODES =>
+                ps.runImportBarcodes(c.path, c.getName, c.project)
+              case Modes.IMPORT_MOVIE =>
+                ps.runImportRsMovies(c.path,
+                                     c.name,
+                                     c.asJson,
+                                     c.block,
+                                     c.project,
+                                     c.numMaxConcurrentImport)
+              case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
+              case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
+              case Modes.PIPELINE =>
+                ps.runPipeline(c.pipelineId,
+                               c.entryPoints,
+                               c.jobTitle,
+                               c.presetXml,
+                               c.block,
+                               taskOptions = c.taskOptions,
+                               asJson = c.asJson)
+              case Modes.SHOW_PIPELINES => ps.runShowPipelines
+              case Modes.JOB =>
+                ps.runGetJobInfo(c.jobId,
                                  c.asJson,
-                                 c.block,
-                                 c.project,
-                                 c.numMaxConcurrentImport)
-          case Modes.ANALYSIS => ps.runAnalysisPipeline(c.path, c.block)
-          case Modes.TEMPLATE => ps.runEmitAnalysisTemplate
-          case Modes.PIPELINE =>
-            ps.runPipeline(c.pipelineId,
-                           c.entryPoints,
-                           c.jobTitle,
-                           c.presetXml,
-                           c.block,
-                           taskOptions = c.taskOptions,
-                           asJson = c.asJson)
-          case Modes.SHOW_PIPELINES => ps.runShowPipelines
-          case Modes.JOB =>
-            ps.runGetJobInfo(c.jobId,
-                             c.asJson,
-                             c.dumpJobSettings,
-                             c.showReports,
-                             c.showFiles)
-          case Modes.JOBS =>
-            ps.runGetJobs(c.maxItems,
-                          c.asJson,
-                          c.jobType,
-                          c.jobState,
-                          c.searchName,
-                          c.searchSubJobType)
-          case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
-          case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
-          case Modes.EXPORT_JOB =>
-            ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
-          case Modes.IMPORT_JOB => ps.runImportJob(c.path)
-          case Modes.UPDATE_JOB =>
-            ps.runUpdateJob(c.jobId, c.name, c.comment, c.tags, c.asJson)
-          case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
-          case Modes.DATASETS =>
-            ps.runGetDataSets(c.datasetType,
-                              c.maxItems,
+                                 c.dumpJobSettings,
+                                 c.showReports,
+                                 c.showFiles)
+              case Modes.JOBS =>
+                ps.runGetJobs(c.maxItems,
                               c.asJson,
+                              c.jobType,
+                              c.jobState,
                               c.searchName,
-                              c.searchPath)
-          case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
-          case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
-          case Modes.MANIFESTS => ps.runGetPacBioManifests
-          case Modes.BUNDLES => ps.runGetPacBioDataBundles
-          case Modes.TS_STATUS => ps.runTsSystemStatus(c.user, c.getComment)
-          case Modes.TS_JOB => ps.runTsJobBundle(c.jobId, c.user, c.getComment)
-          case Modes.ALARMS => ps.runGetAlarms
-          case Modes.CREATE_PROJECT =>
-            ps.runCreateProject(c.getName,
-                                c.description,
-                                Some(c.user),
-                                c.grantRoleToAll)
-          case Modes.GET_PROJECTS => ps.runGetProjects
-          case Modes.IMPORT_RUN =>
-            ps.runImportRun(c.path, c.reserved, c.asJson)
-          case Modes.GET_RUN => ps.runGetRun(c.runId, c.asJson, c.asXml)
-          case x =>
-            Future.failed(new RuntimeException(s"Unsupported action '$x'"))
-        }
-      }
+                              c.searchSubJobType)
+              case Modes.TERMINATE_JOB => ps.runTerminateAnalysisJob(c.jobId)
+              case Modes.DELETE_JOB => ps.runDeleteJob(c.jobId, c.force)
+              case Modes.EXPORT_JOB =>
+                ps.runExportJob(c.jobId, c.path, c.includeEntryPoints)
+              case Modes.IMPORT_JOB => ps.runImportJob(c.path)
+              case Modes.UPDATE_JOB =>
+                ps.runUpdateJob(c.jobId, c.name, c.comment, c.tags, c.asJson)
+              case Modes.DATASET => ps.runGetDataSetInfo(c.datasetId, c.asJson)
+              case Modes.DATASETS =>
+                ps.runGetDataSets(c.datasetType,
+                                  c.maxItems,
+                                  c.asJson,
+                                  c.searchName,
+                                  c.searchPath)
+              case Modes.DELETE_DATASET => ps.runDeleteDataSet(c.datasetId)
+              case Modes.MANIFEST => ps.runGetPacBioManifestById(c.manifestId)
+              case Modes.MANIFESTS => ps.runGetPacBioManifests
+              case Modes.BUNDLES => ps.runGetPacBioDataBundles
+              case Modes.TS_STATUS =>
+                ps.runTsSystemStatus(c.user, c.getComment)
+              case Modes.TS_JOB =>
+                ps.runTsJobBundle(c.jobId, c.user, c.getComment)
+              case Modes.ALARMS => ps.runGetAlarms
+              case Modes.CREATE_PROJECT =>
+                ps.runCreateProject(c.getName,
+                                    c.description,
+                                    Some(c.user),
+                                    c.grantRoleToAll)
+              case Modes.GET_PROJECTS => ps.runGetProjects
+              case Modes.IMPORT_RUN =>
+                ps.runImportRun(c.path, c.reserved, c.asJson)
+              case Modes.GET_RUN => ps.runGetRun(c.runId, c.asJson, c.asXml)
+              case x =>
+                Future.failed(new RuntimeException(s"Unsupported action '$x'"))
+            }
+          }
       executeBlockAndSummary(fx, c.maxTime)
     } finally {
       actorSystem.terminate()
