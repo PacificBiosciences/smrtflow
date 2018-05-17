@@ -842,6 +842,196 @@
         "x-throttling-tier": "Unlimited"
       }
     },
+    "/smrt-link/registry-service/resources": {
+      "get": {
+        "description": "Retrieve a list of registry resources",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "resourceId",
+            "type": "string",
+            "description": "Resource ID string",
+            "required": false
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "200": {
+            "description": "List of registry resources",
+            "schema": {
+              "$ref": "#/definitions/RegistryResources"
+            }
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      },
+      "post": {
+        "description": "Registry a new resource",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Resource request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegistryResourceCreate"
+            }
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "201": {
+            "description": "New registry resource",
+            "schema": {
+              "$ref": "#/definitions/RegistryResource"
+            }
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/registry-service/resources/{uuid}": {
+      "get": {
+        "description": "Retrieve a registry resource by unique ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "type": "string",
+            "description": "Resource UUID",
+            "required": true
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "200": {
+            "description": "Registry resource",
+            "schema": {
+              "$ref": "#/definitions/RegistryResource"
+            }
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      },
+      "delete": {
+        "description": "Delete a registry resource by unique ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "type": "string",
+            "description": "Resource UUID",
+            "required": true
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "200": {
+            "description": "Default response"
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/registry-service/resources/{uuid}/update-status": {
+      "post": {
+        "description": "Update a registry resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "type": "string",
+            "description": "Resource UUID",
+            "required": true
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "201": {
+            "description": "Updated resource",
+            "schema": {
+              "$ref": "#/definitions/RegistryResource"
+            }
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      }
+    },
+    "/smrt-link/registry-service/resources/{uuid}/update": {
+      "post": {
+        "description": "Update a registry resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "type": "string",
+            "description": "Resource UUID",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Update request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegistryResourceUpdate"
+            }
+          }
+        ],
+        "produces": [
+          "text/plain; charset=UTF-8"
+        ],
+        "responses": {
+          "default": {
+            "description": "Default response"
+          },
+          "201": {
+            "description": "Updated resource",
+            "schema": {
+              "$ref": "#/definitions/RegistryResource"
+            }
+          }
+        },
+        "x-scope": "data-management",
+        "x-throttling-tier": "Unlimited",
+        "x-auth-type": "Application & Application User"
+      }
+    },
     "/smrt-link/bundles": {
       "get": {
         "description": "Get a list of all registered bundles (active or inactive) in the system",
@@ -8101,6 +8291,94 @@
           "default": null,
           "title": "Job comments",
           "description": "New job comments (optional)"
+        }
+      }
+    },
+    "RegistryResource": {
+      "type": "object",
+      "description": "Registry service resource",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "title": "Created at",
+          "description": "Created at timestamp"
+        },
+        "uuid": {
+          "type": "string",
+          "title": "Unique ID",
+          "description": "Resource UUID"
+        },
+        "host": {
+          "type": "string",
+          "title": "Host name",
+          "description": "Resource hostname"
+        },
+        "port": {
+          "type": "integer",
+          "title": "Port number",
+          "description": "Resource port number"
+        },
+        "resourceId": {
+          "type": "string",
+          "title": "Resource ID",
+          "description": "Resource ID"
+        },
+        "updatedAt": {
+          "type": "string",
+          "title": "Updated at",
+          "description": "Updated at timestamp"
+        }
+      }
+    },
+    "RegistryResources": {
+      "title": "List of registry service resources",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RegistryResource"
+      }
+    },
+    "RegistryResourceCreate": {
+      "type": "object",
+      "description": "Registry service resource creation request",
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "Host name",
+          "description": "Resource hostname"
+        },
+        "port": {
+          "type": "integer",
+          "title": "Port number",
+          "description": "Resource port number"
+        },
+        "resourceId": {
+          "type": "string",
+          "title": "Resource ID",
+          "description": "Resource ID"
+        }
+      }
+    },
+    "RegistryResourceUpdate": {
+      "type": "object",
+      "description": "Registry service update request",
+      "properties": {
+        "host": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "title": "Host name",
+          "description": "Resource hostname",
+          "default": null
+        },
+        "port": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "title": "Port number",
+          "description": "Resource port number",
+          "default": null
         }
       }
     }
