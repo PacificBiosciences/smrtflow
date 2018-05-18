@@ -584,10 +584,10 @@ class SmrtLinkServiceClient(
     getObject[Seq[EngineJob]](
       Get(toJobUrlWithQuery(jobType, searchCriteria, projectId)))
 
-  def getJobsByProject(projectId: Int): Future[Seq[EngineJob]] = {
-    val q = Uri.Query("projectId" -> projectId.toString)
-    getObject[Seq[EngineJob]](Get(toUri(ROOT_JOBS_URI_PATH).withQuery(q)))
-  }
+  def getJobsByProject(projectId: Int,
+                       jobType: JobTypeIds.JobType = JobTypeIds.PBSMRTPIPE)
+    : Future[Seq[EngineJob]] =
+    getJobsByType(jobType.id, projectId = Some(projectId))
 
   def getPacBioComponentManifests: Future[Seq[PacBioComponentManifest]] =
     getObject[Seq[PacBioComponentManifest]](
