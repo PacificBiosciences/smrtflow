@@ -111,11 +111,14 @@ class SmrtLinkServiceClient(
     toUri(toJobUriPath(jobType, jobId))
 
   /**
-    * Naked job-type-less call to get a job by IdAble
+    * Because the WSO2 API does not include the naked job-type-less URL, we
+    * take advantage of the degeneracy of the job type IDs and pretend
+    * everything is a pbsmrtpipe job.
+    *
     */
   protected def toJobResourceUriPath(jobId: IdAble,
                                      resourceType: String): Uri.Path =
-    ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType
+    ROOT_JOBS_URI_PATH / JobTypeIds.PBSMRTPIPE.id / jobId.toIdString / resourceType
 
   protected def toJobResourceUrl(jobId: IdAble, resourceType: String): Uri =
     toUri(toJobResourceUriPath(jobId, resourceType))
@@ -124,7 +127,7 @@ class SmrtLinkServiceClient(
                                    resourceType: String,
                                    resourceId: UUID): Uri =
     toUri(
-      ROOT_JOBS_URI_PATH / jobId.toIdString / resourceType / resourceId.toString)
+      ROOT_JOBS_URI_PATH / JobTypeIds.PBSMRTPIPE.id / jobId.toIdString / resourceType / resourceId.toString)
 
   private def dsRoot(dsType: String): Uri.Path = ROOT_DS_URI_PATH / dsType
 
