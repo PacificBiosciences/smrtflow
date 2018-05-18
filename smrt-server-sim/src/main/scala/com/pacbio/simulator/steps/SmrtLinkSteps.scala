@@ -42,7 +42,10 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
     Future
       .fromTry {
         logger.info(s"Start to poll for Successful Job ${jobId.toIdString}")
-        smrtLinkClient.pollForSuccessfulJob(jobId, Some(maxTime))
+        // XXX using a shorter wait time (1s) than the default since the
+        // assumption is that the sim scenario will be the only active
+        // client
+        smrtLinkClient.pollForSuccessfulJob(jobId, Some(maxTime), 1000)
       }
       .recoverWith {
         case NonFatal(ex) =>
