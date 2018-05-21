@@ -22,8 +22,6 @@ import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
 object ProjectsScenarioLoader extends SmrtLinkScenarioLoader {
-  override val REQUIRE_AUTH = true
-
   def toScenario(host: String,
                  port: Int,
                  user: Option[String],
@@ -44,6 +42,7 @@ class ProjectsScenario(host: String,
 
   override val name = "ProjectsScenario"
 
+  private val effectiveUserName = user.getOrElse(DEFAULT_USER_NAME)
   override val smrtLinkClient =
     getClient(host, port, user, password)(system)
 
@@ -67,7 +66,7 @@ class ProjectsScenario(host: String,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
   )
   val projectTests = Seq(
-    projId := CreateProject(projectName, projectDesc, Var(user.get)),
+    projId := CreateProject(projectName, projectDesc, Var(effectiveUserName)),
     project := GetProject(projId),
     jobId := ImportDataSet(subreads, FILETYPE_SUBREADS),
     jobStatus := WaitForJob(jobId),

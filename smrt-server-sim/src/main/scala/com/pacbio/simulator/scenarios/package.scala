@@ -15,6 +15,7 @@ import com.pacbio.simulator.{Scenario, ScenarioLoader}
 
 trait SmrtLinkScenario extends Scenario with VarSteps {
   private val TIMEOUT = 30 seconds
+  protected val DEFAULT_USER_NAME = "smrtlinktest"
 
   protected val EXIT_SUCCESS: Var[Int] = Var(0)
   protected val EXIT_FAILURE: Var[Int] = Var(1)
@@ -42,7 +43,7 @@ trait SmrtLinkScenario extends Scenario with VarSteps {
           TIMEOUT)
       }
       case _ =>
-        new SmrtLinkServiceClient(host, port, Some("smrtlinktest"))(
+        new SmrtLinkServiceClient(host, port, Some(DEFAULT_USER_NAME))(
           actorSystem)
     }
 }
