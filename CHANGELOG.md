@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 0.16.0
+
+- smrt-server-eve. Changed the output file resolving format for Event JSON files from `{EVE-ROOT}/{SL-SYSTEM-ID}/` to `{EVE-ROOT}/{SL-SYSTEM-ID}/{YYYY}/{MM}{DD}/`
+
 ### 0.15.0
 
 - Services are no longer launched on 0.0.0.0. Externally accessing SMRT Link System will now require Auth prefixed routes with 'SMRTLink/1.0.0' will be required.
