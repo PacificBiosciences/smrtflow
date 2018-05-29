@@ -127,6 +127,22 @@ trait EveFileUtils extends LazyLogging {
     bw.close()
     path
   }
+
+  def createDateTimeSubDir(root: Path): Path = {
+
+    val now = JodaDateTime.now()
+
+    val fm = DateTimeFormat.forPattern("MM")
+    val fd = DateTimeFormat.forPattern("dd")
+
+    val outputDir = root
+      .resolve(s"${now.getYear}")
+      .resolve(s"${fm.print(now)}")
+      .resolve(s"${fd.print(now)}")
+
+    createDirIfNotExists(outputDir)
+  }
+
 }
 
 /**
@@ -186,20 +202,6 @@ class EventFileWriterProcessor(rootDir: Path)
   private def createSmrtLinkSystemDir(uuid: UUID): Path =
     createDirIfNotExists(rootDir.resolve(uuid.toString))
 
-  private def createDateTimeSubDir(root: Path): Path = {
-
-    def pad2(i: Int): String = {
-      if (i < 10) { s"0$i" } else i.toString
-    }
-
-    val now = JodaDateTime.now()
-    val px = root
-      .resolve(now.getYear.toString)
-      .resolve(pad2(now.getMonthOfYear))
-      .resolve(pad2(now.getDayOfMonth))
-    createDirIfNotExists(px)
-  }
-
   def writeEvent(e: SmrtLinkSystemEvent): SmrtLinkSystemEvent = {
     val smrtLinkSystemDir = createSmrtLinkSystemDir(e.smrtLinkId)
     val dateTimeDir = createDateTimeSubDir(smrtLinkSystemDir)
@@ -242,6 +244,7 @@ class EventService(eventProcessor: EventProcessor,
     with HmacDirectives
     with LazyLogging
     with timeUtils
+    with EveFileUtils
     with FileSizeFormatterUtil {
 
   // for getFromFile to work
@@ -384,19 +387,9 @@ class EventService(eventProcessor: EventProcessor,
     * @return
     */
   def resolveOutputFile(fileName: String): File = {
-    val now = JodaDateTime.now()
 
-    val fm = DateTimeFormat.forPattern("MM")
-    val fd = DateTimeFormat.forPattern("dd")
-
-    val outputDir = rootUploadFilesDir.resolve(
-      s"${now.getYear}/${fm.print(now)}/${fd.print(now)}")
-
+    val outputDir = createDateTimeSubDir(rootOutputDir)
     logger.info(s"Resolved to output dir $outputDir")
-
-    if (!Files.exists(outputDir)) {
-      Files.createDirectories(outputDir)
-    }
 
     val i = UUID.randomUUID()
     val f = outputDir.resolve(s"$i-$fileName").toFile
@@ -475,11 +468,11 @@ trait EventServerCakeProvider
   private def preStartUpHook(): Future[String] =
     for {
       validMsg <- validateOption()
-      createdDir <- Future { createDirIfNotExists(eventMessageDir) }
-      createdFilesDir <- Future { createDirIfNotExists(eventUploadFilesDir) }
-      message <- Future {
-        s"Successfully created $createdDir and $createdFilesDir"
-      }
+      createdDir <- Future.successful(createDirIfNotExists(eventMessageDir))
+      createdFilesDir <- Future.successful(
+        createDirIfNotExists(eventUploadFilesDir))
+      message <- Future.successful(
+        s"Successfully created $createdDir and $createdFilesDir")
     } yield
       Seq(validMsg, message, "Successfully executed preStartUpHook")
         .mkString("\n")
