@@ -19,7 +19,7 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
 import com.pacbio.secondary.smrtlink.auth.hmac.{DefaultSigner, SignerConfig}
 import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtservereve.app.SmrtEventServer
+import com.pacbio.secondary.smrtservereve.app.{EveFileUtils, SmrtEventServer}
 
 /**
   * Created by mkocher on 2/19/17.
@@ -29,7 +29,8 @@ class EventServerSpec
     with Specs2RouteTest
     with LazyLogging
     with DefaultSigner
-    with SignerConfig {
+    with SignerConfig
+    with EveFileUtils {
 
   // Run Tests sequentially
   sequential
@@ -106,10 +107,14 @@ class EventServerSpec
 
       val smrtLinkSystemEventsDir =
         eventMessageDir.resolve(smrtLinkSystemId.toString)
-      Files.exists(smrtLinkSystemEventsDir)
 
-      val messagePath =
-        smrtLinkSystemEventsDir.resolve(s"${exampleMessage.uuid}.json")
+      Files.exists(smrtLinkSystemEventsDir) must beTrue
+
+      // This is a bit sloppy for testing
+      val dateTimeDir = createDateTimeSubDir(smrtLinkSystemEventsDir)
+
+      val messagePath = dateTimeDir.resolve(s"${exampleMessage.uuid}.json")
+
       Files.exists(messagePath) must beTrue
     }
   }

@@ -79,7 +79,7 @@ Events are written as
 
 ::
 
-    <EVE_ROOT_DIR>/<SMRT-LINK-SYSTEM-UUID>/<EVENT-UUID>.json
+    <EVE_ROOT_DIR>/<SMRT-LINK-SYSTEM-UUID>/<YEAR>/<MONTH><DAY>/<EVENT-UUID>.json
 
 Other Config
 
