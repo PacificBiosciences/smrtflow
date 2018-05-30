@@ -39,6 +39,8 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 import spray.json._
 
+import scala.util.control.NonFatal
+
 /**
   *
   * Processes Completed Analysis Jobs and converts them to SmrtLink Events that
@@ -95,6 +97,16 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
         .getOrElse(orEmpty(sset.metadataContextId))
   }
 
+  private def fetchMovieContextFromSubreadSetOrEmpty(dao: JobsDao, uuid: UUID)(
+      implicit ec: ExecutionContext): Future[Set[String]] = {
+    fetchMovieContextsFromSubreadSet(dao, uuid).recover {
+      case NonFatal(e) =>
+        logger.warn(
+          s"Harvesting. Unable to get movie context from SubreadSet $uuid. ${e.getMessage}")
+        Set.empty[String]
+    }
+  }
+
   /**
     * Minimal parsing of JSON to extract the raw
     * pipelineId. This is done to have maximal
@@ -122,7 +134,7 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
             _.datasetType == DataSetMetaTypes.Subread.fileType.fileTypeId)
           .map(_.datasetUUID))
       movieContextIds <- Future.sequence(
-        uuids.map(ix => fetchMovieContextsFromSubreadSet(dao, ix)))
+        uuids.map(ix => fetchMovieContextFromSubreadSetOrEmpty(dao, ix)))
     } yield movieContextIds.flatten.toSet
   }
 
