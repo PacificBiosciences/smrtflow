@@ -374,7 +374,7 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
 
     case HarvestAnalysisJobs(user, smrtLinkVersion) =>
       // This can be deleted after 5.2 release
-      val tmpTgz = Files.createTempFile("harvested-jobs", "tgz")
+      val tmpTgz = Files.createTempFile("harvested-jobs", ".tgz")
       harvestAnalysisJobsToTechSupportTgz(smrtLinkSystemId,
                                           user,
                                           Some(smrtLinkVersion),
