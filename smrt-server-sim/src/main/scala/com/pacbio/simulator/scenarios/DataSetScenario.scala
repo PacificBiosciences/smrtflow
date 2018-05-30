@@ -296,11 +296,11 @@ class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
             fail("Wrong report ID") IF dsReport
               .mapWith(_.id) !=? "raw_data_report",
             fail(s"Can't retrieve $RPT_NBASES") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_NBASES).get) !=? 1672335649,
+              _.getAttributeLongValue(RPT_NBASES).get) !=? 19825,
             fail(s"Can't retrieve $RPT_READLENGTH") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_READLENGTH).get) !=? 4237,
+              _.getAttributeLongValue(RPT_READLENGTH).get) !=? 9913,
             fail(s"Can't retrieve $RPT_INSERT") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_INSERT).get) !=? 4450,
+              _.getAttributeLongValue(RPT_INSERT).get) !=? 1168,
             nBytes := GetDataStoreFileResource(
               dsReport.mapWith(_.uuid),
               dsReport.mapWith(_.getPlot(RPT_PLOT_GROUP, RPT_PLOT).get.image)),
