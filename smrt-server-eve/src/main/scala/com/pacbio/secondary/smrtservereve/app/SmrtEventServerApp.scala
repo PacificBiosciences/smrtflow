@@ -330,11 +330,22 @@ class EventService(eventProcessor: EventProcessor,
 
     val parent: Path = file.toPath.toAbsolutePath.getParent
 
-    // this is kinda sloppy
-    val name = file.getName.replace(".tar.gz", "").replace(".tgz", "")
+    def replaceIf(sx: String, search: String): Option[String] = {
+      if (sx.endsWith(search)) Some(sx.replace(search, ""))
+      else None
+    }
+
+    val rawName = file.getName
+
+    // Try to create a sensible companion output dir name
+    val name = Seq(".tar.gz", ".tgz")
+      .flatMap(m => replaceIf(rawName, m))
+      .headOption
+      .getOrElse(s"output-${UUID.randomUUID()}")
+
     val outputDir = parent.resolve(name)
 
-    logger.info(s"Uncompressing $file")
+    logger.info(s"Uncompressing $file to $outputDir")
     // This will create the output dir
     TarGzUtils.uncompressTarGZ(file, outputDir.toFile)
 
