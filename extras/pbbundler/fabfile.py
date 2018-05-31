@@ -409,7 +409,7 @@ def build_smrtlink_services_ui(version,
                                publish_to=None,
                                ivy_cache=None,
                                wso2_api_manager_zip="wso2am-2.0.0.zip",
-                               tomcat_tgz="tomcat-pbtarball_8.5.20.tar.gz",
+                               tomcat_tgz="tomcat-pbtarball_8.5.31.tar.gz",
                                chemistry_pb_version=None,
                                doc_dir=None
                                ):
@@ -451,7 +451,7 @@ def build_smrtlink_services_ui(version,
     ivy_cache="~/.ivy-cache-custom",
     analysis_server="smrt-server-link",
     wso2_api_manager_zip=/path/to/ws02am-2.0.0.zip
-    tomcat_tgz=/path/to/tomcat-pbtarball_8.5.20.tar.gz
+    tomcat_tgz=/path/to/tomcat-pbtarball_8.5.31.tar.gz
 
 
     Add publish_to="/mnt/secondary/Share/smrtserver-bundles-nightly"
