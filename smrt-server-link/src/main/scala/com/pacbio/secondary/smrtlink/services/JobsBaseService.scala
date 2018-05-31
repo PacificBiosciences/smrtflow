@@ -1172,16 +1172,13 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
       } ~
         path("download") {
           get {
-            parameter("prefix") { prefix =>
+            parameter("'prefix.?") { prefix =>
               complete {
                 dao.getDataStoreFileByUUID(dsFileUUID).map { f =>
-                  val fn = prefix match {
-                    case Some(x) =>
-                      s"${prefix}-${Paths.get(f.path).toAbsolutePath.getFileName}"
-                    case None =>
-                      s"job-${f.jobId}-${f.uuid.toString}-${Paths.get(f.path).toAbsolutePath.getFileName}"
-                  }
-                  downloadFile(Paths.get(f.path), fn)
+                  val fileName = Paths.get(f.path).toAbsolutePath.getFileName
+                  val outputFileName = prefix.getOrElse(
+                    s"job-${f.jobId}-${f.uuid.toString}") + "-" + fileName
+                  downloadFile(Paths.get(f.path), outputFileName)
                 }
               }
             }
