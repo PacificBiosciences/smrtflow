@@ -4123,7 +4123,8 @@
             "required": false,
             "type": "string",
             "name": "prefix",
-            "in": "query"
+            "in": "query",
+            "description": "Prefix to prepend the base download filename."
           }
         ],
         "x-auth-type": "None"
