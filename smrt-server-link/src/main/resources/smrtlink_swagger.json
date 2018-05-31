@@ -4118,6 +4118,12 @@
             "type": "string",
             "name": "uuid",
             "in": "path"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "prefix",
+            "in": "query"
           }
         ],
         "x-auth-type": "None"
