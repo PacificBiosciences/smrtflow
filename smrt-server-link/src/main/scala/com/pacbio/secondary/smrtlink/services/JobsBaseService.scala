@@ -1176,8 +1176,9 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
               complete {
                 dao.getDataStoreFileByUUID(dsFileUUID).map { f =>
                   val fileName = Paths.get(f.path).toAbsolutePath.getFileName
-                  val outputFileName = prefix.getOrElse(
-                    s"job-${f.jobId}-${f.uuid.toString}") + "-" + fileName
+                  val prefixName =
+                    prefix.getOrElse(s"job-${f.jobId}-${f.uuid.toString}")
+                  val outputFileName = s"$prefixName-$fileName"
                   downloadFile(Paths.get(f.path), outputFileName)
                 }
               }
