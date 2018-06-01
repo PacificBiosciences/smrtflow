@@ -54,7 +54,7 @@ chmod 400 $BUNDLER_ROOT/smrtlink_services_ui/ics-default-credentials.json
 
 WSO2_ZIP=/mnt/secondary/Share/smrtserver-resources/wso2am-2.0.0-stock-plus-postgres.zip
 if [ -z "$TOMCAT_TGZ" ] ; then
-     TOMCAT_TGZ=/pbi/dept/secondary/builds/develop/current_thirdpartyall-release_installdir/java/tomcat-pbtarball/tomcat-pbtarball_8.5.20/tarball/tomcat-pbtarball_8.5.20.tar.gz
+     TOMCAT_TGZ=/pbi/dept/secondary/builds/develop/current_thirdpartyall-release_installdir/java/tomcat-pbtarball/tomcat-pbtarball_8.5.31/tarball/tomcat-pbtarball_8.5.31.tar.gz
 fi
 
 echo "Starting building ${BUNDLE_VERSION}"
