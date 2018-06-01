@@ -4118,6 +4118,13 @@
             "type": "string",
             "name": "uuid",
             "in": "path"
+          },
+          {
+            "required": false,
+            "type": "string",
+            "name": "prefix",
+            "in": "query",
+            "description": "Prefix to prepend the base download filename."
           }
         ],
         "x-auth-type": "None"
