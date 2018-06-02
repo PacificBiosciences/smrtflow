@@ -456,6 +456,8 @@ package object jobtypes {
         case JobTypeIds.TS_JOB => jx.convertTo[TsJobBundleJobOptions]
         case JobTypeIds.TS_SYSTEM_STATUS =>
           jx.convertTo[TsSystemStatusBundleJobOptions]
+        case JobTypeIds.TS_JOB_HARVESTER_JOB =>
+          jx.convertTo[TsJobHarvesterJobOptions]
         case JobTypeIds.DS_COPY => jx.convertTo[CopyDataSetJobOptions]
         // These really need to be separated out into there own class
         case JobTypeIds.MJOB_MULTI_ANALYSIS =>

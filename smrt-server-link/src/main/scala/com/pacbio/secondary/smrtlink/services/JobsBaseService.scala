@@ -971,6 +971,15 @@ class TsSystemStatusBundleJobsService(override val dao: JobsDao,
   override def jobTypeId = JobTypeIds.TS_SYSTEM_STATUS
 }
 
+class TsJobHarvesterJobsService(override val dao: JobsDao,
+                                override val config: SystemJobConfig)(
+    implicit val um: FromRequestUnmarshaller[TsJobHarvesterJobOptions],
+    implicit val sm: ToEntityMarshaller[TsJobHarvesterJobOptions],
+    implicit val jwriter: JsonWriter[TsJobHarvesterJobOptions])
+    extends CommonJobsRoutes[TsJobHarvesterJobOptions] {
+  override def jobTypeId = JobTypeIds.TS_JOB_HARVESTER_JOB
+}
+
 class CopyDataSetJobService(override val dao: JobsDao,
                             override val config: SystemJobConfig)(
     implicit val um: FromRequestUnmarshaller[CopyDataSetJobOptions],
@@ -1147,6 +1156,7 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     new SimpleJobsService(dao, config),
     new TsJobBundleJobsService(dao, config),
     new TsSystemStatusBundleJobsService(dao, config),
+    new TsJobHarvesterJobsService(dao, config),
     new CopyDataSetJobService(dao, config)
   )
 
