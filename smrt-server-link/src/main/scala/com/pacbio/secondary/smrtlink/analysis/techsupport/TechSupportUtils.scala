@@ -30,7 +30,7 @@ trait TechSupportConstants {
     */
   val DEFAULT_TS_BUNDLE_TGZ = "tech-support-bundle.tgz"
 
-  val DEFAULT_TS_HARVEST_TGZ = "tech-support-job-haverester-bundle.tgz"
+  val DEFAULT_TS_HARVEST_TGZ = "tech-support-job-harvester-bundle.tgz"
 }
 
 object TechSupportConstants extends TechSupportConstants
