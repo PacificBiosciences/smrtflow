@@ -29,6 +29,8 @@ trait TechSupportConstants {
     * The default name of the TS TGZ bundle
     */
   val DEFAULT_TS_BUNDLE_TGZ = "tech-support-bundle.tgz"
+
+  val DEFAULT_TS_HARVEST_TGZ = "tech-support-job-haverester-bundle.tgz"
 }
 
 object TechSupportConstants extends TechSupportConstants
@@ -54,6 +56,10 @@ trait TechSupportUtils extends TechSupportConstants with LazyLogging {
     writer(tempDir)
 
     TarGzUtils.createTarGzip(tempDir, outputTgz.toFile)
+
+    val totalSize = outputTgz.toFile.length()
+    val totalSizeMB = totalSize / 1024.0 / 1024.0
+    logger.info(s"Total TS TGZ file size $totalSizeMB MB file:$outputTgz")
 
     FileUtils.deleteQuietly(tempDir.toFile)
 
