@@ -1,8 +1,12 @@
 # ChangeLog
 
+## 0.17.0
+
+- Added "tech-support-job-harvester" job type and companion service to SL
+
 ## 0.16.0
 
-- smrt-server-eve. Changed the output file resolving format for Event JSON files from `{EVE-ROOT}/{SL-SYSTEM-ID}/` to `{EVE-ROOT}/{SL-SYSTEM-ID}/{YYYY}/{MM}{DD}/`
+- smrt-server-eve. Changed the output file resolving format for Event JSON files from `{EVE-ROOT}/{SL-SYSTEM-ID}/` to `{EVE-ROOT}/{SL-SYSTEM-ID}/{YYYY}/{MM}/{DD}/`
 
 ### 0.15.0
 
