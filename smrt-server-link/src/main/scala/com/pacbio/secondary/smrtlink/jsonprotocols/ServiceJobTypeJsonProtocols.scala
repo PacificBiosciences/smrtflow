@@ -54,6 +54,8 @@ trait ServiceJobTypeJsonProtocols
 
   implicit val techSupportSystemBundleJobOptionsFormat = jsonFormat6(
     TsSystemStatusBundleJobOptions)
+  implicit val techSupportJobHarvesterJobOptionsFormat = jsonFormat6(
+    TsJobHarvesterJobOptions)
   implicit val techSupportJobBundleJobOptionsFormat = jsonFormat7(
     TsJobBundleJobOptions)
 
