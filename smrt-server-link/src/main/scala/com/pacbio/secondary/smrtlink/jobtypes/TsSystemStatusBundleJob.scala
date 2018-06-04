@@ -83,7 +83,7 @@ class TsSystemStatusBundleJob(opts: TsSystemStatusBundleJobOptions)
 
     val outputTgz =
       job.path.resolve(TechSupportConstants.DEFAULT_TS_BUNDLE_TGZ)
-    val outputDs = job.path.resolve("datastore.json")
+    val outputDs = job.path.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
 
     val manifestPath =
       job.path.resolve(TechSupportConstants.DEFAULT_TS_MANIFEST_JSON)

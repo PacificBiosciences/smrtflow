@@ -140,6 +140,17 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
       .mapWith(_.size) !=? 3
   )
 
-  override val steps = createTsSystemStatusSteps ++ getOrImportDataSets ++ createFailedSmrtLinkJob ++ createFailedJobSteps
+  // TechSupport Job Harvester, this should be run last to make sure there's a few jobs that have been run
+  val createTsJobHarvesterJobSteps: Seq[Step] = Seq(
+    jobStatusId := CreateTsJobHarvesterJob(
+      user,
+      Var("Sim TS Job Harvester comment")),
+    WaitForSuccessfulJob(jobStatusId),
+    dataStore := GetJobDataStore(jobStatusId),
+    fail("Expected 2 datastore files. Log, tgz") IF dataStore
+      .mapWith(_.size) !=? 2
+  )
+
+  override val steps = createTsSystemStatusSteps ++ getOrImportDataSets ++ createFailedSmrtLinkJob ++ createFailedJobSteps ++ createTsJobHarvesterJobSteps
 
 }

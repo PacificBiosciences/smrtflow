@@ -616,6 +616,13 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
       smrtLinkClient.runTsSystemStatus(user.get, comment.get).map(_.uuid)
   }
 
+  case class CreateTsJobHarvesterJob(user: Var[String], comment: Var[String])
+      extends VarStep[UUID] {
+    override val name = "CreateTsJobHarvesterJob"
+    override val runWith =
+      smrtLinkClient.runTsJobHarvesterJob(user.get, comment.get).map(_.uuid)
+  }
+
   case class CreateTsFailedJob(jobId: Var[UUID],
                                user: Var[String],
                                comment: Var[String])

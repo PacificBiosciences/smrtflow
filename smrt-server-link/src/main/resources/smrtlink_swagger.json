@@ -3030,6 +3030,42 @@
         ]
       }
     },
+    "/smrt-link/job-manager/jobs/tech-support-job-harvester": {
+      "post": {
+        "description": "Harvest all Analysis jobs and send data to PacBio Tech Support",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Tech Support Job Harvester bundle options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TsSystemStatusServiceOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/job-manager/jobs/db-backup": {
       "post": {
         "description": "Save a local backup copy of the SMRT Link Postgres database",

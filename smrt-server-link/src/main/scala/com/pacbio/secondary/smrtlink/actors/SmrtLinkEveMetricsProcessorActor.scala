@@ -301,11 +301,6 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
 
 }
 
-object SmrtLinkEveMetricsProcessActor {
-  // This can be deleted after 5.2
-  case class HarvestAnalysisJobs(user: String, smrtlinkVersion: String)
-}
-
 /**
   * List for completed Analysis jobs and process the output to convert to
   * SmrtLink Events that are sent to Event Manager. These events will
@@ -331,7 +326,6 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
   // This local state will be updated when the Eula changes
   private var sendJobMetrics = sendEveJobMetrics
 
-  import SmrtLinkEveMetricsProcessActor._
   implicit val executionContext = context.dispatcher
 
   override def preStart() = {
@@ -372,39 +366,10 @@ class SmrtLinkEveMetricsProcessorActor(dao: JobsDao,
         }
       }
 
-    case HarvestAnalysisJobs(user, smrtLinkVersion) =>
-      // This can be deleted after 5.2 release
-      val tmpTgz = Files.createTempFile("harvested-jobs", ".tgz")
-      harvestAnalysisJobsToTechSupportTgz(smrtLinkSystemId,
-                                          user,
-                                          Some(smrtLinkVersion),
-                                          dnsName,
-                                          dao,
-                                          10,
-                                          tmpTgz) onComplete {
-        case Success(engineJobMetrics) =>
-          if (engineJobMetrics.isEmpty) {
-            logger.info("No 'old' jobs to harvest. Skipping sending to Eve")
-            FileUtils.deleteQuietly(tmpTgz.toFile)
-          } else {
-            logger.info(
-              s"Harvested ${engineJobMetrics.length} jobs to be sent to Eve")
-            eventManagerActor ! UploadTechSupportTgz(tmpTgz)
-          }
-        case Failure(ex) =>
-          logger.error(
-            s"Failed to create Harvested Job History for ${ex.getMessage}")
-          FileUtils.deleteQuietly(tmpTgz.toFile)
-      }
-
     case e: EulaRecord =>
       sendJobMetrics = e.enableJobMetrics
       logger.info(
         s"Updated sendJobMetrics=$sendJobMetrics (with enableInternalMetrics=$enableInternalMetrics)")
-      // This can be deleted after 5.2 release
-      if (sendJobMetrics) {
-        self ! HarvestAnalysisJobs(e.user, e.smrtlinkVersion)
-      }
     // case x => logger.warn(s"Unhandled message $x")
   }
 

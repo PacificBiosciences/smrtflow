@@ -842,6 +842,13 @@ class SmrtLinkServiceClient(
            TsSystemStatusServiceOptions(user, comment)))
   }
 
+  def runTsJobHarvesterJob(user: String, comment: String): Future[EngineJob] = {
+    // Note, this uses the same data model as the TsSystemStatus.
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.TS_JOB_HARVESTER_JOB.id)),
+           TsSystemStatusServiceOptions(user, comment)))
+  }
+
   /**
     * Create a Failed TechSupport Job
     *

@@ -270,6 +270,14 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object TS_JOB_HARVESTER_JOB extends JobType {
+      val id = "tech-support-job-harvester"
+      val name = "PacBio Job Harvester"
+      val description =
+        "Export All Analysis Jobs and upload to PacBio as a TS TGZ bundle"
+      override def isQuick: Boolean = true
+    }
+
     case object DB_BACKUP extends JobType {
       val id = "db-backup"
       val name = "SMRT Link db backup"
@@ -311,6 +319,7 @@ object JobModels {
       SIMPLE,
       TS_JOB,
       TS_SYSTEM_STATUS,
+      TS_JOB_HARVESTER_JOB,
       DB_BACKUP,
       DS_COPY,
       MJOB_MULTI_ANALYSIS
@@ -627,6 +636,27 @@ object JobModels {
         "Job Master Log",
         "Job Stdout/Log"
       )
+    }
+
+    // Create a DataStore file from file that exists.
+    def fromFile(sourceId: String,
+                 fileTypeId: String,
+                 path: Path,
+                 name: String,
+                 description: Option[String] = None): DataStoreFile = {
+      val now = JodaDateTime.now()
+
+      DataStoreFile(UUID.randomUUID(),
+                    sourceId,
+                    fileTypeId,
+                    path.toFile.length(),
+                    now,
+                    now,
+                    path.toString,
+                    false,
+                    name,
+                    description.getOrElse(name))
+
     }
   }
 
