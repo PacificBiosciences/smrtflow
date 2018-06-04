@@ -24,6 +24,8 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import slick.jdbc.PostgresProfile.api._
 import org.joda.time.{DateTime => JodaDateTime}
+import slick.dbio.Effect
+import slick.sql.FixedSqlAction
 
 import scala.collection.mutable
 import scala.util.control.NonFatal
@@ -81,7 +83,22 @@ class RunDao(val db: Database, val parser: DataModelParser)
           val summaryUpdate =
             Seq(runSummaries.insertOrUpdate(summary).map(_ => summary))
 
-          val dataModelAndCollectionsUpdate = parseResults
+          val deleteAllRemovedCollections
+            : Seq[FixedSqlAction[Int, NoStream, Effect.Write]] = parseResults
+            .map { res =>
+              val collectionIds: Set[UUID] =
+                res.collections.map(_.uniqueId).toSet
+
+              val updater = collectionMetadata
+                .filter(_.runId === uniqueId)
+                .filterNot(_.uniqueId inSet collectionIds)
+                .delete
+              Seq(updater)
+            }
+            .getOrElse(Nil)
+
+          val dataModelAndCollectionsUpdate
+            : Seq[FixedSqlAction[Int, NoStream, Effect.Write]] = parseResults
             .map { res: ParseResults =>
               if (res.run.uniqueId != uniqueId)
                 throw UnprocessableEntityError(
@@ -96,7 +113,8 @@ class RunDao(val db: Database, val parser: DataModelParser)
             .getOrElse(Nil)
 
           DBIO
-            .sequence(summaryUpdate ++ dataModelAndCollectionsUpdate)
+            .sequence(
+              summaryUpdate ++ deleteAllRemovedCollections ++ dataModelAndCollectionsUpdate)
             .map(_ => summary)
       }
 
