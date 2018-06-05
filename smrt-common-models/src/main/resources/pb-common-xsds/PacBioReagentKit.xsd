@@ -58,6 +58,11 @@
 						<xs:documentation>The limit on the number of hours after opening that a kit can be used</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
+			  <xs:attribute name="MaxRunHours" type="xs:double" use="optional" default="-1">
+			    <xs:annotation>
+			      <xs:documentation>The maximum run hours for a run using this this kit.  A negative value indicates unlimited run time.</xs:documentation>
+			    </xs:annotation>
+			  </xs:attribute>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

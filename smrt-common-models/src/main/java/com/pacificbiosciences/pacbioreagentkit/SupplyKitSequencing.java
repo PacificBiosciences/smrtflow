@@ -40,6 +40,7 @@ import com.pacificbiosciences.pacbiobasedatamodel.SequencingChemistry;
  *       &lt;attribute name="MaxCollections" type="{http://www.w3.org/2001/XMLSchema}int" default="8" />
  *       &lt;attribute name="ActiveHours" type="{http://www.w3.org/2001/XMLSchema}double" default="0" />
  *       &lt;attribute name="ActiveHoursLimit" type="{http://www.w3.org/2001/XMLSchema}int" default="0" />
+ *       &lt;attribute name="MaxRunHours" type="{http://www.w3.org/2001/XMLSchema}double" default="-1" />
  *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -74,6 +75,8 @@ public class SupplyKitSequencing
     protected Double activeHours;
     @XmlAttribute(name = "ActiveHoursLimit")
     protected Integer activeHoursLimit;
+    @XmlAttribute(name = "MaxRunHours")
+    protected Double maxRunHours;
 
     /**
      * Gets the value of the reagentAutomationName property.
@@ -286,6 +289,34 @@ public class SupplyKitSequencing
      */
     public void setActiveHoursLimit(Integer value) {
         this.activeHoursLimit = value;
+    }
+
+    /**
+     * Gets the value of the maxRunHours property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Double }
+     *     
+     */
+    public double getMaxRunHours() {
+        if (maxRunHours == null) {
+            return -1.0D;
+        } else {
+            return maxRunHours;
+        }
+    }
+
+    /**
+     * Sets the value of the maxRunHours property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Double }
+     *     
+     */
+    public void setMaxRunHours(Double value) {
+        this.maxRunHours = value;
     }
 
 }
