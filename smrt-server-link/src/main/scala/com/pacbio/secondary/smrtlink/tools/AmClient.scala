@@ -56,7 +56,7 @@ object loadResource extends (String => String) {
   def apply(resourcePath: String): String = {
     val path = (if (resourcePath.startsWith("/")) "" else "/") + resourcePath
     val stream = getClass.getResourceAsStream(path)
-    io.Source.fromInputStream(stream).mkString
+    scala.io.Source.fromInputStream(stream).mkString
   }
 }
 
