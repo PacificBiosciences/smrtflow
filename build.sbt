@@ -15,7 +15,7 @@ version in ThisBuild := "0.17.0-SNAPSHOT"
 organization in ThisBuild := "pacbio.smrt.smrtflow"
 
 // Seeing a lot of evicted calls
-scalaVersion in ThisBuild := "2.12.4"
+scalaVersion in ThisBuild := "2.12.6"
 
 // This is useful, but is really chattery. "-Ywarn-dead-code"
 scalacOptions in ThisBuild := Seq(
@@ -102,7 +102,7 @@ lazy val baseSettings = Seq(
   "com.jason-goodwin" %% "authentikat-jwt" % "0.4.5",
   // "com.pauldijou" %% "jwt-core" % "0.14.0", // We should use this. https://github.com/pauldijou/jwt-scala
   "com.jsuereth" %% "scala-arm" % "2.0",
-  "com.lihaoyi" % "ammonite" % "1.0.3" cross CrossVersion.full,
+  "com.lihaoyi" % "ammonite" % "1.1.2" cross CrossVersion.full,
   "com.lihaoyi" %% "scalatags" % "0.6.7",
   "com.novocode" % "junit-interface" % "0.10" % "test",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
