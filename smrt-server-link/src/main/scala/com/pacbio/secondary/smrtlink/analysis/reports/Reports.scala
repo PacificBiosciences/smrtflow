@@ -42,7 +42,9 @@ object ReportModels {
 
   case class ReportPlot(id: String,
                         image: String,
-                        caption: Option[String] = None)
+                        caption: Option[String] = None,
+                        plotType: Option[String] = Some("image"),
+                        plotlyVersion: Option[String] = None)
 
   case class ReportTable(id: String,
                          title: Option[String] = None,
@@ -184,7 +186,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
     }
   }
 
-  implicit val reportPlotGroupFormat = jsonFormat3(ReportPlot)
+  implicit val reportPlotGroupFormat = jsonFormat5(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
   //implicit val reportColumnFormat = jsonFormat3(ReportTableColumn)
   implicit object reportColumnFormat extends JsonFormat[ReportTableColumn] {
