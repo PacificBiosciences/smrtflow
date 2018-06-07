@@ -68,6 +68,9 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
   val jobResolver: Singleton[JobResourceResolver] =
     Singleton(() => new PacBioIntJobResolver(jobEngineConfig().pbRootJobDir))
 
+  val rootTempDir: Singleton[Path] =
+    Singleton(() => Paths.get(conf.getString("java.io.tmpdir")))
+
   // Unfortunately this is duplicated in the Manifest service
   val smrtLinkVersion: Singleton[Option[String]] =
     Singleton(
