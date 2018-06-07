@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 0.17.1
+
+- Add File uploading webservice. 'smrt-link/uploader'
+
 ## 0.17.0
 
 - Added "tech-support-job-harvester" job type and companion service to SL
