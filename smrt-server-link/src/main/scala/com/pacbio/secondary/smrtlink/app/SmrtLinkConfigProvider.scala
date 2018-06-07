@@ -100,7 +100,7 @@ trait SmrtLinkConfigProvider extends SmrtServerIdUtils with LazyLogging {
     Singleton(
       () =>
         Try(getPath("smrtflow.pacBioSystem.tmpDir")).toOption
-          .getOrElse(Paths.get("/tmp")))
+          .getOrElse(Paths.get(conf.getString("java.io.tmpdir"))))
 
   private def getPath(keyName: String): Path =
     Paths.get(conf.getString(keyName))

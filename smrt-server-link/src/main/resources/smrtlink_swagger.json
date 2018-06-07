@@ -4195,9 +4195,40 @@
         ],
         "x-auth-type": "Application & Application User"
       }
+    },
+    "/smrt-link/uploader": {
+      "post": {
+        "summary": "Upload a File to SMRT Link",
+        "description": "Upload file (e.g., fasta or ZIP DataSet XML)",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "201": {
+            "description": "Returns a Path to the upload file on the server",
+            "schema": {
+              "$ref": "#/definitions/UploadedFile"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "UploadedFile": {
+      "type": "object",
+      "title": "Uploaded File",
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Path to output file",
+          "description": "The output path to file on the server"
+        }
+      },
+      "example": {
+        "path": "/path/to/file.fasta"
+      }
+    },
     "PipelineTemplateViewRules": {
       "title": "List of Pipeline Template View Rules",
       "type": "array",
