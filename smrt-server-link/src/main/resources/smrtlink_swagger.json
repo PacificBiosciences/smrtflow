@@ -1271,10 +1271,10 @@
     },
     "/smrt-link/bundles/{bundleType}/{bundleVersion}/download": {
       "get": {
-        "description": "Download a PacBio Data Bundle TGZ by Id (bundleType, bundleVersion)",
+        "description": "Download a PacBio Data Bundle TGZ by Id (bundleType, bundleVersion). User should explicitly set 'Accept:application/x-tar' header as this is the only output currently supported.",
         "x-scope": "data-management",
         "produces": [
-          "application/x-gzip"
+          "application/x-tar"
         ],
         "parameters": [
           {
