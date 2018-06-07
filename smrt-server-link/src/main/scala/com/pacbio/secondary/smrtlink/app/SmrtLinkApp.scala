@@ -172,7 +172,8 @@ trait SmrtLinkProviders
     with JobsServiceProvider
     with EngineCoreJobManagerActorProvider
     with DbBackupActorProvider
-    with SmrtLinkEveMetricsProcessActor {
+    with SmrtLinkEveMetricsProcessActor
+    with UploadFileServiceProvider {
 
   override val baseServiceId: Singleton[String] = Singleton(
     "smrtlink_analysis")
