@@ -63,7 +63,7 @@ trait UploadFileServiceProvider {
   val uploadFileService: Singleton[UploadFileService] =
     Singleton { () =>
       implicit val system = actorSystem()
-      new UploadFileService(rootTempDir())(system)
+      new UploadFileService(smrtLinkTempDir())(system)
     }
 
   addService(uploadFileService)
