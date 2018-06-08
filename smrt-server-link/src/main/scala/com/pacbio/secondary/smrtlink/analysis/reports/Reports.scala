@@ -59,7 +59,7 @@ object ReportModels {
   case class ReportImagePlot(id: String,
                              image: String,
                              caption: Option[String] = None,
-                             thumbnail: Option[String])
+                             thumbnail: Option[String] = None)
       extends ReportPlotBase {
     override def plotType = ReportPlotTypes.IMAGE
   }
@@ -67,7 +67,7 @@ object ReportModels {
   case class ReportPlotlyPlot(id: String,
                               image: String,
                               caption: Option[String] = None,
-                              thumbnail: Option[String],
+                              thumbnail: Option[String] = None,
                               plotlyVersion: Option[String] = None)
       extends ReportPlotBase {
     override def plotType: ReportPlotType = ReportPlotTypes.PLOTLY
