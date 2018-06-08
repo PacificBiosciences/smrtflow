@@ -253,7 +253,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
     override def read(json: JsValue): ReportPlotBase = {
       val jsObject = json.asJsObject
 
-      val plotType = getOptionalKey(jsObject, "type") match {
+      val plotType = getOptionalKey(jsObject, "plotType") match {
         case Some(ReportPlotTypes.IMAGE.id) => ReportPlotTypes.IMAGE
         case Some(ReportPlotTypes.PLOTLY.id) => ReportPlotTypes.PLOTLY
         case Some(sx) => deserializationError(s"Expected Plot Type, got $sx")
@@ -280,7 +280,6 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
     }
   }
 
-  //implicit val reportPlotGroupFormat = jsonFormat5(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
 
   implicit object reportColumnFormat extends JsonFormat[ReportTableColumn] {
