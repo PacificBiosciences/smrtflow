@@ -47,8 +47,10 @@ class ReportsSpec
       rs.getAttributeValue("was_successful")
         .get
         .asInstanceOf[Boolean] must beEqualTo(true)
-      rs.getPlot("unit_test.unit_test.plotgroups",
-                 "unit_test.unit_test.plot_1") must beSome
+      val p = rs.getPlot("unit_test.unit_test.plotgroups",
+                         "unit_test.unit_test.plot_1")
+      p must beSome
+      p.flatMap(_.plotType) must beEqualTo(Some("image"))
       rs.getTableValueFromColumn("report_table", "col1").length must beEqualTo(
         4)
       // FIXME(mpkocher)(2017-7-17) The report values are [10, null, 5.931, "asdf"], which suggests there's a casting bug in the column
