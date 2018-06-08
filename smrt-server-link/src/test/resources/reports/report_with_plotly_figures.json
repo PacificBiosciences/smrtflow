@@ -1,0 +1,56 @@
+{
+  "_comment": "Example Report with Plotly Report",
+  "tables": [],
+  "attributes": [
+    {
+      "name": "Adapter Dimers",
+      "value": 0.0014104560030870359,
+      "id": "adapter.adapter_dimers"
+    }
+  ],
+  "id": "plotly_report_example",
+  "uuid": "9376a0c8-4406-11e6-8e9f-3c15c2cc8f88",
+  "title": "Example Plotly Report",
+  "version": "1.0.0",
+  "plotGroups": [
+    {
+      "id": "plotly_report_example.g1",
+      "thumbnail": "adapter_observed_insert_length_distribution_thumb.png",
+      "plots": [
+        {
+          "title": "Report Title",
+          "caption": "Report Caption",
+          "type": "image",
+          "image": "adapter_observed_insert_length_distribution.png",
+          "id": "plotly_report_example.plotly_report_example.g1.f1"
+        },
+        {
+          "title": "Plotly Figure",
+          "caption": "Plotly Figure Caption",
+          "type": "plotly",
+          "image": "plotly_report_example.json.gz",
+          "id": "plotly_report_example.plotly_report_example.g1.f2",
+          "plotlyVersion": "1.2.3"
+        }
+      ],
+      "legend": null,
+      "title": "Observed Insert Length Distribution"
+    },
+    {
+      "id": "plotly_report_example.g2",
+      "thumbnail": null,
+      "plots": [
+        {
+          "title": "Plotly Figure",
+          "caption": "Plotly Figure Caption",
+          "type": "plotly",
+          "image": "plotly_report_example.json.gz",
+          "id": "plotly_report_example.plotly_report_example.g2.f2",
+          "plotlyVersion": "1.2.3"
+        }
+      ],
+      "legend": null,
+      "title": "Observed Insert Length Distribution"
+    }
+  ]
+}
