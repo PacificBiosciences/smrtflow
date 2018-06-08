@@ -40,11 +40,38 @@ object ReportModels {
                                  value: Option[String] = None)
       extends ReportAttribute
 
-  case class ReportPlot(id: String,
-                        image: String,
-                        caption: Option[String] = None,
-                        plotType: Option[String] = Some("image"),
-                        plotlyVersion: Option[String] = None)
+  trait ReportPlotType {
+    val id: String
+  }
+  object ReportPlotTypes {
+    object IMAGE extends ReportPlotType { val id = "image" }
+    object PLOTLY extends ReportPlotType { val id = "plotly" }
+  }
+
+  trait ReportPlotBase {
+    val id: String
+    val image: String
+    val caption: Option[String]
+    val thumbnail: Option[String]
+    def plotType: ReportPlotType
+  }
+
+  case class ReportImagePlot(id: String,
+                             image: String,
+                             caption: Option[String] = None,
+                             thumbnail: Option[String])
+      extends ReportPlotBase {
+    override def plotType = ReportPlotTypes.IMAGE
+  }
+
+  case class ReportPlotlyPlot(id: String,
+                              image: String,
+                              caption: Option[String] = None,
+                              thumbnail: Option[String],
+                              plotlyVersion: Option[String] = None)
+      extends ReportPlotBase {
+    override def plotType: ReportPlotType = ReportPlotTypes.PLOTLY
+  }
 
   case class ReportTable(id: String,
                          title: Option[String] = None,
@@ -57,7 +84,7 @@ object ReportModels {
   case class ReportPlotGroup(id: String,
                              title: Option[String] = None,
                              legend: Option[String] = None,
-                             plots: List[ReportPlot])
+                             plots: List[ReportPlotBase]) {}
 
   // Tools outside of pbreports are generating reports, so tools should use a report id scheme
   // of {tool}_{report_base_id} such as smrtflow_examplereport as the base id
@@ -94,10 +121,28 @@ object ReportModels {
       getAttributeValue(attrId).map(_.asInstanceOf[Double])
     }
 
-    def getPlot(plotGroupId: String, plotId: String): Option[ReportPlot] = {
+    private def getPlotsByType(plotType: ReportPlotType,
+                               plotGroupId: String,
+                               plotId: String): Option[ReportPlotBase] = {
+      // Adding filtering by type to make sure the casting in
+      // callers to specific Report Plot types.
       plotGroups
+        .map { pg =>
+          val plots = pg.plots.filter(p => p.plotType == plotType)
+          pg.copy(plots = plots)
+        }
         .find(_.id == plotGroupId)
         .flatMap(_.plots.find(_.id == plotId))
+    }
+
+    def getPlot(plotGroupId: String, plotId: String): Option[ReportImagePlot] =
+      getPlotsByType(ReportPlotTypes.IMAGE, plotGroupId, plotId)
+        .map(_.asInstanceOf[ReportImagePlot])
+
+    def getPlotlyPlot(plotGroupId: String,
+                      plotId: String): Option[ReportPlotlyPlot] = {
+      getPlotsByType(ReportPlotTypes.PLOTLY, plotGroupId, plotId)
+        .map(_.asInstanceOf[ReportPlotlyPlot])
     }
 
     /**
@@ -186,9 +231,58 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
     }
   }
 
-  implicit val reportPlotGroupFormat = jsonFormat5(ReportPlot)
+  private def getOptionalKey(jsObject: JsObject, key: String): Option[String] = {
+    jsObject.getFields(key) match {
+      case Seq(JsString(v)) => Some(v)
+      case _ => None
+    }
+  }
+
+  implicit object reportPlotImagePlotFormat
+      extends JsonFormat[ReportPlotBase] {
+    override def write(obj: ReportPlotBase): JsObject = {
+      JsObject(
+        "id" -> JsString(obj.id),
+        "image" -> JsString(obj.image),
+        "plotType" -> JsString(obj.plotType.id),
+        "caption" -> obj.caption.map(s => JsString(s)).getOrElse(JsNull),
+        "thumbnail" -> obj.thumbnail.map(s => JsString(s)).getOrElse(JsNull)
+      )
+    }
+
+    override def read(json: JsValue): ReportPlotBase = {
+      val jsObject = json.asJsObject
+
+      val plotType = getOptionalKey(jsObject, "type") match {
+        case Some(ReportPlotTypes.IMAGE.id) => ReportPlotTypes.IMAGE
+        case Some(ReportPlotTypes.PLOTLY.id) => ReportPlotTypes.PLOTLY
+        case Some(sx) => deserializationError(s"Expected Plot Type, got $sx")
+        case _ => ReportPlotTypes.IMAGE
+      }
+
+      val (id, image): Tuple2[String, String] =
+        jsObject.getFields("id", "image") match {
+          case Seq(JsString(plotId), JsString(plotImage)) =>
+            (plotId, plotImage)
+          case _ => deserializationError("Expected 'id' and 'image' fields")
+        }
+
+      val caption = getOptionalKey(jsObject, "caption")
+      val thumbnail = getOptionalKey(jsObject, "thumbnail")
+
+      plotType match {
+        case ReportPlotTypes.IMAGE =>
+          ReportImagePlot(id, image, caption, thumbnail)
+        case ReportPlotTypes.PLOTLY =>
+          val plotlyVersion = getOptionalKey(jsObject, "plotlyVersion")
+          ReportPlotlyPlot(id, image, caption, thumbnail, plotlyVersion)
+      }
+    }
+  }
+
+  //implicit val reportPlotGroupFormat = jsonFormat5(ReportPlot)
   implicit val reportPlotGroupsFormat = jsonFormat4(ReportPlotGroup)
-  //implicit val reportColumnFormat = jsonFormat3(ReportTableColumn)
+
   implicit object reportColumnFormat extends JsonFormat[ReportTableColumn] {
     def write(c: ReportTableColumn): JsObject = {
       JsObject(
@@ -213,12 +307,11 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
 
     def read(jsColumn: JsValue): ReportTableColumn = {
       val jsObj = jsColumn.asJsObject
+
+      val header = getOptionalKey(jsObj, "header")
+
       jsObj.getFields("id", "values") match {
         case Seq(JsString(id), JsArray(jsValues)) => {
-          val header = jsObj.getFields("header") match {
-            case Seq(JsString(h)) => Some(h)
-            case _ => None
-          }
           val values = (for (value <- jsValues)
             yield
               value match {
@@ -244,7 +337,7 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
     *
     **/
   implicit object reportFormat extends RootJsonFormat[Report] {
-    def write(r: Report): JsObject = {
+    override def write(r: Report): JsObject = {
       JsObject(
         "id" -> JsString(r.id),
         "title" -> JsString(r.title),
@@ -256,40 +349,36 @@ trait ReportJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
         "dataset_uuids" -> r.datasetUuids.toJson
       )
     }
-    def read(value: JsValue) = {
+
+    override def read(value: JsValue) = {
       val jsObj = value.asJsObject
+
+      def getOptionalKeyFrom(key: String): Option[String] =
+        getOptionalKey(jsObj, key)
+
+      val version: String = Seq("version", "_version")
+        .flatMap(getOptionalKeyFrom)
+        .headOption
+        .getOrElse(REPORT_SCHEMA_VERSION)
+
+      // If the UUID is not preset in the report JSON,
+      // a random value will be generated
+      val uuid: UUID = getOptionalKeyFrom("uuid")
+        .map(UUID.fromString)
+        .getOrElse(UUID.randomUUID())
+
       jsObj.getFields("id", "attributes", "plotGroups", "tables") match {
         case Seq(JsString(id),
                  JsArray(jsAttr),
                  JsArray(jsPlotGroups),
                  JsArray(jsTables)) => {
 
-          val version = jsObj.getFields("version") match {
-            case Seq(JsString(v)) => v
-            // fallback to support pbcommand model
-            case _ =>
-              jsObj.getFields("_version") match {
-                case Seq(JsString(v)) => v
-                case _ => REPORT_SCHEMA_VERSION
-              }
-          }
-
-          // If the UUID is not preset in the report JSON,
-          // a random value will be generated
-          val uuid = jsObj.getFields("uuid") match {
-            case Seq(JsString(u)) => UUID.fromString(u)
-            case _ => UUID.randomUUID()
-          }
           val datasetUuids = jsObj.getFields("dataset_uuids") match {
             case Seq(JsArray(uuids)) => uuids.map(_.convertTo[UUID]).toSet
             case _ => Set.empty[UUID]
           }
 
-          // Generate a title from the Report Id
-          val title = jsObj.getFields("title") match {
-            case Seq(JsString(t)) => t
-            case _ => s"Report $id"
-          }
+          val title = getOptionalKeyFrom("title").getOrElse(s"Report $id")
 
           val attributes = jsAttr.map(_.convertTo[ReportAttribute]).toList
           val plotGroups =
@@ -346,8 +435,8 @@ object ReportUtils extends ReportJsonProtocol {
       ("warning_msg", "Warning Message", -1)
     )
     val attrs = xs.map(x => toRa(toI(x._1), x._2, x._3)).toList
-    val plots = List[ReportPlotGroup]()
-    val tables = List[ReportTable]()
+    val plots = List.empty[ReportPlotGroup]
+    val tables = List.empty[ReportTable]
     Report("workflow_task",
            title,
            REPORT_SCHEMA_VERSION,
@@ -367,8 +456,8 @@ object ReportUtils extends ReportJsonProtocol {
 
     def toI(n: String) = s"$baseId.$n"
     def toP(n: Int, id: String) =
-      ReportPlot(toI(id), s"$id.png", Some(s"Caption $id"))
-    def toPg(id: String, plots: List[ReportPlot]) =
+      ReportImagePlot(toI(id), s"$id.png", Some(s"Caption $id"), None)
+    def toPg(id: String, plots: List[ReportImagePlot]) =
       ReportPlotGroup(toI(id), Some(s"title $id"), Some(s"legend $id"), plots)
 
     // Now that reports are generated outside of pbreports, the id format needs to be expanded.
