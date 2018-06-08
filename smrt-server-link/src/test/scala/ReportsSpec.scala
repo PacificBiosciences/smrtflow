@@ -47,10 +47,12 @@ class ReportsSpec
       rs.getAttributeValue("was_successful")
         .get
         .asInstanceOf[Boolean] must beEqualTo(true)
-      val p = rs.getPlot("unit_test.unit_test.plotgroups",
-                         "unit_test.unit_test.plot_1")
+      val p: Option[ReportImagePlot] =
+        rs.getPlot("unit_test.unit_test.plotgroups",
+                   "unit_test.unit_test.plot_1")
       p must beSome
-      p.flatMap(_.plotType) must beEqualTo(Some("image"))
+      p.map(_.plotType) must beSome(ReportPlotTypes.IMAGE)
+
       rs.getTableValueFromColumn("report_table", "col1").length must beEqualTo(
         4)
       // FIXME(mpkocher)(2017-7-17) The report values are [10, null, 5.931, "asdf"], which suggests there's a casting bug in the column
@@ -86,6 +88,27 @@ class ReportsSpec
       val rpt = loadTestReport(name)
       // println(s"Report ${rpt.attributes}")
       rpt.id must beEqualTo("coverage")
+    }
+    "Sanity Load Plotly based Report" in {
+      val rpt = loadTestReport("report_with_plotly_figures.json")
+      rpt.id === "plotly_report_example"
+
+      val p: Option[ReportImagePlot] =
+        rpt.getPlot("plotly_report_example.g1",
+                    "plotly_report_example.plotly_report_example.g1.f1")
+
+      p must beSome
+      p.map(_.plotType) must beSome(ReportPlotTypes.IMAGE)
+
+      val p2: Option[ReportPlotlyPlot] =
+        rpt.getPlotlyPlot("plotly_report_example.g1",
+                          "plotly_report_example.plotly_report_example.g1.f2")
+
+      p2 must beSome
+
+      p2.map(_.plotType) must beSome(ReportPlotTypes.PLOTLY)
+      p2.flatMap(_.plotlyVersion) must beSome("1.2.3")
+
     }
   }
 }
