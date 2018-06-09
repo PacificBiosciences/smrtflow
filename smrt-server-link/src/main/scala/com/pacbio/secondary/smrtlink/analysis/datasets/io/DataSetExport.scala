@@ -279,12 +279,12 @@ abstract class DataSetExporter(zipPath: Path)
     (nBytes, dsId, dsOutPath)
   }
 
-  def writeDataSetsAuto(datasets: Seq[Path],
+  def writeDataSetsAuto(datasets: Set[Path],
                         dsType: DataSetMetaTypes.DataSetMetaType): Long = {
 
     import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-    val outputs = datasets.map { path =>
+    val outputs = datasets.toList.map { path =>
       val (nBytes, uuid, dsOutPath) = writeDataSetAuto(path, dsType)
       val now = JodaDateTime.now()
       // Write the relative path within the zip so the datastore file paths (in the zip) will be correct
@@ -325,7 +325,7 @@ object ExportDataSets extends LazyLogging {
             zipPath: Path): Long = {
 
     val e = new ExportDataSets(zipPath)
-    val totalBytes = e.writeDataSetsAuto(datasets, dsType)
+    val totalBytes = e.writeDataSetsAuto(datasets.toSet, dsType)
 
     e.close
     logger.info(s"wrote $totalBytes bytes")
