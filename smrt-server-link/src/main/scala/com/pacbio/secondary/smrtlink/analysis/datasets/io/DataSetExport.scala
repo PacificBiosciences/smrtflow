@@ -8,13 +8,13 @@ import java.util.zip._
 
 import scala.collection.mutable
 import com.typesafe.scalalogging.LazyLogging
+import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
 
 import collection.JavaConverters._
 import com.pacbio.secondary.smrtlink.analysis.datasets._
-import com.pacificbiosciences.pacbiobasedatamodel.{
-  IndexedDataType,
-  InputOutputDataType
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{DataStoreFile, JobConstants, JobTypeIds, PacBioDataStore}
+import com.pacificbiosciences.pacbiobasedatamodel.{IndexedDataType, InputOutputDataType}
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 import org.apache.commons.io.FileUtils
 
@@ -143,9 +143,9 @@ abstract class ExportBase(zipPath: Path) extends ExportUtils with LazyLogging {
                            srcPath: Option[Path] = None): Long = {
     val destPath = basePath.relativize(path).toString
     if (haveFiles contains destPath) {
-      logger.info(s"Skipping duplicate file ${destPath}"); 0L
+      logger.info(s"Skipping duplicate file $destPath"); 0L
     } else {
-      logger.info(s"Writing file ${destPath} to zip")
+      logger.info(s"Writing file $destPath to zip")
       haveFiles += destPath
       writeFile(srcPath.getOrElse(path), destPath)
     }
@@ -249,24 +249,62 @@ abstract class DataSetExporter(zipPath: Path)
     */
   protected def writeDataSetAuto(
       dsPath: Path,
-      dsType: DataSetMetaTypes.DataSetMetaType): Long = {
+      dsType: DataSetMetaTypes.DataSetMetaType): (Long, UUID, String) = {
     val ds = ImplicitDataSetLoader.loaderAndResolveType(dsType, dsPath)
     val dsId = UUID.fromString(ds.getUniqueId)
-    val dsOutPath = s"${dsId}/${dsPath.getFileName.toString}"
-    writeDataSetImpl(ds, dsPath, dsOutPath, dsType, None)
+    val dsOutPath = s"$dsId/${dsPath.getFileName.toString}"
+    val nBytes = writeDataSetImpl(ds, dsPath, dsOutPath, dsType, None)
+    (nBytes, dsId, dsOutPath)
   }
 }
 
 class ExportDataSets(zipPath: Path) extends DataSetExporter(zipPath)
 
 object ExportDataSets extends LazyLogging {
+
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
+
   def apply(datasets: Seq[Path],
             dsType: DataSetMetaTypes.DataSetMetaType,
             zipPath: Path): Long = {
+
+
     val e = new ExportDataSets(zipPath)
-    val n = datasets.map(e.writeDataSetAuto(_, dsType)).sum
+
+    val outputs = datasets.map { path =>
+      val (nBytes, uuid, dsOutPath) = e.writeDataSetAuto(path, dsType)
+      val now = JodaDateTime.now()
+      // Write the relative path within the zip so the datastore file paths (in the zip) will be correct
+      val dsFile = DataStoreFile(uuid,
+                                 s"${JobTypeIds.EXPORT_DATASETS.id}-0",
+                                 dsType.fileType.fileTypeId,
+                                 path.toFile.length(),
+                                 now,
+                                 now,
+                                 dsOutPath,
+                                 false,
+                                 "name",
+                                 "Description")
+      (dsFile, nBytes)
+    }
+
+    val dsFiles = outputs.map(_._1)
+    val totalBytes = outputs.map(_._2).sum
+
+    val dataStore = PacBioDataStore.fromFiles(dsFiles)
+
+    // There's a bunch of necessary chatter here to write a file in the zip because the
+    // interface expects paths, not contents (as a string).
+    val dsTmp = Files.createTempFile(s"datastore", ".json")
+
+    FileUtils.writeStringToFile(dsTmp.toFile,
+                                dataStore.toJson.prettyPrint.toString)
+
+    e.writeFile(dsTmp, JobConstants.OUTPUT_DATASTORE_JSON)
+    FileUtils.deleteQuietly(dsTmp.toFile)
+
     e.close
-    logger.info(s"wrote $n bytes")
-    n
+    logger.info(s"wrote $totalBytes bytes")
+    totalBytes
   }
 }
