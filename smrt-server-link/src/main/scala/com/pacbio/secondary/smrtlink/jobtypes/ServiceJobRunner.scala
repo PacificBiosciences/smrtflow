@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
 import DefaultJsonProtocol._
+import com.pacbio.secondary.smrtlink.io.ModelIOUtils
 import com.pacbio.secondary.smrtlink.mail.PbMailer
 
 import scala.concurrent.duration._
@@ -42,41 +43,12 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
     extends timeUtils
     with LazyLogging
     with JobRunnerUtils
-    with PbMailer {
+    with PbMailer
+    with ModelIOUtils {
   import CommonModelImplicits._
   import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
   def host = config.host
-
-  def resolvePath(f: Path, root: Path): Path = {
-    if (f.isAbsolute) f
-    else root.resolve(f)
-  }
-
-  def resolve(root: Path, files: Seq[DataStoreFile]): Seq[DataStoreFile] =
-    files.map(f =>
-      f.copy(path = resolvePath(Paths.get(f.path), root).toString))
-
-  def loadFiles(files: Seq[DataStoreFile],
-                root: Option[Path]): Seq[DataStoreFile] = {
-    val resolvedFiles = root.map(r => resolve(r, files)).getOrElse(files)
-    resolvedFiles
-      .filter(_.fileTypeId == FileTypes.DATASTORE.fileTypeId)
-      .foldLeft(resolvedFiles) { (f, dsf) =>
-        f ++ loadDataStoreFilesFromDataStore(Paths.get(dsf.path).toFile)
-      }
-  }
-
-  def loadDataStoreFilesFromDataStore(file: File): Seq[DataStoreFile] = {
-    //logger.info(s"Loading raw DataStore from $file")
-    val sx = FileUtils.readFileToString(file, "UTF-8")
-    val ds = sx.parseJson.convertTo[PacBioDataStore]
-    loadFiles(ds.files, Some(file.toPath.getParent))
-      .map(f => f.uniqueId -> f)
-      .toMap
-      .values
-      .toSeq
-  }
 
   private def validateDsFile(
       dataStoreFile: DataStoreFile): Future[DataStoreFile] = {
@@ -153,12 +125,18 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
     * @return
     */
   def importer(jobId: UUID, x: Any, timeout: FiniteDuration): Try[String] = {
+
+    def processSummary(messages: Seq[MessageResponse]): String = {
+      messages
+        .map(_.message)
+        .reduceLeftOption(_ + "\n" + _)
+        .getOrElse("WARNING. No Files to be imported")
+    }
+
     x match {
       case ds: ImportAble =>
         Try(
-          Await.result(importAbleFile(ds, jobId).map(messages =>
-                         messages.map(_.message).reduce(_ + "\n" + _)),
-                       timeout))
+          Await.result(importAbleFile(ds, jobId).map(processSummary), timeout))
       case _ => Success("No ImportAble. Skipping importing")
     }
   }
