@@ -160,4 +160,31 @@ object DataSetReports
       Seq.empty[DataStoreFile]
     }
   }
+
+  /**
+    * This is a pretty heavy handed approach that won't fail during report generation.
+    */
+  def runAllIgnoreErrors(
+      inPath: Path,
+      dst: DataSetMetaTypes.DataSetMetaType,
+      jobPath: Path,
+      jobTypeId: JobTypeIds.JobType,
+      resultsWriter: JobResultsWriter,
+      forceSimpleReports: Boolean = false): Seq[DataStoreFile] = {
+
+    val reports = Try {
+      DataSetReports.runAll(inPath, dst, jobPath, jobTypeId, resultsWriter)
+    }
+
+    reports match {
+      case Success(rpts) => rpts
+      case Failure(ex) =>
+        val errorMsg =
+          s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
+        // logger.error(errorMsg)
+        resultsWriter.writeLineError(errorMsg)
+        // Might want to consider adding a report attribute that has this warning message
+        Nil
+    }
+  }
 }
