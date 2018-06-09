@@ -841,6 +841,15 @@ class ImportDataSetJobsService(override val dao: JobsDao,
 
 }
 
+class ImportDataSetsZipJobService(override val dao: JobsDao,
+                                  override val config: SystemJobConfig)(
+    implicit val um: FromRequestUnmarshaller[ImportDataSetsZipJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportDataSetsZipJobOptions],
+    implicit val jwriter: JsonWriter[ImportDataSetsZipJobOptions])
+    extends CommonJobsRoutes[ImportDataSetsZipJobOptions] {
+  override def jobTypeId = JobTypeIds.IMPORT_DATASETS_ZIP
+}
+
 class ImportFastaJobsService(override val dao: JobsDao,
                              override val config: SystemJobConfig)(
     implicit val um: FromRequestUnmarshaller[ImportFastaJobOptions],
@@ -1127,6 +1136,7 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     new HelloWorldJobsService(dao, config),
     new ImportBarcodeFastaJobsService(dao, config),
     new ImportDataSetJobsService(dao, config),
+    new ImportDataSetsZipJobService(dao, config),
     new ImportFastaJobsService(dao, config),
     new ImportFastaGmapJobsService(dao, config),
     new MergeDataSetJobsService(dao, config),
