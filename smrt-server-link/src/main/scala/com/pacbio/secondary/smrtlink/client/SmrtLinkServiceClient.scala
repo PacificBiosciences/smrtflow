@@ -878,6 +878,15 @@ class SmrtLinkServiceClient(
       Post(toUri(jobRoot(JobTypeIds.DB_BACKUP.id)),
            DbBackUpServiceJobOptions(user, comment)))
 
+  def runImportDataSetsXmlZip(path: Path, jobName: String): Future[EngineJob] = {
+    val opts = ImportDataSetsZipJobOptions(path,
+                                           Some(jobName),
+                                           Some(s"$jobName Description"),
+                                           submit = Some(true))
+    getObject[EngineJob](
+      Post(toUri(jobRoot(JobTypeIds.IMPORT_DATASETS_ZIP.id)), opts))
+  }
+
   /**
     * Start export of SMRT Link job(s)
     */
