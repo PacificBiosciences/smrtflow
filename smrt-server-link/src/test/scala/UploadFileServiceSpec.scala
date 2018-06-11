@@ -1,3 +1,5 @@
+import java.io.File
+
 import org.specs2.mutable.Specification
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.ActorRefFactory
@@ -102,7 +104,7 @@ class UploadFileServiceSpec
   val totalRoutes = TestProviders.uploadFileService().prefixedRoutes
   step(setupDb(TestProviders.dbConfig))
 
-  class UploadResponse(path: String);
+  case class UploadResponse(path: String);
 
   "Upload File service" should {
     "upload a fasta file" in {
@@ -112,6 +114,8 @@ class UploadFileServiceSpec
       Post("/smrt-link/uploader", formData)  ~> addHeader(READ_CREDENTIALS) ~> totalRoutes ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[UploadResponse];
+        val file = new File(response.path);
+        file.exists must beTrue
         // ... verify that response.path points to a valid file.
       }
     }
