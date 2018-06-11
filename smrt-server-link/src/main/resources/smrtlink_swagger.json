@@ -2526,6 +2526,42 @@
         ]
       }
     },
+    "/smrt-link/job-manager/jobs/import-datasets-zip": {
+      "post": {
+        "description": "Import a PacBio DataSet(s) XML Zip and generate associated reports",
+        "responses": {
+          "201": {
+            "description": "New job object",
+            "schema": {
+              "$ref": "#/definitions/ServiceJob"
+            }
+          },
+          "default": {
+            "description": "Return value"
+          }
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Import dataset job options object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ImportDataSetsZipOptions"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "x-scope": "analysis",
+        "x-auth-type": "Application & Application User",
+        "x-throttling-tier": "Unlimited",
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
     "/smrt-link/job-manager/jobs/convert-fasta-reference": {
       "post": {
         "description": "Generate a PacBio ReferenceSet XML (including required index files) from a FASTA file",
@@ -7239,6 +7275,22 @@
           "example": "PacBio.DataSet.SubreadSet",
           "title": "Dataset metatype",
           "description": "File metatype string, prefixied by PacBio.DataSet"
+        },
+        "projectId": {
+          "type": "integer",
+          "default": 1,
+          "title": "Project ID",
+          "description": "ID of project associated with the imported dataset"
+        }
+      }
+    },
+    "ImportDataSetsZipOptions": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "Dataset path",
+          "description": "Path to dataset(s) XML Zip file"
         },
         "projectId": {
           "type": "integer",
