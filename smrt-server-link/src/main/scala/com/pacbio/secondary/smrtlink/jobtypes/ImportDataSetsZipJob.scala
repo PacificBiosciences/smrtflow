@@ -48,8 +48,8 @@ class ImportDataSetsZipJob(opts: ImportDataSetsZipJobOptions)
 
   private def unzipTo(zipPath: Path, destination: Path): Path = {
     val zipFile: File = File(zipPath.toAbsolutePath.toString)
-    val research: File =
-      zipFile.unzipTo(destination = File(destination.toAbsolutePath.toString))
+
+    zipFile.unzipTo(destination = File(destination.toAbsolutePath.toString))
 
     // The interface of a ZIP'ed DataSet(s) XML requires a datastore.json in the root dir.
     destination.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
