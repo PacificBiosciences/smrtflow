@@ -116,7 +116,6 @@ class UploadFileServiceSpec
         val response = responseAs[UploadResponse];
         val file = new File(response.path);
         file.exists must beTrue
-        // ... verify that response.path points to a valid file.
       }
     }
   }
