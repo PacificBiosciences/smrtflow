@@ -136,6 +136,18 @@ object DataSetMetaTypes {
     ALL.map(x => (typeToIdString(x), x)).toMap.get(dsType)
   }
 
+  def isFileTypeDataSetType(fileType: FileTypes.FileBaseType): Boolean = {
+    toDataSetType(fileType.fileTypeId).isDefined
+  }
+
+  /**
+    * Is file type a valid dataset metatype
+    *
+    * @param sx FileTypeId (example, "PacBio.DataSet.ReferenceSet")
+    * @return
+    */
+  def isDataSetType(sx: String): Boolean = toDataSetType(sx).isDefined
+
   def fromPath(path: Path): Option[DataSetMetaType] = {
     Try {
       val ds = scala.xml.XML.loadFile(path.toFile)

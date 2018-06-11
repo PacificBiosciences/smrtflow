@@ -175,30 +175,30 @@ class ExportDataSetJob(opts: ExportDataSetsJobOptions)
       s"Starting export of ${paths.length} ${opts.datasetType} Files at ${startedAt.toString}")
 
     resultsWriter.writeLine(s"DataSet Export options: $opts")
-    paths.foreach(x => resultsWriter.writeLine(s"File ${x.toString}"))
+    paths.map(x => s"File ${x.toString}").foreach(resultsWriter.writeLine)
 
-    val datastoreJson = resources.path.resolve("datastore.json")
+    val datastoreJson =
+      resources.path.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
     val nbytes = ExportDataSets(paths, opts.datasetType, opts.outputPath)
     resultsWriter.write(
-      s"Successfully exported datasets to ${opts.outputPath.toAbsolutePath}")
+      s"Successfully exported datasets ($nbytes bytes) to ${opts.outputPath.toAbsolutePath}")
     val now = JodaDateTime.now()
-    val dataStoreFile = DataStoreFile(
-      UUID.randomUUID(),
+
+    val name = "Exported DataSet(s) ZIP file"
+    val dataStoreFile = DataStoreFile.fromFile(
       s"pbscala::${jobTypeId.id}",
       FileTypes.ZIP.fileTypeId,
-      opts.outputPath.toFile.length,
-      now,
-      now,
-      opts.outputPath.toAbsolutePath.toString,
-      isChunked = false,
-      "ZIP file",
-      s"ZIP file containing ${paths.length} datasets"
+      opts.outputPath.toAbsolutePath,
+      name,
+      Some(s"$name containing ${paths.length} datasets and ($nbytes bytes)")
     )
 
     val ds = PacBioDataStore.fromFiles(Seq(dataStoreFile, logFile))
     writeDataStore(ds, datastoreJson)
+
     resultsWriter.write(
       s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
+
     if (opts.deleteAfterExport.getOrElse(false)) {
       resultsWriter.writeLine("Export succeeded - creating delete job")
       val deleteJob = createDeleteJob(resources, dao)

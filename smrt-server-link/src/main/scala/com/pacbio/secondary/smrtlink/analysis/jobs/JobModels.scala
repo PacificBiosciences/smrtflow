@@ -228,6 +228,13 @@ object JobModels {
       override def isQuick: Boolean = true
     }
 
+    case object IMPORT_DATASETS_ZIP extends JobType {
+      val id = "import-datasets-zip"
+      val name = "Import ZIP of PacBio DataSet(s)"
+      val description = "Import a ZIP of PacBio XML DataSet(s)"
+      override def isQuick: Boolean = true
+    }
+
     case object MERGE_DATASETS extends JobType {
       val id = "merge-datasets"
       val name = "Merge PacBio DataSet(s)"
@@ -311,6 +318,7 @@ object JobModels {
       DELETE_JOB,
       EXPORT_DATASETS,
       IMPORT_DATASET,
+      IMPORT_DATASETS_ZIP,
       EXPORT_JOBS,
       IMPORT_JOB,
       MERGE_DATASETS,
@@ -673,7 +681,8 @@ object JobModels {
       s"PacBioDataStore Summary ${files.length} files Created at $createdAt Schema version $version\n" +
         files.zipWithIndex
           .map { case (d, i) => s"${i + 1}. ${d.toString}" }
-          .reduce(_ + "\n" + _)
+          .reduceLeftOption(_ + "\n" + _)
+          .getOrElse("No datastore files")
     }
 
     override def toString: String = summary

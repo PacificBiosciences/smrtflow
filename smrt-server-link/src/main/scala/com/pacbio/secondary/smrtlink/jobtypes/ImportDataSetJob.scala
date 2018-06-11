@@ -52,8 +52,9 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
+
     val startedAt = JodaDateTime.now()
-    val createdAt = JodaDateTime.now()
+    val createdAt = startedAt
 
     val fileSize = opts.path.toFile.length
 
@@ -77,28 +78,18 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
       logger.info(s"Loaded dataset and convert to DataStoreFile $dsFile")
 
       // This should never stop a dataset from being imported
-      val reports = Try {
-        DataSetReports.runAll(opts.path,
-                              dst,
-                              resources.path,
-                              opts.jobTypeId,
-                              resultsWriter)
-      }
-      val reportFiles: Seq[DataStoreFile] = reports match {
-        case Success(rpts) => rpts
-        case Failure(ex) =>
-          val errorMsg =
-            s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
-          logger.error(errorMsg)
-          resultsWriter.writeLineError(errorMsg)
-          // Might want to consider adding a report attribute that has this warning message
-          Nil
-      }
+      val reportDataStoreFiles = DataSetReports.runAllIgnoreErrors(
+        opts.path,
+        dst,
+        resources.path,
+        opts.jobTypeId,
+        resultsWriter)
 
       val logFile = getStdOutLog(resources, dao)
-      val dsFiles = Seq(dsFile, logFile) ++ reportFiles
-      val datastore = PacBioDataStore(startedAt, createdAt, "0.1.0", dsFiles)
-      val datastorePath = resources.path.resolve("datastore.json")
+      val dsFiles = Seq(dsFile, logFile) ++ reportDataStoreFiles
+      val datastore = PacBioDataStore.fromFiles(dsFiles)
+      val datastorePath =
+        resources.path.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
       writeDataStore(datastore, datastorePath)
       logger.info(
         s"Successfully wrote datastore with ${datastore.files.length} files to $datastorePath")
@@ -112,24 +103,7 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
       dstore <- Try { writeJobDataStore(dsFile, opts.datasetType) }
     } yield dstore
 
-    tx match {
-      case Success(datastore) =>
-        logger.info(
-          s"${opts.jobTypeId.id} was successful. Generated datastore with ${datastore.files.length} files.")
-        Right(datastore)
-      case Failure(ex) =>
-        val runTime = computeTimeDeltaFromNow(startedAt)
-        val msg =
-          s"Failed to import dataset ${opts.path} in $runTime sec. Error ${ex.getMessage}\n ${ex.getStackTrace
-            .mkString("\n")}"
-        logger.error(msg)
-        Left(
-          ResultFailed(resources.jobId,
-                       opts.jobTypeId.id,
-                       msg,
-                       computeTimeDeltaFromNow(startedAt),
-                       AnalysisJobStates.FAILED,
-                       host))
-    }
+    convertTry[PacBioDataStore](tx, resultsWriter, startedAt, resources.jobId)
+
   }
 }

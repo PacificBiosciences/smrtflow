@@ -60,26 +60,6 @@ import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
 import com.pacbio.secondary.smrtlink.services.utils.SmrtDirectives
 
-object JobResourceUtils extends LazyLogging {
-  // FIXME. This is a very lackluster idea.
-  // This assumes an id -> file which is wrong
-  def getJobResource(jobDir: String, imageFileName: String): Option[String] = {
-    val jobP = Paths.get(jobDir)
-    val ext = FilenameUtils.getExtension(imageFileName)
-    val filterExt = if (ext.isEmpty) Seq("*") else Seq(ext)
-    logger.debug(
-      s"Trying to resolve resource '$imageFileName' with ext '$ext' from '$jobDir'")
-    val it = FileUtils
-      .iterateFiles(jobP.toFile, filterExt.toArray, true)
-      .asScala
-      .filter(x => x.getName == imageFileName)
-    it.toList.headOption match {
-      case Some(x) => Some(x.toPath.toAbsolutePath.toString)
-      case _ => None
-    }
-  }
-}
-
 trait JobServiceRoutes {
   def jobTypeId: JobTypeIds.JobType
   def routes: Route
@@ -861,6 +841,15 @@ class ImportDataSetJobsService(override val dao: JobsDao,
 
 }
 
+class ImportDataSetsZipJobService(override val dao: JobsDao,
+                                  override val config: SystemJobConfig)(
+    implicit val um: FromRequestUnmarshaller[ImportDataSetsZipJobOptions],
+    implicit val sm: ToEntityMarshaller[ImportDataSetsZipJobOptions],
+    implicit val jwriter: JsonWriter[ImportDataSetsZipJobOptions])
+    extends CommonJobsRoutes[ImportDataSetsZipJobOptions] {
+  override def jobTypeId = JobTypeIds.IMPORT_DATASETS_ZIP
+}
+
 class ImportFastaJobsService(override val dao: JobsDao,
                              override val config: SystemJobConfig)(
     implicit val um: FromRequestUnmarshaller[ImportFastaJobOptions],
@@ -1147,6 +1136,7 @@ class JobsServiceUtils(dao: JobsDao, config: SystemJobConfig)(
     new HelloWorldJobsService(dao, config),
     new ImportBarcodeFastaJobsService(dao, config),
     new ImportDataSetJobsService(dao, config),
+    new ImportDataSetsZipJobService(dao, config),
     new ImportFastaJobsService(dao, config),
     new ImportFastaGmapJobsService(dao, config),
     new MergeDataSetJobsService(dao, config),

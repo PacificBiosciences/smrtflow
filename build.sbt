@@ -115,6 +115,7 @@ lazy val baseSettings = Seq(
   "commons-io" % "commons-io" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-compress" % "1.13",
+  "com.github.pathikrit" %% "better-files" % "3.5.0",
   "io.spray" %% "spray-json" % "1.3.2",
   "com.github.fommil" %% "spray-json-shapeless" % "1.4.0", // Is this still necessary for 2.12?
   "joda-time" % "joda-time" % "2.9.9",
