@@ -40,6 +40,8 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
 
+import scala.concurrent.duration._
+
 object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
@@ -52,11 +54,29 @@ object DataSetScenarioLoader extends ScenarioLoader {
 
     val gmapAvailable = Try { c.getBoolean("gmapAvailable") }.toOption
       .getOrElse(false)
-    new DataSetScenario(getHost(c), getPort(c), gmapAvailable)
+
+    val importDataSetsZipPath = Paths.get(c.getString("importDataSetsZipPath"))
+    require(
+      Files.exists(importDataSetsZipPath),
+      s"Path to Import DataSet Zip (importDataSetsZipPath) is not found $importDataSetsZipPath")
+
+    // This can be configured in scenario conf if necessary.
+    lazy val importDataSetsZipUUIDs = Set(
+      UUID.fromString("db6d2386-6dc4-11e8-a7a0-2a00a901c501"))
+
+    new DataSetScenario(getHost(c),
+                        getPort(c),
+                        gmapAvailable,
+                        importDataSetsZipPath,
+                        importDataSetsZipUUIDs)
   }
 }
 
-class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
+class DataSetScenario(host: String,
+                      port: Int,
+                      gmapAvailable: Boolean,
+                      importDataSetsZipPath: Path,
+                      importDataSetsZipUUIDs: Set[UUID])
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -584,5 +604,14 @@ class DataSetScenario(host: String, port: Int, gmapAvailable: Boolean)
       ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
-  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++ hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
+
+  val importDataSetsXmlZipSteps: Seq[Step] = Seq(
+    RunImportDataSetsXmlZip(importDataSetsZipPath,
+                            "Import DataSet Zip $verifyImport",
+                            3.minutes,
+                            importDataSetsZipUUIDs)
+  )
+
+  override val steps = (setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++
+    hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests ++ importDataSetsXmlZipSteps)
 }

@@ -705,6 +705,30 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
 
   }
 
+  case class RunImportDataSetsXmlZip(path: Path,
+                                     jobName: String,
+                                     maxTime: FiniteDuration,
+                                     datasetUUIDs: Set[UUID])
+      extends VarStep[EngineJob] {
+    override val name = "RunImportDataSetsXmlZip"
+    override def runWith: Future[EngineJob] = {
+
+      def fetchDataSet(uuid: UUID): Future[DataSetMetaDataSet] = {
+        smrtLinkClient.getDataSet(uuid)
+      }
+
+      for {
+        createdJob <- smrtLinkClient.runImportDataSetsXmlZip(path, jobName)
+        successfulJob <- pollForSuccessfulJob(createdJob.id, maxTime)
+        datasets <- Future.traverse(datasetUUIDs.toList)(fetchDataSet)
+        msg <- Future.successful(
+          s"Successfully verified ${datasets.map(_.uuid)}")
+        _ <- andLog(msg)
+      } yield successfulJob
+
+    }
+  }
+
   /**
     * Run a dev pipeline that will generate a variable number of children datasets,
     * then verify the number of generated children.
