@@ -3,7 +3,7 @@ import java.io.File
 import org.specs2.mutable.Specification
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.actor.{ActorRefFactory, ActorSystem}
-import akka.http.scaladsl.model.{ContentTypes, Multipart, StatusCodes}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.Specs2RouteTest
 import com.pacbio.secondary.smrtlink.auth._
 import com.pacbio.secondary.smrtlink.dependency.{
@@ -32,6 +32,7 @@ import slick.driver.PostgresDriver.api.Database
 import java.nio.file.{Files, Path}
 
 import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.scaladsl.{FileIO, Source}
 import com.pacbio.secondary.smrtlink.auth.JwtUtils.JWT_HEADER
 import com.typesafe.config.Config
 
@@ -96,9 +97,19 @@ class UploadFileServiceSpec
   "Upload File service" should {
     "upload a fasta file" in {
       val fastaPath: Path = MockFileUtils.writeMockTmpFastaFile()
-      val fileData = Multipart.FormData.BodyPart
-        .fromPath("mockFasta", ContentTypes.`text/plain(UTF-8)`, fastaPath)
-      val formData = Multipart.FormData(fileData)
+      val chunkSize = 100000
+      val fx = fastaPath.toFile
+      val formData =
+        Multipart.FormData(
+          Source.single(
+            Multipart.FormData.BodyPart(
+              "mockFasta",
+              HttpEntity(ContentTypes.`text/html(UTF-8)`,
+                         fx.length(),
+                         FileIO.fromPath(fastaPath, chunkSize = chunkSize)),
+              Map("filename" -> fx.getName)
+            )))
+
       Post("/smrt-link/uploader", formData) ~> addHeader(READ_CREDENTIALS) ~> totalRoutes ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[UploadResponse]
