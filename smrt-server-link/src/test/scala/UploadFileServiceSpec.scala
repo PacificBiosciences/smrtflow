@@ -29,9 +29,9 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api.Database
-
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.scaladsl.{FileIO, Source}
+import com.pacbio.secondary.smrtlink.analysis.bio.FastaIterator
 import com.pacbio.secondary.smrtlink.auth.JwtUtils.JWT_HEADER
 import com.typesafe.config.Config
 
@@ -93,7 +93,8 @@ class UploadFileServiceSpec
 
   "Upload File service" should {
     "upload a fasta file" in {
-      val fastaPath = MockFileUtils.writeMockTmpFastaFile()
+      val numRecords = 1000
+      val fastaPath = MockFileUtils.writeMockTmpFastaFile(numRecords)
       val chunkSize = 100000
       val fx = fastaPath.toFile
       val formData =
@@ -109,7 +110,12 @@ class UploadFileServiceSpec
       Post("/smrt-link/uploader", formData) ~> addHeader(READ_CREDENTIALS) ~> totalRoutes ~> check {
         status shouldEqual StatusCodes.Created
         val fileUploadResponse = responseAs[FileUploadResponse]
-        fileUploadResponse.path.toFile.exists must beTrue
+        val f1 = fileUploadResponse.path.toFile
+        f1.exists must beTrue
+
+        val reader = new FastaIterator(f1)
+        reader.isEmpty must beFalse
+        reader.length === numRecords
       }
     }
   }
