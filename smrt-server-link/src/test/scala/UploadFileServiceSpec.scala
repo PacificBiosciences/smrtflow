@@ -96,22 +96,21 @@ class UploadFileServiceSpec
 
   "Upload File service" should {
     "upload a fasta file" in {
-      val fastaPath: Path = MockFileUtils.writeMockTmpFastaFile()
+      val fastaPath = MockFileUtils.writeMockTmpFastaFile()
       val chunkSize = 100000
       val fx = fastaPath.toFile
       val formData =
         Multipart.FormData(
-          Source.single(
-            Multipart.FormData.BodyPart(
-              "mockFasta",
-              HttpEntity(ContentTypes.`text/html(UTF-8)`,
-                         fx.length(),
-                         FileIO.fromPath(fastaPath, chunkSize = chunkSize)),
-              Map("filename" -> fx.getName)
-            )))
+          Source.single(Multipart.FormData.BodyPart(
+            "upload_file",
+            HttpEntity(ContentTypes.`application/octet-stream`,
+                       fx.length(),
+                       FileIO.fromPath(fastaPath, chunkSize = chunkSize)),
+            Map("filename" -> fx.getName)
+          )))
 
       Post("/smrt-link/uploader", formData) ~> addHeader(READ_CREDENTIALS) ~> totalRoutes ~> check {
-        status shouldEqual StatusCodes.OK
+        status shouldEqual StatusCodes.Created
         val response = responseAs[UploadResponse]
         val file = new File(response.path)
         file.exists must beTrue
