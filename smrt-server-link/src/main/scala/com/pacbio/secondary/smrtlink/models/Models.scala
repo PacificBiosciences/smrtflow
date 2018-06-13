@@ -1724,3 +1724,5 @@ case class CompletedEngineJob(
 
 // Internal Alarm Message For Eve
 case class InternalAlarms(alarms: Seq[AlarmStatus])
+
+case class FileUploadResponse(path: Path)

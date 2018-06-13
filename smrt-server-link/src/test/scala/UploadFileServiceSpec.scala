@@ -29,7 +29,6 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestUtils}
 import com.pacbio.secondary.smrtlink.tools.SetupMockData
 import slick.driver.PostgresDriver.api.Database
-import java.nio.file.{Files, Path}
 
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.scaladsl.{FileIO, Source}
@@ -92,8 +91,6 @@ class UploadFileServiceSpec
   val totalRoutes = TestProviders.uploadFileService().prefixedRoutes
   step(setupDb(TestProviders.dbConfig))
 
-  case class UploadResponse(path: String)
-
   "Upload File service" should {
     "upload a fasta file" in {
       val fastaPath = MockFileUtils.writeMockTmpFastaFile()
@@ -111,9 +108,8 @@ class UploadFileServiceSpec
 
       Post("/smrt-link/uploader", formData) ~> addHeader(READ_CREDENTIALS) ~> totalRoutes ~> check {
         status shouldEqual StatusCodes.Created
-        val response = responseAs[UploadResponse]
-        val file = new File(response.path)
-        file.exists must beTrue
+        val fileUploadResponse = responseAs[FileUploadResponse]
+        fileUploadResponse.path.toFile.exists must beTrue
       }
     }
   }
