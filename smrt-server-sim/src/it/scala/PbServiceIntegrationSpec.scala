@@ -1,11 +1,7 @@
 import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  ExternalCmdFailure,
-  ExternalToolsUtils,
-  PacBioTestData
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData, PacBioTestResourcesLoader}
 import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
@@ -29,6 +25,8 @@ class PbServiceIntegrationSpec
     extends Specification
     with ConfigLoader
     with LazyLogging {
+
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   // NOTE, these test must be run serially to avoid import dataset collisions
   // Or make each test uniquely import dataset types

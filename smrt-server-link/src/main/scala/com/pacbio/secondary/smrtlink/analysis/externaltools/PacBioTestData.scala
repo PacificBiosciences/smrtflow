@@ -15,9 +15,22 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 case class TestDataFile(id: String,
                         path: String,
                         fileTypeId: String,
-                        description: String)
+                        description: String) {
 
-trait TestDataJsonProtocol extends DefaultJsonProtocol {
+  def copyTempDataFile(
+      copyFiles: Boolean = false,
+      tmpDirBase: String = "dataset-contents"): TestDataFile = {
+    val p = Paths.get(path)
+    val dst = DataSetFileUtils.getDataSetMiniMeta(p)
+    val outputPath = MockDataSetUtils.makeTmpDataset(p,
+                                                     dst.metatype,
+                                                     copyFiles = copyFiles,
+                                                     tmpDirBase = tmpDirBase)
+    this.copy(path = outputPath.toString)
+  }
+}
+
+trait TestDataJsonProtocol extends DefaultJsonProtocol with PathProtocols {
   implicit val testDataFileFormat = jsonFormat4(TestDataFile)
 }
 
@@ -44,8 +57,12 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
     getFileIdsByType(ft).map(id => getFile(id))
 
   def getFile(id: String): Path = {
-    val relPath = fileLookup(id).path
-    Paths.get(base.toString, relPath)
+    Paths.get(getTestDataFile(id).path)
+  }
+
+  def getTestDataFile(id: String): TestDataFile = {
+    val f = fileLookup(id)
+    f.copy(path = Paths.get(base.toString, f.path).toString)
   }
 
   // Copy a dataset to a temporary directory, optionally including all
@@ -53,12 +70,7 @@ case class PacBioTestData(files: Seq[TestDataFile], base: Path)
   def getTempDataSet(id: String,
                      copyFiles: Boolean = false,
                      tmpDirBase: String = "dataset-contents"): Path = {
-    val path = getFile(id)
-    val dst = getDataSetMiniMeta(path).metatype
-    MockDataSetUtils.makeTmpDataset(path,
-                                    dst,
-                                    copyFiles = copyFiles,
-                                    tmpDirBase = tmpDirBase)
+    Paths.get(getTestDataFile(id).copyTempDataFile(copyFiles, tmpDirBase).path)
   }
 }
 
@@ -97,7 +109,7 @@ object PacBioTestData extends TestDataJsonProtocol with ConfigLoader {
 }
 
 // The fileTypeId can't be added as a type without adding
-// a custom serialization mechanism and a globaly registry of
+// a custom serialization mechanism and a global registry of
 // FileTypes.
 case class TestDataResource(id: String,
                             path: Path,
@@ -170,7 +182,7 @@ object PacBioTestResourcesLoader
     *
     * @param p
     */
-  def loadFromJsonPath(p: Path) = {
+  def loadFromJsonPath(p: Path): PacBioTestResources = {
     val json = FileUtils.readFileToString(p.toFile).parseJson
     val files = json.convertTo[Seq[TestDataResource]]
 

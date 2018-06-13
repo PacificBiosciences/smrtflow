@@ -13,9 +13,16 @@ import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
-  DataSetFilterProperty
+  DataSetFilterProperty,
+  DataSetMiniMeta
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestResources,
+  TestDataFile,
+  TestDataResource
+}
+import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
@@ -25,7 +32,10 @@ import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.StepResult._
 
-trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
+//import scala.concurrent.ExecutionContext.Implicits.global
+
+trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
+  this: Scenario with VarSteps =>
 
   import CommonModelImplicits._
   import ReportModels._
@@ -705,22 +715,47 @@ trait SmrtLinkSteps extends LazyLogging { this: Scenario with VarSteps =>
 
   }
 
-  case class RunImportDataSetsXmlZip(path: Path,
+  private def getAndCopyTestResource(
+      testDataFile: TestDataResource): (TestDataResource, UUID) = {
+    val px =
+      testDataFile.getTempDataSetFile(copyFiles = true, setNewUuid = true)
+    val miniMeta = getDataSetMiniMeta(px.path)
+    (px, miniMeta.uuid)
+  }
+
+  private def createDataSetsZip(dsPath: Path, outputDir: Path): Path = ???
+
+  /**
+    * Test the Importing of a PB dataset(s) XML Zip
+    *
+    * 1. Copy a dataset from PacBioTestData (and generate new UUID)
+    * 2. Create a DataSet XML zip
+    * 3. Run the Import DataSet Zip job successfully
+    * 4. Verify that the DataSet with UUID (from Step 1) was successfully imported.
+    *
+    * @param datasetTestId DataSet Test Id (example "lambdaNeb")
+    */
+  case class RunImportDataSetsXmlZip(testDataResource: TestDataResource,
                                      jobName: String,
-                                     maxTime: FiniteDuration,
-                                     datasetUUIDs: Set[UUID])
+                                     maxTime: FiniteDuration)
       extends VarStep[EngineJob] {
     override val name = "RunImportDataSetsXmlZip"
     override def runWith: Future[EngineJob] = {
 
-      def fetchDataSet(uuid: UUID): Future[DataSetMetaDataSet] = {
+      val outputZipDir: Path = ???
+
+      def fetchDataSet(uuid: UUID): Future[DataSetMetaDataSet] =
         smrtLinkClient.getDataSet(uuid)
-      }
 
       for {
-        createdJob <- smrtLinkClient.runImportDataSetsXmlZip(path, jobName)
+        px <- Future.successful(getAndCopyTestResource(testDataResource))
+        zipPath <- Future.successful(
+          createDataSetsZip(px._1.path, outputZipDir))
+        datasetUUIDs <- Future.successful(Set(px._2))
+        createdJob <- smrtLinkClient.runImportDataSetsXmlZip(px._1.path,
+                                                             jobName)
         successfulJob <- pollForSuccessfulJob(createdJob.id, maxTime)
-        datasets <- Future.traverse(datasetUUIDs.toList)(fetchDataSet)
+        datasets <- Future.traverse(datasetUUIDs)(fetchDataSet)
         msg <- Future.successful(
           s"Successfully verified ${datasets.map(_.uuid)}")
         _ <- andLog(msg)

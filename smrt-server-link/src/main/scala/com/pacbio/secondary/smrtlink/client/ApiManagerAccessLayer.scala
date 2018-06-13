@@ -130,7 +130,7 @@ class ApiManagerAccessLayer(
     // This is not really clear to me how this API works.
     // The call body.toEntity is important and will generate the correct content type
     // of application/x-www-form-urlencoded. Otherwise, it will be set as
-    // application/json.
+    // application/json. keys: access_token:String, refresh_token:String, scopes: String (' ') separated values
     val request = (
       Post("/token", body.toEntity)
         ~> addCredentials(BasicHttpCredentials(consumerKey, consumerSecret))

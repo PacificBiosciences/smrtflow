@@ -605,12 +605,15 @@ class DataSetScenario(host: String,
     } !=? tmpSubreads2.get.toString
   )
 
-  val importDataSetsXmlZipSteps: Seq[Step] = Seq(
-    RunImportDataSetsXmlZip(importDataSetsZipPath,
-                            "Import DataSet Zip $verifyImport",
-                            3.minutes,
-                            importDataSetsZipUUIDs)
-  )
+  val testImportDataSetIds = Seq("barcodeset", "lambdaNEB")
+
+  lazy val importDataSetsXmlZipSteps: Seq[Step] = testImportDataSetIds.map {
+    f =>
+      val testResource = testdata.getTestDataFile(f)
+      RunImportDataSetsXmlZip(testResource,
+                              s"Import DataSet Zip pacbiotestdata id:$f",
+                              3.minutes)
+  }
 
   override val steps = (setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++
     hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests ++ importDataSetsXmlZipSteps)

@@ -190,7 +190,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield (dst, copiedSubreadSet)
   }
 
-  def getOrRunImportTestFile(subreadSetTestFileId: String)
+  def getTestDataOrRunImportTestFile(subreadSetTestFileId: String)
     : Future[(DataSetMiniMeta, TestDataResource)] = {
     for {
       xs <- loadAndCopyTestFile(subreadSetTestFileId)
@@ -217,7 +217,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     for {
       _ <- andLog(
         s"Starting to Run MultiJob ScenarioStep with numJobs:$numJobs")
-      dstAndsubreadset <- getOrRunImportTestFile(subreadsetTestFileId)
+      dstAndsubreadset <- getTestDataOrRunImportTestFile(subreadsetTestFileId)
       multiJob <- client.createMultiAnalysisJob(
         toJobOptions(dstAndsubreadset._1.uuid, numJobs, jobName))
       _ <- andLog(
@@ -289,7 +289,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     val jobBeta = s"job-beta-${UUID.randomUUID()}"
 
     for {
-      dstAndsubreadset <- getOrRunImportTestFile(subreadsetTestFileId)
+      dstAndsubreadset <- getTestDataOrRunImportTestFile(subreadsetTestFileId)
       copiedTestFile <- getFileOrFail(subreadsetTestFileId).map(
         _.getTempDataSetFile(setNewUuid = true))
       copiedDst <- Future.successful(getDataSetMiniMeta(copiedTestFile.path))
