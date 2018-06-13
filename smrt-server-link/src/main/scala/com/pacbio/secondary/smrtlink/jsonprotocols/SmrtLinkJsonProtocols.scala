@@ -344,6 +344,8 @@ trait SmrtLinkJsonProtocols
   implicit val subSystemConfigFormat = jsonFormat3(SubsystemConfig)
   implicit val pbMessageResponseFormat = jsonFormat1(MessageResponse)
 
+  implicit val fileUploadResponseFormat = jsonFormat1(FileUploadResponse)
+
   // MK. I don't know why this was added. It will yield a runtime error when
   // trying to serialize/de-serialize LogMessageRecord
   // this is here to break a tie between otherwise-ambiguous implicits;

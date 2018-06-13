@@ -26,6 +26,7 @@ class UploadFileService(rootOutputDir: Path)(implicit actorSystem: ActorSystem)
 
   // for getFromFile to work
   implicit val routing = RoutingSettings.default
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   val manifest = PacBioComponentManifest(toServiceId("uploader"),
                                          "Upload file Service",
