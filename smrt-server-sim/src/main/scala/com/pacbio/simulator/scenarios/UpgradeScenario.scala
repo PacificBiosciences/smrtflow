@@ -5,17 +5,16 @@ import java.util.UUID
 import java.io.{File, PrintWriter}
 
 import scala.collection._
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PacBioTestData,
+  PacBioTestResources,
   PbReports
 }
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceClient,
-  ClientUtils
+  ClientUtils,
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
@@ -32,27 +31,27 @@ import com.pacbio.simulator.steps._
 object UpgradeScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for UpgradeScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for UpgradeScenario")
-    val c: Config = config.get
 
-    new UpgradeScenario(getHost(c),
-                        getPort(c),
-                        // FIXME I'd rather pass this as a cmdline arg but it's difficult
-                        c.getString("preUpgrade").toBoolean)
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
+
+    // FIXME I'd rather pass this as a cmdline arg but it's difficult
+    val preUpgrade: Boolean = c.getString("preUpgrade").toBoolean
+    new UpgradeScenario(smrtLinkClient, testResources, preUpgrade)
   }
 }
 
-class UpgradeScenario(host: String, port: Int, preUpgrade: Boolean)
+class UpgradeScenario(client: SmrtLinkServiceClient,
+                      val testResources: PacBioTestResources,
+                      preUpgrade: Boolean)
     extends PbsmrtpipeScenarioCore {
 
   import OptionTypes._
   import JobModels._
 
   override val name = "UpgradeScenario"
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   // options need to be empty because JSON format changed since 4.0
   private val cleanOpts = Var(

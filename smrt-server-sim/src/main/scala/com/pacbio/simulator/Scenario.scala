@@ -1,6 +1,10 @@
 package com.pacbio.simulator
 
 import akka.actor.ActorSystem
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestResources,
+  PacBioTestResourcesLoader
+}
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -19,6 +23,20 @@ object ScenarioConstants {
 
 trait ScenarioLoader {
   def load(config: Option[Config])(implicit system: ActorSystem): Scenario
+
+  def verifyRequiredConfig(config: Option[Config]): Config = {
+    require(config.isDefined,
+            "Path to config file must be specified for Scenario")
+    config.get
+  }
+
+  // This is not really the best place, but this is required
+  // for almost every Sim scenario, hence centralizing it here.
+  def verifyConfiguredWithTestResources(config: Config): PacBioTestResources = {
+    require(PacBioTestResourcesLoader.isAvailable(),
+            PacBioTestResourcesLoader.ERROR_MESSAGE)
+    PacBioTestResourcesLoader.loadFromConfig()
+  }
 
   protected def getInt(c: Config, key: String) =
     try {

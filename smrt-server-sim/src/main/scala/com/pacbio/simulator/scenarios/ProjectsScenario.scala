@@ -10,6 +10,7 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PacBioTestData,
+  PacBioTestResources,
   PbReports
 }
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
@@ -25,14 +26,16 @@ object ProjectsScenarioLoader extends SmrtLinkScenarioLoader {
   def toScenario(host: String,
                  port: Int,
                  user: Option[String],
-                 password: Option[String]): Scenario =
-    new ProjectsScenario(host, port, user, password)
+                 password: Option[String],
+                 testResources: PacBioTestResources): Scenario =
+    new ProjectsScenario(host, port, user, password, testResources)
 }
 
 class ProjectsScenario(host: String,
                        port: Int,
                        user: Option[String],
-                       password: Option[String])
+                       password: Option[String],
+                       val testResources: PacBioTestResources)
     extends SmrtLinkScenario
     with VarSteps
     with ConditionalSteps

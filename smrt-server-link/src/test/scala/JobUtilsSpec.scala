@@ -2,23 +2,22 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import scala.collection.JavaConverters._
-
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResourcesLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
-  JobModels,
+  ExportJob,
   JobImportUtils,
-  ExportJob
+  JobModels
 }
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
 
 trait MockJobExport {
   import JobModels._
@@ -214,11 +213,12 @@ class JobUtilsAdvancedSpec
     extends Specification
     with JobImportUtils
     with MockJobExport
-    with LazyLogging {
+    with LazyLogging
+    with TestDataResourcesUtils {
 
   import JobModels._
 
-  args(skipAll = !PacBioTestData.isAvailable)
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   "Job Export using PacBioTestData" should {
     // this is somewhat redundant with JobUtilsSpec, but we want to check
@@ -230,7 +230,7 @@ class JobUtilsAdvancedSpec
       fakeTaskDir.toFile.mkdirs
       val ds = setupFakeDataStore(job)
       val (subreads, barcodes) =
-        MockDataSetUtils.makeBarcodedSubreads(Some(fakeTaskDir))
+        MockDataSetUtils.makeBarcodedSubreads(testResources, Some(fakeTaskDir))
       val files2 = Seq(
         DataStoreFile(
           UUID.randomUUID(),
@@ -262,7 +262,7 @@ class JobUtilsAdvancedSpec
       val dsFile = workflowDir.resolve("datastore.json")
       val dsJson = ds.copy(files = ds.files ++ files2).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
-      val refPath = PacBioTestData().getFile("lambdaNEB")
+      val refPath = testResources.getFile("lambdaNEB").get.path
       val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")

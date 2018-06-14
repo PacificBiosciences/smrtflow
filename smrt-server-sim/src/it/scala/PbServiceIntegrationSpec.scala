@@ -1,8 +1,8 @@
 import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData, PacBioTestResourcesLoader}
-import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestResourcesLoader}
+import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestDataResourcesUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
@@ -24,7 +24,8 @@ import org.specs2.mutable.Specification
 class PbServiceIntegrationSpec
     extends Specification
     with ConfigLoader
-    with LazyLogging {
+    with LazyLogging
+      with TestDataResourcesUtils{
 
   args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
@@ -34,18 +35,15 @@ class PbServiceIntegrationSpec
 
   // Need to use the root dir to the data files
   private def getPacBioTestDataFilesJsonPath(): Path = {
-    val px = conf.getString(PacBioTestData.PB_TEST_ID)
+    val px = conf.getString(PacBioTestResourcesLoader.PB_TEST_ID)
     Paths.get(px).toAbsolutePath
   }
-  // This is confusing and problematic from a config standpoint
-  // This will fail in a non-graceful manner if PB_TEST_DATA_FILES is not exported.
-  val testData = PacBioTestData()
 
   private def getByDataSetType(name: String) =
     testData.base.resolve(name).toAbsolutePath
 
-  def getSubreadSetsPath(): Path = getByDataSetType("SubreadSet")
-  def getLambdaPath(): Path = testData.getFile("lambdaNEB")
+  def getSubreadSetsPath(): Path = testResources.getFile("sequel-subreads").get.path.getParent
+  def getLambdaPath(): Path = testResources.getFile("lambdaNEB").get.path
 
   val DEEP_DEBUG = true
 

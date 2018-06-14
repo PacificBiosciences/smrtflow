@@ -1,9 +1,6 @@
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
 import java.util.UUID
-import java.io.{File, PrintWriter}
 
 import akka.actor.ActorSystem
 
@@ -11,12 +8,8 @@ import scala.collection._
 import com.typesafe.config.Config
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PbReports
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
@@ -30,18 +23,16 @@ import com.pacbio.simulator.steps._
 object ChemistryBundleScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(
-      config.isDefined,
-      "Path to config file must be specified for ChemistryBundleScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for ChemistryBundleScenario")
-    val c: Config = config.get
 
-    new ChemistryBundleScenario(getHost(c), getPort(c))
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
+    new ChemistryBundleScenario(smrtLinkClient, testResources)
   }
 }
 
-class ChemistryBundleScenario(host: String, port: Int)
+class ChemistryBundleScenario(client: SmrtLinkServiceClient,
+                              testResources: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -55,14 +46,13 @@ class ChemistryBundleScenario(host: String, port: Int)
   override val name = "ChemistryBundleScenario"
   override val requirements = Seq("SEQ-306", "SL-458", "SL-998")
 
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
-  val testdata = PacBioTestData()
-
-  val subreads = Var(testdata.getTempDataSet("subreads-sequel"))
+  val subreads = Var(
+    testResources.getFile("subreads-sequel").get.getTempDataSetFile().path)
   val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Subread)
@@ -71,7 +61,7 @@ class ChemistryBundleScenario(host: String, port: Int)
   val jobStatus: Var[Int] = Var()
 
   def getPipelineOpts(version: String): PbsmrtpipeJobOptions = {
-    println(s"Chemistry bundle version is ${version}")
+    println(s"Chemistry bundle version is $version")
     PbsmrtpipeJobOptions(
       Some("chemistry-bundle-test"),
       Some("scenario-runner ChemistryBundleScenario"),

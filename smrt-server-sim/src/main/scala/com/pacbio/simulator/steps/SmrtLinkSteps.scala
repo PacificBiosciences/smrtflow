@@ -19,7 +19,6 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.{
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PacBioTestResources,
-  TestDataFile,
   TestDataResource
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates

@@ -2,12 +2,13 @@ import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
+  PacBioTestResourcesLoader,
   PbReports
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.JobTypeIds
 import com.pacbio.secondary.smrtlink.analysis.jobs.NullJobResultsWriter
 import com.pacbio.secondary.smrtlink.analysis.reports.DataSetReports
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
 
@@ -32,17 +33,20 @@ class PbReportsSpec extends Specification with LazyLogging {
   }
 }
 
-class PbReportsSubreadsSpec extends Specification with LazyLogging {
+class PbReportsSubreadsSpec
+    extends Specification
+    with LazyLogging
+    with TestDataResourcesUtils {
 
-  args(skipAll = !(PbReports.isAvailable() && PacBioTestData.isAvailable))
+  args(
+    skipAll =
+      !(PbReports.isAvailable() && PacBioTestResourcesLoader.isAvailable))
 
   // For the interface to work
   val jobTypeId = JobTypeIds.SIMPLE
 
-  private def getTestFile(ix: String): Path = {
-    val pbdata = PacBioTestData()
-    pbdata.getFile(ix)
-  }
+  private def getTestFile(ix: String): Path =
+    testResources.getFile(ix).get.path
 
   val log = new NullJobResultsWriter
   "Utility functions" should {

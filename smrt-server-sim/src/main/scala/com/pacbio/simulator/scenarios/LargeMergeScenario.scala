@@ -1,18 +1,17 @@
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.io.{File, FileNotFoundException, PrintWriter}
+import java.io.FileNotFoundException
 
 import scala.collection._
 import akka.actor.ActorSystem
 import com.pacbio.common.models.CommonModels.UUIDIdAble
 import com.typesafe.config.Config
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
@@ -24,9 +23,10 @@ import com.pacbio.simulator.steps._
 object LargeMergeScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for LargeMergeScenario")
-    val c: Config = config.get
+
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
 
     val dsRootPath = Paths.get(c.getString("datasetsPath"))
 
@@ -34,11 +34,13 @@ object LargeMergeScenarioLoader extends ScenarioLoader {
       throw new FileNotFoundException(s"Unable to find $dsRootPath")
     }
 
-    new LargeMergeScenario(getHost(c), getPort(c), dsRootPath)
+    new LargeMergeScenario(smrtLinkClient, testResources, dsRootPath)
   }
 }
 
-class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
+class LargeMergeScenario(client: SmrtLinkServiceClient,
+                         testResources: PacBioTestResources,
+                         datasetsPath: Path)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -48,7 +50,7 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
 
   override val name = "LargeMergeScenario"
 
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   val SLEEP_TIME = 2000 // polling interval for checking import job status
   val EXIT_SUCCESS: Var[Int] = Var(0)
@@ -58,7 +60,9 @@ class LargeMergeScenario(host: String, port: Int, datasetsPath: Path)
     DataSetMetaTypes.Subread)
   val dsFiles = listFilesByExtension(datasetsPath.toFile, ".subreadset.xml")
   val nFiles = dsFiles.size
-  println(s"$nFiles SubreadSets found")
+
+  logger.info(s"$nFiles SubreadSets found from $datasetsPath")
+
   val jobIds: Seq[Var[UUID]] =
     (0 until nFiles).map(_ => Var(UUID.randomUUID()))
   val dsUUIDs: Seq[UUID] =

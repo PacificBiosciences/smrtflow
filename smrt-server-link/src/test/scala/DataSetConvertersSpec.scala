@@ -3,12 +3,14 @@ import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResourcesLoader
 import com.pacbio.secondary.smrtlink.models.Converters
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
+
+import scala.util.Try
 
 class DataSetConvertersSpec extends Specification with LazyLogging {
 
@@ -93,16 +95,20 @@ class DataSetConvertersSpec extends Specification with LazyLogging {
   }
 }
 
-class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
+class DataSetConvertersAdvancedSpec
+    extends Specification
+    with LazyLogging
+    with TestDataResourcesUtils {
 
-  args(skipAll = !PacBioTestData.isAvailable)
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   sequential
 
   "Convert PacBioTestData datasets" should {
     "Convert all SubreadSets" in {
-      PacBioTestData()
+      testResources
         .getFilesByType(FileTypes.DS_SUBREADS)
+        .map(_.path)
         .map { p =>
           logger.info(s"loading SubreadSet from $p")
           val ds = DataSetLoader.loadSubreadSet(p)
@@ -111,8 +117,9 @@ class DataSetConvertersAdvancedSpec extends Specification with LazyLogging {
         .size must beGreaterThan(0)
     }
     "Convert all HdfSubreadSets" in {
-      PacBioTestData()
+      testResources
         .getFilesByType(FileTypes.DS_HDF_SUBREADS)
+        .map(_.path)
         .map { p =>
           val ds = DataSetLoader.loadHdfSubreadSet(p)
           Converters.convertHdfSubreadSet(ds, p, None, 1, 1)

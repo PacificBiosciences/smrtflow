@@ -12,12 +12,12 @@ import spray.json._
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   PacBioTestData,
+  PacBioTestResources,
   PbReports
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
@@ -39,8 +39,9 @@ object PbsmrtpipeScenarioLoader extends SmrtLinkScenarioLoader {
   override def toScenario(host: String,
                           port: Int,
                           user: Option[String],
-                          password: Option[String]): Scenario =
-    new PbsmrtpipeScenario(host, port, user, password)
+                          password: Option[String],
+                          testResources: PacBioTestResources): Scenario =
+    new PbsmrtpipeScenario(host, port, user, password, testResources)
 }
 
 trait PbsmrtpipeScenarioCore
@@ -58,7 +59,8 @@ trait PbsmrtpipeScenarioCore
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
 
   protected val tmpDir = Files.createTempDirectory("export-job")
-  protected def getReference = testdata.getTempDataSet("lambdaNEB")
+  protected def getReference =
+    testResources.getFile("lambdaNEB").get.getTempDataSetFile().path
 
   protected val reference = Var(getReference)
   protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
@@ -193,7 +195,8 @@ trait PbsmrtpipeScenarioCore
 class PbsmrtpipeScenario(host: String,
                          port: Int,
                          user: Option[String],
-                         password: Option[String])
+                         password: Option[String],
+                         val testResources: PacBioTestResources)
     extends PbsmrtpipeScenarioCore {
 
   import OptionTypes._

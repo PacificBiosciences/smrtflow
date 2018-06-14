@@ -1,14 +1,17 @@
 package com.pacbio.simulator.scenarios
 
+import java.nio.file.Path
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigException}
-
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{
+  PacBioTestData,
+  PacBioTestResources
+}
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -24,11 +27,14 @@ trait SmrtLinkScenario extends Scenario with VarSteps {
   protected val FILETYPE_REFERENCE: Var[DataSetMetaTypes.DataSetMetaType] =
     Var(DataSetMetaTypes.Reference)
 
-  protected val testdata = PacBioTestData()
-  protected def getSubreads =
-    testdata.getTempDataSet("subreads-xml",
-                            true,
-                            tmpDirBase = "dataset contents")
+  val testResources: PacBioTestResources
+
+  protected def getSubreads: Path =
+    testResources
+      .getFile("subreads-xml")
+      .get
+      .getTempDataSetFile(copyFiles = true, tmpDirBase = "dataset contents")
+      .path
 
   protected def getClient(host: String,
                           port: Int,
@@ -54,7 +60,8 @@ trait SmrtLinkScenarioLoader extends ScenarioLoader {
   protected def toScenario(host: String,
                            port: Int,
                            user: Option[String],
-                           password: Option[String]): Scenario
+                           password: Option[String],
+                           testResources: PacBioTestResources): Scenario
 
   private def requireAuth(c: Config) = if (REQUIRE_AUTH) {
     require(getUser(c).isDefined && getPassword(c).isDefined,
@@ -63,13 +70,14 @@ trait SmrtLinkScenarioLoader extends ScenarioLoader {
 
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified to run this scenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured to run this scenario")
-    val c: Config = config.get
+    val c = verifyRequiredConfig(config)
     requireAuth(c)
 
-    toScenario(getHost(c), getPort(c), getUser(c), getPassword(c))
+    val testResources = verifyConfiguredWithTestResources(c)
+    toScenario(getHost(c),
+               getPort(c),
+               getUser(c),
+               getPassword(c),
+               testResources)
   }
 }

@@ -10,19 +10,9 @@ import akka.http.scaladsl.model.Uri
 
 import scala.collection._
 import com.typesafe.config.Config
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PbReports
-}
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.io.PacBioDataBundleIOUtils
-import com.pacbio.secondary.smrtlink.client.{
-  ClientUtils,
-  SmrtLinkServiceClient
-}
+import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
+
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader, StepResult}
 import com.pacbio.simulator.steps._
@@ -32,10 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object RegistryScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for RegistryScenarioLoader")
-
-    val c: Config = config.get
+    val c = verifyRequiredConfig(config)
     val client = new SmrtLinkServiceClient(getHost(c), getPort(c))
     new RegistryScenario(client)
   }

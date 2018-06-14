@@ -14,11 +14,9 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import scala.util.Try
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
-
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models.CommonModels
 import com.pacbio.common.models.CommonModelImplicits
@@ -26,15 +24,15 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
   CallSaWriterIndex,
-  PacBioTestData,
+  PacBioTestResources,
   PbReports
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
-  SmrtLinkServiceClient,
-  ClientUtils
+  ClientUtils,
+  SmrtLinkServiceClient
 }
 import com.pacbio.secondary.smrtlink.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
@@ -45,38 +43,23 @@ import scala.concurrent.duration._
 object DataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for DataSetScenario")
-    require(
-      PacBioTestData.isAvailable,
-      s"PacBioTestData must be configured for DataSetScenario. ${PacBioTestData.errorMessage}")
-    val c: Config = config.get
+
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
+    val client = new SmrtLinkServiceClient(getHost(c), getPort(c))
 
     val gmapAvailable = Try { c.getBoolean("gmapAvailable") }.toOption
       .getOrElse(false)
 
-    val importDataSetsZipPath = Paths.get(c.getString("importDataSetsZipPath"))
-    require(
-      Files.exists(importDataSetsZipPath),
-      s"Path to Import DataSet Zip (importDataSetsZipPath) is not found $importDataSetsZipPath")
-
-    // This can be configured in scenario conf if necessary.
-    lazy val importDataSetsZipUUIDs = Set(
-      UUID.fromString("db6d2386-6dc4-11e8-a7a0-2a00a901c501"))
-
-    new DataSetScenario(getHost(c),
-                        getPort(c),
-                        gmapAvailable,
-                        importDataSetsZipPath,
-                        importDataSetsZipUUIDs)
+    new DataSetScenario(client: SmrtLinkServiceClient,
+                        testResources: PacBioTestResources,
+                        gmapAvailable: Boolean)
   }
 }
 
-class DataSetScenario(host: String,
-                      port: Int,
-                      gmapAvailable: Boolean,
-                      importDataSetsZipPath: Path,
-                      importDataSetsZipUUIDs: Set[UUID])
+class DataSetScenario(client: SmrtLinkServiceClient,
+                      testResources: PacBioTestResources,
+                      gmapAvailable: Boolean)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -86,7 +69,7 @@ class DataSetScenario(host: String,
 
   override val name = "DataSetScenario"
   override val requirements = Seq("SL-1303")
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   import CommonModels._
   import CommonModelImplicits._
@@ -95,7 +78,6 @@ class DataSetScenario(host: String,
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
-  val testdata = PacBioTestData()
   val HAVE_PBREPORTS = PbReports.isAvailable()
   val HAVE_SAWRITER = CallSaWriterIndex.isAvailable()
   val N_SUBREAD_REPORTS = if (HAVE_PBREPORTS) 3 else 1
@@ -163,25 +145,32 @@ class DataSetScenario(host: String,
   val ftCcsAlign: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.AlignmentCCS)
 
-  val subreads1 = Var(
-    testdata.getTempDataSet("subreads-xml", tmpDirBase = "dataset contents"))
-  val subreadsUuid1 = Var(getDataSetMiniMeta(subreads1.get).uuid)
-  val subreads2 = Var(testdata.getTempDataSet("subreads-sequel"))
-  val subreads3 = Var(testdata.getTempDataSet("subreads-sequel"))
-  val subreadsUuid2 = Var(getDataSetMiniMeta(subreads2.get).uuid)
-  val reference1 = Var(testdata.getTempDataSet("lambdaNEB"))
-  val hdfSubreads = Var(testdata.getTempDataSet("hdfsubreads"))
-  val barcodes = Var(testdata.getTempDataSet("barcodeset"))
-  val bcFasta = Var(testdata.getFile("barcode-fasta"))
-  val hdfsubreads = Var(testdata.getTempDataSet("hdfsubreads"))
-  val rsMovie = Var(testdata.getFile("rs-movie-metadata"))
-  val alignments = Var(testdata.getTempDataSet("aligned-xml"))
-  val alignments2 = Var(testdata.getTempDataSet("aligned-ds-2"))
-  val contigs = Var(testdata.getTempDataSet("contigset"))
-  val ccs = Var(testdata.getTempDataSet("rsii-ccs"))
-  val ccsAligned = Var(testdata.getTempDataSet("rsii-ccs-aligned"))
+  private def getTmp(ix: String): Path =
+    testResources.getFile(ix).get.getTempDataSetFile().path
 
-  val tmpDatasets = (1 to 4).map(_ => MockDataSetUtils.makeBarcodedSubreads)
+  val subreads1 = Var(
+    testResources
+      .getFile("subreads-xml")
+      .get
+      .getTempDataSetFile(tmpDirBase = "dataset contents")
+      .path)
+  val subreadsUuid1 = Var(getDataSetMiniMeta(subreads1.get).uuid)
+  val subreads2 = Var(getTmp("subreads-sequel"))
+  val subreads3 = Var(getTmp("subreads-sequel"))
+  val subreadsUuid2 = Var(getDataSetMiniMeta(subreads2.get).uuid)
+  val reference1 = Var(getTmp("lambdaNEB"))
+  val hdfSubreads = Var(getTmp("hdfsubreads"))
+  val barcodes = Var(getTmp("barcodeset"))
+  val bcFasta = Var(getTmp("barcode-fasta"))
+  val hdfsubreads = Var(getTmp("hdfsubreads"))
+  val rsMovie = Var(getTmp("rs-movie-metadata"))
+  val alignments = Var(getTmp("aligned-xml"))
+  val alignments2 = Var(getTmp("aligned-ds-2"))
+  val contigs = Var(getTmp("contigset"))
+  val ccs = Var(getTmp("rsii-ccs"))
+  val ccsAligned = Var(getTmp("rsii-ccs-aligned"))
+
+  val tmpDatasets = (1 to 4).map(_ => MockDataSetUtils.makeBarcodedSubreads(testResources))
   var tmpSubreads = tmpDatasets.map(x => Var(x._1))
   var tmpBarcodes = tmpDatasets.map(x => Var(x._2))
   val subreadsTmpUuid = Var(getDataSetMiniMeta(tmpDatasets(0)._1).uuid)
@@ -520,8 +509,9 @@ class DataSetScenario(host: String,
     jobStatus := WaitForJob(jobId),
     fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
     // not barcodes
-    jobId := ImportFastaBarcodes(Var(testdata.getFile("misc-fasta")),
-                                 Var("import-barcode-bad-fasta")),
+    jobId := ImportFastaBarcodes(
+      Var(testResources.getFile("misc-fasta").get.path),
+      Var("import-barcode-bad-fasta")),
     jobStatus := WaitForJob(jobId),
     fail("Expected barcode import to fail") IF jobStatus !=? EXIT_FAILURE,
     // wrong XML
@@ -609,7 +599,7 @@ class DataSetScenario(host: String,
 
   lazy val importDataSetsXmlZipSteps: Seq[Step] = testImportDataSetIds.map {
     f =>
-      val testResource = testdata.getTestDataFile(f)
+      val testResource = testResources.getFile(f).get
       RunImportDataSetsXmlZip(testResource,
                               s"Import DataSet Zip pacbiotestdata id:$f",
                               3.minutes)

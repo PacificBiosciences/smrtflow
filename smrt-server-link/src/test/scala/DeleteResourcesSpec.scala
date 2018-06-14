@@ -3,24 +3,23 @@ import java.io.File
 import java.util.UUID
 
 import scala.util.Try
-
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  PrinterJobResultsWriter,
+  AnalysisJobStates,
   JobModels,
-  AnalysisJobStates
+  PrinterJobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  JobResource,
-  BoundEntryPoint
+  BoundEntryPoint,
+  JobResource
 }
 import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResourcesLoader
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
 
 class DeleteJobUtilsSpec
     extends Specification
@@ -68,11 +67,13 @@ class DeleteJobUtilsSpec
 class DeleteDatasetsSpec
     extends Specification
     with DeleteResourcesUtils
-    with LazyLogging {
+    with LazyLogging
+    with TestDataResourcesUtils {
 
   val NBYTES_MIN_BARCODED_SUBREADS: Long = 16729 // this may be a bad idea
 
-  args(skipAll = !PacBioTestData.isAvailable)
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
+
   sequential
 
   private def runToReport(paths: Seq[Path], removeFiles: Boolean = true) = {
@@ -84,7 +85,8 @@ class DeleteDatasetsSpec
   "DeleteDatasetsJob" should {
     "Remove a dataset and external resources" in {
       // dataset setup - need to copy one over from test data repo
-      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
+      val (subreads, barcodes) =
+        MockDataSetUtils.makeBarcodedSubreads(testResources)
       subreads.toFile.exists must beTrue
       barcodes.toFile.exists must beTrue
       val r = runToReport(Seq(subreads), true)
@@ -104,8 +106,7 @@ class DeleteDatasetsSpec
       Try(runToReport(Seq(targetDs))).toOption must beNone
     }
     "Remove a dataset with missing resources" in {
-      val pbdata = PacBioTestData()
-      val targetDsSrc = pbdata.getFile("subreads-sequel")
+      val targetDsSrc = testResources.getFile("subreads-sequel").get.path
       val targetDir = Files.createTempDirectory("missing-resources")
       val targetDs = Paths.get(
         targetDir.toString + "/" +
@@ -118,7 +119,8 @@ class DeleteDatasetsSpec
       r.tables(0).columns(0).values.size must beEqualTo(6) // includes sts.xml
     }
     "Successfully remove two out of three datasets after failing on the first" in {
-      val (subreads, barcodes) = MockDataSetUtils.makeBarcodedSubreads
+      val (subreads, barcodes) =
+        MockDataSetUtils.makeBarcodedSubreads(testResources)
       val targetDir = Files.createTempDirectory("missing-dataset")
       val targetDs = Paths.get(targetDir.toString + "missing.subreadset.xml")
       val r = runToReport(Seq(targetDs, subreads, barcodes))

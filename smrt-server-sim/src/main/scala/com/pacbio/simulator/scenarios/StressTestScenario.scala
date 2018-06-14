@@ -11,14 +11,9 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PbReports
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
@@ -31,21 +26,19 @@ import com.pacbio.simulator.steps._
 object StressTestScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for StressTestScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for StressTestScenario")
-    val c: Config = config.get
 
-    new StressTestScenario(getHost(c),
-                           getPort(c),
+    val c = verifyRequiredConfig(config)
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
+    val testResources = verifyConfiguredWithTestResources(c)
+    new StressTestScenario(smrtLinkClient,
+                           testResources,
                            getInt(c, "smrtflow.test.njobs"),
                            getInt(c, "smrtflow.test.max-time").seconds)
   }
 }
 
-class StressTestScenario(host: String,
-                         port: Int,
+class StressTestScenario(client: SmrtLinkServiceClient,
+                         testResources: PacBioTestResources,
                          nJobs: Int,
                          maxTime: FiniteDuration)
     extends Scenario
@@ -60,15 +53,14 @@ class StressTestScenario(host: String,
   override val name = "StressTestScenario"
   override val requirements = Seq("SL-41", "SL-1295")
 
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   val TIMEOUT_ERR = s"Job did not complete within $maxTime seconds"
   val EXIT_SUCCESS: Var[Int] = Var(0)
   val EXIT_FAILURE: Var[Int] = Var(1)
 
-  val testdata = PacBioTestData()
-
-  val reference = Var(testdata.getTempDataSet("lambdaNEB"))
+  val reference = Var(
+    testResources.getFile("lambdaNEB").get.getTempDataSetFile().path)
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Reference)
   val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
