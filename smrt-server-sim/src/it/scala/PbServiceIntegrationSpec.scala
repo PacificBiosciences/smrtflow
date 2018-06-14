@@ -33,16 +33,10 @@ class PbServiceIntegrationSpec
   // Or make each test uniquely import dataset types
   sequential
 
-  // Need to use the root dir to the data files
-  private def getPacBioTestDataFilesJsonPath(): Path = {
-    val px = conf.getString(PacBioTestResourcesLoader.PB_TEST_ID)
-    Paths.get(px).toAbsolutePath
-  }
+  private def getByDataSetType(ix: String): Path =
+    testResources.findById(ix).get.path.getParent
 
-  private def getByDataSetType(name: String) =
-    testData.base.resolve(name).toAbsolutePath
-
-  def getSubreadSetsPath(): Path = testResources.findById("sequel-subreads").get.path.getParent
+  def getSubreadSetsPath(): Path = testResources.findById("subreads-sequel").get.path.getParent
   def getLambdaPath(): Path = testResources.findById("lambdaNEB").get.path
 
   val DEEP_DEBUG = true
