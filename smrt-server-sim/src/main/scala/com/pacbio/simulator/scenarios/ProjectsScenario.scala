@@ -1,25 +1,12 @@
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import com.typesafe.config.Config
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PacBioTestResources,
-  PbReports
-}
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{
-  ClientUtils,
-  SmrtLinkServiceClient
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
+
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.simulator.{Scenario, ScenarioLoader}
+import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.steps._
 
 object ProjectsScenarioLoader extends SmrtLinkScenarioLoader {
