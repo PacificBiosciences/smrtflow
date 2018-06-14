@@ -75,6 +75,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with Te
 
     val result = ExternalToolsUtils.runCmd(cmd, stdout, stderr) match {
       case Left(ex) =>
+        System.err.println(s"Scenario $scenarioType failed running cmd $cmd")
+        FileUtils.readLines(stderr.toFile).forEach(line => System.err.println(line))
         val msg = s"Error running scenario $scenarioType in ${ex.runTime} sec with error ${ex.msg}"
         logger.error(msg)
         System.err.print(msg)
