@@ -138,7 +138,7 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
 
   private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
   private val sampleDsTmp = sampleDsIds.map(id =>
-    testResources.findById(id).get.getTempDataSetFile().path)
+    testResources.findById(id).get.getTempDataSetFile(setNewUuid = true).path)
   private val sampleDs = sampleDsTmp.map(p => DataSetLoader.loadSubreadSet(p))
   private val sampleBioNames = sampleDs.map(ds => getBioSampleNames(ds).head)
   private val sampleWellNames = sampleDs.map(ds => getWellSampleNames(ds).head)
@@ -154,13 +154,14 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
           jobId := ImportDataSet(Var(path), FT_SUBREADS),
           WaitForSuccessfulJob(jobId),
           subreadSets := GetSubreadSets,
-          subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+          subreads := GetSubreadSet(
+            subreadSets.mapWith(_.sortBy(_.id).last.uuid)),
           failIfWrongBioSampleName(subreads, sampleBioNames(idx)),
           failIfWrongWellSampleName(subreads, sampleWellNames(idx))
         )
     } ++ Seq(
       subreadSets := GetSubreadSets,
-      subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+      subreads := GetSubreadSet(subreadSets.mapWith(_.sortBy(_.id).last.uuid)),
       // merging the two inputs should result in name = '[multiple]', which we
       // can't edit
       jobId := MergeDataSets(
