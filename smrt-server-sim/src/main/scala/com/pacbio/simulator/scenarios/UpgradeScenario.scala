@@ -7,10 +7,7 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  JobModels,
-  OptionTypes
-}
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobModels, OptionTypes}
 import com.pacbio.common.models._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}
 import com.pacbio.simulator.steps._
