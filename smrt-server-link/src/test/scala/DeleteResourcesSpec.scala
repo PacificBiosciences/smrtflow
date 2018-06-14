@@ -1,22 +1,12 @@
 import java.nio.file.{Files, Path, Paths}
 import java.io.File
-import java.util.UUID
 
 import scala.util.Try
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
+
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  AnalysisJobStates,
-  JobModels,
-  PrinterJobResultsWriter
-}
-import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
-  BoundEntryPoint,
-  JobResource
-}
 import com.pacbio.secondary.smrtlink.io.DeleteResourcesUtils
 import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResourcesLoader
 import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
