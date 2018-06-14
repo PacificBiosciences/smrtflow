@@ -172,12 +172,16 @@ object DataSetReports
       resultsWriter: JobResultsWriter,
       forceSimpleReports: Boolean = false): Seq[DataStoreFile] = {
 
-    val reports = Try {
+    val dsFiles = Try {
       DataSetReports.runAll(inPath, dst, jobPath, jobTypeId, resultsWriter)
     }
 
-    reports match {
-      case Success(rpts) => rpts
+    dsFiles match {
+      case Success(rpts) =>
+        val msg =
+          s"Successfully created ${rpts.length} Reports from ${dst.fileType.fileTypeId} $inPath"
+        resultsWriter.writeLine(msg)
+        rpts
       case Failure(ex) =>
         val errorMsg =
           s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"
