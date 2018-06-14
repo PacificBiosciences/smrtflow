@@ -25,7 +25,7 @@ tools:
 	sbt -no-colors clean pack
 
 tools-smrt-server-sim:
-	sbt -no-colors smrt-server-sim/{compile,pack}
+	sbt -no-colors smrt-server-sim/{compile,pack,test:compile}
 
 xsd-java:
 	rm -rf smrt-common-models/src/main/java/com/pacificbiosciences
