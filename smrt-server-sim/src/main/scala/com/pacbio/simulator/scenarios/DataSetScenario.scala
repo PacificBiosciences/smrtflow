@@ -274,7 +274,8 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     // count number of child jobs
     job := GetJobById(subreadSets.mapWith(_.takeRight(3).head.jobId)),
     childJobs := GetJobChildren(job.mapWith(_.uuid)),
-    //fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
+    // FIXME. This is might have dependency on the history?
+    fail("Expected 1 child job") IF childJobs.mapWith(_.size) !=? 1,
     DeleteJob(job.mapWith(_.uuid), Var(false)) SHOULD_RAISE classOf[Exception],
     DeleteJob(job.mapWith(_.uuid), Var(true)) SHOULD_RAISE classOf[Exception],
     childJobs := GetJobChildren(jobId),
