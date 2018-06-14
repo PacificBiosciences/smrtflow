@@ -30,6 +30,9 @@ import com.pacbio.secondary.smrtlink.analysis.externaltools.{
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.datasets.MockDataSetUtils
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  ExportDataSets => RawExportDataSets
+}
 import com.pacbio.secondary.smrtlink.client.{
   ClientUtils,
   SmrtLinkServiceClient
@@ -161,16 +164,17 @@ class DataSetScenario(client: SmrtLinkServiceClient,
   val reference1 = Var(getTmp("lambdaNEB"))
   val hdfSubreads = Var(getTmp("hdfsubreads"))
   val barcodes = Var(getTmp("barcodeset"))
-  val bcFasta = Var(getTmp("barcode-fasta"))
+  val bcFasta = Var(testResources.findById("barcode-fasta").get.path)
   val hdfsubreads = Var(getTmp("hdfsubreads"))
-  val rsMovie = Var(getTmp("rs-movie-metadata"))
+  val rsMovie = Var(testResources.findById("rs-movie-metadata").get.path)
   val alignments = Var(getTmp("aligned-xml"))
   val alignments2 = Var(getTmp("aligned-ds-2"))
   val contigs = Var(getTmp("contigset"))
   val ccs = Var(getTmp("rsii-ccs"))
   val ccsAligned = Var(getTmp("rsii-ccs-aligned"))
 
-  val tmpDatasets = (1 to 4).map(_ => MockDataSetUtils.makeBarcodedSubreads(testResources))
+  lazy val tmpDatasets: Seq[(Path, Path)] =
+    (1 to 4).map(_ => MockDataSetUtils.makeBarcodedSubreads(testResources))
   var tmpSubreads = tmpDatasets.map(x => Var(x._1))
   var tmpBarcodes = tmpDatasets.map(x => Var(x._2))
   val subreadsTmpUuid = Var(getDataSetMiniMeta(tmpDatasets(0)._1).uuid)
@@ -201,11 +205,12 @@ class DataSetScenario(client: SmrtLinkServiceClient,
                                    n: Int = 1) =
     v1.mapWith(_.size + n) !=? v2.mapWith(_.size)
 
-  val setupSteps = Seq(
+  lazy val setupSteps = Seq(
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS
   )
-  val subreadTests = Seq(
+
+  lazy val subreadTests = Seq(
     subreadSets := GetSubreadSets,
     jobId := ImportDataSet(subreads1, ftSubreads),
     job := WaitForSuccessfulJob(jobId),
@@ -280,7 +285,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     job := GetJobById(subreadSets.mapWith(_.last.jobId)),
     dataStore := GetJobDataStore(job.mapWith(_.uuid)),
     fail("Expected isActive=false") IF dataStore.mapWith(
-      _.filter(f => f.isActive).size) !=? 0,
+      _.count(f => f.isActive)) !=? 0,
     // export SubreadSets
     subreadSets := GetSubreadSets,
     jobId := ExportDataSets(
@@ -326,7 +331,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
                 RPT_TABLE,
                 s"${RPT_PROD}_0_n")) ==? None
           ))
-  val referenceTests = Seq(
+  lazy val referenceTests = Seq(
     referenceSets := GetReferenceSets,
     jobId := ImportDataSet(reference1, ftReference),
     job := WaitForSuccessfulJob(jobId),
@@ -361,7 +366,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
               .mapWith(_.name) !=? "import_fasta"
           ))
   // GmapReferenceSet import tests (require gmap_build)
-  val gmapReferenceTests =
+  lazy val gmapReferenceTests =
     if (!gmapAvailable) Seq()
     else {
       Seq(
@@ -385,7 +390,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
           .mapWith(_.name) !=? "import_fasta_gmap"
       )
     }
-  val barcodeTests = Seq(
+  lazy val barcodeTests = Seq(
     barcodeSets := GetBarcodeSets,
     jobId := ImportDataSet(barcodes, ftBarcodes),
     job := WaitForSuccessfulJob(jobId),
@@ -416,7 +421,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     jobId := DeleteJob(job.mapWith(_.uuid), Var(false)),
     job := WaitForSuccessfulJob(jobId)
   )
-  val hdfSubreadTests = Seq(
+  lazy val hdfSubreadTests = Seq(
     hdfSubreadSets := GetHdfSubreadSets,
     jobId := ImportDataSet(hdfsubreads, ftHdfSubreads),
     job := WaitForSuccessfulJob(jobId),
@@ -445,7 +450,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
       Var("merge-hdfsubreads")),
     job := WaitForSuccessfulJob(jobId)
   )
-  val otherTests = Seq(
+  lazy val otherTests = Seq(
     // ContigSet
     jobId := ImportDataSet(contigs, ftContigs),
     job := WaitForSuccessfulJob(jobId),
@@ -499,7 +504,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     job := WaitForSuccessfulJob(jobId)
   )
   // FAILURE MODES
-  val failureTests = Seq(
+  lazy val failureTests = Seq(
     // not a dataset
     ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[Exception],
     // wrong ds metatype
@@ -519,7 +524,8 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     jobStatus := WaitForJob(jobId),
     fail("Expected RS Movie import to fail") IF jobStatus !=? EXIT_FAILURE
   )
-  val deleteTests = Seq(
+
+  lazy val deleteTests = Seq(
     jobId := ImportDataSet(tmpSubreads(0), ftSubreads),
     job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
@@ -583,28 +589,33 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     fail("Expected last SubreadSet to be inactive") IF dsMeta.mapWith(
       _.isActive) !=? false
   )
-  val reimportTests = Seq(
+
+  lazy val reimportTests = Seq(
     jobId := ImportDataSet(tmpSubreads2, ftSubreads),
     job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
     fail("Multiple dataset have the same UUID") IF subreadSets.mapWith { ss =>
-      ss.filter(_.uuid == subreadsUuid1.get).size
+      ss.count(_.uuid == subreadsUuid1.get)
     } !=? 1,
     fail("Path did not change") IF subreadSets.mapWith { ss =>
       ss.filter(_.uuid == subreadsUuid1.get).last.path
     } !=? tmpSubreads2.get.toString
   )
 
-  val testImportDataSetIds = Seq("barcodeset", "lambdaNEB")
+  // reference sets are borked for some reason.
+  val lambdaNeb = "lambdaNEB"
+  val sequelSubreads = "subreads-sequel"
+  val testImportDataSetIds = Seq("barcodeset", sequelSubreads)
 
   lazy val importDataSetsXmlZipSteps: Seq[Step] = testImportDataSetIds.map {
     f =>
       val testResource = testResources.findById(f).get
+      andLog(s"Loaded TestResource $testResource")
       RunImportDataSetsXmlZip(testResource,
                               s"Import DataSet Zip pacbiotestdata id:$f",
                               3.minutes)
   }
 
-  override val steps = (setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++
-    hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests ++ importDataSetsXmlZipSteps)
+  override val steps = setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++
+    hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests ++ importDataSetsXmlZipSteps
 }
