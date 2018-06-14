@@ -3,13 +3,14 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import util.{Success, Failure, Try}
-
+import util.{Failure, Success, Try}
 import org.joda.time.{DateTime => JodaDateTime}
-
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
@@ -34,9 +35,25 @@ case class ImportDataSetJobOptions(
   override def validate(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
-    // Spray serialization errors will be raised here.
-    //logger.warn(s"Job ${jobTypeId.id} Validation is disabled")
-    None
+
+    def failIfInValid(dst: DataSetMetaTypes.DataSetMetaType)
+      : Try[DataSetMetaTypes.DataSetMetaType] = {
+      val msg =
+        s"Incompatible DataSetMetaType provided=${datasetType.fileType.fileTypeId} expected=${dst.fileType.fileTypeId} from $path"
+      if (dst == datasetType) Success(dst)
+      else Failure(new Exception(msg))
+    }
+
+    val tx = for {
+      mini <- Try(DataSetFileUtils.getDataSetMiniMeta(path))
+      _ <- failIfInValid(mini.metatype)
+    } yield mini
+
+    tx match {
+      case Success(_) => None
+      case Failure(ex) => Some(InvalidJobOptionError(ex.getMessage))
+    }
+
   }
 
   override def toJob() = new ImportDataSetJob(this)
