@@ -42,8 +42,8 @@ class PbServiceIntegrationSpec
   private def getByDataSetType(name: String) =
     testData.base.resolve(name).toAbsolutePath
 
-  def getSubreadSetsPath(): Path = testResources.getFile("sequel-subreads").get.path.getParent
-  def getLambdaPath(): Path = testResources.getFile("lambdaNEB").get.path
+  def getSubreadSetsPath(): Path = testResources.findById("sequel-subreads").get.path.getParent
+  def getLambdaPath(): Path = testResources.findById("lambdaNEB").get.path
 
   val DEEP_DEBUG = true
 

@@ -31,7 +31,7 @@ trait SmrtLinkScenario extends Scenario with VarSteps {
 
   protected def getSubreads: Path =
     testResources
-      .getFile("subreads-xml")
+      .findById("subreads-xml")
       .get
       .getTempDataSetFile(copyFiles = true, tmpDirBase = "dataset contents")
       .path

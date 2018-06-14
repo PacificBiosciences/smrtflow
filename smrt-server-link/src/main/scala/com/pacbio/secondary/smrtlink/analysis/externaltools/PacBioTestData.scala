@@ -45,8 +45,7 @@ case class TestDataResource(id: String,
 }
 
 case class PacBioTestResources(files: Seq[TestDataResource]) {
-  // Rename to "findById" to communicate it returns an Option[T]
-  def getFile(id: String): Option[TestDataResource] = files.find(_.id == id)
+  def findById(id: String): Option[TestDataResource] = files.find(_.id == id)
 
   def getByIds(ids: Set[String]): Seq[TestDataResource] =
     files.filter(f => ids contains f.id)

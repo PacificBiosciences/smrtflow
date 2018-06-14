@@ -119,7 +119,7 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
   private val singleSampleSteps =
     Seq("subreads-sequel", "subreads-biosample-1", "subreads-biosample-2")
       .flatMap { dsId =>
-        val path = testResources.getFile(dsId).get.path
+        val path = testResources.findById(dsId).get.path
         val uuid = getDataSetMiniMeta(path).uuid
         Seq(
           jobStatus := GetStatus,
@@ -138,7 +138,7 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
 
   private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
   private val sampleDsTmp = sampleDsIds.map(id =>
-    testResources.getFile(id).get.getTempDataSetFile().path)
+    testResources.findById(id).get.getTempDataSetFile().path)
   private val sampleDs = sampleDsTmp.map(p => DataSetLoader.loadSubreadSet(p))
   private val sampleBioNames = sampleDs.map(ds => getBioSampleNames(ds).head)
   private val sampleWellNames = sampleDs.map(ds => getWellSampleNames(ds).head)

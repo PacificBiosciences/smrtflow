@@ -262,7 +262,7 @@ class JobUtilsAdvancedSpec
       val dsFile = workflowDir.resolve("datastore.json")
       val dsJson = ds.copy(files = ds.files ++ files2).toJson.prettyPrint
       FileUtils.writeStringToFile(dsFile.toFile, dsJson, "UTF-8")
-      val refPath = testResources.getFile("lambdaNEB").get.path
+      val refPath = testResources.findById("lambdaNEB").get.path
       val eps = Seq(BoundEntryPoint("eid_ref_dataset", refPath))
       val zipPath = Files.createTempFile("job", ".zip")
       //val zipPath = Paths.get("job2.zip")

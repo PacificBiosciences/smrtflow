@@ -52,7 +52,7 @@ class ChemistryBundleScenario(client: SmrtLinkServiceClient,
   val EXIT_FAILURE: Var[Int] = Var(1)
 
   val subreads = Var(
-    testResources.getFile("subreads-sequel").get.getTempDataSetFile().path)
+    testResources.findById("subreads-sequel").get.getTempDataSetFile().path)
   val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   val ftSubreads: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Subread)

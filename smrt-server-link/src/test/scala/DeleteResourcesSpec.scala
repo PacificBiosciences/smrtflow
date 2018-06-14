@@ -96,7 +96,7 @@ class DeleteDatasetsSpec
       Try(runToReport(Seq(targetDs))).toOption must beNone
     }
     "Remove a dataset with missing resources" in {
-      val targetDsSrc = testResources.getFile("subreads-sequel").get.path
+      val targetDsSrc = testResources.findById("subreads-sequel").get.path
       val targetDir = Files.createTempDirectory("missing-resources")
       val targetDs = Paths.get(
         targetDir.toString + "/" +

@@ -60,7 +60,7 @@ class StressTestScenario(client: SmrtLinkServiceClient,
   val EXIT_FAILURE: Var[Int] = Var(1)
 
   val reference = Var(
-    testResources.getFile("lambdaNEB").get.getTempDataSetFile().path)
+    testResources.findById("lambdaNEB").get.getTempDataSetFile().path)
   val ftReference: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Reference)
   val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)

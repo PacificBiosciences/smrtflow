@@ -146,11 +146,11 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     DataSetMetaTypes.AlignmentCCS)
 
   private def getTmp(ix: String): Path =
-    testResources.getFile(ix).get.getTempDataSetFile().path
+    testResources.findById(ix).get.getTempDataSetFile().path
 
   val subreads1 = Var(
     testResources
-      .getFile("subreads-xml")
+      .findById("subreads-xml")
       .get
       .getTempDataSetFile(tmpDirBase = "dataset contents")
       .path)
@@ -510,7 +510,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     fail("Expected import to fail") IF jobStatus !=? EXIT_FAILURE,
     // not barcodes
     jobId := ImportFastaBarcodes(
-      Var(testResources.getFile("misc-fasta").get.path),
+      Var(testResources.findById("misc-fasta").get.path),
       Var("import-barcode-bad-fasta")),
     jobStatus := WaitForJob(jobId),
     fail("Expected barcode import to fail") IF jobStatus !=? EXIT_FAILURE,
@@ -599,7 +599,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
 
   lazy val importDataSetsXmlZipSteps: Seq[Step] = testImportDataSetIds.map {
     f =>
-      val testResource = testResources.getFile(f).get
+      val testResource = testResources.findById(f).get
       RunImportDataSetsXmlZip(testResource,
                               s"Import DataSet Zip pacbiotestdata id:$f",
                               3.minutes)

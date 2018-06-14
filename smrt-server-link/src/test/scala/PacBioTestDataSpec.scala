@@ -19,7 +19,7 @@ class PacBioTestDataSpec
   "PacBioTestData wrapper" should {
     "load files from JSON" in {
       PacBioTestResourcesLoader.isAvailable must beTrue
-      val f = testResources.getFile("lambda-fasta")
+      val f = testResources.findById("lambda-fasta")
       f must beSome
       val isFound = f.map(x => Files.exists(x.path)).getOrElse(false)
       isFound must beTrue

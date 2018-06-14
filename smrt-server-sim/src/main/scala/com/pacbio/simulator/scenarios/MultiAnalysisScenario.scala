@@ -535,7 +535,7 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
 
     def getFile(fileId: String): Future[Path] =
       failIfNone(s"Unable to find testdata $fileId")(
-        testData.getFile(fileId).map(_.path))
+        testData.findById(fileId).map(_.path))
 
     override val runWith = for {
       path <- getFile(subreadSetTestId)

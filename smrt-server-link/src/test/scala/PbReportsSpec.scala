@@ -46,7 +46,7 @@ class PbReportsSubreadsSpec
   val jobTypeId = JobTypeIds.SIMPLE
 
   private def getTestFile(ix: String): Path =
-    testResources.getFile(ix).get.path
+    testResources.findById(ix).get.path
 
   val log = new NullJobResultsWriter
   "Utility functions" should {

@@ -39,7 +39,7 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with Te
 
   def getSubreadSetRoot(): Path = {
     // Use a random subreadset for testing
-    val t = testResources.getFile("sequel-subreads").get
+    val t = testResources.findById("sequel-subreads").get
     t.path.getParent
   }
 

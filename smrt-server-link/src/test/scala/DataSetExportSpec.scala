@@ -169,7 +169,7 @@ class DataSetExportSpecAdvanced
 
   private def getTestResourceById(testId: String): TestDataResource = {
     pacBioTestResources
-      .getFile(testId)
+      .findById(testId)
       .getOrElse(throw new Exception(s"Unable to find $testId"))
   }
 

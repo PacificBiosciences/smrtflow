@@ -62,7 +62,7 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
 
   val jobStatusId = Var.empty[UUID]
 
-  val lambdaNebPath = testResources.getFile("lambdaNEB").get.path
+  val lambdaNebPath = testResources.findById("lambdaNEB").get.path
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
   val dsUUID = Var.empty[UUID]
 

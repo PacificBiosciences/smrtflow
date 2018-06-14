@@ -61,7 +61,7 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   private val NUM_RECORDS_EXPECTED_2 = 13
 
   private lazy val subreadsXml =
-    testResources.getFile(TEST_FILE_ID).get.getTempDataSetFile().path
+    testResources.findById(TEST_FILE_ID).get.getTempDataSetFile().path
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
 

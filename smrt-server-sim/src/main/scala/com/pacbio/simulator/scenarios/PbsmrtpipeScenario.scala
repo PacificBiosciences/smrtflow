@@ -60,7 +60,7 @@ trait PbsmrtpipeScenarioCore
 
   protected val tmpDir = Files.createTempDirectory("export-job")
   protected def getReference =
-    testResources.getFile("lambdaNEB").get.getTempDataSetFile().path
+    testResources.findById("lambdaNEB").get.getTempDataSetFile().path
 
   protected val reference = Var(getReference)
   protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)

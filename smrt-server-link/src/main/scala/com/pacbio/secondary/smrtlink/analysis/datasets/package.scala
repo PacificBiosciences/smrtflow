@@ -120,9 +120,9 @@ package object datasets {
         destDir.getOrElse(Files.createTempDirectory("dataset-contents"))
       val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
       val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
-      val subreadsSrc = testResources.getFile("barcoded-subreadset").get.path
+      val subreadsSrc = testResources.findById("barcoded-subreadset").get.path
       val subreadsDir = subreadsSrc.getParent.toFile
-      val barcodesSrc = testResources.getFile("barcodeset").get.path
+      val barcodesSrc = testResources.findById("barcodeset").get.path
       val barcodesDir = barcodesSrc.getParent.toFile
       // only copy the files we need for this SubreadSet, that way we can check
       // for an empty directory
