@@ -16,7 +16,6 @@ import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
   PacBioTestResources,
   PbReports
 }

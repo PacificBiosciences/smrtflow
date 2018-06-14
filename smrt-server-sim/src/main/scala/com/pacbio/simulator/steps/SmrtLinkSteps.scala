@@ -1,7 +1,7 @@
 package com.pacbio.simulator.steps
 
 import java.util.UUID
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -9,19 +9,17 @@ import scala.util.control.NonFatal
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
-import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
-  DataSetFilterProperty,
-  DataSetMiniMeta
+  DataSetMetaTypes
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes.DataSetMetaType
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestResources,
-  TestDataResource
+import com.pacbio.secondary.smrtlink.analysis.externaltools.TestDataResource
+import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
+  ExportDataSets => RawExportDataSets
 }
-import com.pacbio.secondary.smrtlink.analysis.jobs.AnalysisJobStates
 import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.OptionTypes.{BOOL, INT}
@@ -722,8 +720,6 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
     (px, miniMeta.uuid)
   }
 
-  private def createDataSetsZip(dsPath: Path, outputDir: Path): Path = ???
-
   /**
     * Test the Importing of a PB dataset(s) XML Zip
     *
@@ -732,28 +728,41 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
     * 3. Run the Import DataSet Zip job successfully
     * 4. Verify that the DataSet with UUID (from Step 1) was successfully imported.
     *
-    * @param datasetTestId DataSet Test Id (example "lambdaNeb")
+    * @param testDataResource TestData Resource
     */
   case class RunImportDataSetsXmlZip(testDataResource: TestDataResource,
                                      jobName: String,
                                      maxTime: FiniteDuration)
-      extends VarStep[EngineJob] {
+      extends VarStep[EngineJob]
+      with DaoFutureUtils {
     override val name = "RunImportDataSetsXmlZip"
     override def runWith: Future[EngineJob] = {
 
-      val outputZipDir: Path = ???
+      val outputZipDir: Path = Files.createTempDirectory("output-for-zip")
+      val outputZip: Path = outputZipDir.resolve("output.zip")
+      val dst = DataSetMetaTypes.fromString(testDataResource.fileTypeId)
 
       def fetchDataSet(uuid: UUID): Future[DataSetMetaDataSet] =
         smrtLinkClient.getDataSet(uuid)
 
       for {
+        _ <- andLog(
+          s"Attempting to run $name with $testDataResource job:$jobName")
+        dataSetType <- failIfNone(
+          s"Invalid dataset type ${testDataResource.fileTypeId}")(dst)
         px <- Future.successful(getAndCopyTestResource(testDataResource))
-        zipPath <- Future.successful(
-          createDataSetsZip(px._1.path, outputZipDir))
+        _ <- Future.successful(
+          RawExportDataSets(Seq(px._1.path), dataSetType, outputZip))
+        _ <- andLog(s"Successfully Created DataSet XML ZIP $outputZip")
         datasetUUIDs <- Future.successful(Set(px._2))
-        createdJob <- smrtLinkClient.runImportDataSetsXmlZip(px._1.path,
+        _ <- andLog(s"DataSet UUID(s) $datasetUUIDs")
+        createdJob <- smrtLinkClient.runImportDataSetsXmlZip(outputZip,
                                                              jobName)
+        _ <- andLog(
+          s"Created ImportDataSet ZIP job ${createdJob.id} ${createdJob.path}")
         successfulJob <- pollForSuccessfulJob(createdJob.id, maxTime)
+        _ <- andLog(
+          s"Successfully ran ImportDataSet ZIP job ${successfulJob.id} ${successfulJob.path}")
         datasets <- Future.traverse(datasetUUIDs)(fetchDataSet)
         msg <- Future.successful(
           s"Successfully verified ${datasets.map(_.uuid)}")

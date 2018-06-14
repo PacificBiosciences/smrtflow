@@ -6,12 +6,9 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import akka.actor.ActorSystem
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.Config
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PacBioTestResources
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.simulator.steps._
 import com.pacbio.simulator.{Scenario, ScenarioLoader}

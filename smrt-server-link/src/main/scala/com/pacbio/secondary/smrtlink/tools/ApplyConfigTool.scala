@@ -304,7 +304,7 @@ object ApplyConfigUtils extends LazyLogging {
   /**
     * # 7 (update_tomcat)
     * Update Tomcat server.xml Template with Tomcat Port.
-    * (REMOVE THIS) Update .keystore file in the root bundle dir (?) is this even used ???
+    * (REMOVE THIS) Update .keystore file in the root bundle dir (?) is this even used?
     *
     * @param outputTomcatServerXml
     * @param tomcatPort
