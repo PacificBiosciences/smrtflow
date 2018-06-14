@@ -33,7 +33,8 @@ class PbServiceIntegrationSpec
   // Or make each test uniquely import dataset types
   sequential
 
-  private def getByDataSetType(ix: String): Path =
+  // Get the root directory of a dataset for testing importing by dir
+  private def getRootDirOfTestDataSet(ix: String): Path =
     testResources.findById(ix).get.path.getParent
 
   def getSubreadSetsPath(): Path = testResources.findById("subreads-sequel").get.path.getParent
@@ -73,25 +74,25 @@ class PbServiceIntegrationSpec
       runPbservice("import-dataset", getSubreadSetsPath().toString) must beNone
     }
     "import-dataset HdfSubreadSets by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("HdfSubreadSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("hdfsubreads").toString) must beNone
     }
     "import-dataset BarcodeSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("BarcodeSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("barcodeset").toString) must beNone
     }
     "import-dataset AlignmentSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("AlignmentSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("aligned-xml").toString) must beNone
     }
     "import-dataset ConsensusAlignmentSet by Dir" in {
       runPbservice(
         "import-dataset",
-        getByDataSetType("ConsensusAlignmentSet").toString) must beNone
+        getRootDirOfTestDataSet("rsii-ccs-aligned").toString) must beNone
     }
     "import-dataset ConsensusReadSet by Dir" in {
       runPbservice("import-dataset",
-                   getByDataSetType("ConsensusReadSet").toString) must beNone
+                   getRootDirOfTestDataSet("ccs-barcoded").toString) must beNone
     }
     "import-dataset ContigSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("ContigSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("contigset").toString) must beNone
     }
     "import-dataset ReferenceSet Lambda by XML" in {
       runPbservice("import-dataset", getLambdaPath().toString) must beNone
