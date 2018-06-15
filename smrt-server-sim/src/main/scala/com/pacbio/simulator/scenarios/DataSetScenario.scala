@@ -622,10 +622,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     } !=? tmpSubreads2.get.toString
   )
 
-  // reference sets are borked for some reason.
-  val lambdaNeb = "lambdaNEB"
-  val sequelSubreads = "subreads-sequel"
-  val testImportDataSetIds = Seq("barcodeset", sequelSubreads)
+  val testImportDataSetIds = Seq("barcodeset", "subreads-sequel", "lambdaNEB")
 
   lazy val importDataSetsXmlZipSteps: Seq[Step] = testImportDataSetIds.map {
     f =>

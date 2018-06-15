@@ -6,10 +6,7 @@ import java.io.File
 
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestResources,
-  PacBioTestResourcesLoader
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 
 import scala.util.{Failure, Success, Try}
 
@@ -100,10 +97,18 @@ package object datasets {
       val dsDir = dsPath.getParent.toFile
       val prefix = FilenameUtils.getName(dsPath.toString).split('.')(0)
       for (f <- dsDir.listFiles) {
-        val filename = FilenameUtils.getName(f.toString)
-        if (copyAll || filename.startsWith(prefix)) {
-          val dest = new File(destDir.toString + "/" + filename)
-          FileUtils.copyFile(f, dest)
+        val name = FilenameUtils.getName(f.toString)
+        if (f.isFile) {
+          if (copyAll || name.startsWith(prefix)) {
+            val dest = new File(destDir.toString + "/" + name)
+            FileUtils.copyFile(f, dest)
+          }
+        } else {
+          // MK. adding more hacks on top to get this to work
+          // for references (which have a "sequences" subdir)
+          // This blindly copy the subdir and all it's contents to dest
+          val subDest = destDir.toPath.resolve(name)
+          FileUtils.copyDirectory(f, subDest.toFile)
         }
       }
     }
