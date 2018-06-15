@@ -366,9 +366,16 @@ package object jobtypes {
     // sugar
     val jobTypeId = opts.jobTypeId
 
-    def getStdOutLog(resources: JobResourceBase, dao: JobsDao) =
+    // This really should NEVER be used
+    def getStdOutLog(resources: JobResourceBase, dao: JobsDao): DataStoreFile =
       runAndBlock(addStdOutLogToDataStore(resources, dao, opts.projectId),
                   opts.DEFAULT_TIMEOUT).get
+
+    def getStdOutLogT(resources: JobResourceBase,
+                      dao: JobsDao): Try[DataStoreFile] = {
+      runAndBlock(addStdOutLogToDataStore(resources, dao, opts.projectId),
+                  opts.DEFAULT_TIMEOUT)
+    }
   }
 
   // Use to encode a multi job type
