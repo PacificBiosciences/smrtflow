@@ -52,19 +52,18 @@ case class DeleteSmrtLinkJobOptions(
   def confirmIsDeletable(dao: JobsDao,
                          jobId: IdAble,
                          force: Boolean = false): Future[EngineJob] = {
+    val msg = s"Can't delete this job (${jobId.toIdString}) because"
+
     dao.getJobById(jobId).flatMap { job =>
       if (job.isComplete || force) {
         dao.getJobChildrenByJobId(job.id).flatMap { jobs =>
           if (jobs.isEmpty || force) Future.successful(job)
           else
-            Future.failed(throw new UnprocessableEntityError(
-              s"Can't delete this job because it has active children. Job Ids: ${jobs
-                .map(_.id)}"))
+            Future.failed(UnprocessableEntityError(
+              s"$msg it has active children. Job Ids: ${jobs.map(_.id).mkString(",")}"))
         }
       } else {
-        Future.failed(
-          throw new UnprocessableEntityError(
-            "Can't delete this job because it hasn't completed"))
+        Future.failed(UnprocessableEntityError(s"$msg it hasn't completed"))
       }
     }
   }
