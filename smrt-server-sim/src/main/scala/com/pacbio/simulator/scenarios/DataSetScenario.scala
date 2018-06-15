@@ -628,7 +628,8 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     f =>
       val testResource = testResources.findById(f).get
       andLog(s"Loaded TestResource $testResource")
-      RunImportDataSetsXmlZip(testResource,
+      val copiedResource = testResource.getTempDataSetFile(setNewUuid = true)
+      RunImportDataSetsXmlZip(copiedResource,
                               s"Import DataSet Zip pacbiotestdata id:$f",
                               3.minutes)
   }
