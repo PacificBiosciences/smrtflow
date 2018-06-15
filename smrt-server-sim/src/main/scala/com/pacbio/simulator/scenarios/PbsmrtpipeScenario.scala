@@ -58,10 +58,10 @@ trait PbsmrtpipeScenarioCore
   protected def fileExists(path: String) = Files.exists(Paths.get(path))
 
   protected val tmpDir = Files.createTempDirectory("export-job")
-  protected def getReference =
-    testResources.findById("lambdaNEB").get.getTempDataSetFile().path
+  protected def getReference(setNewUuid: Boolean = false) =
+    testResources.findById("lambdaNEB").get.getTempDataSetFile(setNewUuid).path
 
-  protected val reference = Var(getReference)
+  protected val reference = Var(getReference(true))
   protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
   protected val subreads = Var(getSubreads(true))
   protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
