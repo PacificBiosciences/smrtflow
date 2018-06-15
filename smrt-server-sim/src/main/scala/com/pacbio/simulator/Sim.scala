@@ -160,7 +160,7 @@ object Sim extends App with LazyLogging {
     import scala.collection.JavaConverters._
     println("\nConfigs:")
     config.entrySet().asScala.foreach { e =>
-      println(s"${e.getKey}: ${e.getValue.render()}")
+      println(s"\t${e.getKey}: ${e.getValue.render()}")
     }
     println()
   }
@@ -182,6 +182,8 @@ object Sim extends App with LazyLogging {
                   simArgs: SimArgs): Try[(Boolean, String)] = {
     val f = for {
       _ <- Future.fromTry(Try(scenario.setUp()))
+      _ <- Future.successful(
+        printAndLog(s"Attempting to run scenario ${scenario.name}"))
       result <- scenario.run()
       _ <- simArgs.outputXML
         .map(p => writeOutput(result, scenario.requirements, p))
@@ -207,6 +209,7 @@ object Sim extends App with LazyLogging {
         simArgs.config.map(p => ConfigFactory.parseFile(p.toFile).resolve()))
       _ <- Try(config.map(printConfig).getOrElse(Unit))
       scenario <- Try(simArgs.loader.load(config))
+      _ <- Try(printAndLog(s"Successfully loaded $scenario"))
       (wasSuccessful, msg) <- runScenario(scenario, simArgs)
     } yield (wasSuccessful, msg)
   }

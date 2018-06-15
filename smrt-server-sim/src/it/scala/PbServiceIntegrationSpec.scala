@@ -1,12 +1,8 @@
 import java.nio.file.{Files, Path, Paths}
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  ExternalCmdFailure,
-  ExternalToolsUtils,
-  PacBioTestData
-}
-import com.pacbio.secondary.smrtlink.testkit.MockFileUtils
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestResourcesLoader}
+import com.pacbio.secondary.smrtlink.testkit.{MockFileUtils, TestDataResourcesUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable.Specification
 
@@ -28,26 +24,21 @@ import org.specs2.mutable.Specification
 class PbServiceIntegrationSpec
     extends Specification
     with ConfigLoader
-    with LazyLogging {
+    with LazyLogging
+      with TestDataResourcesUtils{
+
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   // NOTE, these test must be run serially to avoid import dataset collisions
   // Or make each test uniquely import dataset types
   sequential
 
-  // Need to use the root dir to the data files
-  private def getPacBioTestDataFilesJsonPath(): Path = {
-    val px = conf.getString(PacBioTestData.PB_TEST_ID)
-    Paths.get(px).toAbsolutePath
-  }
-  // This is confusing and problematic from a config standpoint
-  // This will fail in a non-graceful manner if PB_TEST_DATA_FILES is not exported.
-  val testData = PacBioTestData()
+  // Get the root directory of a dataset for testing importing by dir
+  private def getRootDirOfTestDataSet(ix: String): Path =
+    testResources.findById(ix).get.path.getParent
 
-  private def getByDataSetType(name: String) =
-    testData.base.resolve(name).toAbsolutePath
-
-  def getSubreadSetsPath(): Path = getByDataSetType("SubreadSet")
-  def getLambdaPath(): Path = testData.getFile("lambdaNEB")
+  def getSubreadSetsPath(): Path = testResources.findById("subreads-sequel").get.path.getParent
+  def getLambdaPath(): Path = testResources.findById("lambdaNEB").get.path
 
   val DEEP_DEBUG = true
 
@@ -83,25 +74,25 @@ class PbServiceIntegrationSpec
       runPbservice("import-dataset", getSubreadSetsPath().toString) must beNone
     }
     "import-dataset HdfSubreadSets by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("HdfSubreadSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("hdfsubreads").toString) must beNone
     }
     "import-dataset BarcodeSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("BarcodeSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("barcodeset").toString) must beNone
     }
     "import-dataset AlignmentSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("AlignmentSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("aligned-xml").toString) must beNone
     }
     "import-dataset ConsensusAlignmentSet by Dir" in {
       runPbservice(
         "import-dataset",
-        getByDataSetType("ConsensusAlignmentSet").toString) must beNone
+        getRootDirOfTestDataSet("rsii-ccs-aligned").toString) must beNone
     }
     "import-dataset ConsensusReadSet by Dir" in {
       runPbservice("import-dataset",
-                   getByDataSetType("ConsensusReadSet").toString) must beNone
+                   getRootDirOfTestDataSet("ccs-barcoded").toString) must beNone
     }
     "import-dataset ContigSet by Dir" in {
-      runPbservice("import-dataset", getByDataSetType("ContigSet").toString) must beNone
+      runPbservice("import-dataset", getRootDirOfTestDataSet("contigset").toString) must beNone
     }
     "import-dataset ReferenceSet Lambda by XML" in {
       runPbservice("import-dataset", getLambdaPath().toString) must beNone

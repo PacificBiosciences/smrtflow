@@ -4,15 +4,14 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
-  DataSetMetadataUtils,
-  DataSetMetaTypes
+  DataSetMetaTypes,
+  DataSetMetadataUtils
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   JobModels,
@@ -27,17 +26,17 @@ import com.pacbio.simulator.steps._
 object SampleNamesScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for SampleNamesScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for SampleNamesScenario")
-    val c: Config = config.get
 
-    new SampleNamesScenario(getHost(c), getPort(c))
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
+    val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
+
+    new SampleNamesScenario(smrtLinkClient, testResources)
   }
 }
 
-class SampleNamesScenario(host: String, port: Int)
+class SampleNamesScenario(client: SmrtLinkServiceClient,
+                          testResources: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -52,7 +51,7 @@ class SampleNamesScenario(host: String, port: Int)
 
   override val name = "SampleNamesScenario"
   override val requirements = Seq.empty[String]
-  override val smrtLinkClient = new SmrtLinkServiceClient(host, port)
+  override val smrtLinkClient = client
 
   private val EXIT_SUCCESS: Var[Int] = Var(0)
   private val EXIT_FAILURE: Var[Int] = Var(1)
@@ -61,8 +60,6 @@ class SampleNamesScenario(host: String, port: Int)
   private val WELL_SAMPLE_NAME = "H. florensis DNA"
   private val FT_SUBREADS: Var[DataSetMetaTypes.DataSetMetaType] = Var(
     DataSetMetaTypes.Subread)
-
-  private val testdata = PacBioTestData()
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
 
@@ -122,7 +119,7 @@ class SampleNamesScenario(host: String, port: Int)
   private val singleSampleSteps =
     Seq("subreads-sequel", "subreads-biosample-1", "subreads-biosample-2")
       .flatMap { dsId =>
-        val path = testdata.getTempDataSet(dsId)
+        val path = testResources.findById(dsId).get.path
         val uuid = getDataSetMiniMeta(path).uuid
         Seq(
           jobStatus := GetStatus,
@@ -140,7 +137,8 @@ class SampleNamesScenario(host: String, port: Int)
       }
 
   private val sampleDsIds = Seq(1, 2).map(i => s"subreads-biosample-$i")
-  private val sampleDsTmp = sampleDsIds.map(id => testdata.getTempDataSet(id))
+  private val sampleDsTmp = sampleDsIds.map(id =>
+    testResources.findById(id).get.getTempDataSetFile(setNewUuid = true).path)
   private val sampleDs = sampleDsTmp.map(p => DataSetLoader.loadSubreadSet(p))
   private val sampleBioNames = sampleDs.map(ds => getBioSampleNames(ds).head)
   private val sampleWellNames = sampleDs.map(ds => getWellSampleNames(ds).head)
@@ -156,13 +154,14 @@ class SampleNamesScenario(host: String, port: Int)
           jobId := ImportDataSet(Var(path), FT_SUBREADS),
           WaitForSuccessfulJob(jobId),
           subreadSets := GetSubreadSets,
-          subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+          subreads := GetSubreadSet(
+            subreadSets.mapWith(_.sortBy(_.id).last.uuid)),
           failIfWrongBioSampleName(subreads, sampleBioNames(idx)),
           failIfWrongWellSampleName(subreads, sampleWellNames(idx))
         )
     } ++ Seq(
       subreadSets := GetSubreadSets,
-      subreads := GetSubreadSet(subreadSets.mapWith(_.last.uuid)),
+      subreads := GetSubreadSet(subreadSets.mapWith(_.sortBy(_.id).last.uuid)),
       // merging the two inputs should result in name = '[multiple]', which we
       // can't edit
       jobId := MergeDataSets(

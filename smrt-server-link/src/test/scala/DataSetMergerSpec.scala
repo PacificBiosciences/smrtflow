@@ -1,35 +1,29 @@
-import java.nio.file.{Files, Paths, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.io.File
 import java.util.UUID
 
 import collection.JavaConverters._
-
 import com.typesafe.scalalogging.LazyLogging
-import org.joda.time.{DateTime => JodaDateTime}
 import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
-  DataSetWriter,
+  DataSetLoader,
   DataSetMerger,
-  DataSetLoader
+  DataSetWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PbReports
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResourcesLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
+  AnalysisJobStates,
   NullJobResultsWriter,
-  PrinterJobResultsWriter,
-  AnalysisJobStates
+  PrinterJobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.tools.{
   DataSetMergerOptions,
   DataSetMergerTool,
   timeUtils
 }
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
 
 /**
   *
@@ -96,14 +90,14 @@ class DataSetMergerSpec extends Specification with LazyLogging {
 class DataSetMergerAdvancedSpec
     extends Specification
     with LazyLogging
-    with timeUtils {
-  args(skipAll = !PacBioTestData.isAvailable)
+    with timeUtils
+    with TestDataResourcesUtils {
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   sequential
 
-  private def getData(dsIds: Seq[String]): Seq[Path] = {
-    val pbdata = PacBioTestData()
-    dsIds.map(pbdata.getFile(_))
+  private def getData(dsIds: Set[String]): Seq[Path] = {
+    testResources.getByIds(dsIds).map(_.path)
   }
 
   val expectedVersion = "4.0.1"
@@ -111,7 +105,7 @@ class DataSetMergerAdvancedSpec
 
   "Test merging additional dataset types" should {
     "Merge SubreadSets" in {
-      val paths = getData(Seq("subreads-sequel", "subreads-xml"))
+      val paths = getData(Set("subreads-sequel", "subreads-xml"))
       val datasets = paths.map(x => DataSetLoader.loadAndResolveSubreadSet(x))
       val name = "Merged Datasets"
       logger.info(s"Loaded datasets $datasets")
@@ -131,7 +125,7 @@ class DataSetMergerAdvancedSpec
         DataSetMetaTypes.Subread.toString)
     }
     "Merge AlignmentSets" in {
-      val paths = getData(Seq("aligned-xml", "aligned-ds-2"))
+      val paths = getData(Set("aligned-xml", "aligned-ds-2"))
       val datasets =
         paths.map(x => DataSetLoader.loadAndResolveAlignmentSet(x))
       val name = "Merged Datasets"

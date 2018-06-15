@@ -112,13 +112,17 @@ object DataSetReports
 
   private def generateSubreadSetReports(
       opts: DataSetReportOptions): Seq[DataStoreFile] = {
-    if (PbReports.SubreadReports.canProcess(
-          opts.dst,
-          hasStatsXml(opts.inPath, opts.dst))) {
+
+    val foundStsXML = hasStatsXml(opts.inPath, opts.dst)
+
+    if (PbReports.SubreadReports.canProcess(opts.dst, foundStsXML)) {
       runSubreadSetReports(opts)
     } else {
+      if (!foundStsXML) {
+        opts.log.writeLine("WARNING No sts.xml found for SubreadSet")
+      }
       val msg =
-        s"Can't process detailed Reports for SubreadSet. Skipping Report Generation"
+        s"Can't process detailed Reports for SubreadSet. Skipping Report Generation for DataSet ${opts.inPath}"
       opts.log.writeLine(msg)
       Seq.empty[DataStoreFile]
     }
@@ -172,12 +176,16 @@ object DataSetReports
       resultsWriter: JobResultsWriter,
       forceSimpleReports: Boolean = false): Seq[DataStoreFile] = {
 
-    val reports = Try {
+    val dsFiles = Try {
       DataSetReports.runAll(inPath, dst, jobPath, jobTypeId, resultsWriter)
     }
 
-    reports match {
-      case Success(rpts) => rpts
+    dsFiles match {
+      case Success(rpts) =>
+        val msg =
+          s"Successfully created ${rpts.length} Reports from ${dst.fileType.fileTypeId} $inPath"
+        resultsWriter.writeLine(msg)
+        rpts
       case Failure(ex) =>
         val errorMsg =
           s"Error ${ex.getMessage}\n ${ex.getStackTrace.mkString("\n")}"

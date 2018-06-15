@@ -4,15 +4,10 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.io.File
 
-import scala.xml.Elem
-import scala.util.{Failure, Success, Try}
-
 import org.apache.commons.io.{FileUtils, FilenameUtils}
-
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
 
-import scala.xml.{Elem, XML}
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -102,10 +97,18 @@ package object datasets {
       val dsDir = dsPath.getParent.toFile
       val prefix = FilenameUtils.getName(dsPath.toString).split('.')(0)
       for (f <- dsDir.listFiles) {
-        val filename = FilenameUtils.getName(f.toString)
-        if (copyAll || filename.startsWith(prefix)) {
-          val dest = new File(destDir.toString + "/" + filename)
-          FileUtils.copyFile(f, dest)
+        val name = FilenameUtils.getName(f.toString)
+        if (f.isFile) {
+          if (copyAll || name.startsWith(prefix)) {
+            val dest = new File(destDir.toString + "/" + name)
+            FileUtils.copyFile(f, dest)
+          }
+        } else {
+          // MK. adding more hacks on top to get this to work
+          // for references (which have a "sequences" subdir)
+          // This blindly copy the subdir and all it's contents to dest
+          val subDest = destDir.toPath.resolve(name)
+          FileUtils.copyDirectory(f, subDest.toFile)
         }
       }
     }
@@ -115,15 +118,16 @@ package object datasets {
       * either passed as an option or a new temporary directory
       * @param destDir  optional destination, defaults to temp dir
       */
-    def makeBarcodedSubreads(destDir: Option[Path]): (Path, Path) = {
-      val pbdata = PacBioTestData()
+    def makeBarcodedSubreads(testResources: PacBioTestResources,
+                             destDir: Option[Path]): (Path, Path) = {
+
       val targetDir =
         destDir.getOrElse(Files.createTempDirectory("dataset-contents"))
       val subreadsDestDir = new File(targetDir.toString + "/SubreadSet")
       val barcodesDestDir = new File(targetDir.toString + "/BarcodeSet")
-      val subreadsSrc = pbdata.getFile("barcoded-subreadset")
+      val subreadsSrc = testResources.findById("barcoded-subreadset").get.path
       val subreadsDir = subreadsSrc.getParent.toFile
-      val barcodesSrc = pbdata.getFile("barcodeset")
+      val barcodesSrc = testResources.findById("barcodeset").get.path
       val barcodesDir = barcodesSrc.getParent.toFile
       // only copy the files we need for this SubreadSet, that way we can check
       // for an empty directory
@@ -132,7 +136,7 @@ package object datasets {
       val subreads = Paths.get(
         subreadsDestDir.toString + "/" +
           FilenameUtils.getName(subreadsSrc.toString))
-      var barcodes = Paths.get(
+      val barcodes = Paths.get(
         barcodesDestDir.toString + "/" +
           FilenameUtils.getName(barcodesSrc.toString))
       val dsSubreads = DataSetLoader.loadSubreadSet(subreads)
@@ -145,7 +149,9 @@ package object datasets {
       (subreads, barcodes)
     }
 
-    def makeBarcodedSubreads: (Path, Path) = makeBarcodedSubreads(None)
+    def makeBarcodedSubreads(
+        testResources: PacBioTestResources): (Path, Path) =
+      makeBarcodedSubreads(testResources, None)
 
     def makeTmpDataset(dsPath: Path,
                        metaType: DataSetMetaTypes.DataSetMetaType,

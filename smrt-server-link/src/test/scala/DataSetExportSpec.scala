@@ -4,18 +4,15 @@ import java.util.UUID
 
 import scala.util.Try
 import scala.collection.JavaConverters._
-
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import com.typesafe.scalalogging.LazyLogging
 import org.specs2.mutable._
-
-import com.pacbio.secondary.smrtlink.analysis.externaltools.ExternalToolsUtils
+import com.pacbio.secondary.smrtlink.analysis.externaltools._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  NullJobResultsWriter,
-  AnalysisJobStates
+  AnalysisJobStates,
+  NullJobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
 import com.pacbio.secondary.smrtlink.analysis.datasets.validators.ValidateSubreadSet
 import com.pacbio.secondary.smrtlink.analysis.datasets.io._
 import com.pacbio.secondary.smrtlink.analysis.datasets._
@@ -162,13 +159,29 @@ class DataSetExportSpecAdvanced
     with ExternalToolsUtils
     with ExportUtils
     with LazyLogging {
-  args(skipAll = !PacBioTestData.isAvailable)
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
 
   sequential
 
-  private def getData(dsIds: Seq[String]): Seq[Path] = {
-    val pbdata = PacBioTestData()
-    dsIds.map(pbdata.getFile(_))
+  lazy val pacBioTestResources =
+    Try(PacBioTestResourcesLoader.loadFromConfig())
+      .getOrElse(PacBioTestResources(Nil))
+
+  private def getTestResourceById(testId: String): TestDataResource = {
+    pacBioTestResources
+      .findById(testId)
+      .getOrElse(throw new Exception(s"Unable to find $testId"))
+  }
+
+  // This is used in so many places, define util here
+  private def getSequelSubreads(): TestDataResource = {
+    getTestResourceById("subreads-sequel")
+  }
+
+  private def getPathsByTestIds(testIds: Set[String]): Seq[Path] = {
+    pacBioTestResources.files
+      .filter(f => testIds contains f.id)
+      .map(_.path)
   }
 
   private def zipAndUnzip(ds: Path) = {
@@ -192,7 +205,7 @@ class DataSetExportSpecAdvanced
 
   private def exportDataSets(dsIds: Seq[String],
                              dsType: DataSetMetaTypes.DataSetMetaType) = {
-    val datasets = getData(dsIds)
+    val datasets = getPathsByTestIds(dsIds.toSet)
     val zipPath = Files.createTempFile("DataSets", ".zip")
     val n = ExportDataSets(datasets, dsType, zipPath)
     n must beGreaterThan(0L)
@@ -200,8 +213,8 @@ class DataSetExportSpecAdvanced
 
   "Extract external resources from datasets" should {
     "SubreadSet with scraps and stats xml" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val subreads = DataSetLoader.loadAndResolveSubreadSet(ds)
+      val ds = getSequelSubreads()
+      val subreads = DataSetLoader.loadAndResolveSubreadSet(ds.path)
       val resources = getResources(subreads)
       resources.size must beEqualTo(5)
     }
@@ -209,35 +222,37 @@ class DataSetExportSpecAdvanced
 
   "Export Datasets from PacBioTestData" should {
     "Export SubreadSet with relative paths" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread)
+      val ds = getSequelSubreads()
+      val dsTmp =
+        MockDataSetUtils.makeTmpDataset(ds.path, DataSetMetaTypes.Subread)
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with absolute paths" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+      val ds = getSequelSubreads()
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds.path,
                                                   DataSetMetaTypes.Subread,
                                                   copyFiles = false)
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths converted to absolute" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds, DataSetMetaTypes.Subread)
+      val ds = getSequelSubreads()
+      val dsTmp =
+        MockDataSetUtils.makeTmpDataset(ds.path, DataSetMetaTypes.Subread)
       val subreadsTmp = DataSetLoader.loadAndResolveSubreadSet(dsTmp)
       DataSetWriter.writeSubreadSet(subreadsTmp, dsTmp)
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths (with spaces)" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+      val ds = getSequelSubreads()
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds.path,
                                                   DataSetMetaTypes.Subread,
                                                   tmpDirBase =
                                                     "dataset contents")
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with absolute paths (with spaces)" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+      val ds = getSequelSubreads()
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds.path,
                                                   DataSetMetaTypes.Subread,
                                                   copyFiles = false,
                                                   tmpDirBase =
@@ -245,8 +260,8 @@ class DataSetExportSpecAdvanced
       zipAndUnzip(dsTmp)
     }
     "Export SubreadSet with relative paths converted to absolute (with spaces)" in {
-      val ds = PacBioTestData().getFile("subreads-sequel")
-      val dsTmp = MockDataSetUtils.makeTmpDataset(ds,
+      val ds = getSequelSubreads()
+      val dsTmp = MockDataSetUtils.makeTmpDataset(ds.path,
                                                   DataSetMetaTypes.Subread,
                                                   tmpDirBase =
                                                     "dataset contents")
@@ -277,13 +292,13 @@ class DataSetExportSpecAdvanced
       exportDataSets(Seq("contigset"), DataSetMetaTypes.Contig)
     }
     "Export two SubreadSets that reference the same BarcodeSet" in {
-      val pbdata = PacBioTestData()
       val tmpDir = Files.createTempDirectory("dataset-contents")
-      val barcodesSrc = pbdata.getFile("barcodeset")
+      val barcodesSrc = getTestResourceById("barcodeset").path
       val barcodesDir = barcodesSrc.getParent.toFile
       val barcodesDestDir = new File(tmpDir.toString + "/BarcodeSet")
       FileUtils.copyDirectory(barcodesDir, barcodesDestDir)
-      val subreadsDir = pbdata.getFile("barcoded-subreadset").getParent.toFile
+      val subreadsDir =
+        getTestResourceById("barcoded-subreadset").path.getParent.toFile
       Seq("barcode-1", "barcode-2").foreach { d =>
         val subreadsDestDir = new File(tmpDir.toString + "/" + d)
         subreadsDestDir.mkdir

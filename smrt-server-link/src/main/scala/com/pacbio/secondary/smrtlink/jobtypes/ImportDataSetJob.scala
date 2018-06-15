@@ -3,13 +3,14 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import util.{Success, Failure, Try}
-
+import util.{Failure, Success, Try}
 import org.joda.time.{DateTime => JodaDateTime}
-
 import com.pacificbiosciences.pacbiodatasets.DataSetType
 import com.pacbio.secondary.smrtlink.actors.JobsDao
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import com.pacbio.secondary.smrtlink.analysis.datasets.{
+  DataSetFileUtils,
+  DataSetMetaTypes
+}
 import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
@@ -34,9 +35,25 @@ case class ImportDataSetJobOptions(
   override def validate(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
-    // Spray serialization errors will be raised here.
-    //logger.warn(s"Job ${jobTypeId.id} Validation is disabled")
-    None
+
+    def failIfInValid(dst: DataSetMetaTypes.DataSetMetaType)
+      : Try[DataSetMetaTypes.DataSetMetaType] = {
+      val msg =
+        s"Incompatible DataSetMetaType provided=${datasetType.fileType.fileTypeId} expected=${dst.fileType.fileTypeId} from $path"
+      if (dst == datasetType) Success(dst)
+      else Failure(new Exception(msg))
+    }
+
+    val tx = for {
+      mini <- Try(DataSetFileUtils.getDataSetMiniMeta(path))
+      _ <- failIfInValid(mini.metatype)
+    } yield mini
+
+    tx match {
+      case Success(_) => None
+      case Failure(ex) => Some(InvalidJobOptionError(ex.getMessage))
+    }
+
   }
 
   override def toJob() = new ImportDataSetJob(this)
@@ -58,6 +75,19 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
 
     val fileSize = opts.path.toFile.length
 
+    // The required Metadata field should be removed from the interface,
+    // it doesn't provide any useful value
+    def validateCorrectMetaType(
+        fileTypeId: String): Try[DataSetMetaTypes.DataSetMetaType] = {
+      val msg =
+        s"Incompatible DataSet type actual=$fileTypeId provided=${opts.datasetType}"
+
+      DataSetMetaTypes
+        .fromString(fileTypeId)
+        .map(f => Success(f))
+        .getOrElse(Failure(new Exception(msg)))
+    }
+
     def toDataStoreFile(ds: DataSetType) =
       DataStoreFile(
         UUID.fromString(ds.getUniqueId),
@@ -75,8 +105,10 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
     def writeJobDataStore(
         dsFile: DataStoreFile,
         dst: DataSetMetaTypes.DataSetMetaType): PacBioDataStore = {
-      logger.info(s"Loaded dataset and convert to DataStoreFile $dsFile")
+      resultsWriter.writeLine(
+        s"Loaded dataset and convert to DataStoreFile $dsFile")
 
+      val logFile = getStdOutLog(resources, dao)
       // This should never stop a dataset from being imported
       val reportDataStoreFiles = DataSetReports.runAllIgnoreErrors(
         opts.path,
@@ -85,13 +117,12 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
         opts.jobTypeId,
         resultsWriter)
 
-      val logFile = getStdOutLog(resources, dao)
       val dsFiles = Seq(dsFile, logFile) ++ reportDataStoreFiles
       val datastore = PacBioDataStore.fromFiles(dsFiles)
       val datastorePath =
         resources.path.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
       writeDataStore(datastore, datastorePath)
-      logger.info(
+      resultsWriter.writeLine(
         s"Successfully wrote datastore with ${datastore.files.length} files to $datastorePath")
       datastore
     }
@@ -100,6 +131,7 @@ class ImportDataSetJob(opts: ImportDataSetJobOptions)
       dsFile <- Try {
         toDataStoreFile(DataSetLoader.loadType(opts.datasetType, opts.path))
       }
+      _ <- validateCorrectMetaType(dsFile.fileTypeId)
       dstore <- Try { writeJobDataStore(dsFile, opts.datasetType) }
     } yield dstore
 

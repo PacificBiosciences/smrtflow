@@ -7,11 +7,8 @@ import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetFileUtils
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PacBioTestResources,
-  PacBioTestResourcesLoader
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
+
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels.{
   ServiceTaskBooleanOption,
   ServiceTaskOptionBase
@@ -33,22 +30,15 @@ import com.typesafe.config.Config
 object TechSupportScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for PbsmrtpipeScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for PbsmrtpipeScenario")
-
-    // This should really load from the Config provided, not from the internal conf file
-    // This is quite confusing.
-    val testData = PacBioTestResourcesLoader.loadFromConfig()
-    val c: Config = config.get
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
     val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
-    new TechSupportScenario(smrtLinkClient, testData)
+    new TechSupportScenario(smrtLinkClient, testResources)
   }
 }
 
 class TechSupportScenario(client: SmrtLinkServiceClient,
-                          testData: PacBioTestResources)
+                          testResources: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -72,7 +62,7 @@ class TechSupportScenario(client: SmrtLinkServiceClient,
 
   val jobStatusId = Var.empty[UUID]
 
-  val lambdaNebPath = testData.getFile("lambdaNEB").get.path
+  val lambdaNebPath = testResources.findById("lambdaNEB").get.path
   val lambdaNeb = DataSetFileUtils.getDataSetMiniMeta(lambdaNebPath)
   val dsUUID = Var.empty[UUID]
 

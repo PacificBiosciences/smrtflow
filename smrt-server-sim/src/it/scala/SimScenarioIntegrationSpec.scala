@@ -2,7 +2,8 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestData}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.{ExternalCmdFailure, ExternalToolsUtils, PacBioTestResourcesLoader}
+import com.pacbio.secondary.smrtlink.testkit.TestDataResourcesUtils
 import com.pacbio.simulator.ScenarioConstants
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
@@ -20,10 +21,12 @@ import org.specs2.mutable.Specification
   * running the integration tests and the PATH should be set correctly.
   *
   */
-class SimScenarioIntegrationSpec extends Specification with ConfigLoader with LazyLogging{
+class SimScenarioIntegrationSpec extends Specification with ConfigLoader with TestDataResourcesUtils with LazyLogging{
 
   // This is necessary because some Scenarios will try to re-import the same data from
   // PacBioTestData
+  args(skipAll = !PacBioTestResourcesLoader.isAvailable)
+
   sequential
 
   val simScenarioConf = Files.createTempFile("sim-scenario", ".conf")
@@ -35,8 +38,9 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
   def loadPort() = conf.getInt(ScenarioConstants.PORT)
 
   def getSubreadSetRoot(): Path = {
-    val testData = PacBioTestData()
-    testData.base.resolve("SubreadSet").toAbsolutePath
+    // Use a random subreadset for testing
+    val t = testResources.findById("subreads-sequel").get
+    t.path.getParent
   }
 
   def writeScenarioConf(port: Int, host: String = "localhost", output: Path): Path = {
@@ -71,6 +75,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with La
 
     val result = ExternalToolsUtils.runCmd(cmd, stdout, stderr) match {
       case Left(ex) =>
+        System.err.println(s"Scenario $scenarioType failed running cmd $cmd")
+        FileUtils.readLines(stderr.toFile).forEach(line => System.err.println(line))
         val msg = s"Error running scenario $scenarioType in ${ex.runTime} sec with error ${ex.msg}"
         logger.error(msg)
         System.err.print(msg)

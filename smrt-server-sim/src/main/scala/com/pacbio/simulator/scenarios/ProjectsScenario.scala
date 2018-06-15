@@ -1,38 +1,28 @@
 package com.pacbio.simulator.scenarios
 
-import java.net.URL
-import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import com.typesafe.config.Config
-import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
-import com.pacbio.secondary.smrtlink.analysis.externaltools.{
-  PacBioTestData,
-  PbReports
-}
-import com.pacbio.secondary.smrtlink.analysis.reports.ReportModels.Report
-import com.pacbio.secondary.smrtlink.client.{
-  ClientUtils,
-  SmrtLinkServiceClient
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
+
+import com.pacbio.secondary.smrtlink.client.ClientUtils
 import com.pacbio.secondary.smrtlink.models._
-import com.pacbio.simulator.{Scenario, ScenarioLoader}
+import com.pacbio.simulator.Scenario
 import com.pacbio.simulator.steps._
 
 object ProjectsScenarioLoader extends SmrtLinkScenarioLoader {
   def toScenario(host: String,
                  port: Int,
                  user: Option[String],
-                 password: Option[String]): Scenario =
-    new ProjectsScenario(host, port, user, password)
+                 password: Option[String],
+                 testResources: PacBioTestResources): Scenario =
+    new ProjectsScenario(host, port, user, password, testResources)
 }
 
 class ProjectsScenario(host: String,
                        port: Int,
                        user: Option[String],
-                       password: Option[String])
+                       password: Option[String],
+                       val testResources: PacBioTestResources)
     extends SmrtLinkScenario
     with VarSteps
     with ConditionalSteps
@@ -52,7 +42,7 @@ class ProjectsScenario(host: String,
   protected val projId: Var[Int] = Var()
   protected val projects: Var[Seq[Project]] = Var()
   protected val project: Var[FullProject] = Var()
-  protected val subreads = Var(getSubreads)
+  protected val subreads = Var(getSubreads())
   protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   protected val subreadDs: Var[DataSetMetaDataSet] = Var()
   protected val jobId: Var[UUID] = Var()

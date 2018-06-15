@@ -31,7 +31,7 @@ class PacBioBundleServiceSpec extends Specification with Specs2RouteTest {
     "Get bundle type id 'chemistry' " in {
       Get("/smrt-link/bundles/chemistry") ~> routes ~> check {
         val bundles = responseAs[Seq[PacBioDataBundle]]
-        println(s"Example bundles $bundles")
+        // println(s"Example bundles $bundles")
         status.isSuccess must beTrue
       }
     }

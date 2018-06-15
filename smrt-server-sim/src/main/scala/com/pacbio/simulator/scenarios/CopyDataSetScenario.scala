@@ -3,24 +3,17 @@ package com.pacbio.simulator.scenarios
 import java.util.UUID
 
 import scala.concurrent.Future
-
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
-  DataSetMetadataUtils,
+  DataSetFilterProperty,
   DataSetMetaTypes,
-  DataSetFilterProperty
+  DataSetMetadataUtils
 }
-import com.pacbio.secondary.smrtlink.analysis.datasets.io.DataSetLoader
-import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestData
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  AnalysisJobStates,
-  JobModels,
-  OptionTypes
-}
+import com.pacbio.secondary.smrtlink.analysis.externaltools.PacBioTestResources
+import com.pacbio.secondary.smrtlink.analysis.jobs.{JobModels, OptionTypes}
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models._
@@ -30,20 +23,16 @@ import com.pacbio.simulator.steps._
 object CopyDataSetScenarioLoader extends ScenarioLoader {
   override def load(config: Option[Config])(
       implicit system: ActorSystem): Scenario = {
-    require(config.isDefined,
-            "Path to config file must be specified for CopyDataSetScenario")
-    require(PacBioTestData.isAvailable,
-            "PacBioTestData must be configured for CopyDataSetScenario")
-    val c: Config = config.get
 
+    val c = verifyRequiredConfig(config)
+    val testResources = verifyConfiguredWithTestResources(c)
     val smrtLinkClient = new SmrtLinkServiceClient(getHost(c), getPort(c))
-    val testdata = PacBioTestData()
-    new CopyDataSetScenario(smrtLinkClient, testdata)
+    new CopyDataSetScenario(smrtLinkClient, testResources)
   }
 }
 
 class CopyDataSetScenario(client: SmrtLinkServiceClient,
-                          testdata: PacBioTestData)
+                          testResources: PacBioTestResources)
     extends Scenario
     with VarSteps
     with ConditionalSteps
@@ -71,7 +60,8 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   private val TOTAL_LENGTH_EXPECTED_2 = 17601
   private val NUM_RECORDS_EXPECTED_2 = 13
 
-  private val subreadsXml = testdata.getTempDataSet(TEST_FILE_ID)
+  private lazy val subreadsXml =
+    testResources.findById(TEST_FILE_ID).get.getTempDataSetFile().path
 
   private def toI(name: String) = s"pbsmrtpipe.task_options.$name"
 

@@ -88,7 +88,8 @@ class ImportDataSetsZipJob(opts: ImportDataSetsZipJobOptions)
 
     val startedAt = JodaDateTime.now()
 
-    def runner(): PacBioDataStore = {
+    def runExportAndImport(stdOutLog: DataStoreFile): PacBioDataStore = {
+
       val datastoreFromZip =
         unzipTo(opts.path, resources.path.resolve("zip-output"))
       val datastoreFiles = loadDataStoreFilesFromDataStore(
@@ -97,7 +98,7 @@ class ImportDataSetsZipJob(opts: ImportDataSetsZipJobOptions)
         s"Loaded ${datastoreFiles.length} from datastore.json")
       val reportDatastoreFiles =
         runReports(datastoreFiles, resources.path, resultsWriter)
-      val allDataStoreFiles = datastoreFiles ++ reportDatastoreFiles
+      val allDataStoreFiles = Seq(stdOutLog) ++ datastoreFiles ++ reportDatastoreFiles
       val datastore = PacBioDataStore.fromFiles(allDataStoreFiles)
       writeDataStore(
         datastore,
@@ -105,10 +106,12 @@ class ImportDataSetsZipJob(opts: ImportDataSetsZipJobOptions)
       datastore
     }
 
-    convertTry[PacBioDataStore](Try(runner()),
-                                resultsWriter,
-                                startedAt,
-                                resources.jobId)
+    val tx = for {
+      stdOutLog <- getStdOutLogT(resources, dao)
+      datastore <- Try { runExportAndImport(stdOutLog) }
+    } yield datastore
+
+    convertTry[PacBioDataStore](tx, resultsWriter, startedAt, resources.jobId)
   }
 
 }
