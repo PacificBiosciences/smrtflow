@@ -63,7 +63,7 @@ trait PbsmrtpipeScenarioCore
 
   protected val reference = Var(getReference)
   protected val refUuid = Var(getDataSetMiniMeta(reference.get).uuid)
-  protected val subreads = Var(getSubreads)
+  protected val subreads = Var(getSubreads(true))
   protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
 
   // Randomize project name to avoid collisions
@@ -180,13 +180,11 @@ trait PbsmrtpipeScenarioCore
     jobStatus := GetStatus,
     fail("Can't get SMRT server status") IF jobStatus !=? EXIT_SUCCESS,
     jobId := ImportDataSet(subreads, FILETYPE_SUBREADS),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    WaitForSuccessfulJob(jobId),
     jobId := ImportDataSet(reference, FILETYPE_REFERENCE),
-    jobStatus := WaitForJob(jobId),
-    fail("Import job failed") IF jobStatus !=? EXIT_SUCCESS,
+    WaitForSuccessfulJob(jobId),
     childJobs := GetJobChildren(jobId),
-    fail("There should not be any child jobs") IF childJobs
+    fail("ReferenceSet Import Job should not have any child jobs") IF childJobs
       .mapWith(_.size) !=? 0
   )
 }

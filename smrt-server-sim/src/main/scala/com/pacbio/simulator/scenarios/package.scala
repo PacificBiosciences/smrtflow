@@ -26,11 +26,13 @@ trait SmrtLinkScenario extends Scenario with VarSteps {
 
   val testResources: PacBioTestResources
 
-  protected def getSubreads: Path =
+  protected def getSubreads(setNewUuid: Boolean = false): Path =
     testResources
       .findById("subreads-xml")
       .get
-      .getTempDataSetFile(copyFiles = true, tmpDirBase = "dataset contents")
+      .getTempDataSetFile(copyFiles = true,
+                          tmpDirBase = "dataset contents",
+                          setNewUuid = setNewUuid)
       .path
 
   protected def getClient(host: String,

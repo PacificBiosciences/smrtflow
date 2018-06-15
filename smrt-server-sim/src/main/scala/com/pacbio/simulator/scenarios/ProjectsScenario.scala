@@ -42,7 +42,7 @@ class ProjectsScenario(host: String,
   protected val projId: Var[Int] = Var()
   protected val projects: Var[Seq[Project]] = Var()
   protected val project: Var[FullProject] = Var()
-  protected val subreads = Var(getSubreads)
+  protected val subreads = Var(getSubreads())
   protected val subreadsUuid = Var(getDataSetMiniMeta(subreads.get).uuid)
   protected val subreadDs: Var[DataSetMetaDataSet] = Var()
   protected val jobId: Var[UUID] = Var()
