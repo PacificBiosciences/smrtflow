@@ -635,5 +635,5 @@ class DataSetScenario(client: SmrtLinkServiceClient,
   }
 
   override val steps = setupSteps ++ subreadTests ++ referenceTests ++ gmapReferenceTests ++ barcodeTests ++
-    hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests ++ importDataSetsXmlZipSteps
+    hdfSubreadTests ++ otherTests ++ failureTests ++ deleteTests ++ reimportTests
 }
