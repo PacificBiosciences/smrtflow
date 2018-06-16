@@ -21,6 +21,7 @@ UI_ROOT="${SRC}/ui"
 BUNDLE_DEST="${PBBUNDLER_DEST}"
 
 DOC_HELP_ROOT="${SRC}/sl-helps"
+DOC_XSD_ROOT="${SRC}/xsd-datamodels"
 
 DOC_ROOT=$(mktemp -d)/docs
 mkdir -p "${DOC_ROOT}"
@@ -92,7 +93,7 @@ cp "${SMRTFLOW_ROOT}/smrt-server-link/src/main/resources/smrtlink_swagger.json" 
 # Copy docs from sl-help into ${DOC_ROOT}/help
 if [[ -d "${DOC_HELP_ROOT}" ]]; then
   cp -R "${DOC_HELP_ROOT}" "${DOC_ROOT}/help"
-
+  cp -R "${DOC_XSD_ROOT}" "${DOC_ROOT}/xsd-datamodels"
 fi
 
 cd $BUNDLER_ROOT
