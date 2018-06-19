@@ -1,0 +1,30 @@
+[Unit]
+Description=SMRTLink External Server Event Service
+Documentation=
+After=network-online.target
+
+[Service]
+Type=Simple
+WorkingDirectory=/data/projects/smrtlink_eve/active/smrt-server-eve/target/pack
+User=eve
+Group=eve
+Environment="PATH=/data/projects/smrtlink_eve/active/smrt-server-eve/target/pack/bin:/bin:/usr/bin:/usr/sbin"
+Environment="SMRTFLOW_EVENT_ROOT_DIR=/data/projects/smrtlink_eve/data"
+Environment="PB_SERVICES_PORT=8070"
+StandardOutput=journal
+ExecStart=/data/projects/smrtlink_eve/active/smrt-server-eve/target/pack/bin/smrt-server-eve --log-file=/data/projects/smrtlink_eve/logs/smrtlink_eve.log --log-level=DEBUG
+NotifyAccess=all
+## Restart the process if it fails (which means !=0 exit, abnormal termination, or abort or watchdog)
+RestartSec=5s
+Restart=on-failure
+## try starting up to this many times:
+StartLimitBurst=6
+## ... within this time limit:
+StartLimitInterval=5min
+StartLimitAction=none
+
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target
+
