@@ -44,9 +44,68 @@ Use the payload as in the following example:
 
     {
         "dataModel" : "<serialized Run Design XML file according to the PacBioDataModel.xsd schema>",
-        "name" : "54999_SAT",
+        "name" : "54001_SAT",
         "summary" : "SAT"
     }
+
+
+How to get recent Runs
+~~~~~~~~~~~~~~~~~~~~~~
+
+To get recent Runs, perform the following steps:
+
+1. Get the list of all Runs: Use the GET request with the following endpoint:
+
+.. code-block:: bash
+
+    GET /smrt-link/runs
+
+2. Filter the response based on the value of the "createdAt" field. For
+example:
+
+"createdAt": "2016-12-13T19:11:54.086Z"
+
+    **Note:** You may also search Runs based on specific criteria, such
+    as reserved state, creator, or summary substring.
+
+Example, suppose you want to find all Runs created on or after 01.01.2017. First, get the list of all Runs:
+
+
+.. code-block:: bash
+
+    GET /smrt-link/runs
+
+The response will be an array of Run objects, as in the following example (some fields are removed for display purposes):
+
+
+.. code-block:: javascript
+
+    [
+        {
+            “name” : “54001_SAT",
+            “uniqueId” : “a836efbc-fd58-40f6-b586-43c743730fe0",
+            “createdAt” : “2016-11-08T17:50:57.955Z”,
+            “summary” : "SAT run”
+        },
+        {
+            “name” : “54001_ecoli_15k",
+            “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
+            “createdAt” : “2017-01-20T16:08:41.610Z”,
+            “summary” : “E. coli assembly”
+        },
+        {
+            “name” : “54001_hla_amplicons",
+            “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
+            “createdAt” : “2017-01-21T00:21:52.534Z”,
+            “summary” : “Human HLA”
+        }
+    ]
+
+Now, search the above response for all Run objects whose “createdAt” field starts with the “2017-01” substring. From the above example, you will get two Runs that fit your criteria (that is, created on or after 01.01.2017):
+
+Run with “name” equal to “54001_ecoli_15k”,
+
+Run with “name” equal to “54001_hla_amplicons”.
 
 
 How to monitor progress of a SMRT Link Run
@@ -56,13 +115,8 @@ Run progress can be monitored by looking at the completion status of
 each Collection associated with that run. Perform the following
 steps:
 
-1. If you do not have the Run UUID, retrieve it as follows. Get the list of all Runs, using the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET /smrt-link/runs
-
-In the response, perform a text search for the Run Name. Find the object whose "name" field is equal to the Run Name, and get the Run UUID, which can be found in the "uniqueId" field.
+1. If you do not have the Run UUID, retrieve it as described in the previous
+section.
 
 2. Once you have the Run UUID, get all Collections that belong to the run.
 
@@ -101,9 +155,9 @@ run.
 
 Example
 
-If you want to monitor the Run with Name = “54999_DryRun_2Cells_20161219”, use the following steps:
+If you want to monitor the Run with Name = “54001_DryRun_2Cells_20161219”, use the following steps:
 
-1. Get the list of all Runs:
+1. Get the list of all runs as described in the previous section.
 
 .. code-block:: bash
 
@@ -115,26 +169,26 @@ The response will be an array of Run objects, as in the following example (some 
 
     [
         {
-            “name” : “54999_SAT",
+            “name” : “54001_SAT",
             “uniqueId” : “a836efbc-fd58-40f6-b586-43c743730fe0",
             “createdAt” : “2016-11-08T17:50:57.955Z”,
             “summary” : "SAT run”
         },
         {
-            “name” : “54999_ecoli_15k",
+            “name” : “54001_ecoli_15k",
             “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
-            “createdAt” : “2016-12-19T16:08:41.610Z”,
+            “createdAt” : “2017-01-20T16:08:41.610Z”,
             “summary” : “E. coli assembly”
         },
         {
-            “name” : “54999_hla_amplicons",
+            “name” : “54001_hla_amplicons",
             “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
             “createdAt” : “2017-01-21T00:21:52.534Z”,
             “summary” : “Human HLA”
         }
     ]
 
-2. Search the above response for the object with the "name" field equal to "54999_SAT".
+2. Search the above response for the object with the "name" field equal to "54001_SAT".
 
 From the above example, you will get the Run object with the "uniqueId" field equal to "a836efbc-fd58-40f6-b586-43c743730fe0".
 
@@ -151,27 +205,27 @@ the following example:
 .. code-block:: javascript
 
     [{
-        "name" : "54999_SAT_1stCell",
+        "name" : "54001_SAT_1stCell",
         "instrumentName" : "Sequel",
-        "context" : "m54999_161219_161247",
+        "context" : "m54001_161219_161247",
         "well" : "A01",
         "status" : "Complete",
-        "instrumentId" : "54999",
+        "instrumentId" : "54001",
         "startedAt" : "2016-12-19T16:12:47.014Z",
         "uniqueId" : "7cf74b62-c6b8-431d-b8ae-7e28cfd8343b",
-        "collectionPathUri" : "/data/sequel/r54999_20161219_160902/1_A01",
+        "collectionPathUri" : "/data/sequel/r54001_20161219_160902/1_A01",
         "runId" : "a836efbc-fd58-40f6-b586-43c743730fe0",
         "movieMinutes" : 120
     }, {
-        "name" : "54999_SAT_2ndCell",
+        "name" : "54001_SAT_2ndCell",
         "instrumentName" : "Sequel",
-        "context" : "m54999_161219_184813",
+        "context" : "m54001_161219_184813",
         "well" : "B01",
         "status" : "Ready",
-        "instrumentId" : "54999",
+        "instrumentId" : "54001",
         "startedAt" : "2016-12-19T16:12:47.014Z",
         "uniqueId" : "08af5ab4-7cf4-4d13-9bcb-ae977d493f04",
-        "collectionPathUri" : "/data/sequel/r54999_20161219_160902/2_B01",
+        "collectionPathUri" : "/data/sequel/r54001_20161219_160902/2_B01",
         "runId" : "a836efbc-fd58-40f6-b586-43c743730fe0",
         "movieMinutes" : 120
     }
@@ -214,7 +268,7 @@ The request body in this case is very simple:
 
   {
     "datasetType": "PacBio.DataSet.SubreadSet",
-    "path": "/data/sequel/r54999_20161219_160902/1_A01/m54999_20161219_170101.subreadset.xml"
+    "path": "/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml"
   }
 
 The server should respond with **201: Created** and the model for the new job:
@@ -238,7 +292,7 @@ The server should respond with **201: Created** and the model for the new job:
     "isActive": true,
     "createdBy": null,
     "isMultiJob": false,
-    "jsonSettings": "{\"path\":\"/data/sequel/r54999_20161219_160902/1_A01/m54999_20161219_170101.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\",\"submit\":true}",
+    "jsonSettings": "{\"path\":\"/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\",\"submit\":true}",
     "jobUpdatedAt": "2018-06-19T21:13:31.047Z",
   }
 
@@ -258,61 +312,6 @@ Run-level summary metrics are captured in the QC reports. See the following sect
 -  `How to get QC reports for a particular SMRT Link Run`__.
 
 -  `How to get QC reports for a particular Collection`__.
-
-
-How to get recent Runs
-~~~~~~~~~~~~~~~~~~~~~~
-
-To get recent Runs, perform the following steps:
-
-1. Get the list of all Runs: Use the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET /smrt-link/runs
-
-2. Filter the response based on the value of the "createdAt" field. For
-example:
-
-"createdAt": "2016-12-13T19:11:54.086Z"
-
-    **Note:** You may also search Runs based on specific criteria, such
-    as reserved state, creator, or summary substring.
-
-Example, suppose you want to find all Runs created on or after 01.01.2017. First, get the list of all Runs:
-
-
-.. code-block:: bash
-
-    GET /smrt-link/runs
-
-The response will be an array of Run objects, as in the following example (some fields are removed for display purposes):
-
-
-.. code-block:: javascript
-
-    [{
-        “name” : “2016-11-08_3150473_2kLambda_A12”,
-        “uniqueId” : “97286726-b243-45b3-82f7-8b5f58c56d53”,
-        “createdAt” : “2016-11-08T17:50:57.955Z”,
-        “summary” : “lambdaNEB”
-    }, {
-        “name” : “2017_01_24_A7_4kbSymAsym_DS_3150540”,
-        “uniqueId” : “abd8f5ec-a177-4d41-8556-81c5ffb6b0aa”,
-        “createdAt” : “2017-01-24T20:09:27.629Z”,
-        “summary” : “pBR322_InsertOnly”
-    }, {
-        “name” : “SMS_GoatVer_VVC034_3150433_2kLambda_400pm_SNR10.5”,
-        “uniqueId” : “b81de65a-8018-4843-9da7-ff2647a9d01e”,
-        “createdAt” : “2016-10-17T23:36:35.000Z”,
-        “summary” : “lambdaNEB”
-    }]
-
-Now, search the above response for all Run objects whose “createdAt” field starts with the “2017-01” substring. From the above example, you will get two Runs that fit your criteria (that is, created on or after 01.01.2017):
-
-Run with “name” equal to “2017_01_24_A7_4kbSymAsym_DS_3150540”,
-
-Run with “name” equal to “2017_01_21_A7_RC0_2.5-6kb_DS”.
 
 
 How to get the SMRT Link reports for dataset by UUID
