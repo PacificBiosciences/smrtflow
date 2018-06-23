@@ -1,21 +1,14 @@
 package com.pacbio.secondary.smrtlink.client
 
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
-import java.net.URL
-
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
-
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, Uri, HttpResponse}
+import akka.http.scaladsl.model.{HttpHeader, HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.stream.scaladsl.{Sink, Source => AkkaSource}
 
@@ -44,7 +37,7 @@ class AuthenticatedServiceAccessLayer(
   }
 
   private def addAuthHeader(request: HttpRequest): HttpRequest =
-    request ~> addHeader("Authorization", s"Bearer ${token}")
+    request ~> addHeader(Authorization(OAuth2BearerToken(token)))
 
   override def sendRequest(request: HttpRequest): Future[HttpResponse] =
     AkkaSource
