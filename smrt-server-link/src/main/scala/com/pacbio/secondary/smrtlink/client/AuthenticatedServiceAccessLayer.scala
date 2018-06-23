@@ -53,7 +53,7 @@ class AuthenticatedServiceAccessLayer(
       .runWith(Sink.head)
 }
 
-object AuthenticatedServiceAccessLayer {
+object AuthenticatedServiceAccessLayer extends LazyLogging {
   private val clientScopes = Set("welcome",
                                  "sample-setup",
                                  "run-design",
@@ -66,16 +66,17 @@ object AuthenticatedServiceAccessLayer {
   def getClient(host: String, port: Int, user: String, password: String)(
       implicit actorSystem: ActorSystem)
     : Future[AuthenticatedServiceAccessLayer] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
     val wso2Client =
       new ApiManagerAccessLayer(host, user = user, password = password)(
         actorSystem)
     wso2Client
       .login(clientScopes)
       .map { auth =>
+        logger.debug(
+          s"Auth token ${auth.access_token} use header 'Authorization:Bearer ${auth.access_token}'")
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
-      }
+      }(actorSystem.dispatcher)
   }
 }
 
@@ -94,6 +95,7 @@ trait SmrtLinkClientProvider extends LazyLogging {
                 authToken: Option[String] = None,
                 usePassword: Boolean = false)(
       implicit actorSystem: ActorSystem): Future[SmrtLinkServiceClient] = {
+
     def toClient = {
       if (host != "localhost") {
         Future.failed(new IllegalArgumentException(
