@@ -15,7 +15,7 @@ trait Constants {
   // Global DataSet "version" that every tool should use the write a DataSet
   final val DATASET_VERSION = "4.0.1"
   // Git SHA1 (previously Perforce CHANGELIST) that was used to generate the XSDs
-  private val XSD_GIT_SHA = "7e7bf048750200612293f01874306c1b1c8ea6cf"
+  private val XSD_GIT_SHA = "4f345ab8a46a783c13ace36af7ede2a57ca351b3"
   final val XSD_CHANGELIST = XSD_GIT_SHA.take(7)
 
   private def getMajorMinorPatch(prop: Properties): Option[String] =

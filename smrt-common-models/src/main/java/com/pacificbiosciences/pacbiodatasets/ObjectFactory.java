@@ -82,19 +82,27 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link ReferenceSet }
+     * Create an instance of {@link SubreadSet }
      * 
      */
-    public ReferenceSet createReferenceSet() {
-        return new ReferenceSet();
+    public SubreadSet createSubreadSet() {
+        return new SubreadSet();
     }
 
     /**
-     * Create an instance of {@link ContigSetType }
+     * Create an instance of {@link SubreadSetType }
      * 
      */
-    public ContigSetType createContigSetType() {
-        return new ContigSetType();
+    public SubreadSetType createSubreadSetType() {
+        return new SubreadSetType();
+    }
+
+    /**
+     * Create an instance of {@link ReadSetType }
+     *
+     */
+    public ReadSetType createReadSetType() {
+        return new ReadSetType();
     }
 
     /**
@@ -114,35 +122,27 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link ReferenceSet }
+     * 
+     */
+    public ReferenceSet createReferenceSet() {
+        return new ReferenceSet();
+    }
+
+    /**
+     * Create an instance of {@link ContigSetType }
+     * 
+     */
+    public ContigSetType createContigSetType() {
+        return new ContigSetType();
+    }
+
+    /**
      * Create an instance of {@link ContigSetMetadataType }
      * 
      */
     public ContigSetMetadataType createContigSetMetadataType() {
         return new ContigSetMetadataType();
-    }
-
-    /**
-     * Create an instance of {@link SubreadSet }
-     * 
-     */
-    public SubreadSet createSubreadSet() {
-        return new SubreadSet();
-    }
-
-    /**
-     * Create an instance of {@link SubreadSetType }
-     * 
-     */
-    public SubreadSetType createSubreadSetType() {
-        return new SubreadSetType();
-    }
-
-    /**
-     * Create an instance of {@link ReadSetType }
-     * 
-     */
-    public ReadSetType createReadSetType() {
-        return new ReadSetType();
     }
 
     /**

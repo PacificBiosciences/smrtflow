@@ -39,6 +39,8 @@ import javax.xml.bind.annotation.XmlType;
  *                           &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
  *                           &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                           &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
+ *                           &lt;attribute name="Hash" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedHashAlgorithms" />
+ *                           &lt;attribute name="Modulo" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                           &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                           &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                         &lt;/restriction>
@@ -109,6 +111,8 @@ public class FilterType {
      *                 &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
      *                 &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
      *                 &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
+     *                 &lt;attribute name="Hash" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedHashAlgorithms" />
+     *                 &lt;attribute name="Modulo" type="{http://www.w3.org/2001/XMLSchema}string" />
      *                 &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
      *                 &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
      *               &lt;/restriction>
@@ -174,6 +178,8 @@ public class FilterType {
          *       &lt;attribute name="Name" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterNames" />
          *       &lt;attribute name="Value" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
          *       &lt;attribute name="Operator" use="required" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedFilterOperators" />
+         *       &lt;attribute name="Hash" type="{http://pacificbiosciences.com/PacBioBaseDataModel.xsd}SupportedHashAlgorithms" />
+         *       &lt;attribute name="Modulo" type="{http://www.w3.org/2001/XMLSchema}string" />
          *       &lt;attribute name="Feature" type="{http://www.w3.org/2001/XMLSchema}string" />
          *       &lt;attribute name="Assignment" type="{http://www.w3.org/2001/XMLSchema}string" />
          *     &lt;/restriction>
@@ -193,6 +199,10 @@ public class FilterType {
             protected String value;
             @XmlAttribute(name = "Operator", required = true)
             protected SupportedFilterOperators operator;
+            @XmlAttribute(name = "Hash")
+            protected SupportedHashAlgorithms hash;
+            @XmlAttribute(name = "Modulo")
+            protected String modulo;
             @XmlAttribute(name = "Feature")
             protected String feature;
             @XmlAttribute(name = "Assignment")
@@ -268,6 +278,54 @@ public class FilterType {
              */
             public void setOperator(SupportedFilterOperators value) {
                 this.operator = value;
+            }
+
+            /**
+             * Gets the value of the hash property.
+             *
+             * @return
+             *     possible object is
+             *     {@link SupportedHashAlgorithms }
+             *
+             */
+            public SupportedHashAlgorithms getHash() {
+                return hash;
+            }
+
+            /**
+             * Sets the value of the hash property.
+             *
+             * @param value
+             *     allowed object is
+             *     {@link SupportedHashAlgorithms }
+             *
+             */
+            public void setHash(SupportedHashAlgorithms value) {
+                this.hash = value;
+            }
+
+            /**
+             * Gets the value of the modulo property.
+             *
+             * @return
+             *     possible object is
+             *     {@link String }
+             *
+             */
+            public String getModulo() {
+                return modulo;
+            }
+
+            /**
+             * Sets the value of the modulo property.
+             *
+             * @param value
+             *     allowed object is
+             *     {@link String }
+             *
+             */
+            public void setModulo(String value) {
+                this.modulo = value;
             }
 
             /**
