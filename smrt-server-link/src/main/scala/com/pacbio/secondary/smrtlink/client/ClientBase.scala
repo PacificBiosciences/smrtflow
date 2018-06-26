@@ -7,11 +7,12 @@ import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpExt}
 import akka.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
 import akka.http.scaladsl.model.headers.{HttpEncodings, `Accept-Encoding`}
 import akka.pattern.after
 import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -46,7 +47,7 @@ trait Retrying {
   * Base Client trait
   *
   */
-trait ClientBase extends Retrying {
+trait ClientBase extends Retrying with LazyLogging {
 
   // This starts to tangle up specific JSON conversion with the Client
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
@@ -56,13 +57,19 @@ trait ClientBase extends Retrying {
   implicit val materializer = ActorMaterializer()
   implicit val ec = actorSystem.dispatcher
 
-  lazy val http = Http()
+  lazy val http: HttpExt = Http(actorSystem)
 
-  def RootUri: Uri
+  /**
+    * This needs to be consistent within the Client Layer (leading slash)
+    * and to resolve the http vs https case.
+    *
+    * @param path
+    * @return
+    */
+  def toUri(path: Uri.Path): Uri
 
-  def toUri(path: Uri.Path): Uri = RootUri.copy(path = Uri.Path / path)
-
-  lazy val statusUrl: Uri = toUri(Uri.Path("status"))
+  // All Uri.Path(s) should have a leading slash
+  val STATUS_PATH = Uri.Path.Empty / "status"
 
   protected def sendRequest(request: HttpRequest): Future[HttpResponse] =
     http.singleRequest(request)
@@ -119,8 +126,10 @@ trait ClientBase extends Retrying {
   }
 
   protected def getObject[T](request: HttpRequest)(
-      implicit um: Unmarshaller[HttpResponse, T]): Future[T] =
+      implicit um: Unmarshaller[HttpResponse, T]): Future[T] = {
+    logger.debug(s"Getting request URI '${request.uri}'")
     getResponse(request).map(decodeResponse).flatMap(um(_))
+  }
 
   /**
     * Get Status of the System. The model must adhere to the SmrtServer Status
@@ -129,7 +138,7 @@ trait ClientBase extends Retrying {
     * @return
     */
   def getStatus: Future[ServiceStatus] =
-    getObject[ServiceStatus](Get(statusUrl))
+    getObject[ServiceStatus](Get(toUri(STATUS_PATH)))
 
   def getStatusWithRetry(
       maxRetries: Int = 3,
@@ -195,8 +204,8 @@ trait ClientBase extends Retrying {
       // FIXME need to make this more generic
       case Success(x) => statusToInt(x.status)
       case Failure(err) => {
-        println(s"failed to retrieve endpoint $endpointUrl")
-        println(s"$err")
+        System.err.println(s"failed to retrieve endpoint $endpointUrl")
+        System.err.println(s"$err")
         1
       }
     }
@@ -215,11 +224,24 @@ abstract class ServiceAccessLayer(
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
   import SprayJsonSupport._
 
-  // The HTTP scheme type should be configurable from the constructor
-  private val httpSchme = Uri.httpScheme()
+  val httpScheme = if (securedConnection) "https" else "http"
 
-  def RootUri =
-    Uri.from(host = host,
-             port = port,
-             scheme = Uri.httpScheme(securedConnection))
+  // This should be renamed. This should only be used for logging purposes
+  val RootUri: Uri = Uri.from(scheme = httpScheme, host = host, port = port)
+
+  /**
+    * This is coupled to request execution layer. Clients should make sure
+    * this is consistent with the sendRequest method. There's differences
+    * between the 'http' and https' (AuthenticatedServiceAccessLayer) that
+    * is leaking.
+    *
+    * @param path Resolve to a Uri from a Uri.Path (with a leading slash)
+    * @return
+    */
+  override def toUri(path: Uri.Path): Uri = {
+    Uri
+      .from(scheme = httpScheme, host = host, port = port)
+      .withPath(path)
+  }
+
 }

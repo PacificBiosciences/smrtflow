@@ -22,28 +22,44 @@ class AuthenticatedServiceAccessLayer(
     with SecureClientBase {
 
   implicit val timeout: Timeout = 30.seconds
+
   lazy val https = getHttpsConnection(host, wso2Port)
 
-  override def RootUri: Uri =
-    Uri.from(host = host,
-             port = wso2Port,
-             scheme = Uri.httpScheme(securedConnection))
+  // This CAN NOT have the host, port or scheme. This is captured in the https instance
 
-  lazy val RootAuthUriPath
-    : Uri.Path = Uri.Path./ ++ Uri.Path("SMRTLink") / "1.0.0"
+  lazy val RootAuthUriPath: Uri.Path = Uri.Path.Empty / "SMRTLink" / "1.0.0"
 
-  override def toUri(path: Uri.Path) = {
-    RootUri.copy(path = RootAuthUriPath ++ Uri.Path./ ++ path)
+  /**
+    * Note, this uses the `https` var, so the Uri.Path(s) will ALWAYS be relative.
+    *
+    * This CAN NOT have the host, port or scheme. This is captured in the https instance.
+    *
+    * @param path Uri.Path (MUST begin with leading slash)
+    * @return
+    */
+  override def toUri(path: Uri.Path): Uri = {
+    // The leading slash is already captured in the path
+    val p1 = RootAuthUriPath ++ path
+    Uri(p1.toString())
+  }
+
+  // Useful for debugging
+  private val customLogRequest: HttpRequest => HttpRequest = { r =>
+    logger.debug(s"Request Path : '${r.uri.path}'")
+    logger.debug(s"       query :${r.uri.queryString()}")
+    r
   }
 
   private def addAuthHeader(request: HttpRequest): HttpRequest =
     request ~> addHeader(Authorization(OAuth2BearerToken(token)))
 
-  override def sendRequest(request: HttpRequest): Future[HttpResponse] =
+  override def sendRequest(request: HttpRequest): Future[HttpResponse] = {
+    val r1 = customLogRequest(addAuthHeader(request))
     AkkaSource
-      .single(addAuthHeader(request))
+      .single(r1)
       .via(https)
       .runWith(Sink.head)
+  }
 }
 
 object AuthenticatedServiceAccessLayer extends LazyLogging {

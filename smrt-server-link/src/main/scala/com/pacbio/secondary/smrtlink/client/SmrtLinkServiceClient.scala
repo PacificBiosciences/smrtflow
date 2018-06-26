@@ -62,14 +62,10 @@ class SmrtLinkServiceClient(
     .map(u => RawHeader(JWT_HEADER, jwtUtils.userRecordToJwt(u)))
     .toSeq
 
-  private def toP(path: Path) = path.toAbsolutePath.toString
+  private def toP(path: Path): String = path.toAbsolutePath.toString
 
-  // Perhaps these should be pushed into ServiceEndpoint Constants for consistency
-  // and centralization. Everything in this class should consume and construct
-  /// Uri.Path instances, not raw strings.
-
-  // FIXME. The Convention is for the RootUri to prepend the leading slash
-  val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path(ROOT_SL_PREFIX)
+  // The Convention for the Client API is for the ALL Uri.Path(s) have a leading Slash
+  val ROOT_SL_PREFIX_URI_PATH: Uri.Path = Uri.Path.Empty / ROOT_SL_PREFIX
 
   val ROOT_JM_URI_PATH: Uri.Path = ROOT_SL_PREFIX_URI_PATH / JOB_MANAGER_PREFIX
   val ROOT_JOBS_URI_PATH: Uri.Path = ROOT_JM_URI_PATH / JOB_ROOT_PREFIX
@@ -176,17 +172,6 @@ class SmrtLinkServiceClient(
     */
   def checkServiceEndpoint(endpointPath: Uri.Path): Int =
     checkEndpoint(toUri(endpointPath))
-
-  /**
-    * Check the UI webserver for "Status" on a non-https
-    *
-    * @param uiPort UI (e.g., tomcat) webserver port
-    * @return
-    */
-  def checkUiEndpoint(uiPort: Int): Int = {
-    checkEndpoint(
-      RootUri.copy(authority = RootUri.authority.copy(port = uiPort)))
-  }
 
   /**
     * Run over each defined Endpoint (provided as relative segments to the base)

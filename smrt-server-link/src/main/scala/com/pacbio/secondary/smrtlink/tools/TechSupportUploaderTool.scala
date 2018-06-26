@@ -112,7 +112,7 @@ object TechSupportUploaderTool
 
     val fileSize = humanReadableByteSize(c.path.toFile.length())
 
-    logger.debug(s"Getting status from ${client.statusUrl}")
+    logger.debug(s"Getting status from ${client.RootUri}")
     logger.debug(s"Attempting to upload $fileSize to ${client.UPLOAD_URI}")
 
     val fx = for {
