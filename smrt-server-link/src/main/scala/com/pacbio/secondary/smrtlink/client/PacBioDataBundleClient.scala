@@ -91,7 +91,7 @@ class PacBioDataBundleUpdateServerClient(
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  val V2_PREFIX_PATH: Uri.Path = Uri.Path("api") / "v2" / "updates"
+  val V2_PREFIX_PATH: Uri.Path = Uri.Path.Empty / "api" / "v2" / "updates"
 
   def toV2PacBioDataBundleUrl(pacBioSystemVersion: String,
                               bundleType: Option[String] = None): Uri = {

@@ -83,7 +83,7 @@ object Modes {
   case object ALARMS extends Mode { val name = "get-alarms" }
   case object IMPORT_RUN extends Mode { val name = "import-run" }
   case object GET_RUN extends Mode { val name = "get-run" }
-  case object UNKNOWN extends Mode { val name = "unknown" }
+  // case object GET_TOKEN extends Mode { val name = "get-token" } // This is too difficult to wire in for design reasons
 }
 
 object PbServiceParser extends CommandLineToolVersion {
@@ -119,7 +119,7 @@ object PbServiceParser extends CommandLineToolVersion {
   }
 
   case class CustomConfig(
-      mode: Modes.Mode = Modes.UNKNOWN,
+      mode: Modes.Mode = Modes.STATUS,
       host: String,
       port: Int,
       block: Boolean = false,
@@ -2116,8 +2116,6 @@ object PbService
               case Modes.IMPORT_RUN =>
                 ps.runImportRun(c.path, c.reserved, c.asJson)
               case Modes.GET_RUN => ps.runGetRun(c.runId, c.asJson, c.asXml)
-              case x =>
-                Future.failed(new RuntimeException(s"Unsupported action '$x'"))
             }
           }
       executeBlockAndSummary(fx, c.maxTime)

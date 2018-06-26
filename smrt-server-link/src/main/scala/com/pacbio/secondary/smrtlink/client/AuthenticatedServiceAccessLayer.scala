@@ -1,21 +1,14 @@
 package com.pacbio.secondary.smrtlink.client
 
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.{SSLContext, TrustManager, X509TrustManager}
-import java.net.URL
-
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
-
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, Uri, HttpResponse}
+import akka.http.scaladsl.model.{HttpHeader, HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.stream.scaladsl.{Sink, Source => AkkaSource}
 
@@ -29,31 +22,47 @@ class AuthenticatedServiceAccessLayer(
     with SecureClientBase {
 
   implicit val timeout: Timeout = 30.seconds
+
   lazy val https = getHttpsConnection(host, wso2Port)
 
-  override def RootUri: Uri =
-    Uri.from(host = host,
-             port = wso2Port,
-             scheme = Uri.httpScheme(securedConnection))
+  // This CAN NOT have the host, port or scheme. This is captured in the https instance
 
-  lazy val RootAuthUriPath
-    : Uri.Path = Uri.Path./ ++ Uri.Path("SMRTLink") / "1.0.0"
+  lazy val RootAuthUriPath: Uri.Path = Uri.Path.Empty / "SMRTLink" / "1.0.0"
 
-  override def toUri(path: Uri.Path) = {
-    RootUri.copy(path = RootAuthUriPath ++ Uri.Path./ ++ path)
+  /**
+    * Note, this uses the `https` var, so the Uri.Path(s) will ALWAYS be relative.
+    *
+    * This CAN NOT have the host, port or scheme. This is captured in the https instance.
+    *
+    * @param path Uri.Path (MUST begin with leading slash)
+    * @return
+    */
+  override def toUri(path: Uri.Path): Uri = {
+    // The leading slash is already captured in the path
+    val p1 = RootAuthUriPath ++ path
+    Uri(p1.toString())
+  }
+
+  // Useful for debugging
+  private val customLogRequest: HttpRequest => HttpRequest = { r =>
+    logger.debug(s"Request Path : '${r.uri.path}'")
+    logger.debug(s"       query :${r.uri.queryString()}")
+    r
   }
 
   private def addAuthHeader(request: HttpRequest): HttpRequest =
-    request ~> addHeader("Authorization", s"Bearer ${token}")
+    request ~> addHeader(Authorization(OAuth2BearerToken(token)))
 
-  override def sendRequest(request: HttpRequest): Future[HttpResponse] =
+  override def sendRequest(request: HttpRequest): Future[HttpResponse] = {
+    val r1 = customLogRequest(addAuthHeader(request))
     AkkaSource
-      .single(addAuthHeader(request))
+      .single(r1)
       .via(https)
       .runWith(Sink.head)
+  }
 }
 
-object AuthenticatedServiceAccessLayer {
+object AuthenticatedServiceAccessLayer extends LazyLogging {
   private val clientScopes = Set("welcome",
                                  "sample-setup",
                                  "run-design",
@@ -66,16 +75,17 @@ object AuthenticatedServiceAccessLayer {
   def getClient(host: String, port: Int, user: String, password: String)(
       implicit actorSystem: ActorSystem)
     : Future[AuthenticatedServiceAccessLayer] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
     val wso2Client =
       new ApiManagerAccessLayer(host, user = user, password = password)(
         actorSystem)
     wso2Client
       .login(clientScopes)
       .map { auth =>
+        logger.debug(
+          s"Auth token ${auth.access_token} use header 'Authorization:Bearer ${auth.access_token}'")
         new AuthenticatedServiceAccessLayer(host, port, auth.access_token)(
           actorSystem)
-      }
+      }(actorSystem.dispatcher)
   }
 }
 
@@ -94,6 +104,7 @@ trait SmrtLinkClientProvider extends LazyLogging {
                 authToken: Option[String] = None,
                 usePassword: Boolean = false)(
       implicit actorSystem: ActorSystem): Future[SmrtLinkServiceClient] = {
+
     def toClient = {
       if (host != "localhost") {
         Future.failed(new IllegalArgumentException(

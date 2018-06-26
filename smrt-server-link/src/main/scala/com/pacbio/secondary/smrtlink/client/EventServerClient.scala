@@ -14,7 +14,6 @@ import akka.http.scaladsl.model.Multipart._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.scaladsl.{FileIO, Source}
 import com.typesafe.scalalogging.LazyLogging
-
 import com.pacbio.secondary.smrtlink.models.SmrtLinkSystemEvent
 import com.pacbio.secondary.smrtlink.auth.hmac.Signer
 
@@ -44,7 +43,15 @@ class EventServerClient(
   import SprayJsonSupport._
   import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
-  val PREFIX_API_PATH = Uri.Path("api") / "v1"
+  override def toUri(path: Uri.Path): Uri = {
+    val u0 = Uri.from(host = host,
+                      port = port,
+                      scheme = Uri.httpScheme(securedConnection))
+
+    u0.withPath(path)
+  }
+
+  val PREFIX_API_PATH = Uri.Path.Empty / "api" / "v1"
 
   val EVENTS_URI_PATH: Uri.Path = PREFIX_API_PATH / "events"
   val FILES_URI_PATH: Uri.Path = PREFIX_API_PATH / "files"
