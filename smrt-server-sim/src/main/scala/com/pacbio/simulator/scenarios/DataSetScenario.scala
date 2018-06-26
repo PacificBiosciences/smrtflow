@@ -175,6 +175,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
   val hdfSubreads2 = Var(getTmp("hdfsubreads", true))
 
   val barcodes = Var(getTmp("barcodeset"))
+  val barcodesUuid = barcodes.mapWith(getDataSetMiniMeta(_).uuid)
   val bcFasta = Var(testResources.findById("barcode-fasta").get.path)
   val rsMovie = Var(testResources.findById("rs-movie-metadata").get.path)
   val alignments = Var(getTmp("aligned-xml", true))
@@ -407,8 +408,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     barcodeSets := GetBarcodeSets,
     barcodeSetDetails := GetBarcodeSetDetails(getUuid(barcodes)),
     fail("Wrong BarcodeSet UUID") IF barcodeSetDetails
-      .mapWith(_.getUniqueId) !=? barcodeSets.mapWith(
-      _.sortBy(_.id).last.uuid.toString),
+      .mapWith(_.getUniqueId) !=? barcodesUuid.get.toString,
     // import FASTA
     jobId := ImportFastaBarcodes(bcFasta, Var("sim-import-barcodes")),
     job := WaitForSuccessfulJob(jobId),
