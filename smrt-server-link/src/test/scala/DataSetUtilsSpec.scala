@@ -248,6 +248,24 @@ class DataSetUtilsSpec
       xsdFilters(0).getProperties.getProperty.size must beEqualTo(2)
       xsdFilters(1).getProperties.getProperty.size must beEqualTo(1)
     }
+    "Add filters including modulo/hash" in {
+      val filters2 = Seq(
+        Seq(
+          DataSetFilterProperty("zm",
+                                "==",
+                                "0",
+                                Some("50"),
+                                Some("Uint32Cast"))))
+      val ds = DataSetLoader.loadSubreadSet(dsFile)
+      Option(ds.getFilters) must beNone
+      addFilters(ds, filters2)
+      val xsdFilters = ds.getFilters.getFilter.asScala.toList
+      xsdFilters.size must beEqualTo(1)
+      xsdFilters(0).getProperties.getProperty.size must beEqualTo(1)
+      val props = xsdFilters(0).getProperties.getProperty.asScala.toList
+      props(0).getModulo must beEqualTo("50")
+      props(0).getHash.value must beEqualTo("Uint32Cast")
+    }
     "Write an updated XML file" in {
       val ds = DataSetLoader.loadSubreadSet(dsFile)
       val dsOut = Files.createTempFile("updated", ".subreadset.xml")
