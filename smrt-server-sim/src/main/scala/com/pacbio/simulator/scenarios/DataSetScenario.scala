@@ -168,6 +168,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
   val subreads2 = Var(getTmp("subreads-sequel"))
   val subreads3 = Var(getTmp("subreads-sequel"))
   val subreadsUuid2 = Var(getDataSetMiniMeta(subreads2.get).uuid)
+  val subreadUuids = Var(Seq(subreadsUuid1.get, subreadsUuid2.get))
   val reference1 = Var(getTmp("lambdaNEB"))
 
   val hdfSubreads1 = Var(getTmp("hdfsubreads", true))
@@ -250,10 +251,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
       _(0).dataStoreFile.uuid) !=? dsReport.mapWith(_.uuid),
     // merge SubreadSets
     subreadSets := GetSubreadSets,
-    jobId := MergeDataSets(
-      ftSubreads,
-      subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
-      Var("merge-subreads")),
+    jobId := MergeDataSets(ftSubreads, subreadUuids, Var("merge-subreads")),
     job := WaitForSuccessfulJob(jobId),
     fail("Expected non-blank smrtlinkVersion") IF job.mapWith(
       _.smrtlinkVersion) ==? None,
@@ -298,15 +296,11 @@ class DataSetScenario(client: SmrtLinkServiceClient,
       _.count(f => f.isActive)) !=? 0,
     // export SubreadSets
     subreadSets := GetSubreadSets,
-    jobId := ExportDataSets(
-      ftSubreads,
-      subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
-      subreadsZip),
+    jobId := ExportDataSets(ftSubreads, subreadUuids, subreadsZip),
     job := WaitForSuccessfulJob(jobId),
     // attempt to export to already existing .zip file
-    ExportDataSets(ftSubreads,
-                   subreadSets.mapWith(ss => ss.takeRight(2).map(_.id)),
-                   subreadsZip) SHOULD_RAISE classOf[Exception]
+    ExportDataSets(ftSubreads, subreadUuids, subreadsZip) SHOULD_RAISE classOf[
+      Exception]
   ) ++ (if (!HAVE_PBREPORTS) Nil
         else
           Seq(
@@ -349,7 +343,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     // export ReferenceSet
     jobId := ExportDataSets(
       ftReference,
-      referenceSets.mapWith(_.takeRight(1).map(d => d.id)),
+      referenceSets.mapWith(_.takeRight(1).map(d => d.uuid)),
       Var(getZipFileName("references"))),
     job := WaitForSuccessfulJob(jobId)
   ) ++ (if (!HAVE_SAWRITER) Seq()
@@ -422,9 +416,10 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     barcodeSetDetails := GetBarcodeSetDetails(
       barcodeSets.mapWith(_.sortBy(_.id).last.uuid)),
     // export BarcodeSets
-    jobId := ExportDataSets(ftBarcodes,
-                            barcodeSets.mapWith(_.takeRight(2).map(d => d.id)),
-                            Var(getZipFileName("barcodes"))),
+    jobId := ExportDataSets(
+      ftBarcodes,
+      barcodeSets.mapWith(_.takeRight(2).map(d => d.uuid)),
+      Var(getZipFileName("barcodes"))),
     job := WaitForSuccessfulJob(jobId),
     // delete all jobs
     jobId := DeleteJob(jobId, Var(false)),
@@ -459,7 +454,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     // export HdfSubreadSet
     jobId := ExportDataSets(
       ftHdfSubreads,
-      hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.id)),
+      hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.uuid)),
       Var(getZipFileName("hdfsubreads"))),
     job := WaitForSuccessfulJob(jobId),
     // merge HdfSubreadSets
@@ -467,7 +462,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     // the same bax.h5 files...
     jobId := MergeDataSets(
       ftHdfSubreads,
-      hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.id)),
+      hdfSubreadSets.mapWith(_.takeRight(2).map(d => d.uuid)),
       Var("merge-hdfsubreads")),
     job := WaitForSuccessfulJob(jobId)
   )
@@ -476,9 +471,10 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     jobId := ImportDataSet(contigs, ftContigs),
     job := WaitForSuccessfulJob(jobId),
     contigSets := GetContigSets,
-    jobId := ExportDataSets(ftContigs,
-                            contigSets.mapWith(_.takeRight(1).map(d => d.id)),
-                            Var(getZipFileName("contigs"))),
+    jobId := ExportDataSets(
+      ftContigs,
+      contigSets.mapWith(_.takeRight(1).map(d => d.uuid)),
+      Var(getZipFileName("contigs"))),
     job := WaitForSuccessfulJob(jobId),
     contigSetDetails := GetContigSetDetails(getUuid(contigs)),
     fail("Wrong ContigSet UUID") IF contigSetDetails
@@ -496,7 +492,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     job := WaitForSuccessfulJob(jobId),
     // export
     jobId := ExportDataSets(ftAlign,
-                            alignmentSets.mapWith(_.map(d => d.id)),
+                            alignmentSets.mapWith(_.map(d => d.uuid)),
                             Var(getZipFileName("alignments"))),
     job := WaitForSuccessfulJob(jobId),
     // ConsensusReadSet
@@ -508,7 +504,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
       .mapWith(_.getUniqueId) !=? ccsSets
       .mapWith(_.sortBy(_.id).last.uuid.toString),
     jobId := ExportDataSets(ftCcs,
-                            ccsSets.mapWith(_.map(d => d.id)),
+                            ccsSets.mapWith(_.map(d => d.uuid)),
                             Var(getZipFileName("ccs"))),
     job := WaitForSuccessfulJob(jobId),
     // ConsensusAlignmentSet
@@ -523,7 +519,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
       _.sortBy(_.id).last.uuid.toString),
     jobId := ExportDataSets(
       ftCcsAlign,
-      ccsAlignmentSets.mapWith(_.takeRight(1).map(d => d.id)),
+      ccsAlignmentSets.mapWith(_.takeRight(1).map(d => d.uuid)),
       Var(getZipFileName("ccsalignments"))),
     job := WaitForSuccessfulJob(jobId)
   )
@@ -581,7 +577,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     subreadSets := GetSubreadSets,
     jobId := MergeDataSets(
       ftSubreads,
-      subreadSets.mapWith(_.takeRight(2).map(ds => ds.id)),
+      subreadSets.mapWith(_.takeRight(2).map(ds => ds.uuid)),
       Var("merge-subreads")),
     job := WaitForSuccessfulJob(jobId),
     subreadSets := GetSubreadSets,
@@ -599,7 +595,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     fail("Expected last SubreadSet to be active") IF dsMeta
       .mapWith(_.isActive) !=? true,
     jobId := ExportDataSets(ftSubreads,
-                            subreadSets.mapWith(ss => Seq(ss.last.id)),
+                            subreadSets.mapWith(ss => Seq(ss.last.uuid)),
                             Var(getZipFileName("subreads")),
                             Var(true)),
     job := WaitForSuccessfulJob(jobId),
