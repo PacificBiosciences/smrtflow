@@ -291,7 +291,7 @@ object PbServiceParser extends CommandLineToolVersion {
         },
       opt[Unit]("block")
         .text(
-          s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --no-block")
+          s"Enable blocking mode to poll for job to completion (Default ${defaults.blockImportDataSet}). Mutually exclusive with --non-block")
         .action((t, c) => c.copy(blockImportDataSet = true)),
       opt[Int]('m', "max-concurrent")
         .text(
