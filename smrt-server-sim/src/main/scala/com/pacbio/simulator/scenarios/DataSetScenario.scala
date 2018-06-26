@@ -501,8 +501,7 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     ccsSets := GetConsensusReadSets,
     ccsSetDetails := GetConsensusReadSetDetails(getUuid(ccs)),
     fail("Wrong CCSSet UUID") IF ccsSetDetails
-      .mapWith(_.getUniqueId) !=? ccsSets
-      .mapWith(_.sortBy(_.id).last.uuid.toString),
+      .mapWith(_.getUniqueId) !=? getUuid(ccs),
     jobId := ExportDataSets(ftCcs,
                             ccsSets.mapWith(_.map(d => d.uuid)),
                             Var(getZipFileName("ccs"))),
@@ -515,11 +514,10 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     ccsAlignmentSetDetails := GetConsensusAlignmentSetDetails(
       getUuid(ccsAligned)),
     fail("Wrong CCSAlignmentSet UUID") IF ccsAlignmentSetDetails
-      .mapWith(_.getUniqueId) !=? ccsAlignmentSets.mapWith(
-      _.sortBy(_.id).last.uuid.toString),
+      .mapWith(_.getUniqueId) !=? getUuid(ccsAligned),
     jobId := ExportDataSets(
       ftCcsAlign,
-      ccsAlignmentSets.mapWith(_.takeRight(1).map(d => d.uuid)),
+      Var(Seq(getUuid(ccsAligned))),
       Var(getZipFileName("ccsalignments"))),
     job := WaitForSuccessfulJob(jobId)
   )
