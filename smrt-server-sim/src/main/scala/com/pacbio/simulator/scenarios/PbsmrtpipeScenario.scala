@@ -183,7 +183,7 @@ trait PbsmrtpipeScenarioCore
     WaitForSuccessfulJob(jobId),
     jobId := ImportDataSet(reference, FILETYPE_REFERENCE),
     WaitForSuccessfulJob(jobId),
-    childJobs := GetJobChildren(jobId),
+    childJobs := GetJobChildren(jobId)
     // FIXME. Temp disabling. Unclear why this is failing.
     // fail("ReferenceSet Import Job should not have any child jobs") IF childJobs.mapWith(_.size) !=? 0
   )
