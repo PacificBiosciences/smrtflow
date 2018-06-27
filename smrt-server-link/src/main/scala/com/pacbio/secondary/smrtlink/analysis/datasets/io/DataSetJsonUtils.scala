@@ -246,15 +246,28 @@ trait DataSetJsonProtocols extends DefaultJsonProtocol {
   implicit object DataSetFilterPropertyFormat
       extends RootJsonFormat[DataSetFilterProperty] {
     def write(p: DataSetFilterProperty): JsObject =
-      JsObject("name" -> JsString(p.name.value()),
-               "operator" -> JsString(p.operator.value()),
-               "value" -> JsString(p.value))
+      JsObject(
+        "name" -> JsString(p.name.value()),
+        "operator" -> JsString(p.operator.value()),
+        "value" -> JsString(p.value),
+        "modulo" -> p.modulo.map(m => JsString(m)).getOrElse(JsNull),
+        "hash" -> p.hash.map(h => JsString(h.value())).getOrElse(JsNull)
+      )
     def read(value: JsValue): DataSetFilterProperty = {
-      value.asJsObject.getFields("name", "operator", "value") match {
+      val jsObj = value.asJsObject
+      val modulo = jsObj.getFields("modulo") match {
+        case Seq(JsString(m)) => Some(m)
+        case _ => None
+      }
+      val hash = jsObj.getFields("hash") match {
+        case Seq(JsString(h)) => Some(h)
+        case _ => None
+      }
+      jsObj.getFields("name", "operator", "value") match {
         case Seq(JsString(name),
                  JsString(operator),
                  JsString(operatorValue)) =>
-          DataSetFilterProperty(name, operator, operatorValue)
+          DataSetFilterProperty(name, operator, operatorValue, modulo, hash)
         case x =>
           deserializationError(s"Expected DataSetFilterProperty, got $x")
       }

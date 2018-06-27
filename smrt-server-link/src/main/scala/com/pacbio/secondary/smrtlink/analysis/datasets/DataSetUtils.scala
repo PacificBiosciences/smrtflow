@@ -362,6 +362,8 @@ trait DataSetFilterUtils extends DataSetParentUtils {
     prop.setName(req.name)
     prop.setOperator(req.operator)
     prop.setValue(req.value)
+    req.modulo.map(modulo => prop.setModulo(modulo))
+    req.hash.map(hash => prop.setHash(hash))
     prop
   }
 

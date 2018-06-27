@@ -9,7 +9,7 @@ import scala.util.control.NonFatal
 import com.typesafe.scalalogging.LazyLogging
 import com.pacificbiosciences.pacbiodatasets._
 import com.pacbio.common.models._
-import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble}
+import com.pacbio.common.models.CommonModels.{IdAble, IntIdAble, UUIDIdAble}
 import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.analysis.datasets.{
   DataSetFileUtils,
@@ -429,13 +429,13 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
   }
 
   case class MergeDataSets(dsType: Var[DataSetMetaType],
-                           ids: Var[Seq[Int]],
+                           ids: Var[Seq[UUID]],
                            dsName: Var[String])
       extends VarStep[UUID] {
     override val name = "MergeDataSets"
     override def runWith =
       smrtLinkClient
-        .mergeDataSets(dsType.get, ids.get.map(IntIdAble), dsName.get)
+        .mergeDataSets(dsType.get, ids.get.map(UUIDIdAble), dsName.get)
         .map(_.uuid)
   }
 
@@ -460,7 +460,7 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
   }
 
   case class ExportDataSets(dsType: Var[DataSetMetaType],
-                            ids: Var[Seq[Int]],
+                            ids: Var[Seq[UUID]],
                             outputPath: Var[Path],
                             deleteAfterExport: Var[Boolean] = Var(false))
       extends VarStep[UUID] {
@@ -468,7 +468,7 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
     override def runWith =
       smrtLinkClient
         .exportDataSets(dsType.get,
-                        ids.get.map(IntIdAble),
+                        ids.get.map(UUIDIdAble),
                         outputPath.get,
                         deleteAfterExport.get)
         .map(_.uuid)

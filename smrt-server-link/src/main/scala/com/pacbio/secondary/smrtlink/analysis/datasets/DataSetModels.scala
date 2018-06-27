@@ -11,7 +11,8 @@ import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes.DataSetBaseTyp
 import com.pacbio.common.models.UUIDJsonProtocol
 import com.pacificbiosciences.pacbiobasedatamodel.{
   SupportedFilterNames,
-  SupportedFilterOperators
+  SupportedFilterOperators,
+  SupportedHashAlgorithms
 }
 import com.pacificbiosciences.pacbiodatasets.{
   SubreadSet,
@@ -181,15 +182,26 @@ case class DatasetIndexFile(indexType: String, url: String)
 
 case class DataSetFilterProperty(name: SupportedFilterNames,
                                  operator: SupportedFilterOperators,
-                                 value: String)
+                                 value: String,
+                                 modulo: Option[String] = None,
+                                 hash: Option[SupportedHashAlgorithms] = None)
 object DataSetFilterProperty
-    extends ((String, String, String) => DataSetFilterProperty) {
+    extends ((String, String, String, Option[String], Option[String]) => DataSetFilterProperty) {
+  def apply(name: String,
+            operator: String,
+            value: String,
+            modulo: Option[String],
+            hash: Option[String]): DataSetFilterProperty =
+    DataSetFilterProperty(SupportedFilterNames.fromValue(name),
+                          SupportedFilterOperators.fromValue(operator),
+                          value,
+                          modulo,
+                          hash.map(h => SupportedHashAlgorithms.fromValue(h)))
+
   def apply(name: String,
             operator: String,
             value: String): DataSetFilterProperty =
-    DataSetFilterProperty(SupportedFilterNames.fromValue(name),
-                          SupportedFilterOperators.fromValue(operator),
-                          value)
+    apply(name, operator, value, None, None)
 }
 
 trait DataSetMetaDataProtocol

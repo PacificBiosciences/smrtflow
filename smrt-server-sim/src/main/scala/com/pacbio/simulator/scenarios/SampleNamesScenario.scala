@@ -166,7 +166,7 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
       // can't edit
       jobId := MergeDataSets(
         FT_SUBREADS,
-        subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
+        subreadSets.mapWith(_.takeRight(2).map(ss => ss.uuid)),
         Var("merge-bio-samples")),
       WaitForSuccessfulJob(jobId),
       // we will use the existing subreadSets again below, so we get the new
@@ -190,7 +190,7 @@ class SampleNamesScenario(client: SmrtLinkServiceClient,
       updateSubreadSet(Var(sampleDsUuids(1))),
       jobId := MergeDataSets(
         FT_SUBREADS,
-        subreadSets.mapWith(_.takeRight(2).map(ss => ss.id)),
+        subreadSets.mapWith(_.takeRight(2).map(ss => ss.uuid)),
         Var("merge-bio-samples-renamed")),
       WaitForSuccessfulJob(jobId),
       // the new merged dataset should have the single names, which we can edit
