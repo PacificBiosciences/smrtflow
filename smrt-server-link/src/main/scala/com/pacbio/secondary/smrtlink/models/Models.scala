@@ -1385,6 +1385,9 @@ case class ImportAbleTranscriptSet(ds: DsServiceJobFile,
                                    file: TranscriptServiceDataSet)
     extends ImportAbleServiceFile
 
+case class ImportAbleReport(ds: DsServiceJobFile, file: Report)
+    extends ImportAbleServiceFile
+
 // Project models
 
 object ProjectState {
@@ -1540,6 +1543,8 @@ case class EulaRecord(user: String,
                       osVersion: String,
                       enableInstallMetrics: Boolean,
                       enableJobMetrics: Boolean)
+
+case class DataSetReport(datasetId: UUID, reportId: UUID)
 
 // Making this backward compatible, but this should be removed
 case class EulaAcceptance(user: String,

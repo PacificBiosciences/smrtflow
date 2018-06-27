@@ -500,7 +500,11 @@ class DataSetService(dao: JobsDao)
                       dataset <- GetDataSetById(id)
                       reports <- dao.getDataStoreReportFilesByJobId(
                         dataset.jobId)
-                    } yield reports
+                      dsReportIds <- dao.getDataSetReportIds(dataset.uuid)
+                    } yield
+                      reports.filter {
+                        dsReportIds contains _.dataStoreFile.uuid
+                      }
                   }
                 }
               }
