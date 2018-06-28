@@ -1696,16 +1696,22 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
 
   def getDataSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] = {
     val q1 = for {
-      ds <- qDsMetaDataById(dsId)
-      job <- engineJobs.filter(_.id === ds.jobId)
+      ds <- qDsMetaDataById(dsId).result.head
+      job <- engineJobs.filter(_.id === ds.jobId).result.head
+      dsReportIds <- datasetReports
+        .filter(_.datasetId === ds.uuid)
+        .result
+        .map(_.map(_.reportId))
+        .map(_.toSet)
       reportFiles <- datastoreServiceFiles
         .filter(_.jobId === job.id)
-        .join(datasetReports.filter(_.datasetId === ds.uuid))
-        .on(_.uuid === _.reportId)
-    } yield reportFiles
+        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
+        .filter(_.uuid inSet dsReportIds)
+        .result
+    } yield reportFiles //.filter(_.uuid in dsReportIds)
 
-    db.run(q1.result)
-      .map(_.map(_._1).map((d: DataStoreServiceFile) =>
+    db.run(q1)
+      .map(_.map((d: DataStoreServiceFile) =>
         DataStoreReportFile(d, d.sourceId.split("-").head)))
   }
 
