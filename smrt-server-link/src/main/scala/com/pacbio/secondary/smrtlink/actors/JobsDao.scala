@@ -2275,8 +2275,8 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .result
       .flatMap {
         case false =>
-          (datasetReports ++= dsr)
-            .andThen(datastoreServiceFiles += i.ds.file)
+          (datastoreServiceFiles += i.ds.file)
+            .andThen(datasetReports ++= dsr)
             .andThen(DBIO.successful(MessageResponse(msg)))
         case true => DBIO.successful(MessageResponse(msg2))
       }
