@@ -39,7 +39,10 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by mkocher on 8/24/17.
   *
-  * Adding some hacks to adhere to the JobsDaoActor interface and get the code to compile
+  * There's several blocking calls related to checking for new Jobs to run and
+  * is avoiding different workers from (concurrently) checking out the same Job to execute.
+  * I expected this to be handled by postgres, but this isn't the case.
+  *
   */
 class EngineCoreJobManagerActor(dao: JobsDao,
                                 resolver: JobResourceResolver,
@@ -48,6 +51,9 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     with ActorLogging {
 
   import CommonModelImplicits._
+
+  // This is naughty. The Job state requires blocking
+  val DEFAULT_BLOCKING_TIMEOUT: FiniteDuration = 30.seconds
 
   // The core model for this is to listen for Job state changes from CREATED to SUBMITTED.
   val checkForWorkInterval = 60.seconds
@@ -104,17 +110,16 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       workerTimeOut: FiniteDuration = 15.seconds): Future[String] = {
     // This should be extended to support a list of Status Updates, to avoid another ask call and a separate db call
     // e.g., UpdateJobStatus(runnableJobWithId.job.uuid, Seq(AnalysisJobStates.SUBMITTED, AnalysisJobStates.RUNNING)
-    implicit val timeOut = Timeout(workerTimeOut)
 
-    val f: Future[String] = for {
+    implicit val timeOut = Timeout(workerTimeOut) // necessary for the ask call
+
+    for {
       _ <- andLog(
         s"Sending Worker $worker job id:${engineJob.id} uuid:${engineJob.uuid} type:${engineJob.jobTypeId} state:${engineJob.state}")
       _ <- worker ? RunEngineJob(engineJob)
       workerMsg <- andLog(
         s"Started job id:${engineJob.id} type:${engineJob.jobTypeId} on Engine worker $worker")
     } yield workerMsg
-
-    f
   }
 
   def checkForWorker(
@@ -168,10 +173,13 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     }
   }
 
-  // This should return a future
-  def checkForWork(timeout: FiniteDuration = 30.seconds): String = {
-    // This must be blocking so that a different workers don't
-    // pull the same job. I expected this to be handled by postgres
+  /**
+    *
+    * This should return a future, but is a blocking operation. See comments above.
+    *
+    */
+  def checkForWork(
+      timeout: FiniteDuration = DEFAULT_BLOCKING_TIMEOUT): String = {
     val x1 = Await.result(checkForWorker(quickWorkers, true), timeout)
     val x2 = Await.result(checkForWorker(workers, false), timeout)
 
@@ -256,11 +264,12 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   def checkForNewlyImported(importedJobId: Int): Future[String] = {
+    val msg = s"No Found Related MultiJob Updates from Job:$importedJobId"
     for {
       dsMetas <- dao.getDataSetMetasByJobId(importedJobId)
       updates <- Future.traverse(dsMetas.map(_.uuid).distinct)(
         dao.checkCreatedChildrenJobsForNewlyEnteredDataSet)
-    } yield updates.reduceLeftOption(_ ++ _).getOrElse("No Found Updates.")
+    } yield updates.reduceLeftOption(_ ++ _).getOrElse(msg)
   }
 
   /**
@@ -281,12 +290,15 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     } yield
       s"Triggered update of MultiJob $multiJobId. Updated state ${updatedJob.state}"
 
-  def logResultsMessage(fx: => Future[String]): Unit = {
-    fx onComplete {
-      case Success(results) =>
-        log.info(s"$results")
+  def blockAndLog(fx: => Future[String], timeout: FiniteDuration): String = {
+    Try(Await.result(fx, timeout)) match {
+      case Success(msg) =>
+        log.info(msg)
+        msg
       case Failure(ex) =>
-        log.error(ex.getMessage)
+        val msg = s"Failed ${ex.getMessage}"
+        log.error(msg)
+        msg
     }
   }
 
@@ -334,23 +346,30 @@ class EngineCoreJobManagerActor(dao: JobsDao,
 
   def onMultiJobRunner(multiJobId: Int,
                        runSummary: RunSummary,
-                       fx: => Future[String]): Unit = {
-    logResultsMessage(
-      for {
-        m1 <- fx
-        m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
-      } yield Seq(m1, m2).reduce(_ ++ _)
-    )
+                       fx: => Future[String]): Future[String] = {
+    for {
+      m1 <- fx
+      m2 <- checkAllChildrenJobsOfMultiJob(multiJobId)
+    } yield Seq(m1, m2).reduce(_ ++ _)
   }
 
   def onMultiJobOptRunner(runSummary: RunSummary,
-                          fx: Int => Future[String]): Unit = {
+                          fx: Int => Future[String]): Future[String] = {
     runSummary.multiJobId match {
       case Some(multiJobId) =>
         onMultiJobRunner(multiJobId, runSummary, fx(multiJobId))
       case None =>
-        log.debug("Run without MultiJob. Skipping MultiJob analysis Updating.")
+        val msg = s"Run ${runSummary.uniqueId} does not have a MultiJob. Skipping MultiJob analysis Updating."
+        log.debug(msg)
+        Future.successful(msg)
     }
+  }
+
+  // See comments on job updating state
+  def onMultiJobOptRunnerBlock(runSummary: RunSummary,
+                               fx: Int => Future[String],
+                               timeout: FiniteDuration): String = {
+    blockAndLog(onMultiJobOptRunner(runSummary, fx), timeout)
   }
 
   override def receive: Receive = {
@@ -379,14 +398,15 @@ class EngineCoreJobManagerActor(dao: JobsDao,
         m3 <- onJobChangeCheckIfParentJob(job)
       } yield s"$m1 $m2 $m3"
 
-      // Using a ask to self is a bad idea, this will potentially create dead locks.
+      // Using a ask to self is a bad idea and pattern (will potentially create dead locks),
+      // so we use `!` to trigger the check for new jobs to run
       fx.foreach { _ =>
         if ((job.state == AnalysisJobStates.SUBMITTED) && !job.isMultiJob) {
           self ! CheckForRunnableJob
         }
       }
 
-      logResultsMessage(fx)
+      blockAndLog(fx, DEFAULT_BLOCKING_TIMEOUT)
 
     /**
       * Listen for events from Run related state changes
@@ -400,9 +420,10 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     case RunChangedStateMessage(runSummary) =>
       if (runSummary.multiJobId.isDefined) {
         if (runSummary.reserved && (runSummary.status == SupportedRunStates.RUNNING)) {
-          onMultiJobOptRunner(
+          onMultiJobOptRunnerBlock(
             runSummary,
-            (multiJobId) => submitMultiJobIfCreated(multiJobId))
+            (multiJobId) => submitMultiJobIfCreated(multiJobId),
+            DEFAULT_BLOCKING_TIMEOUT)
         }
 
         // Failed Case
@@ -410,8 +431,9 @@ class EngineCoreJobManagerActor(dao: JobsDao,
           val msg =
             s"Detected failed Run ${runSummary.uniqueId} state:${runSummary.status}. Triggering Update of MultiJob ${runSummary.multiJobId}"
           log.info(msg)
-          onMultiJobOptRunner(runSummary,
-                              (multiJobId) => onRunSummary(runSummary))
+          onMultiJobOptRunnerBlock(runSummary,
+                                   (multiJobId) => onRunSummary(runSummary),
+                                   DEFAULT_BLOCKING_TIMEOUT)
         }
       }
 
@@ -439,6 +461,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
           workers.enqueue(worker)
       }
 
+      // The worker is free and we should trigger to check for new work
       self ! CheckForRunnableJob
       self ! GetEngineManagerStatus
     }
