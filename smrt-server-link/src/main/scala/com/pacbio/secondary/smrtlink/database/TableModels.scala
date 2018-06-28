@@ -902,6 +902,10 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
     def datasetId: Rep[UUID] = column[UUID]("dataset_uuid")
     def reportId: Rep[UUID] = column[UUID]("report_uuid")
 
+    def dsIdx = index("index_dataset_uuid", datasetId, unique = false)
+    def rptIdx = index("index_report_uuid", reportId, unique = false)
+    def rptFK = foreignKey("rpt_fk", reportId, datastoreServiceFiles)(_.uuid)
+
     def * =
       (datasetId, reportId) <> (DataSetReport.tupled, DataSetReport.unapply)
   }

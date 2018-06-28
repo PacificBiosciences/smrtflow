@@ -496,15 +496,7 @@ class DataSetService(dao: JobsDao)
               path(JOB_REPORT_PREFIX) {
                 get {
                   complete {
-                    for {
-                      dataset <- GetDataSetById(id)
-                      reports <- dao.getDataStoreReportFilesByJobId(
-                        dataset.jobId)
-                      dsReportIds <- dao.getDataSetReportIds(dataset.uuid)
-                    } yield
-                      reports.filter {
-                        dsReportIds contains _.dataStoreFile.uuid
-                      }
+                    dao.getDataSetReports(id)
                   }
                 }
               }

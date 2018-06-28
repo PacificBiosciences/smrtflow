@@ -930,6 +930,8 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
                         enableInstallMetrics: Boolean,
                         enableJobMetrics: Boolean)
 
+  case class DataSetReport(datasetId: UUID, reportId: UUID)
+
   // Table Models
 
   implicit val jobStateType =
@@ -1670,6 +1672,19 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
        enableJobMetrics) <> (EulaRecord.tupled, EulaRecord.unapply)
   }
 
+  class DataSetReportsT(tag: Tag)
+      extends Table[DataSetReport](tag, "dataset_reports") {
+    def datasetId: Rep[UUID] = column[UUID]("dataset_uuid")
+    def reportId: Rep[UUID] = column[UUID]("report_uuid")
+
+    def dsIdx = index("index_dataset_uuid", datasetId, unique = false)
+    def rptIdx = index("index_report_uuid", reportId, unique = false)
+    def rptFK = foreignKey("rpt_fk", reportId, datastoreServiceFiles)(_.uuid)
+
+    def * =
+      (datasetId, reportId) <> (DataSetReport.tupled, DataSetReport.unapply)
+  }
+
   // DataSet types
   lazy val dsMetaData2 = TableQuery[DataSetMetaT]
   lazy val dsSubread2 = TableQuery[SubreadDataSetT]
@@ -1708,6 +1723,9 @@ object BaseLine extends PacBioDateTimeDatabaseFormat {
 
   // EULA
   lazy val eulas = TableQuery[EulaRecordT]
+
+  // XXX not part of serviceTables!
+  lazy val datasetReports = TableQuery[DataSetReportsT]
 
   final type SlickTable = TableQuery[_ <: Table[_]]
 

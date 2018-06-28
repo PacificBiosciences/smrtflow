@@ -1694,9 +1694,20 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .flatMap(failIfNone(s"Unable to find report with id $reportUUID"))
   }
 
-  def getDataSetReportIds(dsId: UUID): Future[Seq[UUID]] =
-    db.run(datasetReports.filter(_.datasetId === dsId).result)
-      .map(_.map(_.reportId))
+  def getDataSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] = {
+    val q1 = for {
+      ds <- qDsMetaDataById(dsId)
+      job <- engineJobs.filter(_.id === ds.jobId)
+      reportFiles <- datastoreServiceFiles
+        .filter(_.jobId === job.id)
+        .join(datasetReports.filter(_.datasetId === ds.uuid))
+        .on(_.uuid === _.reportId)
+    } yield reportFiles
+
+    db.run(q1.result)
+      .map(_.map(_._1).map((d: DataStoreServiceFile) =>
+        DataStoreReportFile(d, d.sourceId.split("-").head)))
+  }
 
   def qDsMetaDataById(id: IdAble) = {
     id match {
@@ -2257,16 +2268,14 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val rpt = i.file
     val msg = s"Linked report ${rpt.uuid} to ${rpt.datasetUuids.size} datasets"
     val msg2 = s"Already added report ${rpt.uuid} to datastore"
+    val dsr = rpt.datasetUuids.toList.map(u => DataSetReport(u, rpt.uuid))
     datastoreServiceFiles
       .filter(_.uuid === i.ds.file.uuid)
       .exists
       .result
       .flatMap {
         case false =>
-          DBIO
-            .sequence(rpt.datasetUuids.toList.map { uuid =>
-              datasetReports += DataSetReport(uuid, rpt.uuid)
-            })
+          (datasetReports ++= dsr)
             .andThen(datastoreServiceFiles += i.ds.file)
             .andThen(DBIO.successful(MessageResponse(msg)))
         case true => DBIO.successful(MessageResponse(msg2))

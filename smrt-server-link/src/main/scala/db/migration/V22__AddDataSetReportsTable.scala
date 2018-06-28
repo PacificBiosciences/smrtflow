@@ -1,16 +1,15 @@
 package db.migration
 
+import scala.concurrent.Future
+
 import com.typesafe.scalalogging.LazyLogging
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration
 import org.joda.time.{DateTime => JodaDateTime}
 import slick.jdbc.PostgresProfile.api._
 import slick.jdbc.PostgresProfile.api._
-
 import slick.jdbc.JdbcBackend.DatabaseDef
 
-import com.pacbio.secondary.smrtlink.database.TableModels
-
-import scala.concurrent.Future
+import com.pacbio.secondary.smrtlink.database.legacy.BaseLine
 
 class V22__AddDataSetReportsTable
     extends JdbcMigration
@@ -18,6 +17,5 @@ class V22__AddDataSetReportsTable
     with LazyLogging {
 
   override def slickMigrate(db: DatabaseDef): Future[Any] =
-    db.run(TableModels.datasetReports.schema.create)
-
+    db.run(BaseLine.datasetReports.schema.create)
 }
