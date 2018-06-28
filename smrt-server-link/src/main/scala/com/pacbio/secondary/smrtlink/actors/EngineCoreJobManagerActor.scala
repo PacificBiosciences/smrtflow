@@ -359,7 +359,8 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       case Some(multiJobId) =>
         onMultiJobRunner(multiJobId, runSummary, fx(multiJobId))
       case None =>
-        val msg = s"Run ${runSummary.uniqueId} does not have a MultiJob. Skipping MultiJob analysis Updating."
+        val msg =
+          s"Run ${runSummary.uniqueId} does not have a MultiJob. Skipping MultiJob analysis Updating."
         log.debug(msg)
         Future.successful(msg)
     }
