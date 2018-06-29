@@ -1708,7 +1708,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
         .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
         .filter(_.uuid inSet dsReportIds)
         .result
-    } yield reportFiles //.filter(_.uuid in dsReportIds)
+    } yield reportFiles
 
     db.run(q1)
       .map(_.map((d: DataStoreServiceFile) =>
