@@ -172,10 +172,11 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     for {
       dst <- Future.successful(getDataSetMiniMeta(path))
       importJob <- client.importDataSet(path, dst.metatype)
-      _ <- andLog(s"Created import-dataset job ${importJob.id}")
+      _ <- andLog(s"Created import-dataset Job:${importJob.id}")
       successfulImportJob <- Future.fromTry(
         client.pollForSuccessfulJob(importJob.id))
-      _ <- andLog(s"Successfully imported dataset ${successfulImportJob.id}")
+      _ <- andLog(
+        s"Successfully imported dataset from Job:${successfulImportJob.id}")
     } yield dst
   }
 
@@ -424,6 +425,17 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     } yield childrenJobs
   }
 
+  private def collectionSummary(
+      run: UUID,
+      collection: UUID,
+      message: Option[String] = None): Future[String] = {
+    for {
+      c1 <- client.getCollection(run, collection)
+      msg <- andLog(
+        s"Found Collection ${c1.uniqueId} state:${c1.status} ${message.getOrElse("")}")
+    } yield msg
+  }
+
   def runMutiJobFromRunXmlWithFailedAcq(
       subreadSetTestFileId: String,
       jobName: String): Future[Seq[EngineJob]] = {
@@ -438,9 +450,11 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
     val jobSuccessStates: Set[AnalysisJobStates.JobStates] = Set(
       AnalysisJobStates.SUCCESSFUL)
 
+    // Use a globally unique name to look up the Job
+    val jobSuffix = UUID.randomUUID()
     // Subreadset/Job 1 will be the successful, SubreadSet/Acq/Job2 will Fail
-    val jobName1 = s"$jobName-Job1"
-    val jobName2 = s"EXPECTED-TO-FAIL-$jobName-Job2"
+    val jobName1 = s"$jobName-Job1-$jobSuffix"
+    val jobName2 = s"$jobName-Job2-EXPECTED-TO-FAIL-$jobSuffix"
 
     // numRetries * retryDelay will the max time that the job will
     // poll. This will be system/load dependent.
@@ -492,31 +506,55 @@ class MultiAnalysisScenario(client: SmrtLinkServiceClient,
                                      dataModel = Some(runRunningXml.mkString),
                                      reserved = Some(true))
       _ <- andLog(s"Updated Run $runId state:${updatedRun.status}")
-      _ <- client.pollForJobInState(createdMultiJob.id, jobSubmittedStates)
-      // Import the Subread from the Successful Run
-      _ <- getOrImportSuccessfully(dst1._2.path)
-      // Poll for this job to successfully complete
+
+      // Log Collections
+      _ <- collectionSummary(createdRun.uniqueId, dst1._1.uuid)
+      _ <- collectionSummary(createdRun.uniqueId, dst2._1.uuid)
+
+      // Make sure Children are found
       childrenJobs <- client.getMultiAnalysisChildrenJobs(createdMultiJob.id)
       childJob1 <- getJobByNameOrFail(childrenJobs, jobName1)
       childJob2 <- getJobByNameOrFail(childrenJobs, jobName2)
-      successfulChildJob1 <- pollForState(childJob1.id, jobSubmittedStates)
-      // This will trigger the update of the
+      // Verify the MultiJob is in a Submitted state
+      _ <- client.pollForJobInState(createdMultiJob.id, jobSubmittedStates)
+
+      // This is an error case where there's two collections, one of them
+      // imports successfully, then the second one is assumed to be "FAILED"
+      // from the Run state.
+      _ <- getOrImportSuccessfully(dst1._2.path)
+      // The import should trigger the child job to successfully run
+      successfulChildJob1 <- pollForState(childJob1.id, jobSuccessStates)
+      // Now trigger a "FAILED" Run and Collection level error
       updatedFailedRun <- client.updateRun(createdRun.uniqueId,
                                            Some(runFailedXml.mkString),
                                            Some(true))
+
+      // Verify the Collections for the Run are in the correct state
+      // Log Collections
+      _ <- collectionSummary(createdRun.uniqueId, dst1._1.uuid)
+      _ <- collectionSummary(
+        createdRun.uniqueId,
+        dst2._1.uuid,
+        Some(s"expected ${SupportedAcquisitionStates.ERROR}"))
+
+      // The remaining non-running jobs should be marked as FAILED
       expectedFailedChildJob2 <- pollForState(
         childJob2.id,
         AnalysisJobStates.FAILURE_STATES.toSet)
+
       _ <- andLog(
         s"Found expected failed Child Job ${expectedFailedChildJob2.id} ${expectedFailedChildJob2.errorMessage
           .getOrElse("")}")
+
+      // Verify the MultiJob from the Run is marked as Failed
       expectedFailedMultiJob <- pollForState(
         createdMultiJob.id,
         AnalysisJobStates.FAILURE_STATES.toSet)
+
       _ <- andLog(
         s"Found expected failed MultiJob ${expectedFailedMultiJob.id} ${expectedFailedMultiJob.errorMessage
           .getOrElse("")}")
-    } yield Seq(successfulChildJob1, expectedFailedChildJob2)
+    } yield Seq(expectedFailedChildJob2)
   }
 
   case class RunMultiJobAnalysisSanityStep(subreadsetTestFileId: String,
