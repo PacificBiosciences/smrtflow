@@ -259,7 +259,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
       updates <- Future.traverse(childJobs.map(_.id).distinct)(checkChildren)
     } yield
       updates
-        .reduceLeftOption(_ ++ " " ++ _)
+        .reduceLeftOption(_ ++ ", " ++ _)
         .getOrElse(s"No Children found for MultiJob:$multiJobId")
   }
 
@@ -312,6 +312,8 @@ class EngineCoreJobManagerActor(dao: JobsDao,
     }
   }
 
+  // The Child Job has (potentially) changed state, hence
+  // we need to trigger the update of the (parent) MultiJob state
   def onJobChangeCheckIfParentJob(job: EngineJob): Future[String] = {
     job.parentMultiJobId match {
       case Some(multiJobId) =>
@@ -337,8 +339,16 @@ class EngineCoreJobManagerActor(dao: JobsDao,
   }
 
   def onRunSummary(run: RunSummary): Future[String] = {
+    val emsg = s"Run ${run.uniqueId} does NOT have a MultiJob Id."
+
     if (SmrtLinkConstants.FAILED_RUN_STATES contains run.status) {
-      dao.checkForMultiJobsFromRun(run.uniqueId)
+      // After all the Children are updated, trigger a MultiJob update
+      for {
+        m1 <- dao.checkForMultiJobsFromRun(run.uniqueId)
+        m2 <- run.multiJobId
+          .map(triggerUpdateOfMultiJobStateFromChildren)
+          .getOrElse(Future.successful(emsg))
+      } yield s"$m1 $m2"
     } else {
       Future.successful("")
     }
@@ -430,7 +440,7 @@ class EngineCoreJobManagerActor(dao: JobsDao,
         // Failed Case
         if (SmrtLinkConstants.FAILED_RUN_STATES contains runSummary.status) {
           val msg =
-            s"Detected failed Run ${runSummary.uniqueId} state:${runSummary.status}. Triggering Update of MultiJob ${runSummary.multiJobId}"
+            s"Detected failed Run ${runSummary.uniqueId} state:${runSummary.status}. Triggering state update of MultiJob:${runSummary.multiJobId} and Children to FAILED"
           log.info(msg)
           onMultiJobOptRunnerBlock(runSummary,
                                    (multiJobId) => onRunSummary(runSummary),
