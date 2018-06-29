@@ -2274,17 +2274,17 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
     val rpt = i.file
     val msg = s"Linked report ${rpt.uuid} to ${rpt.datasetUuids.size} datasets"
     val msg2 = s"Already added report ${rpt.uuid} to datastore"
+    val toMsg = (m: String) => DBIO.successful(MessageResponse(m))
     val dsr = rpt.datasetUuids.toList.map(u => DataSetReport(u, rpt.uuid))
+    def qInsertFiles =
+      DBIO.seq(datastoreServiceFiles += i.ds.file, datasetReports ++= dsr)
     datastoreServiceFiles
       .filter(_.uuid === i.ds.file.uuid)
       .exists
       .result
       .flatMap {
-        case false =>
-          (datastoreServiceFiles += i.ds.file)
-            .andThen(datasetReports ++= dsr)
-            .andThen(DBIO.successful(MessageResponse(msg)))
-        case true => DBIO.successful(MessageResponse(msg2))
+        case false => qInsertFiles.andThen(toMsg(msg))
+        case true => toMsg(msg2)
       }
   }
 
