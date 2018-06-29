@@ -1165,7 +1165,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     val q4 = for {
       numEntryPoints <- qNumJobEntryPoints.result
       numResolvedDataSets <- qNumResolvedDataSets.result
-    } yield numEntryPoints.length == numResolvedDataSets.length
+    } yield
+      (numEntryPoints.length == numResolvedDataSets.length) && numEntryPoints.nonEmpty
 
     val qSubmit = qUpdateJobState(childJobId,
                                   AnalysisJobStates.SUBMITTED,
@@ -1194,9 +1195,11 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
 
   /**
     * When a new DataSet is added to the System, see if any Children
-    * Jobs have
+    * Jobs (in CREATED state) have Entry Points that are now resolved.
     *
-    * @param datasetUUID
+    * The Parent MultiJob must not be in a FAILED state.
+    *
+    * @param datasetUUID Imported DataSet UUID
     */
   def checkCreatedChildrenJobsForNewlyEnteredDataSet(
       datasetUUID: UUID): Future[String] = {
@@ -1218,11 +1221,10 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     }
 
     db.run(total.transactionally)
-      .map(
-        updates =>
-          updates
-            .reduceLeftOption(_ ++ _)
-            .getOrElse(s"No Updates for $datasetUUID"))
+      .map { xs =>
+        xs.reduceLeftOption(_ ++ _)
+          .getOrElse(s"No Updates for DataSet:$datasetUUID")
+      }
   }
 
   /**
@@ -3405,9 +3407,12 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   /**
     * This overlaps with the RunDao this should be fixed.
     *
-    * This will check for look for Acq/CollectionMeta(s) that
-    * have Failed, and will update the companion Child Job of a
+    * This will check for look for Acq/CollectionMeta(s) status that
+    * have Failed and will update the Collection's companion Child Job(s) of a
     * MultiJob to FAILED.
+    *
+    * NOTE, this does NOT update the MultiJob state to FAILED, this only
+    * deals with updating Children Jobs.
     *
     * @param runId Run UniqueId
     */
@@ -3425,25 +3430,28 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           SmrtLinkConstants.FAILED_ACQ_STATES)
         failedDataSets <- engineJobsDataSets.filter(
           _.datasetUUID === collections.uniqueId)
+        // Can only update Child Jobs that are in the CREATED state.
         childJobs <- qGetEngineJobsByStates(childJobStates)
           .filter(_.isMultiJob === false)
+          .filter(_.parentMultiJobId.isDefined)
           .filter(_.id === failedDataSets.jobId)
       } yield childJobs.id
     }
 
-    def updateFailedRuns(jobIds: Seq[Int]) =
+    def updateChildJobsToFailed(jobIds: Seq[Int]) =
       DBIO.sequence(jobIds.map(ix =>
         qUpdateJobState(ix, AnalysisJobStates.FAILED, errorMessage)))
 
-    val q2 = q1.result.flatMap(updateFailedRuns)
+    val q2 = q1.result.flatMap(updateChildJobsToFailed)
 
     def toS(j: EngineJob) =
-      s"ChildJob ${j.id} ${j.state} ${j.parentMultiJobId.map(i => s"(parent $i)").getOrElse("")}"
+      s"ChildJob:${j.id} ${j.state} ${j.parentMultiJobId.map(i => s"(parent $i)").getOrElse("")}"
 
     def toJ(jobs: Seq[EngineJob]) =
-      jobs.map(toS).reduceLeftOption(_ ++ " " ++ _).getOrElse("")
+      jobs.map(toS).reduceLeftOption(_ ++ ", " ++ _).getOrElse("")
 
-    db.run(q2.transactionally).map(jobs => s"Updated Run $runId ${toJ(jobs)}")
+    db.run(q2.transactionally)
+      .map(jobs => s"Checked for MultiJobs from Run $runId. ${toJ(jobs)}")
   }
 
 }
