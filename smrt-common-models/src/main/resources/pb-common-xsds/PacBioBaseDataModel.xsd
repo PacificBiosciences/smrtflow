@@ -934,7 +934,7 @@ If the part number has an NFC associated with it, the contents of the NFC may be
 	<xs:simpleType name="SupportedHashAlgorithms">
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="Uint32Cast"/>
-			<xs:enumeration value="KnuthDivisionHash"/>
+			<xs:enumeration value="BoostHashCombine"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:complexType name="FilterType">

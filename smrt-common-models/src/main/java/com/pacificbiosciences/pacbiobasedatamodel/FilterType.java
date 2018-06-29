@@ -282,11 +282,11 @@ public class FilterType {
 
             /**
              * Gets the value of the hash property.
-             *
+             * 
              * @return
              *     possible object is
              *     {@link SupportedHashAlgorithms }
-             *
+             *     
              */
             public SupportedHashAlgorithms getHash() {
                 return hash;
@@ -294,11 +294,11 @@ public class FilterType {
 
             /**
              * Sets the value of the hash property.
-             *
+             * 
              * @param value
              *     allowed object is
              *     {@link SupportedHashAlgorithms }
-             *
+             *     
              */
             public void setHash(SupportedHashAlgorithms value) {
                 this.hash = value;
@@ -306,11 +306,11 @@ public class FilterType {
 
             /**
              * Gets the value of the modulo property.
-             *
+             * 
              * @return
              *     possible object is
              *     {@link String }
-             *
+             *     
              */
             public String getModulo() {
                 return modulo;
@@ -318,11 +318,11 @@ public class FilterType {
 
             /**
              * Sets the value of the modulo property.
-             *
+             * 
              * @param value
              *     allowed object is
              *     {@link String }
-             *
+             *     
              */
             public void setModulo(String value) {
                 this.modulo = value;
