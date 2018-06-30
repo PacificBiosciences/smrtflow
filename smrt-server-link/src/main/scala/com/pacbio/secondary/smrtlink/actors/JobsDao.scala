@@ -19,6 +19,7 @@ import com.pacbio.secondary.smrtlink.analysis.datasets.io.{
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs._
+import com.pacbio.secondary.smrtlink.analysis.reports.ReportUtils
 import com.pacbio.secondary.smrtlink.SmrtLinkConstants
 import com.pacbio.secondary.smrtlink.app.SmrtLinkConfigProvider
 import com.pacbio.secondary.smrtlink.database.TableModels._
@@ -1695,6 +1696,27 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       .flatMap(failIfNone(s"Unable to find report with id $reportUUID"))
   }
 
+  def getDataSetReports(dsId: IdAble): Future[Seq[DataStoreReportFile]] = {
+    val q1 = for {
+      ds <- qDsMetaDataById(dsId).result.head
+      job <- engineJobs.filter(_.id === ds.jobId).result.head
+      dsReportIds <- datasetReports
+        .filter(_.datasetId === ds.uuid)
+        .result
+        .map(_.map(_.reportId))
+        .map(_.toSet)
+      reportFiles <- datastoreServiceFiles
+        .filter(_.jobId === job.id)
+        .filter(_.fileTypeId === FileTypes.REPORT.fileTypeId)
+        .filter(_.uuid inSet dsReportIds)
+        .result
+    } yield reportFiles
+
+    db.run(q1)
+      .map(_.map((d: DataStoreServiceFile) =>
+        DataStoreReportFile(d, d.sourceId.split("-").head)))
+  }
+
   def qDsMetaDataById(id: IdAble) = {
     id match {
       case IntIdAble(i) => dsMetaData2.filter(_.id === i)
@@ -1888,6 +1910,9 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       Converters.convertGmapReferenceSet,
       ImportAbleGmapReferenceSet.apply)(dsj)
 
+  def loadImportAbleReport(dsj: DsServiceJobFile): ImportAbleReport =
+    ImportAbleReport(dsj, ReportUtils.loadReport(Paths.get(dsj.file.path)))
+
   /**
     * def loadImportAbleFile(file: DataStoreFile): ImportAbleFile
     * def importImportAbleFile(file: ImportAbleFile): Future[MessageResponse]]
@@ -1916,7 +1941,12 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
           loadImportAbleGmapReferenceSet(dsj)
         case DataSetMetaTypes.Transcript => loadImportAbleTranscriptSet(dsj)
       }
-      .getOrElse(ImportAbleDataStoreFile(dsj))
+      .getOrElse {
+        dsj.file.fileTypeId match {
+          case FileTypes.REPORT.fileTypeId => loadImportAbleReport(dsj)
+          case _ => ImportAbleDataStoreFile(dsj)
+        }
+      }
   }
 
   def actionImportSimpleDataStoreFile(
@@ -2242,6 +2272,28 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       i: ImportAbleGmapReferenceSet): Future[MessageResponse] =
     db.run(actionImportGmapReferenceSet(i).transactionally)
 
+  private def actionImportReport(i: ImportAbleReport): DBIO[MessageResponse] = {
+    val rpt = i.file
+    val msg = s"Linked report ${rpt.uuid} to ${rpt.datasetUuids.size} datasets"
+    val msg2 = s"Already added report ${rpt.uuid} to datastore"
+    val toMsg = (m: String) => DBIO.successful(MessageResponse(m))
+    val dsr = rpt.datasetUuids.toList.map(u => DataSetReport(u, rpt.uuid))
+    def qInsertFiles =
+      DBIO.seq(datastoreServiceFiles += i.ds.file, datasetReports ++= dsr)
+    datastoreServiceFiles
+      .filter(_.uuid === i.ds.file.uuid)
+      .exists
+      .result
+      .flatMap {
+        case false => qInsertFiles.andThen(toMsg(msg))
+        case true => toMsg(msg2)
+      }
+  }
+
+  private def importImportAbleReport(
+      i: ImportAbleReport): Future[MessageResponse] =
+    db.run(actionImportReport(i).transactionally)
+
   private def importImportAbleFile[T >: ImportAbleServiceFile](
       f: T): Future[MessageResponse] = {
     f match {
@@ -2258,6 +2310,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case x: ImportAbleReferenceSet => importReferenceSet(x)
       case x: ImportAbleGmapReferenceSet => importGmapReferenceSet(x)
       case x: ImportAbleTranscriptSet => importImportAbleTranscriptSet(x)
+      case x: ImportAbleReport => importImportAbleReport(x)
     }
   }
 
@@ -2276,6 +2329,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       case x: ImportAbleReferenceSet => actionImportReferenceSet(x)
       case x: ImportAbleGmapReferenceSet => actionImportGmapReferenceSet(x)
       case x: ImportAbleTranscriptSet => actionImportTranscriptSet(x)
+      case x: ImportAbleReport => actionImportReport(x)
     }
   }
 
