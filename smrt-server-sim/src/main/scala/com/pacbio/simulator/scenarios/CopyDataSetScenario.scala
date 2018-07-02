@@ -93,14 +93,6 @@ class CopyDataSetScenario(client: SmrtLinkServiceClient,
   private def getSubreadsId(files: Seq[DataStoreServiceFile]) =
     files.filter(_.fileTypeId == FileTypes.DS_SUBREADS.fileTypeId).head.uuid
 
-  private def failIf(condition: Boolean, msg: String) = {
-    if (!condition) {
-      Future.successful("Condition false")
-    } else {
-      Future.failed(new RuntimeException(msg))
-    }
-  }
-
   private def runCopySubreadsAndVerify(jobId: UUID,
                                        name: String,
                                        numRecords: Int,

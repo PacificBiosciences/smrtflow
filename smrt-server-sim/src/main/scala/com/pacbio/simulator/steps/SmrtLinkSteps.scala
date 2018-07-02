@@ -39,10 +39,21 @@ trait SmrtLinkSteps extends LazyLogging with DataSetFileUtils {
 
   val smrtLinkClient: SmrtLinkServiceClient
 
-  def andLog(sx: String): Future[String] = Future {
+  protected def andLog(sx: String): Future[String] = Future {
     logger.info(sx)
     sx
   }
+
+  protected def toFail(msg: String) = Future.failed(new RuntimeException(msg))
+
+  protected def failIf(condition: Boolean, msg: String) = {
+    if (!condition) {
+      Future.successful("Condition false")
+    } else {
+      toFail(msg)
+    }
+  }
+
   private def pollForSuccessfulJob(
       jobId: IdAble,
       maxTime: FiniteDuration): Future[EngineJob] = {
