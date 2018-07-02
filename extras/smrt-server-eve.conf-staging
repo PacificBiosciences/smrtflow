@@ -1,0 +1,4 @@
+PATH=/data/projects/smrtlink_eve/active/smrt-server-eve/target/pack/bin:/bin:/usr/bin:/usr/sbin
+SMRTFLOW_EVENT_ROOT_DIR=/data/projects/smrtlink_eve/data
+PB_SERVICES_PORT=8070
+SMRTFLOW_EVENT_LOG_LEVEL="--log-level=DEBUG"
