@@ -121,5 +121,8 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with Te
     "MultiAnalysis Scenario" in {
       runScenario("MultiAnalysisScenario") must beNone
     }
+    "SubreadSetScenario" in {
+      runScenario("SubreadSetScenario") must beNone
+    }
   }
 }

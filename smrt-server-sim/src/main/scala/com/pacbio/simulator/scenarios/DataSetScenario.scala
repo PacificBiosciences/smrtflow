@@ -302,40 +302,8 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     // attempt to export to already existing .zip file
     ExportDataSets(ftSubreads, subreadUuids, subreadsZip) SHOULD_RAISE classOf[
       Exception]
-  ) ++ (if (!HAVE_PBREPORTS) Nil
-        else
-          Seq(
-            // RUN QC FUNCTIONS (see run-qc-service.ts)
-            dsMeta := GetDataSet(subreadsUuid2),
-            dsReports := GetSubreadSetReports(subreadsUuid2),
-            dsReport := GetJobReport(
-              dsMeta.mapWith(_.jobId),
-              getReportUuid(dsReports,
-                            "pbreports.tasks.filter_stats_report_xml")),
-            fail("Wrong report ID") IF dsReport
-              .mapWith(_.id) !=? "raw_data_report",
-            fail(s"Can't retrieve $RPT_NBASES") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_NBASES).get) !=? 19825,
-            fail(s"Can't retrieve $RPT_READLENGTH") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_READLENGTH).get) !=? 9913,
-            fail(s"Can't retrieve $RPT_INSERT") IF dsReport.mapWith(
-              _.getAttributeLongValue(RPT_INSERT).get) !=? 1168,
-            nBytes := GetDataStoreFileResource(
-              dsReport.mapWith(_.uuid),
-              dsReport.mapWith(_.getPlot(RPT_PLOT_GROUP, RPT_PLOT).get.image)),
-            fail("Image has no content") IF nBytes ==? 0,
-            dsReport := GetJobReport(
-              dsMeta.mapWith(_.jobId),
-              getReportUuid(dsReports, "pbreports.tasks.loading_report_xml")),
-            fail("Wrong report ID") IF dsReport
-              .mapWith(_.id) !=? "loading_xml_report",
-            fail(s"Can't retrieve $RPT_PRODZMWS") IF dsReport.mapWith(
-              _.getFirstValueFromTableColumn(RPT_TABLE, RPT_PRODZMWS)) ==? None,
-            fail(s"Can't retrieve productivity") IF dsReport
-              .mapWith(_.getFirstValueFromTableColumn(
-                RPT_TABLE,
-                s"${RPT_PROD}_0_n")) ==? None
-          ))
+  )
+
   lazy val referenceTests = Seq(
     referenceSets := GetReferenceSets,
     jobId := ImportDataSet(reference1, ftReference),

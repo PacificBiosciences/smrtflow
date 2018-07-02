@@ -40,7 +40,8 @@ object Sim extends App with LazyLogging {
     "MultiAnalysisScenario" -> MultiAnalysisScenarioLoader,
     "SampleNamesScenario" -> SampleNamesScenarioLoader,
     "RegistryScenario" -> RegistryScenarioLoader,
-    "CopyDataSetScenario" -> CopyDataSetScenarioLoader
+    "CopyDataSetScenario" -> CopyDataSetScenarioLoader,
+    "SubreadSetScenario" -> SubreadSetScenarioLoader
   )
 
   final val DESCRIPTION =
