@@ -131,12 +131,12 @@ class SubreadSetScenario(client: SmrtLinkServiceClient,
                                values: Map[String, Long]): Future[Int] =
     Future
       .sequence {
-        values.map {
-          case (key: String, value: Long) =>
-            if (key.split('.')(0) == report.id) {
+        values
+          .filterKeys(_.split('.')(0) == report.id)
+          .map {
+            case (key: String, value: Long) =>
               testReportValue(report, key, value)
-            } else toF(0)
-        }
+          }
       }
       .map(_.sum)
 
