@@ -44,7 +44,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'Sequel System SMRT Link Web Services API'
 copyright = u'2017, Pacific Biosciences'
-smrtlink_system_version = "5.1.0"
+smrtlink_system_version = "6.0.0"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
