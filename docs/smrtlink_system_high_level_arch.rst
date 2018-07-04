@@ -53,6 +53,13 @@ Takes a path to a PacBio DataSet and generates a DataStore with a path
 to the PacBio DataSet as well as generating Report(s) file types and a
 Log of the ServiceJob output.
 
+Merge DataSet
+^^^^^^^^^^^^^
+
+Merge several PacBio DataSet(s) of a single DataSetMetaType (e.g., "PacBio.DataSet.SubreadSet")
+into a single PacBio DataSet. The resulting DataSet can be used as input to
+other job types.
+
 Fasta Reference Convert and Import
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -200,6 +207,48 @@ for the *ServiceJob* options.
 In summary, given a **ServiceJob**, the **settings** is a well-defined
 schema for the specific **jobTypeId**.
 
+MultiJob
+~~~~~~~~
+
+"MultiJob" a separate category of Job types that enable batch submission/creation of N jobs and the ability to create
+"children" jobs that have **Deferred Entry Points**. A **Deferred Entry Point** is a entry point (for example, a SubreadSet) to a
+Job that that doesn't have to exist when the MultiJob is created. After the entry point is resolved, perhaps by
+running an **Import DataSet** Job with the DataSet UUID of the **Deferred Entry Point**, the MultiJob will update the
+children job state from *CREATED* to *SUBMITTED*. When the child job(s) are updated to *SUBMITTED*, the job will run
+exactly as a standard **ServiceJob** as described in the next section. When the child job(s) state is updated, the
+parent **MultiJob** will be updated accordingly.
+
+While the **MultiJob** is in the *CREATED* state, the MultiJob (and hence child job(s)) can be updated or edited. However,
+once the **MultiJob** state has been updated to *SUBMITTED*, the **MultiJob** is not longer editable.
+
+
+MultiAnalysis MultiJob
+^^^^^^^^^^^^^^^^^^^^^^
+
+A **MultiAnalysis** MultiJob is a job that has a list of children *ServiceJob(s)*. The Entry Points (e.g., *DataSet* by UUID)
+of each child job can be *deferred* or presently exist in the system.
+
+A common use case is for users to create an *Analysis* Job from a deferred *SubreadSet* Entry Point (by UUID)
+that will be "automatically" run after the *SubreadSet* has been imported in the system (perhaps from ICS, or LIMS).
+
+A **MultiAnalysis** also has special hooks from the **PacBio Run XML WebService** to enable "auto" changing of
+the **MultiJob** state from a change in state of **PacBio Run XML**. A **PacBio Run XML** has a list of **CollectionMetadata(s)** with
+each **CollectionMetadata** has a UUID and will generate a companion *SubreadSet* with the same UUID. The **PacBio Run XML**
+also contains an optional pointer to a **MultiJob** job id. Please consult the SMRT Link docs for more details
+on the **PacBio Run XML** data model.
+
+When the **PacBio Run XML** changes state, there are triggers internally to update the job state of the companion **MultiJob** (if defined). Once
+the **PacBio Run XML** state changes to *Running*, the  companion **MultiJob** will be updated to *SUBMITTED* and is
+no longer editable. As **CollectionMetadata(s)** are processed by **ICS/Primary Analysis** and the companion *SubreadSet* (by UUID)
+is imported in the system, any children jobs (and each child's *Entry Points*) from a **MultiJob** are re-processed.
+If all *Entry Points* are resolved for a specific child job, the child job state will be updated from *CREATED* to
+*SUBMITTED* and will be queued up to be run the system.
+
+When there are errors in a **PacBio Run XML** state, any companion child not in the *RUNNING* state will be marked failed and the
+parent **MultiJob** will be marked as failed. Note, any **SubreadSet(s)** from a failed **PacBio Run XML** manually imported
+into the system will not have the child job run. These child jobs will have to be manually created.
+
+
 Model for Running Service Jobs within SMRT Link
 -----------------------------------------------
 
@@ -319,21 +368,21 @@ Get a List of all datastore files.
 
 ::
 
-    /secondary-analysis/jobs/pbsmrtpipe/1234/datastore
+    /smrt-link/jobs/pbsmrtpipe/1234/datastore
 
 To display only the Report file types, ServiceReportFile (similar to the
 DataStoreFile)
 
 ::
 
-    /secondary-analysis/jobs/pbsmrtpipe/1234/reports
+    /smrt-link/jobs/pbsmrtpipe/1234/reports
 
 From the report UUID referenced in the ServiceReportFile, the raw JSON
 of the report can be obtained.
 
 ::
 
-    /secondary-analysis/jobs/pbsmrtpipe/1234/reports/{UUID}
+    /smrt-link/jobs/pbsmrtpipe/1234/reports/{UUID}
 
 See the SMRT Link Analysis Service swagger docs for more details.
 
