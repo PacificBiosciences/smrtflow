@@ -85,6 +85,21 @@ package object externaltools {
       results
     }
 
+    private def toProcessLogger(fout: FileWriter,
+                                ferr: FileWriter,
+                                errorMsg: StringBuilder): ProcessLogger = {
+      ProcessLogger(
+        (o: String) => {
+          fout.write(o + "\n")
+        },
+        (e: String) => {
+          logger.error(e + "\n")
+          ferr.write(e + "\n")
+          errorMsg.append(e + "\n")
+        }
+      )
+    }
+
     /**
       * Core util to run external command
       *
@@ -94,11 +109,13 @@ package object externaltools {
       * @param extraEnv Env to be added to the process env
       * @return
       */
-    def runUnixCmd(cmd: Seq[String],
-                   stdout: Path,
-                   stderr: Path,
-                   extraEnv: Option[Map[String, String]] = None,
-                   cwd: Option[File] = None): (Int, String) = {
+    def runUnixCmd(
+        cmd: Seq[String],
+        stdout: Path,
+        stderr: Path,
+        extraEnv: Option[Map[String, String]] = None,
+        cwd: Option[File] = None,
+        processLogger: Option[ProcessLogger] = None): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
       val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
@@ -107,16 +124,7 @@ package object externaltools {
       // Write the subprocess standard error to propagate error message up.
       val errStr = new StringBuilder
 
-      val pxl = ProcessLogger(
-        (o: String) => {
-          fout.write(o + "\n")
-        },
-        (e: String) => {
-          logger.error(e + "\n")
-          ferr.write(e + "\n")
-          errStr.append(e + "\n")
-        }
-      )
+      val pxl = processLogger.getOrElse(toProcessLogger(fout, ferr, errStr))
 
       logger.info(s"Starting cmd $cmd")
 

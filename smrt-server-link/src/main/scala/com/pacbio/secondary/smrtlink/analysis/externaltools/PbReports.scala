@@ -1,8 +1,12 @@
 package com.pacbio.secondary.smrtlink.analysis.externaltools
 
-import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
+import java.io.FileWriter
 
+import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import java.nio.file.Path
+import org.joda.time.{DateTime => JodaDateTime}
+
+import scala.sys.process.ProcessLogger
 
 /**
   * External Call To pbreports
@@ -33,7 +37,34 @@ trait CallPbReport extends Python {
       stsXml.toAbsolutePath.toString,
       outputJson.toAbsolutePath.toString
     )
-    runCheckCall(cmd)
+    val getOut = (sx: String) => outputJson.getParent.resolve(sx)
+
+    val stdout = getOut("stdout")
+    val stderr = getOut("stderr")
+
+    val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
+    val ferr = new FileWriter(stderr.toAbsolutePath.toString, true)
+
+    val errorMsg = new StringBuilder
+
+    val processLogger: ProcessLogger = ProcessLogger(
+      (o: String) => {
+        fout.write(o + "\n")
+      },
+      (e: String) => {
+        ferr.write(e + "\n")
+        errorMsg.append(e + "\n")
+      }
+    )
+
+    val startedAt = JodaDateTime.now()
+    runUnixCmd(cmd, stdout, stderr, processLogger = Some(processLogger)) match {
+      case (0, _) => None
+      case (n, msg) =>
+        val completedAt = JodaDateTime.now()
+        val runTime = computeTimeDelta(completedAt, startedAt)
+        Some(ExternalCmdFailure(cmd, runTime, msg))
+    }
   }
 
   def run(stsXml: Path,
