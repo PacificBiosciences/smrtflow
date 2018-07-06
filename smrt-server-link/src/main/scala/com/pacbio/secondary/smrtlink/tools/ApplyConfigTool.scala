@@ -213,12 +213,11 @@ object ApplyConfigUtils extends LazyLogging {
   def setupWso2LogDir(rootDir: Path, logDir: Path): Path = {
     val wso2LogDir = rootDir.resolve(ApplyConfigConstants.REL_WSO2_LOG_DIR)
     val symlink = logDir.resolve("wso2")
-    if (!Files.exists(symlink)) {
-      Files.createSymbolicLink(symlink, wso2LogDir)
-    } else {
-      logger.warn(s"Path $symlink already exists")
-      symlink
+    if (Files.exists(symlink)) {
+      logger.warn(s"Deleting existing symlink $symlink")
+      Files.delete(symlink)
     }
+    Files.createSymbolicLink(symlink, wso2LogDir)
   }
 
   type M = Map[String, Option[String]]
