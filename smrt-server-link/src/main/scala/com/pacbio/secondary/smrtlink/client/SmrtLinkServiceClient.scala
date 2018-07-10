@@ -542,6 +542,11 @@ class SmrtLinkServiceClient(
       Post(toUri(ROOT_EULA_URI_PATH),
            EulaAcceptance(user, enableInstallMetrics, Some(enableJobMetrics))))
 
+  def updateEula(version: String,
+                 eulaUpdateRecord: EulaUpdateRecord): Future[EulaRecord] =
+    getObject[EulaRecord](
+      Put(toUri(ROOT_EULA_URI_PATH / version), eulaUpdateRecord))
+
   def deleteEula(version: String): Future[MessageResponse] =
     getMessageResponse(Delete(toUri(ROOT_EULA_URI_PATH / version)))
 

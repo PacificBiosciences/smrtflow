@@ -83,6 +83,13 @@ class EulaService(smrtLinkSystemVersion: Option[String], dao: JobsDao)
             dao.getEulaByVersion(version)
           }
         } ~
+          put {
+            entity(as[EulaUpdateRecord]) { eulaUpdate =>
+              complete {
+                dao.updateEula(version, eulaUpdate)
+              }
+            }
+          } ~
           delete {
             complete {
               for {
