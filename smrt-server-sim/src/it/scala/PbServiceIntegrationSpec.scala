@@ -50,8 +50,16 @@ class PbServiceIntegrationSpec
 
   def runPbservice(args: String*): Option[ExternalCmdFailure] = {
     logger.info(s"Running pbservice command $args")
-    val rx = ExternalToolsUtils.runCheckCall(toCmd(args: _*))
-    rx
+
+    def toM(x: ExternalCmdFailure) =
+      s"Failed to run ${x.cmd.reduce(_ ++ " " ++ _)} in ${x.runTime} sec \nError ${x.msg}"
+
+    ExternalToolsUtils.runCheckCall(toCmd(args: _*)) match {
+      case Some(x) =>
+        logger.error(toM(x))
+        Some(x)
+      case None => None
+    }
   }
 
   "pbservice cram test " should {

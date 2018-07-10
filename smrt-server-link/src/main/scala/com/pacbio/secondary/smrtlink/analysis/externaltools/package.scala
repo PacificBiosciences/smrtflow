@@ -8,17 +8,16 @@ import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import org.apache.commons.io.FileUtils
 
 import scala.sys.process._
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime => JodaDateTime}
-
-import scala.collection.JavaConversions._
 
 /**
   * Utils to Shell out to external Process
   * Created by mkocher on 9/26/15.
   *
-  * This needs to be rethought and cleanedup. There's too many degenerative models here.
+  * There's too many degenerative models here. This needs to be rethought and
+  * cleaned up and while also improve the configurability of subprocess calls.
   *
   */
 package object externaltools {
@@ -40,9 +39,17 @@ package object externaltools {
     val SUFFIX_STDOUT = "stdout"
     val SUFFIX_STDERR = "stderr"
 
-    private def toTmp(suffix: String, uuid: Option[UUID]): Path = {
+    private def toTmp(suffix: String, uuid: Option[UUID] = None): Path = {
       val ix = uuid.getOrElse(UUID.randomUUID())
       Files.createTempFile(s"cmd-$ix", suffix).toAbsolutePath
+    }
+    private def toWriter(p: Path) =
+      new FileWriter(p.toAbsolutePath.toString, true)
+
+    private def cleanUp(files: Seq[Path]): Unit = {
+      files
+        .map(_.toFile)
+        .foreach(FileUtils.deleteQuietly)
     }
 
     /**
@@ -56,10 +63,26 @@ package object externaltools {
       */
     def runCheckCall(cmd: Seq[String]): Option[ExternalCmdFailure] = {
       val startedAt = JodaDateTime.now()
-      Process(cmd).! match {
-        case 0 => None
-        case x =>
-          val msg = s"Failed to run cmd with exit code $x"
+
+      val tmpOut = toTmp("stdout")
+      val tmpErr = toTmp("stderr")
+
+      val fout = toWriter(tmpOut)
+      val ferr = toWriter(tmpErr)
+
+      def runAndCleanUp(cmd: Seq[String],
+                        processLogger: ProcessLogger): (Int, String) = {
+        val result =
+          runUnixCmd(cmd, tmpOut, tmpErr, processLogger = Some(processLogger))
+        cleanUp(Seq(tmpOut, tmpErr))
+        result
+      }
+
+      val processLogger = toProcessLoggerFile(fout, ferr)
+
+      runAndCleanUp(cmd, processLogger) match {
+        case (0, _) => None
+        case (_, msg) =>
           Some(
             ExternalCmdFailure(cmd, computeTimeDeltaFromNow(startedAt), msg))
       }
@@ -81,8 +104,34 @@ package object externaltools {
       val results = runCmd(cmd,
                            toTmp(SUFFIX_STDOUT, Some(cmdId)),
                            toTmp(SUFFIX_STDERR, Some(cmdId)))
-      tmpFiles.map(_.toFile).foreach(FileUtils.deleteQuietly)
+      cleanUp(tmpFiles)
       results
+    }
+    private def toProcessLoggerFile(fout: FileWriter,
+                                    ferr: FileWriter): ProcessLogger =
+      ProcessLogger(
+        (o: String) => {
+          fout.write(o + "\n")
+        },
+        (e: String) => {
+          logger.error(e + "\n")
+          ferr.write(e + "\n")
+        }
+      )
+
+    private def toProcessLogger(fout: FileWriter,
+                                ferr: FileWriter,
+                                errorMsg: StringBuilder): ProcessLogger = {
+      ProcessLogger(
+        (o: String) => {
+          fout.write(o + "\n")
+        },
+        (e: String) => {
+          logger.error(e + "\n")
+          ferr.write(e + "\n")
+          errorMsg.append(e + "\n")
+        }
+      )
     }
 
     /**
@@ -92,31 +141,29 @@ package object externaltools {
       * @param stdout   Path to stdout
       * @param stderr   Path to Stderr
       * @param extraEnv Env to be added to the process env
+      * @param logErrors Will write errors to the system configured log
       * @return
       */
     def runUnixCmd(cmd: Seq[String],
                    stdout: Path,
                    stderr: Path,
                    extraEnv: Option[Map[String, String]] = None,
-                   cwd: Option[File] = None): (Int, String) = {
+                   cwd: Option[File] = None,
+                   processLogger: Option[ProcessLogger] = None,
+                   logErrors: Boolean = true): (Int, String) = {
 
       val startedAt = JodaDateTime.now()
-      val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
-      val ferr = new FileWriter(stderr.toAbsolutePath.toString, true)
+
+      val getWriter = (p: Path) =>
+        new FileWriter(p.toAbsolutePath.toString, true)
+
+      val fout = getWriter(stdout)
+      val ferr = getWriter(stderr)
 
       // Write the subprocess standard error to propagate error message up.
       val errStr = new StringBuilder
 
-      val pxl = ProcessLogger(
-        (o: String) => {
-          fout.write(o + "\n")
-        },
-        (e: String) => {
-          logger.error(e + "\n")
-          ferr.write(e + "\n")
-          errStr.append(e + "\n")
-        }
-      )
+      val pxl = processLogger.getOrElse(toProcessLogger(fout, ferr, errStr))
 
       logger.info(s"Starting cmd $cmd")
 
@@ -128,15 +175,24 @@ package object externaltools {
 
       val completedAt = JodaDateTime.now()
       val runTime = computeTimeDelta(completedAt, startedAt)
-      logger.info(
-        s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
 
-      if (rcode != 0) {
-        val emsg = s"Cmd $cmd failed with exit code $rcode"
-        logger.error(
-          s"completed running with exit-code $rcode in $runTime sec. Command -> $cmd")
-        ferr.write(emsg)
-        errStr.append(emsg + "\n")
+      def toM(sx: String, exitCode: Int) =
+        s"running with exit-code $exitCode in $runTime sec. Command -> $cmd"
+
+      def logResult(sx: String) = logger.info(sx)
+
+      def logFailedResult(sx: String) = {
+        if (logErrors) {
+          logger.error(sx)
+          ferr.write(sx)
+        } else {
+          logResult(sx)
+        }
+      }
+
+      rcode match {
+        case 0 => logResult(toM("Successfully completed ", 0))
+        case n => logFailedResult(toM("Failed", n))
       }
 
       fout.close()

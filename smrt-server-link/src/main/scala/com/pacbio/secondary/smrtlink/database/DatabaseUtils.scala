@@ -70,7 +70,9 @@ trait DatabaseUtils extends LazyLogging {
       println(
         s"Attempting to apply db migrations to $flyway with datasource ${dataSource.getUrl}")
       val numMigrations = flyway.migrate()
-      println(s"Successfully applied $numMigrations db migration(s)")
+      val msg = s"Successfully applied $numMigrations db migration(s)"
+      logger.info(msg)
+      println(msg)
       numMigrations
     }
   }
