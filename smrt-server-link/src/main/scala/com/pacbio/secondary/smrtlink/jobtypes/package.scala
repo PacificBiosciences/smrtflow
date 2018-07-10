@@ -228,6 +228,9 @@ package object jobtypes {
     // To Enable default behavior for Core Jobs, Note, MultiJobs have a different Default Value.
     val submit: Option[Boolean]
 
+    // This datamodel is leaked from the XSD. These are the raw ',' separated values
+    val tags: Option[String]
+
     /**
       * NOTE. It's VERY important that these are all defs, NOT vals, otherwise you'll
       * see a runtime exception with the json serialization.
@@ -251,6 +254,11 @@ package object jobtypes {
 
     def getSubmit(): Boolean =
       submit.getOrElse(JobConstants.SUBMIT_DEFAULT_CORE_JOB)
+
+    def getTags(): Set[String] =
+      tags
+        .map(_.split(",").map(_.trim).toSet)
+        .getOrElse(Set.empty[String])
 
     // This needs to be defined at the job option level to be a globally unique type.
     def jobTypeId: JobTypeIds.JobType

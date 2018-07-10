@@ -954,25 +954,28 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       }
   }
 
-  def createMultiJob(uuid: UUID,
-                     name: String,
-                     description: String,
-                     jobTypeId: JobTypeIds.JobType,
-                     entryPoints: Set[EngineJobEntryPointRecord] =
-                       Set.empty[EngineJobEntryPointRecord],
-                     jsonSetting: JsObject,
-                     createdBy: Option[String] = None,
-                     createdByEmail: Option[String] = None,
-                     smrtLinkVersion: Option[String] = None,
-                     projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-                     workflow: JsObject = JsObject.empty,
-                     subJobTypeId: Option[String] = None,
-                     submitJob: Boolean = false,
-                     childJobs: Seq[DeferredJob]): Future[EngineJob] = {
+  def createMultiJob(
+      uuid: UUID,
+      name: String,
+      description: String,
+      jobTypeId: JobTypeIds.JobType,
+      entryPoints: Set[EngineJobEntryPointRecord] =
+        Set.empty[EngineJobEntryPointRecord],
+      jsonSetting: JsObject,
+      createdBy: Option[String] = None,
+      createdByEmail: Option[String] = None,
+      smrtLinkVersion: Option[String] = None,
+      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+      workflow: JsObject = JsObject.empty,
+      subJobTypeId: Option[String] = None,
+      submitJob: Boolean = false,
+      childJobs: Seq[DeferredJob],
+      tags: Set[String] = Set.empty[String]): Future[EngineJob] = {
 
     // FIXME. This should have Option[Path]
     val path = ""
     val createdAt = JodaDateTime.now()
+    val tagString = tags.toList.reduceLeftOption(_ ++ "," ++ _).getOrElse("")
 
     val engineJob = EngineJob(
       -1,
@@ -992,7 +995,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       projectId = projectId,
       parentMultiJobId = None,
       isMultiJob = true,
-      workflow = workflow.toString()
+      workflow = workflow.toString(),
+      tags = tagString
     )
 
     // All Children Jobs have submit = false because after a
@@ -1023,25 +1027,28 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   }
 
   /** New Actor-less model **/
-  def createCoreJob(uuid: UUID,
-                    name: String,
-                    description: String,
-                    jobTypeId: JobTypeIds.JobType,
-                    entryPoints: Set[EngineJobEntryPointRecord] =
-                      Set.empty[EngineJobEntryPointRecord],
-                    jsonSetting: JsObject,
-                    createdBy: Option[String] = None,
-                    createdByEmail: Option[String] = None,
-                    smrtLinkVersion: Option[String] = None,
-                    projectId: Int = JobConstants.GENERAL_PROJECT_ID,
-                    parentMultiJobId: Option[Int] = None,
-                    importedAt: Option[JodaDateTime] = None,
-                    subJobTypeId: Option[String] = None,
-                    submitJob: Boolean = false): Future[EngineJob] = {
+  def createCoreJob(
+      uuid: UUID,
+      name: String,
+      description: String,
+      jobTypeId: JobTypeIds.JobType,
+      entryPoints: Set[EngineJobEntryPointRecord] =
+        Set.empty[EngineJobEntryPointRecord],
+      jsonSetting: JsObject,
+      createdBy: Option[String] = None,
+      createdByEmail: Option[String] = None,
+      smrtLinkVersion: Option[String] = None,
+      projectId: Int = JobConstants.GENERAL_PROJECT_ID,
+      parentMultiJobId: Option[Int] = None,
+      importedAt: Option[JodaDateTime] = None,
+      subJobTypeId: Option[String] = None,
+      submitJob: Boolean = false,
+      tags: Set[String] = Set.empty[String]): Future[EngineJob] = {
 
     // This is wrong.
     val path = ""
     val createdAt = JodaDateTime.now()
+    val tagString = tags.toList.reduceLeftOption(_ ++ "," ++ _).getOrElse("")
 
     val engineJob = EngineJob(
       -1,
@@ -1061,7 +1068,8 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       projectId = projectId,
       parentMultiJobId = parentMultiJobId,
       importedAt = importedAt,
-      subJobTypeId = subJobTypeId
+      subJobTypeId = subJobTypeId,
+      tags = tagString
     )
 
     insertEngineJob(engineJob, entryPoints, submitJob)

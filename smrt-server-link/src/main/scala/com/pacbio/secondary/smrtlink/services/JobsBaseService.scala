@@ -219,7 +219,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           config.smrtLinkVersion,
           projectId,
           subJobTypeId = opts.subJobTypeId,
-          submitJob = opts.getSubmit()
+          submitJob = opts.getSubmit(),
+          tags = opts.getTags()
         )
       }
     }
