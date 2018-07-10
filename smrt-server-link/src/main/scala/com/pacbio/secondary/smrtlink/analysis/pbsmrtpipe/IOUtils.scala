@@ -53,7 +53,7 @@ object IOUtils
             outputDir: Path,
             taskOptions: Seq[ServiceTaskOptionBase],
             workflowOptions: Seq[ServiceTaskOptionBase],
-            serviceUri: Option[URI]) = {
+            serviceUri: Option[URI]): String = {
 
     val e = entryPoints
       .map(x => s"-e '${x.entryId}:${x.path.toString}'")
