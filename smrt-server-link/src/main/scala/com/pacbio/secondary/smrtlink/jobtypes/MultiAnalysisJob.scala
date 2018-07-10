@@ -33,7 +33,8 @@ case class MultiAnalysisJobOptions(jobs: Seq[DeferredJob],
                                    description: Option[String],
                                    projectId: Option[Int] = Some(
                                      JobConstants.GENERAL_PROJECT_ID),
-                                   submit: Option[Boolean] = Some(false))
+                                   submit: Option[Boolean] = Some(false),
+                                   tags: Option[String] = None)
     extends ServiceMultiJobOptions {
 
   override def getSubmit(): Boolean =

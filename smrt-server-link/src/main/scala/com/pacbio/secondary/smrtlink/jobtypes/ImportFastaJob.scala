@@ -42,8 +42,10 @@ trait ImportFastaBaseJobOptions extends ServiceJobOptions {
   // See comments on Job "name" vs Job option scoped "name" used to assign DataSet name.
   // This should have been "datasetName" to avoid confusion
   val name: Option[String]
+
   val description: Option[String]
   val projectId: Option[Int]
+  val tags: Option[String]
 
   /**
     * Minimal lightweight validation.
@@ -280,7 +282,8 @@ case class ImportFastaJobOptions(
     name: Option[String],
     description: Option[String],
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
-    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB),
+    tags: Option[String] = None)
     extends ImportFastaBaseJobOptions {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_REFERENCE
 

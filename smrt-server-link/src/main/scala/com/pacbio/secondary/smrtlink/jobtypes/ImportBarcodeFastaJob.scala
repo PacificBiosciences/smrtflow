@@ -32,7 +32,8 @@ case class ImportBarcodeFastaJobOptions(
     name: Option[String],
     description: Option[String],
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
-    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB),
+    tags: Option[String] = None)
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.CONVERT_FASTA_BARCODES
   override def toJob() = new ImportBarcodeFastaJob(this)

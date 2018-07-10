@@ -36,7 +36,8 @@ case class DeleteSmrtLinkJobOptions(
     dryRun: Option[Boolean] = None,
     force: Option[Boolean] = None,
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
-    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB),
+    tags: Option[String] = None)
     extends ServiceJobOptions {
   override def jobTypeId = JobTypeIds.DELETE_JOB
   override def validate(
