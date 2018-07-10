@@ -3474,7 +3474,7 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
       }
 
     val f1 = db
-      .run(updater.andThen(getEula.result.headOption))
+      .run(updater.andThen(getEula.result.headOption).transactionally)
       .flatMap(failIfNone(emsg))
 
     f1.foreach(sendEulaToEventManager)
