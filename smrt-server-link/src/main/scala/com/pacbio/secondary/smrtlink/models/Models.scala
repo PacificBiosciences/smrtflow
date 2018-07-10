@@ -1544,6 +1544,9 @@ case class EulaRecord(user: String,
                       enableInstallMetrics: Boolean,
                       enableJobMetrics: Boolean)
 
+case class EulaUpdateRecord(enableInstallMetrics: Option[Boolean],
+                            enableJobMetrics: Option[Boolean])
+
 case class DataSetReport(datasetId: UUID, reportId: UUID)
 
 // Making this backward compatible, but this should be removed

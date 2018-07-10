@@ -3437,11 +3437,13 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
        """.stripMargin
   }
 
+  private def sendEulaToEventManager(eula: EulaRecord): Unit = {
+    sendEventToManager[EulaRecord](eula)
+  }
+
   def addEulaRecord(eulaRecord: EulaRecord): Future[EulaRecord] = {
     val f = db.run(eulas += eulaRecord).map(_ => eulaRecord)
-    f.foreach { e: EulaRecord =>
-      sendEventToManager[EulaRecord](e)
-    }
+    f.foreach(sendEulaToEventManager)
     f
   }
 
@@ -3450,6 +3452,35 @@ trait DataSetStore extends DaoFutureUtils with LazyLogging {
   def getEulaByVersion(version: String): Future[EulaRecord] =
     db.run(eulas.filter(_.smrtlinkVersion === version).result.headOption)
       .flatMap(failIfNone(s"Unable to find Eula version `$version`"))
+
+  def updateEula(version: String,
+                 update: EulaUpdateRecord): Future[EulaRecord] = {
+    val emsg = s"Unable to find Eula for SMRT Link version $version"
+
+    val getEula = eulas.filter(_.smrtlinkVersion === version)
+
+    val updater =
+      (update.enableInstallMetrics, update.enableJobMetrics) match {
+        case (Some(i), Some(j)) =>
+          getEula
+            .map(e => (e.enableInstallMetrics, e.enableJobMetrics))
+            .update(i, j)
+        case (Some(i), None) =>
+          getEula.map(e => e.enableInstallMetrics).update(i)
+        case (None, Some(j)) =>
+          getEula.map(e => e.enableJobMetrics).update(j)
+        case (None, None) =>
+          DBIO.successful(Unit)
+      }
+
+    val f1 = db
+      .run(updater.andThen(getEula.result.headOption))
+      .flatMap(failIfNone(emsg))
+
+    f1.foreach(sendEulaToEventManager)
+
+    f1
+  }
 
   def removeEula(version: String): Future[Int] =
     db.run(eulas.filter(_.smrtlinkVersion === version).delete)
