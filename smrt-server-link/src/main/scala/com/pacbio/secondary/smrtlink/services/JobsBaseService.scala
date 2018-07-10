@@ -204,7 +204,8 @@ trait CommonJobsRoutes[T <: ServiceJobOptions]
           projectId,
           subJobTypeId = opts.subJobTypeId,
           submitJob = opts.getSubmit(),
-          childJobs = Nil
+          childJobs = Nil,
+          tags = opts.getTags()
         )
       } else {
         dao.createCoreJob(
