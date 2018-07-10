@@ -1,13 +1,13 @@
 package com.pacbio.secondary.smrtlink.tools
 
 import akka.actor.ActorSystem
-
 import com.pacbio.common.logging.{LoggerConfig, LoggerOptions}
 import com.pacbio.secondary.smrtlink.analysis.configloaders.ConfigLoader
 import com.pacbio.secondary.smrtlink.analysis.tools._
 import com.pacbio.secondary.smrtlink.client.SmrtLinkServiceClient
 import com.pacbio.secondary.smrtlink.models.{
   EulaRecord,
+  EulaUpdateRecord,
   PacBioComponentManifest
 }
 import scopt.OptionParser
@@ -17,13 +17,15 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.Try
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AcceptUserAgreementConfig(host: String = "http://localhost",
                                      port: Int = 8070,
                                      user: String =
-                                       System.getProperty("user.name"))
+                                       System.getProperty("user.name"),
+                                     update: Boolean = false,
+                                     enableInstallMetrics: Boolean = true,
+                                     enableJobMetrics: Boolean = true)
     extends LoggerConfig
 
 object AcceptUserAgreement
@@ -33,7 +35,7 @@ object AcceptUserAgreement
   final val SMRTLINK_SYSTEM_ID = "smrtlink"
 
   val toolId = "pbscala.tools.accept_user_agreement"
-  val VERSION = "0.1.0"
+  val VERSION = "0.2.0"
   val DESCRIPTION = "PacBio SMRTLink User Agreement Acceptance Tool"
   lazy val defaultHost: String = Try {
     conf.getString("smrtflow.server.dnsName")
@@ -57,6 +59,18 @@ object AcceptUserAgreement
         c.copy(user = x)
       } text s"User name to save in acceptance record (default: ${defaults.user})"
 
+      opt[Boolean]("job-metrics") action { (x, c) =>
+        c.copy(enableJobMetrics = x)
+      } text s"Enable Job Metrics (default: ${defaults.enableJobMetrics})"
+
+      opt[Boolean]("install-metrics") action { (x, c) =>
+        c.copy(enableInstallMetrics = x)
+      } text s"Enable Install Metrics (default: ${defaults.enableInstallMetrics})"
+
+      opt[Boolean]("update") action { (x, c) =>
+        c.copy(update = x)
+      } text s"Update configuration of previously accepted Eula Metrics (default: ${defaults.update})"
+
       opt[Unit]("version") action { (x, c) =>
         showVersion
         sys.exit(0)
@@ -79,40 +93,65 @@ object AcceptUserAgreement
         throw new Exception("Can't determine SMRT Link version")))
   }
 
-  def getOrAcceptEula(sal: SmrtLinkServiceClient,
+  def getOrAcceptEula(client: SmrtLinkServiceClient,
                       user: String,
                       smrtLinkVersion: String,
                       enableInstallMetrics: Boolean,
                       enableJobMetrics: Boolean): Future[EulaRecord] = {
-    sal
+    client
       .getEula(smrtLinkVersion)
       .recoverWith {
         case NonFatal(_) =>
-          sal.acceptEula(user, enableInstallMetrics, enableJobMetrics)
+          client.acceptEula(user, enableInstallMetrics, enableJobMetrics)
       }
+  }
+
+  def runAcceptEula(client: SmrtLinkServiceClient,
+                    user: String,
+                    enableInstallMetrics: Boolean,
+                    enableJobMetrics: Boolean): Future[EulaRecord] = {
+    for {
+      manifests <- client.getPacBioComponentManifests
+      smrtLinkVersion <- getSmrtLinkSystemVersion(manifests)
+      eula <- getOrAcceptEula(client,
+                              user,
+                              smrtLinkVersion,
+                              enableInstallMetrics,
+                              enableJobMetrics)
+    } yield eula
+  }
+
+  def runUpdateEulaMetrics(client: SmrtLinkServiceClient,
+                           enableInstallMetrics: Boolean,
+                           enableJobMetrics: Boolean): Future[EulaRecord] = {
+    for {
+      manifests <- client.getPacBioComponentManifests
+      smrtLinkVersion <- getSmrtLinkSystemVersion(manifests)
+      updatedEula <- client.updateEula(
+        smrtLinkVersion,
+        EulaUpdateRecord(Some(enableInstallMetrics), Some(enableJobMetrics)))
+    } yield updatedEula
   }
 
   override def runTool(c: AcceptUserAgreementConfig): Try[String] = {
 
-    implicit val actorSystem = ActorSystem("get-status")
+    implicit val actorSystem = ActorSystem("accept-eula")
 
-    val sal = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
+    val client = new SmrtLinkServiceClient(c.host, c.port)(actorSystem)
 
-    val fx = for {
-      manifests <- sal.getPacBioComponentManifests
-      smrtLinkVersion <- getSmrtLinkSystemVersion(manifests)
-      eula <- getOrAcceptEula(sal,
-                              c.user,
-                              smrtLinkVersion,
-                              enableInstallMetrics = true,
-                              enableJobMetrics = true)
-    } yield s"Accepted Eula $eula"
+    val fx: Future[String] = if (c.update) {
+      runUpdateEulaMetrics(client, c.enableInstallMetrics, c.enableJobMetrics)
+        .map(e => s"Updated Eula $e")
+    } else {
+      runAcceptEula(client, c.user, c.enableInstallMetrics, c.enableJobMetrics)
+        .map(e => s"Accepted Eula $e")
+    }
 
     fx.onComplete { _ =>
       actorSystem.terminate()
     }
 
-    Try { Await.result(fx, TIMEOUT) }
+    runAndBlock(fx, TIMEOUT)
   }
 
   // Legacy interface
