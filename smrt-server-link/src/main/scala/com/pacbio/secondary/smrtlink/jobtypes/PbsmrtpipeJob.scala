@@ -172,7 +172,9 @@ trait PbsmrtpipeCoreJob
     val stderrP = stdErr.getOrElse(job.path.resolve(DEFAULT_STDERR))
 
     resultsWriter.writeLine(s"Running $wrappedCmd")
-    val (exitCode, errorMessage) = runUnixCmd(wrappedCmd, stdoutP, stderrP)
+    // The errors will be logged at this level, not in subprocess layer
+    val (exitCode, errorMessage) =
+      runUnixCmd(wrappedCmd, stdoutP, stderrP, logErrors = false)
     val runTimeSec = computeTimeDeltaFromNow(startedAt)
 
     def getPbsmrtpipeError: String =
