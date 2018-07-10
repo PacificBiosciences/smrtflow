@@ -38,12 +38,14 @@ trait CallPbReport extends Python {
       outputJson.toAbsolutePath.toString
     )
     val getOut = (sx: String) => outputJson.getParent.resolve(sx)
+    val getWriter = (p: Path) =>
+      new FileWriter(p.toAbsolutePath.toString, true)
 
     val stdout = getOut("stdout")
     val stderr = getOut("stderr")
 
-    val fout = new FileWriter(stdout.toAbsolutePath.toString, true)
-    val ferr = new FileWriter(stderr.toAbsolutePath.toString, true)
+    val fout = getWriter(stdout)
+    val ferr = getWriter(stderr)
 
     val errorMsg = new StringBuilder
 
@@ -58,9 +60,13 @@ trait CallPbReport extends Python {
     )
 
     val startedAt = JodaDateTime.now()
-    runUnixCmd(cmd, stdout, stderr, processLogger = Some(processLogger)) match {
+    runUnixCmd(cmd,
+               stdout,
+               stderr,
+               processLogger = Some(processLogger),
+               logErrors = false) match {
       case (0, _) => None
-      case (n, msg) =>
+      case (_, msg) =>
         val completedAt = JodaDateTime.now()
         val runTime = computeTimeDelta(completedAt, startedAt)
         Some(ExternalCmdFailure(cmd, runTime, msg))
