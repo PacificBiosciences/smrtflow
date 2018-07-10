@@ -325,6 +325,26 @@
         },
         "x-auth-type": "Application & Application User"
       },
+      "put": {
+        "description": "Update the configuration (enable Job & Install Metrics) for specified SMRT Link version",
+        "x-scope": "analysis",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "User agreement record",
+            "schema": {
+              "$ref": "#/definitions/EulaUpdateRecord"
+            }
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
       "parameters": [
         {
           "description": "Version of EULA",
@@ -8149,6 +8169,32 @@
             "null"
           ],
           "title": "Biological sample name"
+        }
+      }
+    },
+    "EulaUpdateRecord": {
+      "type": "object",
+      "description": "Update the configuration (enable install & job metrics) of the Eula",
+      "properties": {
+        "enableInstallMetrics": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "example": true,
+          "default": true,
+          "title": "Enable Install Metrics",
+          "description": "If true, permits collection of non-proprietary information about the SMRT Link installation"
+        },
+        "enableJobMetrics": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "example": true,
+          "default": true,
+          "title": "Enable Job Metrics",
+          "description": "If true, permits collection of non-proprietary information about all new and previously run analysis jobs"
         }
       }
     },
