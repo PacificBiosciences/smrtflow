@@ -110,10 +110,15 @@ trait PbsmrtpipeCoreJob
     val startedAt = JodaDateTime.now()
 
     def writeOptions(opts: Seq[ServiceTaskOptionBase], msg: String): Unit = {
-      resultsWriter.writeLine(msg)
-      opts
-        .map(x => s"${x.id} -> ${x.value}")
-        .foreach(resultsWriter.writeLine)
+      val m = opts match {
+        case Nil => s"$msg (No Options)"
+        case _ =>
+          val m1 = opts
+            .map(x => s"${x.id} -> ${x.value}")
+            .reduce(_ ++ "\n" ++ _)
+          s"$msg (${opts.length} Options)\n$m1"
+      }
+      resultsWriter.writeLine(m)
     }
 
     resultsWriter.writeLine(
