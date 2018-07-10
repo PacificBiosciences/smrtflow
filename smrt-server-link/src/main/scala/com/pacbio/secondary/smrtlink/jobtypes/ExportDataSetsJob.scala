@@ -74,7 +74,8 @@ case class ExportDataSetsJobOptions(
     name: Option[String] = None,
     description: Option[String] = None,
     projectId: Option[Int] = Some(JobConstants.GENERAL_PROJECT_ID),
-    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB))
+    submit: Option[Boolean] = Some(JobConstants.SUBMIT_DEFAULT_CORE_JOB),
+    tags: Option[String] = None)
     extends ServiceJobOptions
     with ValidateJobUtils {
 

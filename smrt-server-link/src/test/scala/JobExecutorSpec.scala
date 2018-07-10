@@ -135,7 +135,9 @@ class JobExecutorSpec
     Seq(BoundServiceEntryPoint("e_01", "PacBio.DataSet.SubreadSet", 1)),
     Nil,
     Nil,
-    projectId = Some(-1))
+    projectId = Some(-1),
+    tags = Some("alpha,beta,gamma")
+  )
 
   val jobId = 1
   val taskUUID = UUID.randomUUID()
@@ -187,6 +189,7 @@ class JobExecutorSpec
         status.isSuccess must beTrue
         newJob.get.isActive must beTrue
         newJob.get.projectId === projectId
+        newJob.map(_.tags) must beSome("alpha,beta,gamma")
       }
     }
     "access job list by project id" in {
