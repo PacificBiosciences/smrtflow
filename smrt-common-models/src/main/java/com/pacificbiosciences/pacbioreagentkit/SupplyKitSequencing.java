@@ -41,6 +41,8 @@ import com.pacificbiosciences.pacbiobasedatamodel.SequencingChemistry;
  *       &lt;attribute name="ActiveHours" type="{http://www.w3.org/2001/XMLSchema}double" default="0" />
  *       &lt;attribute name="ActiveHoursLimit" type="{http://www.w3.org/2001/XMLSchema}int" default="0" />
  *       &lt;attribute name="MaxRunHours" type="{http://www.w3.org/2001/XMLSchema}double" default="-1" />
+ *       &lt;attribute name="NumOilTubes" type="{http://www.w3.org/2001/XMLSchema}int" default="1" />
+ *       &lt;attribute name="NumOseTubes" type="{http://www.w3.org/2001/XMLSchema}int" default="1" />
  *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -77,6 +79,10 @@ public class SupplyKitSequencing
     protected Integer activeHoursLimit;
     @XmlAttribute(name = "MaxRunHours")
     protected Double maxRunHours;
+    @XmlAttribute(name = "NumOilTubes")
+    protected Integer numOilTubes;
+    @XmlAttribute(name = "NumOseTubes")
+    protected Integer numOseTubes;
 
     /**
      * Gets the value of the reagentAutomationName property.
@@ -317,6 +323,62 @@ public class SupplyKitSequencing
      */
     public void setMaxRunHours(Double value) {
         this.maxRunHours = value;
+    }
+
+    /**
+     * Gets the value of the numOilTubes property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Integer }
+     *     
+     */
+    public int getNumOilTubes() {
+        if (numOilTubes == null) {
+            return  1;
+        } else {
+            return numOilTubes;
+        }
+    }
+
+    /**
+     * Sets the value of the numOilTubes property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Integer }
+     *     
+     */
+    public void setNumOilTubes(Integer value) {
+        this.numOilTubes = value;
+    }
+
+    /**
+     * Gets the value of the numOseTubes property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link Integer }
+     *     
+     */
+    public int getNumOseTubes() {
+        if (numOseTubes == null) {
+            return  1;
+        } else {
+            return numOseTubes;
+        }
+    }
+
+    /**
+     * Sets the value of the numOseTubes property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link Integer }
+     *     
+     */
+    public void setNumOseTubes(Integer value) {
+        this.numOseTubes = value;
     }
 
 }
