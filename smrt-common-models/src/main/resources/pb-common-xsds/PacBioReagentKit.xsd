@@ -58,9 +58,19 @@
 						<xs:documentation>The limit on the number of hours after opening that a kit can be used</xs:documentation>
 					</xs:annotation>
 				</xs:attribute>
-			  <xs:attribute name="MaxRunHours" type="xs:double" use="optional" default="-1">
+        <xs:attribute name="MaxRunHours" type="xs:double" use="optional" default="-1">
+          <xs:annotation>
+            <xs:documentation>The maximum run hours for a run using this this kit.  A negative value indicates unlimited run time.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="NumOilTubes" type="xs:int" use="optional" default="1">
+          <xs:annotation>
+            <xs:documentation>The number of oil tubes required to support this sequencing kit.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+			  <xs:attribute name="NumOseTubes" type="xs:int" use="optional" default="1">
 			    <xs:annotation>
-			      <xs:documentation>The maximum run hours for a run using this this kit.  A negative value indicates unlimited run time.</xs:documentation>
+			      <xs:documentation>The number of os enzyme tubes required to support this sequencing kit.</xs:documentation>
 			    </xs:annotation>
 			  </xs:attribute>
 			</xs:extension>
