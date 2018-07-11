@@ -8,7 +8,7 @@ Internal Location of XSD repo: http://bitbucket.nanofluidics.com:7990/projects/S
 
 # Rebuild java classes from XSDs
 
-These only need to be remade when the definitions change. Currently this is done manually and not part of the build process.
+These only need to be remade when the definitions change. This is manually done using the `update-java-classes.sh` util.
 
 
 ## Step #1
