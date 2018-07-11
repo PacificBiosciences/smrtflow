@@ -202,9 +202,6 @@ Run the '--update true' option with the necessary metrics flags (note, both flag
 .. code-block:: bash
 
     $ curl -XGET http://localhost:8081/smrt-link/eula | python -m json.tool
-      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-        100   303  100   303    0     0  50898      0 --:--:-- --:--:-- --:--:-- 60600
     [
         {
             "acceptedAt": "2018-07-11T13:05:19.147Z",
