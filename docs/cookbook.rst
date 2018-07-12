@@ -11,6 +11,19 @@ correspond to what happens internally when a Site Acceptance Test is run on
 the Sequel instrument and SMRT Link, starting from run design and finishing
 with the analysis pipeline.
 
+**NOTE:** For clarity, all of the API examples in this document use the
+unauthenticated, insecure
+endpoints (in a default SMRT Link install, these would be available from
+localhost on port 9091).  If you are connecting from a remote host and/or
+you require SSL or authentication, you will instead go through the WSO2 API
+Manager layer, which uses port 8243 and adds the prefix "/SMRTLink/1.0.0".
+For example, with default installer settings, these two URLs refer to the same
+endpoint (assuming that the SMRT Link server is running on "localhost"):
+
+.. code-block:: bash
+  http://localhost:9091/smrt-link/datasets/subreads
+  https://servername.serverdomain:8243/SMRTLink/1.0.0/smrt-link/datasets/subreads
+
 
 How to setup a Run in Run Design
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -248,29 +261,45 @@ Once this Collection becomes complete, you can get its QC metrics as
 well.
 
 
-How to import a completed collection (dataset)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Running jobs via services
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once a run is complete and the data have been transfered off the instrument,
-the resulting dataset(s) can be imported into SMRT Link.  This will create
-an `import-dataset` job that runs asynchronously and generates several reports
-used to assess run quality.
-
-To import a dataset, use this API call:
+SMRT Link runs several different types of "job" which consist of tasks that
+may take an arbitrarily long time to run and are therefore executed
+asynchronously.  You can view a list of supported job types here:
 
 .. code-block:: bash
 
-  POST /smrt-link/job-manager/jobs/import-dataset
+  GET /smrt-link/job-manager/job-types
 
-The request body in this case is very simple:
+  [
+    {
+      "jobTypeId": "db-backup",
+      "description": "Create a DB backup of the SMRT Link system",
+      "isQuick": true,
+      "isMultiJob": false
+    },
+    {
+      "jobTypeId": "delete-datasets",
+      "description": "(Soft) delete of PacBio DataSet XML",
+      "isQuick": true,
+      "isMultiJob": false
+    },
+    ...
+  ]
 
-.. code-block:: json
+Note that "quick" jobs (generally taking on the order of less than a minute)
+have their own queue, separate from analysis jobs and other I/O intensive
+tasks.
 
-  {
-    "datasetType": "PacBio.DataSet.SubreadSet",
-    "path": "/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml"
-  }
+Creating a job follows this pattern:
 
+.. code-block:: bash
+
+  POST /smrt-link/job-manager/jobs/<jobTypeId>
+
+The request body varies depending on job type, from a single path field to more
+complex data types, several examples of which are described below.
 The server should respond with **201: Created** and the model for the new job:
 
 .. code-block:: javascript
@@ -297,8 +326,34 @@ The server should respond with **201: Created** and the model for the new job:
   }
 
 Client code should now block until the job is complete, which should result
-in the "state" field changing to "SUCCESSFUL" if all goes well.  For this
-particular job type it should only take several minutes at most to complete.
+in the "state" field changing to "SUCCESSFUL" if all goes well.
+
+
+How to import a completed collection (dataset)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once a run is complete and the data have been transfered off the instrument,
+the resulting dataset(s) can be imported into SMRT Link.  This will create
+an `import-dataset` job that runs asynchronously and generates several reports
+used to assess run quality.
+
+To import a dataset, use this API call:
+
+.. code-block:: bash
+
+  POST /smrt-link/job-manager/jobs/import-dataset
+
+The request body in this case is very simple:
+
+.. code-block:: json
+
+  {
+    "datasetType": "PacBio.DataSet.SubreadSet",
+    "path": "/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml"
+  }
+
+The server should respond with **201: Created** and the model for the new job;
+it should only take several minutes at most for the import job to complete.
 
 Note that the same ``import-dataset`` job type is also used to import other
 dataset types such as the ReferenceSet XML used to run the SAT pipeline.
