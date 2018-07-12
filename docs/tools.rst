@@ -156,3 +156,60 @@ Convert RSII movie metadata XML to HdfSubreadSet XML
     $> movie-metadata-to-dataset /path/to/rs-movie.metadata.xml /path/to/output.subreadset.xml
 
 
+Accept SMRT Link User Agreement
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To accept the SMRT Link user agreement from the commandline, use the `accept-user-agreement` tool in the SMRT Link install. This enables commandline use to accept the EULA as well as editing the configuration.
+
+.. code-block:: bash
+
+    $> accept-user-agreement  --port 8081 --host localhost
+        Accepted Eula EulaRecord(admin,2018-07-11T13:05:19.147Z,6.0.0.SNAPSHOT40824,Linux version 3.13.0-33-generic (buildd@tipua) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) ) #58-Ubuntu SMP Tue Jul 29 16:45:05 UTC 2014,true,true)
+        Successfully completed running pbscala.tools.accept_user_agreement 0.2.0 (smrtflow 0.17.1+40823.c584820) in 3 sec.
+
+Use '--help' for more information about configuration SMRT Link install and Job metrics.
+
+To Update the configuration of the Eula, get access the current accepted EULA.
+
+.. code-block:: bash
+
+    $> ~$ curl -XGET http://localhost:8081/smrt-link/eula | python -m json.tool
+    [
+        {
+            "acceptedAt": "2018-07-11T13:05:19.147Z",
+            "enableInstallMetrics": true,
+            "enableJobMetrics": false,
+            "osVersion": "Linux version 3.13.0-33-generic (buildd@tipua) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) ) #58-Ubuntu SMP Tue Jul 29 16:45:05 UTC 2014\n",
+            "smrtlinkVersion": "6.0.0.SNAPSHOT40824",
+            "user": "admin"
+        }
+    ]
+
+Run the '--update true' option with the necessary metrics flags (note, both flags must be provided). To disable sending SMRT Link job data to PacBio, set '--job-metrics false'.
+
+.. code-block:: bash
+
+    $ accept-user-agreement --update true --install-metrics true --job-metrics true  --host localhost --port 8081 --log2stdout
+        2018-07-11 22:34:39.293UTC INFO [main] c.p.s.s.t.AcceptUserAgreement$ - Starting to run tool pbscala.tools.accept_user_agreement with smrtflow 0.17.1+40823.c584820
+        2018-07-11 22:34:39.301UTC INFO [main] c.p.s.s.t.AcceptUserAgreement$ - Successfully Parsed options AcceptUserAgreementConfig(localhost,8081,mkocher,true,true,true)
+        2018-07-11 22:34:39.743UTC INFO [accept-eula-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger - Slf4jLogger started
+        Updated Eula EulaRecord(admin,2018-07-11T13:05:19.147Z,6.0.0.SNAPSHOT40824,Linux version 3.13.0-33-generic (buildd@tipua) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) ) #58-Ubuntu SMP Tue Jul 29 16:45:05 UTC 2014,true,true)
+        Successfully completed running pbscala.tools.accept_user_agreement 0.2.0 (smrtflow 0.17.1+40823.c584820) in 5 sec.
+        2018-07-11 22:34:43.131UTC INFO [main] c.p.s.s.t.AcceptUserAgreement$ - Updated Eula EulaRecord(admin,2018-07-11T13:05:19.147Z,6.0.0.SNAPSHOT40824,Linux version 3.13.0-33-generic (buildd@tipua) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) ) #58-Ubuntu SMP Tue Jul 29 16:45:05 UTC 2014,true,true)
+        2018-07-11 22:34:43.131UTC INFO [main] c.p.s.s.t.AcceptUserAgreement$ - Successfully completed running pbscala.tools.accept_user_agreement 0.2.0 (smrtflow 0.17.1+40823.c584820) in 5 sec.
+
+
+.. code-block:: bash
+
+    $ curl -XGET http://localhost:8081/smrt-link/eula | python -m json.tool
+    [
+        {
+            "acceptedAt": "2018-07-11T13:05:19.147Z",
+            "enableInstallMetrics": true,
+            "enableJobMetrics": true,
+            "osVersion": "Linux version 3.13.0-33-generic (buildd@tipua) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) ) #58-Ubuntu SMP Tue Jul 29 16:45:05 UTC 2014\n",
+            "smrtlinkVersion": "6.0.0.SNAPSHOT40824",
+            "user": "admin"
+        }
+    ]
+
