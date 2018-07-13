@@ -529,33 +529,40 @@ To create an analysis job for a specific pipeline, you need to create a job of t
    values of the pipeline “id” and “entryPoints” elements of that
    template.
 
-2. Get the datasets list that corresponds to the type specified in the
-   first element of “entryPoints” array. For example, for the type
-   “fileTypeId” : “PacBio.DataSet.SubreadSet”, get the list of
-   “subreads” datasets:
+2. Identify the dataset(s) you want to use to run the analysis and make note
+   of its/their UUID(s).
+
+
+3. For each entry point, find the corresponding record in the ``dataset-types``
+   endpoint, and extract the ``shortName`` field:
+
+.. code-block::
+
+   GET /smrt-link/dataset-types
+
+4. For each input dataset, check whether a record already exists at the
+   appropriate dataset endpoint, and if one does not, it should be imported
+   as described above.  The dataset endpoints will take this form:
 
 .. code-block:: bash
 
-    GET /smrt-link/datasets/subreads
+   GET /smrt-link/datasets/<shortName>/UUID
 
-4. Repeat step 3. for the dataset types specified in the rest of elements of “entryPoints” array.
 
-5. From the lists of datasets brought on steps 3. and 4, select IDs of the datasets that you want to use as entry points for the pipeline you are about to set up.
-
-6. Build the request body for creating a job of type "pbsmrtpipe".  The
-basic structure looks like this:
+5. Build the request body for creating a job of type "pbsmrtpipe".  The
+   basic structure looks like this:
 
 .. code-block:: javascript
 
     {
         "entryPoints": [
             {
-                "datasetId": 2,
+                "datasetId": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
                 "entryId": "eid_subread",
                 "fileTypeId": "PacBio.DataSet.SubreadSet"
             },
             {
-                "datasetId": 1,
+                "datasetId": "1a369917-507e-4f70-9f38-69614ff828b6",
                 "entryId": "eid_ref_dataset",
                 "fileTypeId": "PacBio.DataSet.ReferenceSet"
             }
@@ -568,11 +575,12 @@ basic structure looks like this:
 
 Use the pipeline “id” found on step 2 as the value for “pipelineId” element.
 
-Use dataset types of “entryPoints” array found on step 2 and corresponding dataset IDs found on step 5 as the values for elements of “entryPoints” array.
+Use dataset types of “entryPoints” array found on step 1 and corresponding dataset IDs found on step 2 as the values for elements of “entryPoints” array.
 
-Note that “taskOptions” array is optional and may be completely empty in the request body.
+Note that “taskOptions” array is optional and may be completely empty in the request body.  ("workflowOptions" is not only optional but the contents will be
+ignored by the server.)
 
-7. Create a job of type “pbsmrtpipe”.
+6. Create a job of type “pbsmrtpipe”.
 
 Use the request body built in the previous step in the POST request with the following endpoint:
 
@@ -581,19 +589,19 @@ Use the request body built in the previous step in the POST request with the fol
 
     POST /smrt-link/job-manager/jobs/pbsmrtpipe
 
-8. You may monitor the state of the job created on step 7 with the use of the following request:
+7. You may monitor the state of the job created on step 6 with the use of the following request:
 
 
 .. code-block:: bash
 
     GET /smrt-link/job-manager/jobs/pbsmrtpipe/{jobID}/events
 
-Where jobID is equal to the value received in “id” element of the response on step 7.
+Where jobID is equal to the value received in “id” element of the response on step 6.
 
 
 Example
 
-Suppose you want to setup an analysis job for Resequencing pipeline.
+Suppose you want to setup an analysis job for the SAT pipeline.
 
 First, get the list of all pipeline templates used for creating analysis jobs:
 
@@ -603,21 +611,29 @@ First, get the list of all pipeline templates used for creating analysis jobs:
     GET /smrt-link/resolved-pipeline-templates
 
 
-The response will be an array of pipeline template objects. In this response, do the search for the entry with “name” : “Resequencing”. The entry may look as in the following example:
+The response will be an array of pipeline template objects. In this response, do the search for the entry with "name" : "Site Acceptance Test (SAT)". The entry may look as in the following example (task options have been truncated for clarity):
 
 .. code-block:: javascript
 
     {
-        “name” : “Resequencing”,
-        “id” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”,
-        “description” : “Full Resequencing Pipeline - Blasr mapping and Genomic Consensus.”,
+        "name": "Site Acceptance Test (SAT)",
+        “id” : “pbsmrtpipe.pipelines.sa3_sat”,
+        "description": "Site Acceptance Test - lambda genome resequencing used to validate new\n    PacBio installations",
         “version” : “0.1.0”,
-        “entryPoints” : [{
-          “entryId” : “eid_subread”, “fileTypeId” : “PacBio.DataSet.SubreadSet”, “name” : “Entry Name: PacBio.DataSet.SubreadSet”}, {
-          “entryId” : “eid_ref_dataset”, “fileTypeId” : “PacBio.DataSet.ReferenceSet”, “name” : “Entry Name: PacBio.DataSet.ReferenceSet”}
+        "entryPoints": [
+            {
+                "entryId": "eid_ref_dataset",
+                "fileTypeId": "PacBio.DataSet.ReferenceSet",
+                "name": "Entry Name: PacBio.DataSet.ReferenceSet"
+            },
+            {
+                "entryId": "eid_subread",
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "name": "Entry Name: PacBio.DataSet.SubreadSet"
+            }
         ],
-        “tags” : [ “consensus”, “reports”],
-        “taskOptions” : [{
+        "tags" : [ “consensus", "mapping", "reports", "sat"],
+        "taskOptions" : [{
             "optionTypeId": "choice_string",
             "name": "Algorithm",
             "choices": ["quiver", "arrow", "plurality", "poa", "best"],
@@ -627,67 +643,109 @@ The response will be an array of pipeline template objects. In this response, do
         }]
     }
 
-In the above entry, take the value of the pipeline “id” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”.
+In the above entry, take the value of the pipeline “id” : “pbsmrtpipe.pipelines.sa3_sat”.
 
-Also, take the dataset types of “entryPoints” elements: “fileTypeId” : “PacBio.DataSet.SubreadSet” and “fileTypeId” : “PacBio.DataSet.ReferenceSet”.
+Also, take the dataset types of “entryPoints” elements: “fileTypeId” : “PacBio.DataSet.SubreadSet” and “fileTypeId” : “PacBio.DataSet.ReferenceSet”.  In this
+example we will use the lambdaNEB reference and example RSII data that are
+distributed with SMRT Link.  First check whether they have been imported
+already:
 
-Now, get the lists of the datasets that correspond to the types
-specified in the elements of the “entryPoints” array.
+.. code-block::
 
-In particular, for the type “fileTypeId” : “PacBio.DataSet.SubreadSet”, get the list of “subreads” datasets:
+  GET /smrt-link/datasets/subreads/5bd43ef4-6afe-dc62-4f49-03b75a051801
 
-.. code-block:: bash
+  {
+    "name": "lambda/0007_tiny",
+    "updatedAt": "2015-10-26T22:54:46.000Z",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-nightly/smrtsuite_6.0.0.40259/install/smrtlink-release_6.0.0.40259/admin/bin/../../bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml",
+    "instrumentControlVersion": "2.3.0.1.142990",
+    "tags": "",
+    "instrumentName": "42267",
+    "uuid": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
+    "totalLength": 16865720,
+    "projectId": 1,
+    "numRecords": 19930,
+    "wellSampleName": "Inst42267-040315-SAT-100pM-2kb-P6C4",
+    "bioSampleName": "unknown",
+    "version": "3.0.1",
+    "cellId": "unknown",
+    "id": 5,
+    "md5": "288d3bdadf83bda41dd7fefc11cad128",
+    "importedAt": "2018-07-06T00:45:10.753Z",
+    "jobId": 3,
+    "createdAt": "2015-10-26T22:54:46.000Z",
+    "isActive": true,
+    "createdBy": "smrtlinktest",
+    "wellName": "A01",
+    "cellIndex": 4,
+    "metadataContextId": "m150404_101626_42267_c100807920800000001823174110291514_s1_p0",
+    "numChildren": 0,
+    "runName": "lambdaTINY",
+    "datasetType": "PacBio.DataSet.SubreadSet",
+    "comments": "Inst42267-SAT-100pM-2kbLambda-P6C4-Std120_CPS_040315"
+  }
 
-    GET /smrt-link/datasets/subreads
+.. code-block::
 
-And for the type “fileTypeId” : “PacBio.DataSet.ReferenceSet”, get the list of “references” datasets:
+  GET /smrt-link/datasets/references/1a369917-507e-4f70-9f38-69614ff828b6
+  {
+    "name": "lambdaNEB",
+    "updatedAt": "2015-10-24T03:32:50.530Z",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-nightly/smrtsuite_6.0.0.40259/install/smrtlink-release_6.0.0.40259/admin/bin/../../bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
+    "ploidy": "haploid",
+    "tags": "",
+    "uuid": "1a369917-507e-4f70-9f38-69614ff828b6",
+    "totalLength": 48502,
+    "projectId": 1,
+    "numRecords": 1,
+    "version": "3.0.1",
+    "id": 4,
+    "md5": "4861bca63e02aa26c92724febb3299c2",
+    "importedAt": "2018-07-06T00:45:10.660Z",
+    "jobId": 5,
+    "createdAt": "2015-10-24T03:32:50.530Z",
+    "isActive": true,
+    "createdBy": "smrtlinktest",
+    "organism": "lambdaNEB",
+    "numChildren": 0,
+    "datasetType": "PacBio.DataSet.ReferenceSet",
+    "comments": "reference dataset comments"
+  }
 
 
-.. code-block:: bash
-
-    GET /smrt-link/datasets/references
-
-From the above lists of datasets, select IDs of the datasets that you
-want to use as entry points for the Resequencing pipeline you are about
-to setup.
-
-For example, take the dataset with “id”: 18 from the “subreads” list and
-the dataset with “id”: 2 from the “references” list.
-
-Build the request body for creating ‘pbsmrtpipe’ job for Resequencing
-pipeline.
-
+Build the request body for creating ‘pbsmrtpipe’ job for SAT pipeline.
 Use the pipeline “id” obtained above as the value for “pipelineId”
-element.
-
-Use these two dataset IDs obtained above as values of the “datasetId”
+element.  Use the two dataset UUIDs as values of the “datasetId”
 fields in the “entryPoints” array. For example:
-
 
 .. code-block:: javascript
 
     {
-        “pipelineId” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”,
+        “pipelineId” : “pbsmrtpipe.pipelines.sa3_sat”,
         “entryPoints” : [
             {
-                “entryId” : “eid_subread”,
-                “fileTypeId” : “PacBio.DataSet.SubreadSet”,
-                “datasetId” : 18
+                "datasetId": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
+                "entryId": "eid_subread",
+                "fileTypeId": "PacBio.DataSet.SubreadSet"
             },
             {
-                “entryId” : “eid_ref_dataset”,
-                “fileTypeId” : “PacBio.DataSet.ReferenceSet”,
-                “datasetId” : 2
+                "datasetId": "1a369917-507e-4f70-9f38-69614ff828b6",
+                "entryId": "eid_ref_dataset",
+                "fileTypeId": "PacBio.DataSet.ReferenceSet"
             }
         ],
         “taskOptions” : [],
         "workflowOptions": [],
-        "name": "My Resequencing Job"
+        "name": "My SAT Job"
     }
 
-Now create a job of type “pbsmrtpipe”.
+(Note that you could alternately substitute the integer IDs of the dataset
+records shown above for the UUIDs.  Both ID types are supported, but the UUIDs
+are generally prefered at the API level, since they are included in the
+dataset XML and are portable across different SMRT Link systems.)
 
-Use the request body built above in the following API call:
+Now create a job of type “pbsmrtpipe”.  Use the request body built above in the
+following API call:
 
 .. code-block:: bash
 
@@ -721,6 +779,53 @@ This retrieves all pbsmrtpipe jobs run before 2018-03-01 by a user with the
 login ID "myusername".  (Note that certain searches, especially partial text
 searches using `like:`, may be significantly slower to execute and can overload
 the server if called too frequently.)
+
+
+How to copy and re-run a SMRT Link analysis job
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The "options" endpoint for a specific job provides the POST content that ran
+it:
+
+.. code-block:: bash
+
+  GET /smrt-link/job-manager/jobs/pbsmrtpipe/<jobId>/options
+
+For example:
+
+.. code-block:: bash
+
+  GET /smrt-link/job-manager/jobs/pbsmrtpipe/3/options
+
+  {
+    "name": "sat_lambda",
+    "entryPoints": [
+      {
+        "entryId": "eid_subread",
+        "fileTypeId": "PacBio.DataSet.SubreadSet",
+        "datasetId": 1
+      },
+      {
+        "entryId": "eid_ref_dataset",
+        "fileTypeId": "PacBio.DataSet.ReferenceSet",
+        "datasetId": 2
+      }
+    ],
+    "workflowOptions": [],
+    "taskOptions": [],
+    "pipelineId": "pbsmrtpipe.pipelines.sa3_sat"
+  }
+
+This data model can be directly POSTed to the pbsmrtpipe job endpoint as
+described above.  Note that in this case, the ``datasetId`` fields are the
+integer IDs generated by the SMRT Link database backend.  You can retrieve
+the full dataset records (including their UUIDs) by using the same dataset
+endpoints described previously, only with the integer IDs instead of UUIDs:
+
+.. code-block:: bash
+
+  GET /smrt-link/datasets/subreads/1
+  GET /smrt-link/datasets/references/2
 
 
 How to delete a SMRT Link Job
