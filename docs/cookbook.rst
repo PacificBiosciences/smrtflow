@@ -828,9 +828,88 @@ endpoints described previously, only with the integer IDs instead of UUIDs:
   GET /smrt-link/datasets/references/2
 
 
+How to run an analysis on all Collections in a Run
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As explained above, each Collection corresponds to a SubreadSet dataset.  To
+run an analysis on multiple SubreadSets combined, you will first need to run
+a merge job, then run pbsmrtpipe with the merged dataset.
+
+Perform the following steps:
+
+1. As described previously, collect the UUIDs for the Collections in the Run
+   you want to analysis.
+
+2. Check each Collection UUID to make sure the SubreadSet XML has already been
+   imported, and if not import it as described above:
+
+.. code-block:: bash
+
+  GET /smrt-link/datasets/subreads/<UUID>
+
+3. Construct a payload with the following model:
+
+.. code-block:: bash
+
+    {
+      "datasetType": "PacBio.DataSet.SubreadSet",
+      "ids": ["<UUID1>", "<UUID2>", ...],
+      "name": "Merge run <runId> collections"
+    }
+
+4. Create a ``merge-datasets`` job with the request body from step (3):
+
+.. code-block::
+
+  POST /smrt-link/job-manager/jobs/merge-datasets
+
+
+5. Block until this job completes successfully, then retrieve the list of
+   job datastore files.  One of these should be the merged dataset.
+
+.. code-block::
+
+  GET /smrt-link/job-manager/jobs/merge-datasets/<ID>/datastore
+
+  [
+    {
+      "modifiedAt": "2018-07-12T21:38:34.815Z",
+      "name": "Auto-merged hdfsubreads @ 1531431514119",
+      "fileTypeId": "PacBio.DataSet.SubreadSet",
+      "path": "/opt/smrtlink_5.1.0.14963/userdata/jobs_root/008/008767/merged.dataset.xml",
+      "description": "Merged PacBio DataSet from 4 files",
+      "uuid": "f54694da-5985-42b9-9a9e-f2190bd3b4a4",
+      "fileSize": 33495,
+      "importedAt": "2018-07-12T21:38:35.085Z",
+      "jobId": 4,
+      "createdAt": "2018-07-12T21:38:34.815Z",
+      "isActive": true,
+      "jobUUID": "127619b4-f615-4c3f-b208-e1bf52bfe21b",
+      "sourceId": "pbscala::merge_dataset"
+    },
+    {
+      "modifiedAt": "2018-07-12T21:38:34.264Z",
+      "name": "SMRT Link Job Log",
+      "fileTypeId": "PacBio.FileTypes.log",
+      "path": "/opt/smrtlink_5.1.0.14963/userdata/jobs_root/008/008767/pbscala-job.stdout",
+      "description": "SMRT Link Job Log",
+      "uuid": "b19fbfc6-0808-40fc-917b-092f369180cd",
+      "fileSize": 388,
+      "importedAt": "2018-07-12T21:38:34.266Z",
+      "jobId": 8767,
+      "createdAt": "2018-07-12T21:38:34.264Z",
+      "isActive": true,
+      "jobUUID": "127619b4-f615-4c3f-b208-e1bf52bfe21b",
+      "sourceId": "pbsmrtpipe::master.log"
+    }
+  ]
+
+6. You may now follow the steps for running an analysis job, using the new
+   merged SubreadSet as input.
+
+
 How to delete a SMRT Link Job
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 To delete a job, you need to create another job of type “delete-job”, and pass the UUID of the job to delete in the payload (a.k.a. request body).
 
