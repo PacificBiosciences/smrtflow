@@ -3,267 +3,64 @@ SMRT Link Services Common Tasks And Workflows
 
 This chapter describes common tasks performed using the SMRT Link
 Web Services API and provides “how to” recipes for accomplishing
-these tasks.
+these tasks.  To accomplish a task, you usually need to perform several API
+calls; the workflow describes the order of these calls.
 
-To accomplish a task, you usually need to perform several API calls;
-the workflow describes the order of these calls.
+As an example of a real-world workflow, most of the examples below roughly
+correspond to what happens internally when a Site Acceptance Test is run on
+the Sequel instrument and SMRT Link, starting from run design and finishing
+with the analysis pipeline.
 
-How to get the reports for SMRT Link Job By Id
-----------------------------------------------
+**NOTE:** For clarity, all of the API examples in this document use the
+unauthenticated, insecure
+endpoints (in a default SMRT Link install, these would be available from
+localhost on port 9091).  If you are connecting from a remote host and/or
+you require SSL or authentication, you will instead go through the WSO2 API
+Manager layer, which uses port 8243 and adds the prefix "/SMRTLink/1.0.0".
+For example, with default installer settings, these two URLs refer to the same
+endpoint (assuming that the SMRT Link server is running on "localhost"):
 
-To get the reports for a job, given the job ID, perform the
-following steps:
+.. code-block:: bash
+  http://localhost:9091/smrt-link/datasets/subreads
+  https://servername.serverdomain:8243/SMRTLink/1.0.0/smrt-link/datasets/subreads
 
-1. Determine the job type from the list of available job types. Use the GET request with the following endpoint:
+
+How to setup a Run in Run Design
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To setup a Run design, perform the following steps:
+
+1. Prepare the Run Design information in an XML file. (The XML file should correspond to the PacBioDataModel.xsd schema.)
+
+2. Create the Run design: Use the POST request with the following endpoint:
+
+.. code-block:: bash
+
+    POST /smrt-link/runs
+
+The payload (request body) for this POST request is a JSON with the following fields:
+
+-  dataModel: The serialized XML containing the Run Design information
+-  name: The name of the run
+-  summary: A short description of the run
+
+Example, Create a Run design using the following API call:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/job-types
+    POST /smrt-link/runs
 
-2. Get the corresponding job type string. The job type can be found in the "jobTypeId" field.
+Use the payload as in the following example:
 
-3. Get reports produced by the job. Given the job ID and the job type, use them in the GET request with the following endpoint:
+.. code-block:: javascript
 
-.. code-block:: bash
+    {
+        "dataModel" : "<serialized Run Design XML file according to the PacBioDataModel.xsd schema>",
+        "name" : "54001_SAT",
+        "summary" : "SAT"
+    }
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/{jobType}/{jobID}/reports
-
-
-Example
-
-Suppose you view a SMRT Analysis job results page in the SMRT Link UI.
-
-To find the job ID, look for the “Analysis Id” field under Analysis
-Overview, Status.
-
-**Note:** The job ID will also appear in the {jobID} path parameter of the SMRT Link UI URL.  Suppose you view the following SMRT Analysis job results page:
-
-.. code-block:: bash
-
-    http://SMRTLinkServername.domain:9090/#/analysis/job/3957
-
-Then the job ID is 3957.
-
-To get the job type, use the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/job-types
-
-Look for the appropriate jobTypeId in the response.
-
-A SMRT Analysis job corresponds to the ‘pbsmrtpipe’ type, so the jobTypeId will be "pbsmrtpipe". The desired endpoint is:
-
-.. code-block:: bash
-
-    http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports
-
-Use the GET request with this endpoint to get a list of reports produced by the job with ID = 3957.
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports
-
-Individual reports associated with a job can be retrieved by adding the
-report ID specified in the ``uuid`` field, for example:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/3957/reports/06dd155b-eb0f-4c26-9f07-2b9a76452dd9
-
-
-How to get the SMRT Link reports for dataset by UUID
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-To get reports for a dataset, given the dataset UUID, perform the following steps:
-
-1. Determine the dataset type from the list of available dataset types. Use the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/dataset-types
-
-2. Get the corresponding dataset type string. The dataset type can be found in the "shortName" field. Dataset types are explained in `Overview of Dataset
-Service <#Overview_of_Dataset_Service>`__.
-
-3. Get reports that correspond to the dataset. Given the dataset UUID and the dataset type, use them in the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/{datasetType}/{datasetUUID}/reports
-
-
-Example
-
-To get reports associated with a subreadset with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1, perform the following steps:
-
-Use the GET request with the following endpoint:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/dataset-types
-
-You see that the shortName of SubreadSets is “subreads”. The desired endpoint is:
-
-.. code-block:: bash
-
-    http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
-
-Use the GET request with this endpoint to get reports that correspond to the SubreadSet with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/146338e0-7ec2-4d2d-b938-11bce71b7ed1/reports
-
-Once you have the UUID for an individual report, it can be downloaded using
-the datastore files service:
-the ``uuid`` field
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/519817b6-4bfe-4402-a54e-c16b29eb06eb/download
-
-
-How to get QC reports for a particular SMRT Link Run
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To get QC reports for a particular Run, given the Run Name, perform the following steps:
-
-1. Get the list of all Runs: Use the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
-
-In the response, perform a text search for the Run Name: Find the object whose “name” field is equal to the Run Name, and get the Run UUID, which can be found in the “uniqueId” field.
-
-2. Get all Collections that belong to this Run: Use the Run UUID found in the previous step in the GET request with the following endpoint:
-
-.. code-block::
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
-
-1. Take a Collection UUID of one of Collection objects received in the previous response. The Collection UUIDs can be found in the "uniqueId" fields.
-
-For **complete** Collections, the Collection UUID will be the same as the UUID of the SubreadSet for that Collection.
-
-Make sure that the Collection whose “uniqueId” field you take has the field “status” set to “Complete”. This is because obtaining dataset reports based on the Collection UUID as described below will **only** work if the Collection is **complete**. If the Collection is **not** complete, the SubreadSet does not exist yet.
-
-Retrieve the QC reports that correspond to this Collection: Use the Collection UUID obtained in the previous step in the GET request with the following endpoint:
-
-.. code-block::
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}/reports
-
-**Note:** See `How to get the SMRT Link reports for dataset by UUID`__ for
-more details.
-
-2. Take a report UUID of one of the reports of the Collection from the previous response. The report UUIDs can be found in the “uuid” fields.
-
-3. Download one of the reports associated with the Collection: Use the
-   report UUID in the GET request with the following endpoint:
-
-.. code-block::
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/{reportUUID}/download
-
-1. Repeat previous steps to download all desired reports associated for that specific Collection.
-
-2. Repeat Steps 4 - 8 to download QC reports for all complete Collections of that Run.
-
-
-Example
-
-You view the Run QC page in the SMRT Link UI, and open the page of a Run
-with status “Complete”. Take the Run Name and look for the Run UUID in
-the list of all Runs, as described above.
-
-**Note:** The Run ID will also appear in the {runUUID} path parameter of the SMRT Link UI URL
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9090/#/run-qc/{runUUID}
-
-So the shorter way would be to take the Run UUID directly from the URL, such as
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9090/#/run-qc/d7b83cfc-91a6-4cea-8025-8bcc1f39e045
-
-With this Run UUID = d7b83cfc-91a6-4cea-8025-8bcc1f39e045, get all Collections that belong to this Run:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/d7b83cfc-91a6-4cea-8025-8bcc1f39e045/collections
-
-Take a UUID of a completed Collection, such as “uniqueId”: "59230aeb-a8e3-4b46-b1b1-24c782c158c1". With this Collection UUID, retrieve QC reports of the corresponding SubreadSet:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
-
-Take a UUID of some report, such as. “uuid”: “00c310ab-e989-4978-961e-c673b9a2b027”. With this report UUID, download the corresponding report file:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
-
-Repeat the last two API calls until you download all desired reports for all complete Collections.
-
-How to get QC reports for a particular Collection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-For completed Collections, the Collection UUID will be the same as
-the UUID of the SubreadSet for that Collection. To retrieve the QC
-reports of a completed Collection, given the Collection UUID,
-perform the following steps:
-
-1. Get the QC reports that correspond to this Collection: Use the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}/reports
-
-**Note:** See `How to get the SMRT Link reports for dataset by UUID`__ for
-more details.
-
-**Note:** Obtaining dataset reports based on the Collection UUID as described above will only work if the Collection is **complete**. If the Collection is **not** complete, then the SubreadSet does not exist yet.
-
-2. Take a report UUID of one of the reports of the Collection from the
-previous response.
-
-The report UUIDs can be found in the "uuid" fields.
-
-3. Download one of the reports of the Collection: Use the report UUID in the GET request with the following endpoint:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/{reportUUID}/download
-
-4. Repeat Steps 2 - 3 to download all desired reports of the Collection.
-
-Example
-
-Suppose you have a complete Collection with UUID = 59230aeb-a8e3-4b46-b1b1-24c782c158c1. Get all reports of the SubreadSet which corresponds to this Collection:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/59230aeb-a8e3-4b46-b1b1-24c782c158c1/reports
-
-Take the UUID of a desired report, such as “uuid”: “00c310ab-e989-4978-961e-c673b9a2b027”. With this report UUID, download the corresponding report file:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
-
-Repeat the last API call until you download all desired reports associated with this Collection.
 
 How to get recent Runs
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -274,7 +71,7 @@ To get recent Runs, perform the following steps:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
+    GET /smrt-link/runs
 
 2. Filter the response based on the value of the "createdAt" field. For
 example:
@@ -289,84 +86,50 @@ Example, suppose you want to find all Runs created on or after 01.01.2017. First
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
+    GET /smrt-link/runs
 
 The response will be an array of Run objects, as in the following example (some fields are removed for display purposes):
 
 
 .. code-block:: javascript
 
-    [{
-    “name” : “2016-11-08_3150473_2kLambda_A12”,
-    “uniqueId” : “97286726-b243-45b3-82f7-8b5f58c56d53”,
-    “createdAt” : “2016-11-08T17:50:57.955Z”,
-    “summary” : “lambdaNEB”
-    }, {
-    “name” : “2017_01_24_A7_4kbSymAsym_DS_3150540”,
-    “uniqueId” : “abd8f5ec-a177-4d41-8556-81c5ffb6b0aa”,
-    “createdAt” : “2017-01-24T20:09:27.629Z”,
-    “summary” : “pBR322_InsertOnly”
-    }, {
-    “name” : “SMS_GoatVer_VVC034_3150433_2kLambda_400pm_SNR10.5”,
-    “uniqueId” : “b81de65a-8018-4843-9da7-ff2647a9d01e”,
-    “createdAt” : “2016-10-17T23:36:35.000Z”,
-    “summary” : “lambdaNEB”
-    }]
+    [
+        {
+            “name” : “54001_SAT",
+            “uniqueId” : “a836efbc-fd58-40f6-b586-43c743730fe0",
+            “createdAt” : “2016-11-08T17:50:57.955Z”,
+            “summary” : "SAT run”
+        },
+        {
+            “name” : “54001_ecoli_15k",
+            “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
+            “createdAt” : “2017-01-20T16:08:41.610Z”,
+            “summary” : “E. coli assembly”
+        },
+        {
+            “name” : “54001_hla_amplicons",
+            “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
+            “createdAt” : “2017-01-21T00:21:52.534Z”,
+            “summary” : “Human HLA”
+        }
+    ]
 
 Now, search the above response for all Run objects whose “createdAt” field starts with the “2017-01” substring. From the above example, you will get two Runs that fit your criteria (that is, created on or after 01.01.2017):
 
-Run with “name” equal to “2017_01_24_A7_4kbSymAsym_DS_3150540”,
+Run with “name” equal to “54001_ecoli_15k”,
 
-Run with “name” equal to “2017_01_21_A7_RC0_2.5-6kb_DS”.
+Run with “name” equal to “54001_hla_amplicons”.
 
-How to setup a Run in Run Design
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-To setup a Run design, perform the following steps:
-
-1. Prepare the Run Design information in an XML file. (The XML file should correspond to the PacBioDataModel.xsd schema.)
-
-2. Create the Run design: Use the POST request with the following endpoint:
-
-.. code-block:: bash
-
-    POST http://SMRTLinkServername.domain:9091/smrt-link/runs
-
-The payload (request body) for this POST request is a JSON with the following fields:
-
--  dataModel: The serialized XML containing the Run Design information
--  name: The name of the run
--  summary: A short description of the run
-
-Example, Create a Run design using the following API call:
-
-
-.. code-block:: bash
-
-    POST http://SMRTLinkServername.domain:9091/smrt-link/runs
-
-Use the payload as in the following example:
-
-.. code-block:: javascript
-
-    {"dataModel" : "<serialized Run Design XML file according to the PacBioDataModel.xsd schema>", "name" : "Run_201601220309_D15", "summary" : "tkb_C5_circular_23x_I92782" }
 
 How to monitor progress of a SMRT Link Run
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 Run progress can be monitored by looking at the completion status of
 each Collection associated with that run. Perform the following
 steps:
 
-1. If you do not have the Run UUID, retrieve it as follows. Get the list of all Runs, using the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
-
-In the response, perform a text search for the Run Name. Find the object whose "name" field is equal to the Run Name, and get the Run UUID, which can be found in the "uniqueId" field.
+1. If you do not have the Run UUID, retrieve it as described in the previous
+section.
 
 2. Once you have the Run UUID, get all Collections that belong to the run.
 
@@ -374,7 +137,7 @@ Use the Run UUID in the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
+    GET /smrt-link/runs/{runUUID}/collections
 
 The response will contain the list of all Collections of that run.
 
@@ -384,7 +147,7 @@ Until all Collections of the Run have the field "status" set to "Complete", repe
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
+    GET /smrt-link/runs/{runUUID}/collections
 
 You may also monitor each Collection individually.
 
@@ -392,7 +155,7 @@ Use the Collection UUID in the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections/{collectionUUID}
+    GET /smrt-link/runs/{runUUID}/collections/{collectionUUID}
 
 4. To monitor Run progress using QC metrics as well, do this at the Collection level, for each Collection that belongs to this run. For instructions, see `How to get QC reports for a particular Collection`__.
 
@@ -405,44 +168,48 @@ run.
 
 Example
 
-If you want to monitor the Run with Name = “54149_DryRun_2Cells_20161219”, use the following steps:
+If you want to monitor the Run with Name = “54001_DryRun_2Cells_20161219”, use the following steps:
 
-1. Get the list of all Runs:
+1. Get the list of all runs as described in the previous section.
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
+    GET /smrt-link/runs
 
 The response will be an array of Run objects, as in the following example (some fields are removed for display purposes)
 
 .. code-block:: javascript
 
-    [{
-    “name” : “2016-11-08_3150473_2kLambda_A12”,
-    “uniqueId” : “97286726-b243-45b3-82f7-8b5f58c56d53”,
-    “createdAt” : “2016-11-08T17:50:57.955Z”,
-    “summary” : “lambdaNEB”
-    }, {
-    “name” : “54149_DryRun_2Cells_20161219”,
-    “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
-    “createdAt” : “2016-12-19T16:08:41.610Z”,
-    “summary” : “DryRun_2Cells”
-    }, {
-    “name” : “2017_01_21_A7_RC0_2.5-6kb_DS”,
-    “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
-    “createdAt” : “2017-01-21T00:21:52.534Z”,
-    “summary” : “gencode_23_transcripts”
-    }]
+    [
+        {
+            “name” : “54001_SAT",
+            “uniqueId” : “a836efbc-fd58-40f6-b586-43c743730fe0",
+            “createdAt” : “2016-11-08T17:50:57.955Z”,
+            “summary” : "SAT run”
+        },
+        {
+            “name” : “54001_ecoli_15k",
+            “uniqueId” : “798ff161-23ee-433a-bfd9-be8361b40f15”,
+            “createdAt” : “2017-01-20T16:08:41.610Z”,
+            “summary” : “E. coli assembly”
+        },
+        {
+            “name” : “54001_hla_amplicons",
+            “uniqueId” : “5026afad-fbfa-407a-924b-f89dd019ca9f”,
+            “createdAt” : “2017-01-21T00:21:52.534Z”,
+            “summary” : “Human HLA”
+        }
+    ]
 
-2. Search the above response for the object with the "name" field equal to"54149_DryRun_2Cells_20161219".
+2. Search the above response for the object with the "name" field equal to "54001_SAT".
 
-From the above example, you will get the Run object with the "uniqueId" field equal to "798ff161-23ee-433a-bfd9-be8361b40f15".
+From the above example, you will get the Run object with the "uniqueId" field equal to "a836efbc-fd58-40f6-b586-43c743730fe0".
 
-3. With this Run UUID = 798ff161-23ee-433a-bfd9-be8361b40f15, get all Collections that belong to this run:
+3. With this Run UUID = a836efbc-fd58-40f6-b586-43c743730fe0, get all Collections that belong to this run:
 
 .. code-block::
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/798ff161-23ee-433a-bfd9-be8361b40f15/collections
+    GET /smrt-link/runs/a836efbc-fd58-40f6-b586-43c743730fe0/collections
 
 The response will be an array of Collection objects of this run, as in
 the following example:
@@ -451,28 +218,28 @@ the following example:
 .. code-block:: javascript
 
     [{
-        "name" : "DryRun_1stCell",
+        "name" : "54001_SAT_1stCell",
         "instrumentName" : "Sequel",
-        "context" : "m54149_161219_161247",
+        "context" : "m54001_161219_161247",
         "well" : "A01",
         "status" : "Complete",
-        "instrumentId" : "54149",
+        "instrumentId" : "54001",
         "startedAt" : "2016-12-19T16:12:47.014Z",
         "uniqueId" : "7cf74b62-c6b8-431d-b8ae-7e28cfd8343b",
-        "collectionPathUri" : "/pbi/collections/314/3140149/r54149_20161219_160902/1_A01",
-        "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
+        "collectionPathUri" : "/data/sequel/r54001_20161219_160902/1_A01",
+        "runId" : "a836efbc-fd58-40f6-b586-43c743730fe0",
         "movieMinutes" : 120
     }, {
-        "name" : "DryRun_2ndCell",
+        "name" : "54001_SAT_2ndCell",
         "instrumentName" : "Sequel",
-        "context" : "m54149_161219_184813",
+        "context" : "m54001_161219_184813",
         "well" : "B01",
         "status" : "Ready",
-        "instrumentId" : "54149",
+        "instrumentId" : "54001",
         "startedAt" : "2016-12-19T16:12:47.014Z",
         "uniqueId" : "08af5ab4-7cf4-4d13-9bcb-ae977d493f04",
-        "collectionPathUri" : "/pbi/collections/314/3140149/r54149_20161219_160902/2_B01",
-        "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
+        "collectionPathUri" : "/data/sequel/r54001_20161219_160902/2_B01",
+        "runId" : "a836efbc-fd58-40f6-b586-43c743730fe0",
         "movieMinutes" : 120
     }
     ]
@@ -488,11 +255,109 @@ You can take its UUID, i.e. “uniqueId”: “08af5ab4-7cf4-4d13-9bcb-ae977d493
 
 .. code-block:: bash
 
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/798ff161-23ee-433a-bfd9-be8361b40f15/collections/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
+    GET /smrt-link/runs/a836efbc-fd58-40f6-b586-43c743730fe0/collections/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
 
 Once this Collection becomes complete, you can get its QC metrics as
 well.
+
+
+Running jobs via services
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SMRT Link runs several different types of "job" which consist of tasks that
+may take an arbitrarily long time to run and are therefore executed
+asynchronously.  You can view a list of supported job types here:
+
+.. code-block:: bash
+
+  GET /smrt-link/job-manager/job-types
+
+  [
+    {
+      "jobTypeId": "db-backup",
+      "description": "Create a DB backup of the SMRT Link system",
+      "isQuick": true,
+      "isMultiJob": false
+    },
+    {
+      "jobTypeId": "delete-datasets",
+      "description": "(Soft) delete of PacBio DataSet XML",
+      "isQuick": true,
+      "isMultiJob": false
+    },
+    ...
+  ]
+
+Note that "quick" jobs (generally taking on the order of less than a minute)
+have their own queue, separate from analysis jobs and other I/O intensive
+tasks.
+
+Creating a job follows this pattern:
+
+.. code-block:: bash
+
+  POST /smrt-link/job-manager/jobs/<jobTypeId>
+
+The request body varies depending on job type, from a single path field to more
+complex data types, several examples of which are described below.
+The server should respond with **201: Created** and the model for the new job:
+
+.. code-block:: javascript
+
+  {
+    "name": "import-dataset",
+    "updatedAt": "2018-06-19T21:13:31.047Z",
+    "workflow": "{}",
+    "path": "/smrtlink/userdata/jobs_root/000/000001",
+    "state": "CREATED",
+    "tags": "",
+    "uuid": "7cf74b62-c6b8-431d-b8ae-7e28cfd8343b",
+    "projectId": 1,
+    "jobTypeId": "import-dataset",
+    "id": 1,
+    "smrtlinkVersion": "6.0.0.SNAPSHOT38748",
+    "comment": "Description for job Import PacBio DataSet",
+    "createdAt": "2018-06-19T21:13:31.047Z",
+    "isActive": true,
+    "createdBy": null,
+    "isMultiJob": false,
+    "jsonSettings": "{\"path\":\"/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml\",\"datasetType\":\"PacBio.DataSet.SubreadSet\",\"submit\":true}",
+    "jobUpdatedAt": "2018-06-19T21:13:31.047Z",
+  }
+
+Client code should now block until the job is complete, which should result
+in the "state" field changing to "SUCCESSFUL" if all goes well.
+
+
+How to import a completed collection (dataset)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once a run is complete and the data have been transfered off the instrument,
+the resulting dataset(s) can be imported into SMRT Link.  This will create
+an `import-dataset` job that runs asynchronously and generates several reports
+used to assess run quality.
+
+To import a dataset, use this API call:
+
+.. code-block:: bash
+
+  POST /smrt-link/job-manager/jobs/import-dataset
+
+The request body in this case is very simple:
+
+.. code-block:: json
+
+  {
+    "datasetType": "PacBio.DataSet.SubreadSet",
+    "path": "/data/sequel/r54001_20161219_160902/1_A01/m54001_20161219_170101.subreadset.xml"
+  }
+
+The server should respond with **201: Created** and the model for the new job;
+it should only take several minutes at most for the import job to complete.
+
+Note that the same ``import-dataset`` job type is also used to import other
+dataset types such as the ReferenceSet XML used to run the SAT pipeline.
+
 
 How to capture Run level summary metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -503,274 +368,548 @@ Run-level summary metrics are captured in the QC reports. See the following sect
 
 -  `How to get QC reports for a particular Collection`__.
 
-How to setup a job on a particular Collection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create a job using the SMRT Link Web Services API, use the POST
-request with the following endpoint:
+How to get the SMRT Link reports for dataset by UUID
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block::
+To get reports for a dataset, given the dataset UUID, perform the following steps:
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/{jobTypeId}
-
-The payload (request body) for this POST request is a JSON whose schema depends on the job type.  To specifically create a SMRT Analysis job, you need to create a job of type “pbsmrtpipe”, with the payload as the one shown in `How to setup an SMRT Link Analysis Job for a specific Pipeline`__.  You need to provide dataset IDs in the “entryPoints” array of the above payload.
-
-Perform the following steps:
-
-1. If you do not have the Collection UUID, retrieve it as follows.
-
-To get the Collection UUID starting from a Run page in the SMRT Link Run
-QC UI, do the following:
-
-a. Get the Run Name from the Run page in the SMRT Link Run QC UI.
-
-b. Get the list of all Runs, using the GET request with the following
-       endpoint:
+1. Determine the dataset type from the list of available dataset types. Use the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http:/SMRTLinkServername.domain:9091/smrt-link/runs
+    GET /smrt-link/dataset-types
 
-In the response, perform a text search for the Run Name.
+2. Get the corresponding dataset type string. The dataset type can be found in the "shortName" field. Dataset types are explained in `Overview of Dataset
+Service <#Overview_of_Dataset_Service>`__.
 
-Find the object whose “name” field is equal to the Run Name, and get the Run UUID, which can be found in the “uniqueId” field.
-
-Once you have the Run UUID, get all Collections that belong to this Run. Use the Run UUID in the GET request with the following endpoint:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/{runUUID}/collections
-
-a. From here you can get the UUID of the Collection. It can be found in the “uniqueId” field of the corresponding Collection object from the previous response.
-
-
-**Note:** Make sure that the Collection whose “uniqueId” field you
-take has the field “status” set to “Complete”. This is because
-obtaining dataset ID based on the Collection UUID as described below
-will **only** work if the Collection is **complete**. If the
-Collection is **not** complete, then the SubreadSet does not exist
-yet.
-
-1. Find the dataset ID that corresponds to the Collection UUID.
-
-For complete Collections, the Collection UUID will be the same as
-the UUID of the SubreadSet for that Collection. Use the Collection
-UUID in the GET request on the following endpoint to get the
-corresponding SubreadSet object:
+3. Get reports that correspond to the dataset. Given the dataset UUID and the dataset type, use them in the GET request with the following endpoint:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/{collectionUUID}
+    GET /smrt-link/datasets/{datasetType}/{datasetUUID}/reports
 
-Get the dataset ID from the “id” field of the response.
-
-1. Build the request body with the dataset ID.
-
-Use the dataset ID in the payload as the one shown in `How to setup an SMRT Link Analysis Job for a specific Pipeline`__.
-
-1. Create a job of type “pbsmrtpipe”.
-
-Use the request body built in the previous step in the POST request
-with the following endpoint:
-
-.. code-block:: bash
-
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
 
 Example
 
-    Suppose you want to setup a job for complete Collections that belong
-    to the Run with Name = “54149_DryRun_2Cells_20161219”.
+To get reports associated with a subreadset with UUID = 146338e0-7ec2-4d2d-b938-11bce71b7ed1, perform the following steps:
 
-    First, get the list of all Runs:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs
-
-The response will be an array of Run objects, as in the following example:
-
-.. code-block:: javascript
-
-    [{
-    "name" : "2016-11-08_3150473_2kLambda_A12",
-    "uniqueId" : "97286726-b243-45b3-82f7-8b5f58c56d53",
-    "createdAt" : "2016-11-08T17:50:57.955Z",
-    ...
-
-    "summary" : "lambdaNEB"
-    }, {
-    ...
-    }, {
-    "name" : "54149_DryRun_2Cells_20161219",
-    "uniqueId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-    "createdAt" : "2016-12-19T16:08:41.610Z",
-    ...
-    "summary" : "DryRun_2Cells"
-    }, {
-    ...
-    }, {
-    "name" : "2017_01_21_A7_RC0_2.5-6kb_DS",
-    "uniqueId" : "5026afad-fbfa-407a-924b-f89dd019ca9f",
-    "createdAt" : "2017-01-21T00:21:52.534Z",
-    ...
-    "summary" : "gencode_23_transcripts"
-    }
-
-Now, search the above response for the object with the “name” field
-equal to “54149_DryRun_2Cells_20161219”.
-
-From the above example, you will get the Run object with the
-“uniqueId” field equal to “798ff161-23ee-433a-bfd9-be8361b40f15”.
-
-With this Run UUID = 798ff161-23ee-433a-bfd9-be8361b40f15, get all
-Collections that belong to this run:
+Use the GET request with the following endpoint:
 
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/runs/798ff161-23ee-433a-bfd9-be8361b40f15/collections
+    GET /smrt-link/dataset-types
 
-The response will be an array of Collection objects of this run, as in the following example:
-
-
-.. code-block:: javascript
-
-    [{
-        "name" : "DryRun_1stCell",
-        "instrumentName" : "Sequel",
-        "context" : "m54149_161219_161247",
-        "well" : "A01",
-        "status" : "Complete",
-        "instrumentId" : "54149",
-        "startedAt" : "2016-12-19T16:12:47.014Z",
-        "uniqueId" : "7cf74b62-c6b8-431d-b8ae-7e28cfd8343b",
-        "collectionPathUri" : "/pbi/collections/314/3140149/r54149_20161219_160902/1_A01",
-        "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-        "movieMinutes" : 120
-    },
-    {
-        "name" : "DryRun_2ndCell",
-        "instrumentName" : "Sequel",
-        "context" : "m54149_161219_184813",
-        "well" : "B01",
-        "status" : "Ready",
-        "instrumentId" : "54149",
-        "startedAt" : "2016-12-19T16:12:47.014Z",
-        "uniqueId" : "08af5ab4-7cf4-4d13-9bcb-ae977d493f04",
-        "collectionPathUri" : "/pbi/collections/314/3140149/r54149_20161219_160902/2_B01",
-        "runId" : "798ff161-23ee-433a-bfd9-be8361b40f15",
-        "movieMinutes" : 120
-    }]
-
-In the above example, both Collections of the Run have “status” :
-“Complete”. Hence, the corresponding SubreadSets should already
-exist, and can be retrieved as described below.
-
-Take the UUID of the first Collection, i.e. “uniqueId”: “7cf74b62-c6b8-431d-b8ae-7e28cfd8343b”, and get the corresponding
-SubreadSet object:
+You see that the shortName of SubreadSets is “subreads”. The desired endpoint is:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b
+    /smrt-link/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b/reports
 
-The response will be a SubreadSet object, as in the following example:
+Use the GET request with this endpoint to get reports that correspond to the SubreadSet with UUID = 7cf74b62-c6b8-431d-b8ae-7e28cfd8343b:
 
-.. code-block:: javascript
-
-    {
-    “name” : “54149_DryRun_2Cells_20161219”,
-    “uuid” : “7cf74b62-c6b8-431d-b8ae-7e28cfd8343b”,
-     “id” : 5164,
-    “createdAt” : “2016-12-19T19:20:46.968Z”,
-    “path” : “/pbi/collections/314/3140149/r54149_20161219_160902/1_A01/m54149_161247.subreadset.xml”,
-    “tags” : “subreadset”,
-    “instrumentName” : “Sequel”,
-    “wellExampleName” : “DryRun_1stCell”, “runName” :
-    “54149_DryRun_2Cells_20161219”, “datasetType” :
-    “PacBio.DataSet.SubreadSet”, “comments” : ” “
-    }
-
-From the above response, take the value of the “id” field, which is
-5164 in the above example. So dataset ID = 5164 will be the value
-for the first entry point for ‘pbsmrtpipe’ job.
-
-Now take the UUID of the second Collection, i.e. “uniqueId”:
-“08af5ab4-7cf4-4d13-9bcb-ae977d493f04”, and get the corresponding
-SubreadSet object:
 
 .. code-block:: bash
 
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads/08af5ab4-7cf4-4d13-9bcb-ae977d493f04
+    GET /smrt-link/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b/reports
+
+Once you have the UUID for an individual report, it can be downloaded using
+the datastore files service:
+the ``uuid`` field
+
+.. code-block:: bash
+
+    GET /smrt-link/datastore-files/519817b6-4bfe-4402-a54e-c16b29eb06eb/download
 
 
-The response will be a SubreadSet object, as in the following example:
+How to get QC reports for a particular Collection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For completed Collections, the Collection UUID will be the same as
+the UUID of the SubreadSet for that Collection. To retrieve the QC
+reports of a completed Collection, given the Collection UUID,
+perform the following steps:
+
+1. Get the QC reports that correspond to this Collection: Use the GET request with the following endpoint:
+
+.. code-block:: bash
+
+    GET /smrt-link/datasets/subreads/{collectionUUID}/reports
+
+See `How to get the SMRT Link reports for dataset by UUID`__ for more details.
+
+**Note:** Obtaining dataset reports based on the Collection UUID as described above will only work if the Collection is **complete**. If the Collection is **not** complete, then the SubreadSet does not exist yet.
+
+
+How to get QC reports for a particular SMRT Link Run
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To get QC reports for a particular Run, given the Run Name, perform the following steps:
+
+1. Get the list of all Runs: Use the GET request with the following endpoint:
+
+.. code-block:: bash
+
+    GET /smrt-link/runs
+
+In the response, perform a text search for the Run Name: Find the object whose “name” field is equal to the Run Name, and get the Run UUID, which can be found in the “uniqueId” field.
+
+2. Get all Collections that belong to this Run: Use the Run UUID found in the previous step in the GET request with the following endpoint:
+
+.. code-block::
+
+    GET /smrt-link/runs/{runUUID}/collections
+
+3. Take a Collection UUID of one of Collection objects received in the previous response. The Collection UUIDs can be found in the "uniqueId" fields.
+
+For **complete** Collections, the Collection UUID will be the same as the UUID of the SubreadSet for that Collection.
+
+Make sure that the Collection whose “uniqueId” field you take has the field “status” set to “Complete”. This is because obtaining dataset reports based on the Collection UUID as described below will **only** work if the Collection is **complete**. If the Collection is **not** complete, the SubreadSet does not exist yet.
+
+You can now retrieve the QC reports that correspond to this Collection as
+described above in `How to get the SMRT Link reports for dataset by UUID`__.
+
+4. Repeat Step 3 to download QC reports for all complete Collections of that Run.
+
+
+Example
+
+You view the Run QC page in the SMRT Link UI, and open the page of a Run
+with status “Complete”. Take the Run Name and look for the Run UUID in
+the list of all Runs, as described above.
+
+**Note:** The Run ID will also appear in the {runUUID} path parameter of the SMRT Link UI URL
+
+.. code-block:: bash
+
+    http://SMRTLinkServername.domain:9090/#/run-qc/{runUUID}
+
+So the shorter way would be to take the Run UUID directly from the URL, such as
+
+.. code-block:: bash
+
+    http://SMRTLinkServername.domain:9090/#/run-qc/a836efbc-fd58-40f6-b586-43c743730fe0
+
+With this Run UUID = a836efbc-fd58-40f6-b586-43c743730fe0, get all Collections that belong to this Run:
+
+.. code-block:: bash
+
+    GET /smrt-link/runs/a836efbc-fd58-40f6-b586-43c743730fe0/collections
+
+Take a UUID of a completed Collection, such as “uniqueId”: "59230aeb-a8e3-4b46-b1b1-24c782c158c1". With this Collection UUID, retrieve QC reports of the corresponding SubreadSet:
+
+.. code-block:: bash
+
+    GET /smrt-link/datasets/subreads/7cf74b62-c6b8-431d-b8ae-7e28cfd8343b/reports
+
+Take a UUID of some report, such as. “uuid”: “00c310ab-e989-4978-961e-c673b9a2b027”. With this report UUID, download the corresponding report file:
+
+
+.. code-block:: bash
+
+    GET /smrt-link/datastore-files/00c310ab-e989-4978-961e-c673b9a2b027/download
+
+Repeat the last two API calls until you download all desired reports for all complete Collections.
+
+
+How to setup a SMRT Link Analysis Job for a specific Pipeline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To create an analysis job for a specific pipeline, you need to create a job of type “pbsmrtpipe” with the payload based on the template of the desired pipeline. Perform the following steps:
+
+1. Get the list of all pipeline templates used for creating analysis jobs:
+
+.. code-block:: bash
+
+    GET /smrt-link/resolved-pipeline-templates
+
+1. In the response, search for the name of the specific pipeline that
+   you want to set up. Once the desired template is found, note the
+   values of the pipeline “id” and “entryPoints” elements of that
+   template.
+
+2. Identify the dataset(s) you want to use to run the analysis and make note
+   of its/their UUID(s).
+
+
+3. For each entry point, find the corresponding record in the ``dataset-types``
+   endpoint, and extract the ``shortName`` field:
+
+.. code-block::
+
+   GET /smrt-link/dataset-types
+
+4. For each input dataset, check whether a record already exists at the
+   appropriate dataset endpoint, and if one does not, it should be imported
+   as described above.  The dataset endpoints will take this form:
+
+.. code-block:: bash
+
+   GET /smrt-link/datasets/<shortName>/UUID
+
+
+5. Build the request body for creating a job of type "pbsmrtpipe".  The
+   basic structure looks like this:
 
 .. code-block:: javascript
 
     {
-        “name” : “54149_DryRun_2Cells_20161219”,
-        “uuid” : “08af5ab4-7cf4-4d13-9bcb-ae977d493f04”,
-        “id” : 5165,
-        “createdAt” : “2016-12-19T21:57:11.173Z”,
-        “path” : “/pbi/collections/314/3140149/r54149_20161219_160902/2_B01/m54149_184813.subreadset.xml”,
-        “tags” : “subreadset”,
-        “instrumentName” : “Sequel”,
-        “wellExampleName” : “DryRun_2ndCell”,
-        “runName” : “54149_DryRun_2Cells_20161219”,
-        “datasetType” : “PacBio.DataSet.SubreadSet”,
-        “comments” : ” “
-    }
-
-From the response, again take the value of the “id” field, which is
-5165 in the above example. So dataset ID = 5165 will be the value
-for the second entry point for ‘pbsmrtpipe’ job.
-
-Build the request body for creating ‘pbsmrtpipe’ job. Use these two
-dataset IDs obtained above as values of the “datasetId” fields in
-the “entryPoints” array. For example:
-
-
-.. code-block:: javascript
-
-    {
-        "name" : "A4_All4mer_1hr_launchChem",
-        "entryPoints" : [
+        "entryPoints": [
             {
-                "entryId" : "eid_subread",
-                "fileTypeId" : "PacBio.DataSet.SubreadSet",
-                "datasetId" : 5164
+                "datasetId": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
+                "entryId": "eid_subread",
+                "fileTypeId": "PacBio.DataSet.SubreadSet"
             },
             {
-                "entryId" : "eid_subread2",
-                "fileTypeId" : "PacBio.DataSet.SubreadSet",
-                "datasetId" : 5165
+                "datasetId": "1a369917-507e-4f70-9f38-69614ff828b6",
+                "entryId": "eid_ref_dataset",
+                "fileTypeId": "PacBio.DataSet.ReferenceSet"
             }
         ],
-        "workflowOptions" : [],
-        "taskOptions" : [
-            {
-                "optionId" : "genomic_consensus.task_options.algorithm",
-                "value" : "quiver",
-                "optionTypeId" : "pbsmrtpipe.option_types.string"
-            },
-        ],
-        "pipelineId" : "pbsmrtpipe.pipelines.sa3_resequencing"
+        "name": "Lambda SAT job",
+        "pipelineId": "pbsmrtpipe.pipelines.sa3_sat",
+        "taskOptions": [],
+        "workflowOptions": []
     }
 
-Now create a job of type “pbsmrtpipe”. Use the request body built
-above in the following API call:
+Use the pipeline “id” found on step 2 as the value for “pipelineId” element.
+
+Use dataset types of “entryPoints” array found on step 1 and corresponding dataset IDs found on step 2 as the values for elements of “entryPoints” array.
+
+Note that “taskOptions” array is optional and may be completely empty in the request body.  ("workflowOptions" is not only optional but the contents will be
+ignored by the server.)
+
+6. Create a job of type “pbsmrtpipe”.
+
+Use the request body built in the previous step in the POST request with the following endpoint:
+
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
+    POST /smrt-link/job-manager/jobs/pbsmrtpipe
 
-Verify that the job was created successfully. The return HTTP status should be **201 Created**.
+7. You may monitor the state of the job created on step 6 with the use of the following request:
+
+
+.. code-block:: bash
+
+    GET /smrt-link/job-manager/jobs/pbsmrtpipe/{jobID}/events
+
+Where jobID is equal to the value received in “id” element of the response on step 6.
+
+
+Example
+
+Suppose you want to setup an analysis job for the SAT pipeline.
+
+First, get the list of all pipeline templates used for creating analysis jobs:
+
+
+.. code-block::
+
+    GET /smrt-link/resolved-pipeline-templates
+
+
+The response will be an array of pipeline template objects. In this response, do the search for the entry with "name" : "Site Acceptance Test (SAT)". The entry may look as in the following example (task options have been truncated for clarity):
+
+.. code-block:: javascript
+
+    {
+        "name": "Site Acceptance Test (SAT)",
+        “id” : “pbsmrtpipe.pipelines.sa3_sat”,
+        "description": "Site Acceptance Test - lambda genome resequencing used to validate new\n    PacBio installations",
+        “version” : “0.1.0”,
+        "entryPoints": [
+            {
+                "entryId": "eid_ref_dataset",
+                "fileTypeId": "PacBio.DataSet.ReferenceSet",
+                "name": "Entry Name: PacBio.DataSet.ReferenceSet"
+            },
+            {
+                "entryId": "eid_subread",
+                "fileTypeId": "PacBio.DataSet.SubreadSet",
+                "name": "Entry Name: PacBio.DataSet.SubreadSet"
+            }
+        ],
+        "tags" : [ “consensus", "mapping", "reports", "sat"],
+        "taskOptions" : [{
+            "optionTypeId": "choice_string",
+            "name": "Algorithm",
+            "choices": ["quiver", "arrow", "plurality", "poa", "best"],
+            "description": "Variant calling algorithm",
+            "id": "genomic_consensus.task_options.algorithm",
+            "default": "best"
+        }]
+    }
+
+In the above entry, take the value of the pipeline “id” : “pbsmrtpipe.pipelines.sa3_sat”.
+
+Also, take the dataset types of “entryPoints” elements: “fileTypeId” : “PacBio.DataSet.SubreadSet” and “fileTypeId” : “PacBio.DataSet.ReferenceSet”.  In this
+example we will use the lambdaNEB reference and example RSII data that are
+distributed with SMRT Link.  First check whether they have been imported
+already:
+
+.. code-block::
+
+  GET /smrt-link/datasets/subreads/5bd43ef4-6afe-dc62-4f49-03b75a051801
+
+  {
+    "name": "lambda/0007_tiny",
+    "updatedAt": "2015-10-26T22:54:46.000Z",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-nightly/smrtsuite_6.0.0.40259/install/smrtlink-release_6.0.0.40259/admin/bin/../../bundles/smrtinub/current/private/pacbio/canneddata/lambdaTINY/m150404_101626_42267_c100807920800000001823174110291514_s1_p0.subreadset.xml",
+    "instrumentControlVersion": "2.3.0.1.142990",
+    "tags": "",
+    "instrumentName": "42267",
+    "uuid": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
+    "totalLength": 16865720,
+    "projectId": 1,
+    "numRecords": 19930,
+    "wellSampleName": "Inst42267-040315-SAT-100pM-2kb-P6C4",
+    "bioSampleName": "unknown",
+    "version": "3.0.1",
+    "cellId": "unknown",
+    "id": 5,
+    "md5": "288d3bdadf83bda41dd7fefc11cad128",
+    "importedAt": "2018-07-06T00:45:10.753Z",
+    "jobId": 3,
+    "createdAt": "2015-10-26T22:54:46.000Z",
+    "isActive": true,
+    "createdBy": "smrtlinktest",
+    "wellName": "A01",
+    "cellIndex": 4,
+    "metadataContextId": "m150404_101626_42267_c100807920800000001823174110291514_s1_p0",
+    "numChildren": 0,
+    "runName": "lambdaTINY",
+    "datasetType": "PacBio.DataSet.SubreadSet",
+    "comments": "Inst42267-SAT-100pM-2kbLambda-P6C4-Std120_CPS_040315"
+  }
+
+.. code-block::
+
+  GET /smrt-link/datasets/references/1a369917-507e-4f70-9f38-69614ff828b6
+  {
+    "name": "lambdaNEB",
+    "updatedAt": "2015-10-24T03:32:50.530Z",
+    "path": "/pbi/dept/secondary/siv/smrtlink/smrtlink-nightly/smrtsuite_6.0.0.40259/install/smrtlink-release_6.0.0.40259/admin/bin/../../bundles/smrtinub/current/private/pacbio/canneddata/referenceset/lambdaNEB/referenceset.xml",
+    "ploidy": "haploid",
+    "tags": "",
+    "uuid": "1a369917-507e-4f70-9f38-69614ff828b6",
+    "totalLength": 48502,
+    "projectId": 1,
+    "numRecords": 1,
+    "version": "3.0.1",
+    "id": 4,
+    "md5": "4861bca63e02aa26c92724febb3299c2",
+    "importedAt": "2018-07-06T00:45:10.660Z",
+    "jobId": 5,
+    "createdAt": "2015-10-24T03:32:50.530Z",
+    "isActive": true,
+    "createdBy": "smrtlinktest",
+    "organism": "lambdaNEB",
+    "numChildren": 0,
+    "datasetType": "PacBio.DataSet.ReferenceSet",
+    "comments": "reference dataset comments"
+  }
+
+
+Build the request body for creating ‘pbsmrtpipe’ job for SAT pipeline.
+Use the pipeline “id” obtained above as the value for “pipelineId”
+element.  Use the two dataset UUIDs as values of the “datasetId”
+fields in the “entryPoints” array. For example:
+
+.. code-block:: javascript
+
+    {
+        “pipelineId” : “pbsmrtpipe.pipelines.sa3_sat”,
+        “entryPoints” : [
+            {
+                "datasetId": "5bd43ef4-6afe-dc62-4f49-03b75a051801",
+                "entryId": "eid_subread",
+                "fileTypeId": "PacBio.DataSet.SubreadSet"
+            },
+            {
+                "datasetId": "1a369917-507e-4f70-9f38-69614ff828b6",
+                "entryId": "eid_ref_dataset",
+                "fileTypeId": "PacBio.DataSet.ReferenceSet"
+            }
+        ],
+        “taskOptions” : [],
+        "workflowOptions": [],
+        "name": "My SAT Job"
+    }
+
+(Note that you could alternately substitute the integer IDs of the dataset
+records shown above for the UUIDs.  Both ID types are supported, but the UUIDs
+are generally prefered at the API level, since they are included in the
+dataset XML and are portable across different SMRT Link systems.)
+
+Now create a job of type “pbsmrtpipe”.  Use the request body built above in the
+following API call:
+
+.. code-block:: bash
+
+    POST /smrt-link/job-manager/jobs/pbsmrtpipe
+
+
+Verify that the job was created successfully. The return HTTP status
+should be **201 Created**.
+
+
+Querying Job History
+~~~~~~~~~~~~~~~~~~~~
+
+The job service endpoints provide a number of search criteria (plus paging
+support) that can be used to limit the return results.  A full list of
+available search criteria is provided in the the JSON Swagger API definition
+for the jobs endpoint.  The following search retrieves all failed Site
+Acceptance Test (SAT) pipeline jobs:
+
+.. code-block:: bash
+
+    GET /smrt-link/job-manager/jobs/pbsmrtpipe?state=FAILED&subJobTypeId=pbsmrtpipe.pipelines.sa3_sat
+
+For most datatypes additional operators besides equality are allowed, for example:
+
+.. code-block:: bash
+    GET /smrt-link/job-manager/jobs/pbsmrtpipe?createdAt=lt%3A2018-03-01T00:00:00.000Z&createdBy=myusername
+
+
+This retrieves all pbsmrtpipe jobs run before 2018-03-01 by a user with the
+login ID "myusername".  (Note that certain searches, especially partial text
+searches using `like:`, may be significantly slower to execute and can overload
+the server if called too frequently.)
+
+
+How to copy and re-run a SMRT Link analysis job
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The "options" endpoint for a specific job provides the POST content that ran
+it:
+
+.. code-block:: bash
+
+  GET /smrt-link/job-manager/jobs/pbsmrtpipe/<jobId>/options
+
+For example:
+
+.. code-block:: bash
+
+  GET /smrt-link/job-manager/jobs/pbsmrtpipe/3/options
+
+  {
+    "name": "sat_lambda",
+    "entryPoints": [
+      {
+        "entryId": "eid_subread",
+        "fileTypeId": "PacBio.DataSet.SubreadSet",
+        "datasetId": 1
+      },
+      {
+        "entryId": "eid_ref_dataset",
+        "fileTypeId": "PacBio.DataSet.ReferenceSet",
+        "datasetId": 2
+      }
+    ],
+    "workflowOptions": [],
+    "taskOptions": [],
+    "pipelineId": "pbsmrtpipe.pipelines.sa3_sat"
+  }
+
+This data model can be directly POSTed to the pbsmrtpipe job endpoint as
+described above.  Note that in this case, the ``datasetId`` fields are the
+integer IDs generated by the SMRT Link database backend.  You can retrieve
+the full dataset records (including their UUIDs) by using the same dataset
+endpoints described previously, only with the integer IDs instead of UUIDs:
+
+.. code-block:: bash
+
+  GET /smrt-link/datasets/subreads/1
+  GET /smrt-link/datasets/references/2
+
+
+How to run an analysis on all Collections in a Run
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As explained above, each Collection corresponds to a SubreadSet dataset.  To
+run an analysis on multiple SubreadSets combined, you will first need to run
+a merge job, then run pbsmrtpipe with the merged dataset.
+
+Perform the following steps:
+
+1. As described previously, collect the UUIDs for the Collections in the Run
+   you want to analysis.
+
+2. Check each Collection UUID to make sure the SubreadSet XML has already been
+   imported, and if not import it as described above:
+
+.. code-block:: bash
+
+  GET /smrt-link/datasets/subreads/<UUID>
+
+3. Construct a payload with the following model:
+
+.. code-block:: bash
+
+    {
+      "datasetType": "PacBio.DataSet.SubreadSet",
+      "ids": ["<UUID1>", "<UUID2>", ...],
+      "name": "Merge run <runId> collections"
+    }
+
+4. Create a ``merge-datasets`` job with the request body from step (3):
+
+.. code-block::
+
+  POST /smrt-link/job-manager/jobs/merge-datasets
+
+
+5. Block until this job completes successfully, then retrieve the list of
+   job datastore files.  One of these should be the merged dataset.
+
+.. code-block::
+
+  GET /smrt-link/job-manager/jobs/merge-datasets/<ID>/datastore
+
+  [
+    {
+      "modifiedAt": "2018-07-12T21:38:34.815Z",
+      "name": "Auto-merged hdfsubreads @ 1531431514119",
+      "fileTypeId": "PacBio.DataSet.SubreadSet",
+      "path": "/opt/smrtlink_5.1.0.14963/userdata/jobs_root/008/008767/merged.dataset.xml",
+      "description": "Merged PacBio DataSet from 4 files",
+      "uuid": "f54694da-5985-42b9-9a9e-f2190bd3b4a4",
+      "fileSize": 33495,
+      "importedAt": "2018-07-12T21:38:35.085Z",
+      "jobId": 4,
+      "createdAt": "2018-07-12T21:38:34.815Z",
+      "isActive": true,
+      "jobUUID": "127619b4-f615-4c3f-b208-e1bf52bfe21b",
+      "sourceId": "pbscala::merge_dataset"
+    },
+    {
+      "modifiedAt": "2018-07-12T21:38:34.264Z",
+      "name": "SMRT Link Job Log",
+      "fileTypeId": "PacBio.FileTypes.log",
+      "path": "/opt/smrtlink_5.1.0.14963/userdata/jobs_root/008/008767/pbscala-job.stdout",
+      "description": "SMRT Link Job Log",
+      "uuid": "b19fbfc6-0808-40fc-917b-092f369180cd",
+      "fileSize": 388,
+      "importedAt": "2018-07-12T21:38:34.266Z",
+      "jobId": 8767,
+      "createdAt": "2018-07-12T21:38:34.264Z",
+      "isActive": true,
+      "jobUUID": "127619b4-f615-4c3f-b208-e1bf52bfe21b",
+      "sourceId": "pbsmrtpipe::master.log"
+    }
+  ]
+
+6. You may now follow the steps for running an analysis job, using the new
+   merged SubreadSet as input.
+
 
 How to delete a SMRT Link Job
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 To delete a job, you need to create another job of type “delete-job”, and pass the UUID of the job to delete in the payload (a.k.a. request body).
 
@@ -802,7 +941,7 @@ Perform the following steps:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
+    POST /smrt-link/job-manager/jobs/delete-job
 
 1. If the previous API call succeeded, that is, the job may be safely
    deleted, then proceed with actually deleting the job.
@@ -812,7 +951,7 @@ Perform the following steps:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
+    POST /smrt-link/job-manager/jobs/delete-job
 
 
 Suppose you want to delete the job with UUID = 13957a79-1bbb-44ea-83f3-6c0595bf0d42. Define the payload as in the following example, and set the “dryRun” field in it to ‘true’:
@@ -831,7 +970,7 @@ following POST request:
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
+    POST /smrt-link/job-manager/jobs/delete-job
 
 Verify that the response status is **201: Created**.
 
@@ -866,7 +1005,7 @@ Create a job of type “delete-job”, using the above payload in the following 
 
 .. code-block:: bash
 
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/delete-job
+    POST /smrt-link/job-manager/jobs/delete-job
 
 Verify that the response status is **201: Created**. Notice that this time the response body contains JSON corresponding to the job of type “delete-job”, as in the following example:
 
@@ -882,214 +1021,7 @@ Verify that the response status is **201: Created**. Notice that this time the r
         “comment” : “Deleting job 13957a79-1bbb-44ea-83f3-6c0595bf0d42”
     }
 
-How to setup a SMRT Link Analysis Job for a specific Pipeline
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To create an analysis job for a specific pipeline, you need to create a job of type “pbsmrtpipe” with the payload based on the template of the desired pipeline. Perform the following steps:
-
-1. Get the list of all pipeline templates used for creating analysis jobs:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/resolved-pipeline-templates
-
-1. In the response, search for the name of the specific pipeline that
-   you want to set up. Once the desired template is found, note the
-   values of the pipeline “id” and “entryPoints” elements of that
-   template.
-
-2. Get the datasets list that corresponds to the type specified in the
-   first element of “entryPoints” array. For example, for the type
-   “fileTypeId” : “PacBio.DataSet.SubreadSet”, get the list of
-   “subreads” datasets:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads
-
-4. Repeat step 3. for the dataset types specified in the rest of elements of “entryPoints” array.
-
-5. From the lists of datasets brought on steps 3. and 4, select IDs of the datasets that you want to use as entry points for the pipeline you are about to set up.
-
-6. Build the request body for creating a job of type "pbsmrtpipe".  The
-basic structure looks like this:
-
-.. code-block:: javascript
-
-    {
-        "entryPoints": [
-            {
-                "datasetId": 2,
-                "entryId": "eid_subread",
-                "fileTypeId": "PacBio.DataSet.SubreadSet"
-            },
-            {
-                "datasetId": 1,
-                "entryId": "eid_ref_dataset",
-                "fileTypeId": "PacBio.DataSet.ReferenceSet"
-            }
-        ],
-        "name": "Lambda SAT job",
-        "pipelineId": "pbsmrtpipe.pipelines.sa3_sat",
-        "taskOptions": [],
-        "workflowOptions": []
-    }
-
-Use the pipeline “id” found on step 2 as the value for “pipelineId” element.
-
-Use dataset types of “entryPoints” array found on step 2 and corresponding dataset IDs found on step 5 as the values for elements of “entryPoints” array.
-
-Note that “taskOptions” array is optional and may be completely empty in the request body.
-
-7. Create a job of type “pbsmrtpipe”.
-
-Use the request body built in the previous step in the POST request with the following endpoint:
-
-
-.. code-block:: bash
-
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
-
-8. You may monitor the state of the job created on step 7 with the use of the following request:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe/{jobID}/events
-
-Where jobID is equal to the value received in “id” element of the response on step 7.
-
-
-Example
-
-Suppose you want to setup an analysis job for Resequencing pipeline.
-
-First, get the list of all pipeline templates used for creating analysis jobs:
-
-
-.. code-block::
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/resolved-pipeline-templates
-
-
-The response will be an array of pipeline template objects. In this response, do the search for the entry with “name” : “Resequencing”. The entry may look as in the following example:
-
-.. code-block:: javascript
-
-    {
-        “name” : “Resequencing”,
-        “id” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”,
-        “description” : “Full Resequencing Pipeline - Blasr mapping and Genomic Consensus.”,
-        “version” : “0.1.0”,
-        “entryPoints” : [{
-          “entryId” : “eid_subread”, “fileTypeId” : “PacBio.DataSet.SubreadSet”, “name” : “Entry Name: PacBio.DataSet.SubreadSet”}, {
-          “entryId” : “eid_ref_dataset”, “fileTypeId” : “PacBio.DataSet.ReferenceSet”, “name” : “Entry Name: PacBio.DataSet.ReferenceSet”}
-        ],
-        “tags” : [ “consensus”, “reports”],
-        “taskOptions” : [{
-            "optionTypeId": "choice_string",
-            "name": "Algorithm",
-            "choices": ["quiver", "arrow", "plurality", "poa", "best"],
-            "description": "Variant calling algorithm",
-            "id": "genomic_consensus.task_options.algorithm",
-            "default": "best"
-        }]
-    }
-
-In the above entry, take the value of the pipeline “id” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”.
-
-Also, take the dataset types of “entryPoints” elements: “fileTypeId” : “PacBio.DataSet.SubreadSet” and “fileTypeId” : “PacBio.DataSet.ReferenceSet”.
-
-Now, get the lists of the datasets that correspond to the types
-specified in the elements of the “entryPoints” array.
-
-In particular, for the type “fileTypeId” : “PacBio.DataSet.SubreadSet”, get the list of “subreads” datasets:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/subreads
-
-And for the type “fileTypeId” : “PacBio.DataSet.ReferenceSet”, get the list of “references” datasets:
-
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/datasets/references
-
-From the above lists of datasets, select IDs of the datasets that you
-want to use as entry points for the Resequencing pipeline you are about
-to setup.
-
-For example, take the dataset with “id”: 18 from the “subreads” list and
-the dataset with “id”: 2 from the “references” list.
-
-Build the request body for creating ‘pbsmrtpipe’ job for Resequencing
-pipeline.
-
-Use the pipeline “id” obtained above as the value for “pipelineId”
-element.
-
-Use these two dataset IDs obtained above as values of the “datasetId”
-fields in the “entryPoints” array. For example:
-
-
-.. code-block:: javascript
-
-    {
-        “pipelineId” : “pbsmrtpipe.pipelines.sa3_ds_resequencing_fat”,
-        “entryPoints” : [
-            {
-                “entryId” : “eid_subread”,
-                “fileTypeId” : “PacBio.DataSet.SubreadSet”,
-                “datasetId” : 18
-            },
-            {
-                “entryId” : “eid_ref_dataset”,
-                “fileTypeId” : “PacBio.DataSet.ReferenceSet”,
-                “datasetId” : 2
-            }
-        ],
-        “taskOptions” : [],
-        "workflowOptions": [],
-        "name": "My Resequencing Job"
-    }
-
-Now create a job of type “pbsmrtpipe”.
-
-Use the request body built above in the following API call:
-
-.. code-block:: bash
-
-    POST http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe
-
-
-Verify that the job was created successfully. The return HTTP status
-should be **201 Created**.
-
-
-Querying Job History
-~~~~~~~~~~~~~~~~~~~~
-
-The job service endpoints provide a number of search criteria (plus paging
-support) that can be used to limit the return results.  A full list of
-available search criteria is provided in the the JSON Swagger API definition
-for the jobs endpoint.  The following search retrieves all failed Site
-Acceptance Test (SAT) pipeline jobs:
-
-.. code-block:: bash
-
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe?state=FAILED&subJobTypeId=pbsmrtpipe.pipelines.sa3_sat
-
-For most datatypes additional operators besides equality are allowed, for example:
-
-.. code-block:: bash
-    GET http://SMRTLinkServername.domain:9091/smrt-link/job-manager/jobs/pbsmrtpipe?createdAt=lt%3A2018-03-01T00:00:00.000Z&createdBy=myusername
-
-
-This retrieves all pbsmrtpipe jobs run before 2018-03-01 by a user with the
-login ID "myusername".  (Note that certain searches, especially partial text
-searches using `like:`, may be significantly slower to execute and can overload
-the server if called too frequently.)
+Clients should then block until the job is complete.
 
 
     For Research Use Only. Not for use in diagnostic procedures. ©
