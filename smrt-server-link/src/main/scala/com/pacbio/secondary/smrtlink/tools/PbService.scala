@@ -1481,7 +1481,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       runImportRsMovie(p, name, asJson, maxTimeOut, projectName)
 
     def doImportMany(files: Seq[File], projectId: Option[Int]) = {
-      if (name.getOrElse("").isEmpty) {
+      if (!name.getOrElse("").isEmpty) {
         Future.failed(
           new RuntimeException(
             "--name option not allowed when path is a directory"))
