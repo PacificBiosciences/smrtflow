@@ -29,7 +29,9 @@ trait CallPbReport extends Python {
     * @param outputJson Output Report JSON file
     * @return
     */
-  def apply(stsXml: Path, outputJson: Path): Option[ExternalCmdFailure] = {
+  def apply(
+      stsXml: Path,
+      outputJson: Path): Either[ExternalCmdFailure, ExternalCmdSuccess] = {
     val cmd = Seq(
       EXE,
       "-m",
@@ -59,27 +61,17 @@ trait CallPbReport extends Python {
       }
     )
 
-    val startedAt = JodaDateTime.now()
     runUnixCmd(cmd,
                stdout,
                stderr,
                processLogger = Some(processLogger),
-               logErrors = false) match {
-      case (0, _) => None
-      case (_, msg) =>
-        val completedAt = JodaDateTime.now()
-        val runTime = computeTimeDelta(completedAt, startedAt)
-        Some(ExternalCmdFailure(cmd, runTime, msg))
-    }
+               logErrors = false)
   }
 
   def run(stsXml: Path,
-          outputJson: Path): Either[ExternalCmdFailure, PbReport] = {
-    apply(stsXml, outputJson) match {
-      case Some(e) => Left(e)
-      case _ => Right(PbReport(outputJson, reportTaskId))
-    }
-  }
+          outputJson: Path): Either[ExternalCmdFailure, PbReport] =
+    apply(stsXml, outputJson).right.map(_ =>
+      PbReport(outputJson, reportTaskId))
 
   def canProcess(dst: DataSetMetaTypes.DataSetMetaType,
                  hasStatsXml: Boolean = false): Boolean

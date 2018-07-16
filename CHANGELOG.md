@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 0.18.0
+
+- job failure is no longer logged to stderr of the server process
+
 ## 0.17.1
 
 - Add File uploading webservice. 'smrt-link/uploader'

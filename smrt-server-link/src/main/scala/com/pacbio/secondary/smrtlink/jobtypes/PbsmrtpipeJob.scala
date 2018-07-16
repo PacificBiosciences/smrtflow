@@ -96,6 +96,31 @@ trait PbsmrtpipeCoreJob
   import PbsmrtpipeConstants._
   import ReportModels._
 
+  private def parseErrorMessageFromReport(tasksRpt: Path,
+                                          errorMessage: String): String = {
+    Try {
+      val logOut = FileUtils.readFileToString(tasksRpt.toFile, "UTF-8")
+      val rpt = logOut.parseJson.convertTo[Report]
+      rpt
+        .getAttributeValue("pbsmrtpipe.error_message")
+        .map(_.asInstanceOf[String])
+        .getOrElse(errorMessage)
+    }.getOrElse(errorMessage)
+  }
+
+  private def loadDataStore(
+      datastorePath: Path,
+      resultsWriter: JobResultsWriter): PacBioDataStore = {
+    Try {
+      val contents = FileUtils.readFileToString(datastorePath.toFile)
+      contents.parseJson.convertTo[PacBioDataStore]
+    } getOrElse {
+      resultsWriter.writeLine(
+        s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
+      PacBioDataStore.fromFiles(Seq.empty[DataStoreFile])
+    }
+  }
+
   protected def runPbsmrtpipe(
       job: JobResourceBase,
       resultsWriter: JobResultsWriter,
@@ -173,55 +198,40 @@ trait PbsmrtpipeCoreJob
     val stderrP = stdErr.getOrElse(job.path.resolve(DEFAULT_STDERR))
 
     resultsWriter.writeLine(s"Running $wrappedCmd")
+
     // The errors will be logged at this level, not in subprocess layer
-    val (exitCode, errorMessage) =
-      runUnixCmd(wrappedCmd, stdoutP, stderrP, logErrors = false)
-    val runTimeSec = computeTimeDeltaFromNow(startedAt)
+    val cmdResult = runUnixCmd(wrappedCmd, stdoutP, stderrP, logErrors = false)
 
-    def getPbsmrtpipeError: String =
-      Try {
-        val tasksRpt = job.path.resolve("workflow/report-tasks.json")
-        val logOut = FileUtils.readFileToString(tasksRpt.toFile, "UTF-8")
-        val rpt = logOut.parseJson.convertTo[Report]
-        rpt
-          .getAttributeValue("pbsmrtpipe.error_message")
-          .map(_.asInstanceOf[String])
-          .getOrElse(errorMessage)
-      }.getOrElse(errorMessage)
+    cmdResult match {
+      case Right(_) =>
+        val datastorePath = job.path.resolve("workflow/datastore.json")
+        val ds = loadDataStore(datastorePath, resultsWriter)
+        Right(ds)
+      case Left(cmdFailure) =>
+        val failedState: AnalysisJobStates.JobStates =
+          cmdFailure.exitCode match {
+            case 7 => AnalysisJobStates.TERMINATED
+            case _ => AnalysisJobStates.FAILED
+          }
 
-    val datastorePath = job.path.resolve("workflow/datastore.json")
+        val customFailureMessage = if (cmdFailure.exitCode == 7) {
+          s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). ${cmdFailure.msg}"
+        } else {
+          val taskReport = job.path.resolve("workflow/report-tasks.json")
+          val pbsmrtpipeError =
+            parseErrorMessageFromReport(taskReport, cmdFailure.msg)
+          s"Pbsmrtpipe job ${job.path} failed with exit code ${cmdFailure.exitCode}. $pbsmrtpipeError"
+        }
 
-    val ds = Try {
-      val contents = FileUtils.readFileToString(datastorePath.toFile)
-      contents.parseJson.convertTo[PacBioDataStore]
-    } getOrElse {
-      resultsWriter.writeLine(
-        s"[WARNING] Unable to find Datastore from ${datastorePath.toAbsolutePath.toString}")
-      PacBioDataStore.fromFiles(Seq.empty[DataStoreFile])
-    }
-    //FIXME(mpkocher)(1-27-2017) These error messages are not great. Try to parse the pbsmrtpipe LOG (or a structure
-    // data of the output to get a better error message)
-    exitCode match {
-      case 0 => Right(ds)
-      case 7 =>
         Left(
           ResultFailed(
             job.jobId,
             jobTypeId.toString,
-            s"Pbsmrtpipe job ${job.path} failed with exit code 7 (terminated by user). $errorMessage",
-            runTimeSec,
-            AnalysisJobStates.TERMINATED,
+            customFailureMessage,
+            cmdFailure.runTime.toInt,
+            failedState,
             host
           ))
-      case x =>
-        Left(
-          ResultFailed(
-            job.jobId,
-            jobTypeId.toString,
-            s"Pbsmrtpipe job ${job.path} failed with exit code $x. $getPbsmrtpipeError",
-            runTimeSec,
-            AnalysisJobStates.FAILED,
-            host))
     }
   }
 }

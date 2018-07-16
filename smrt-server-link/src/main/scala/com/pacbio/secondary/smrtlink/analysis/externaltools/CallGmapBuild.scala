@@ -27,7 +27,7 @@ object CallGmapBuild extends ExternalToolsUtils {
     // Write the output for debugging
     val cmdOut = outputDir.resolve("gmap.stdout")
     val cmdErr = outputDir.resolve("gmap.stderr")
-    runCmd(cmd, cmdOut, cmdErr, cwd = Some(outputDir.toFile))
+    runUnixCmd(cmd, cmdOut, cmdErr, cwd = Some(outputDir.toFile))
       .map(_ => outputDir.resolve("gmap_db"))
   }
 }

@@ -60,6 +60,8 @@ class LogJobResultsWriter extends JobResultsWriter with LazyLogging {
 /**
   * Write to output streams and err to file AND stderr with a prefixed Timestamp
   *
+  * These are used as stdout and stderr (not necessarily full log messages)
+  *
   * @param stdout
   * @param stderr
   */
@@ -79,9 +81,5 @@ class FileJobResultsWriter(stdout: FileWriter, stderr: FileWriter)
     val logMsg = toTimeStampMessage(msg, level = "ERROR")
     stderr.append(msg)
     stderr.flush()
-    // This is to have the errors also be written the "log"
-    stdout.append(logMsg)
-    stdout.flush()
-    System.err.println(msg)
   }
 }
