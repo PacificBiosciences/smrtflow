@@ -25,14 +25,23 @@ package object externaltools {
   sealed trait ExternalCmdResult {
     val cmd: Seq[String]
     val runTime: Long
+    val exitCode: Int
   }
 
   case class ExternalCmdSuccess(cmd: Seq[String], runTime: Long)
-      extends ExternalCmdResult
+      extends ExternalCmdResult {
+    override val exitCode: Int = 0
+  }
 
-  case class ExternalCmdFailure(cmd: Seq[String], runTime: Long, msg: String)
+  case class ExternalCmdFailure(cmd: Seq[String],
+                                runTime: Long,
+                                msg: String,
+                                override val exitCode: Int = 1)
       extends Exception(msg)
-      with ExternalCmdResult
+      with ExternalCmdResult {
+    def summary: String =
+      s"Failed to run Command with exit code $exitCode in $runTime sec Error: $msg"
+  }
 
   trait ExternalToolsUtils extends LazyLogging with timeUtils {
 
@@ -70,8 +79,8 @@ package object externaltools {
       val fout = toWriter(tmpOut)
       val ferr = toWriter(tmpErr)
 
-      def runAndCleanUp(cmd: Seq[String],
-                        processLogger: ProcessLogger): (Int, String) = {
+      def runAndCleanUp(cmd: Seq[String], processLogger: ProcessLogger)
+        : Either[ExternalCmdFailure, ExternalCmdSuccess] = {
         val result =
           runUnixCmd(cmd, tmpOut, tmpErr, processLogger = Some(processLogger))
         cleanUp(Seq(tmpOut, tmpErr))
@@ -81,10 +90,8 @@ package object externaltools {
       val processLogger = toProcessLoggerFile(fout, ferr)
 
       runAndCleanUp(cmd, processLogger) match {
-        case (0, _) => None
-        case (_, msg) =>
-          Some(
-            ExternalCmdFailure(cmd, computeTimeDeltaFromNow(startedAt), msg))
+        case Right(_) => None
+        case Left(cmdFailure) => Some(cmdFailure)
       }
     }
 
@@ -101,9 +108,9 @@ package object externaltools {
       val stderr = toTmp(SUFFIX_STDERR, Some(cmdId))
       val tmpFiles = Seq(stdout, stderr)
 
-      val results = runCmd(cmd,
-                           toTmp(SUFFIX_STDOUT, Some(cmdId)),
-                           toTmp(SUFFIX_STDERR, Some(cmdId)))
+      val results = runUnixCmd(cmd,
+                               toTmp(SUFFIX_STDOUT, Some(cmdId)),
+                               toTmp(SUFFIX_STDERR, Some(cmdId)))
       cleanUp(tmpFiles)
       results
     }
@@ -150,7 +157,8 @@ package object externaltools {
                    extraEnv: Option[Map[String, String]] = None,
                    cwd: Option[File] = None,
                    processLogger: Option[ProcessLogger] = None,
-                   logErrors: Boolean = true): (Int, String) = {
+                   logErrors: Boolean = true)
+      : Either[ExternalCmdFailure, ExternalCmdSuccess] = {
 
       val startedAt = JodaDateTime.now()
 
@@ -198,21 +206,9 @@ package object externaltools {
       fout.close()
       ferr.close()
 
-      (rcode, errStr.toString())
-
-    }
-
-    def runCmd(cmd: Seq[String],
-               stdout: Path,
-               stderr: Path,
-               cwd: Option[File] = None)
-      : Either[ExternalCmdFailure, ExternalCmdSuccess] = {
-      val startedAt = JodaDateTime.now()
-      val (exitCode, errorMessage) = runUnixCmd(cmd, stdout, stderr, cwd = cwd)
-      val runTime = computeTimeDelta(JodaDateTime.now(), startedAt)
-      exitCode match {
+      rcode match {
         case 0 => Right(ExternalCmdSuccess(cmd, runTime))
-        case _ => Left(ExternalCmdFailure(cmd, runTime, errorMessage))
+        case n => Left(ExternalCmdFailure(cmd, runTime, errStr.toString(), n))
       }
     }
 

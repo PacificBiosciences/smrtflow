@@ -52,7 +52,8 @@ object CallNgmlrIndex extends ExternalToolsUtils {
                   "-t",
                   nproc.toString)
 
-    val result = runCmd(cmd, stdout, stderr, cwd = Some(outputDir.toFile))
+    val result = runUnixCmd(cmd, stdout, stderr, cwd = Some(outputDir.toFile))
+
     tempFiles.map(_.toFile).foreach(FileUtils.deleteQuietly)
     result.map(_ => indices)
   }

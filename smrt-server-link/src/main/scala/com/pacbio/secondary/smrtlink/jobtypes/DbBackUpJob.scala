@@ -144,11 +144,8 @@ trait DbBackUpBase extends CoreJobUtils with timeUtils {
     val cmd = backUpCmd(output, dbName, port, user, exe)
     val extraEnv = Map("PGPASSWORD" -> password)
     ExternalToolsUtils.runUnixCmd(cmd, stdout, stderr, Some(extraEnv)) match {
-      case Tuple2(0, _) => Success("Completed backup")
-      case Tuple2(exitCode, message) =>
-        Failure(
-          new Exception(
-            s"Failed to run Command with exit code $exitCode $message"))
+      case Right(_) => Success("Completed backup")
+      case Left(cmdFailed) => Failure(new Exception(cmdFailed.summary))
     }
   }
 

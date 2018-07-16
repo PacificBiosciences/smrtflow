@@ -73,7 +73,7 @@ class SimScenarioIntegrationSpec extends Specification with ConfigLoader with Te
       Seq(stdout, stderr).map(_.toFile).foreach(FileUtils.deleteQuietly)
     }
 
-    val result = ExternalToolsUtils.runCmd(cmd, stdout, stderr) match {
+    val result = ExternalToolsUtils.runUnixCmd(cmd, stdout, stderr) match {
       case Left(ex) =>
         System.err.println(s"Scenario $scenarioType failed running cmd $cmd")
         FileUtils.readLines(stderr.toFile).forEach(line => System.err.println(line))

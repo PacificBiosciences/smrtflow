@@ -30,7 +30,7 @@ object CallSaWriterIndex extends ExternalToolsUtils {
                   "8",
                   "-welter")
 
-    runCmd(cmd, stdout, stderr, cwd = Some(outputDir.toFile)).map(_ =>
+    runUnixCmd(cmd, stdout, stderr, cwd = Some(outputDir.toFile)).map(_ =>
       indexPath)
   }
 }
