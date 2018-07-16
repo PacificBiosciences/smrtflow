@@ -96,10 +96,17 @@ class AlarmManagerRunnerActor(runners: Seq[AlarmRunner],
   }
 
   private def getAlarmsAndSendEvent(): Future[MessageResponse] = {
-    for {
-      event <- getAndUpdateAlarms()
-      _ <- (eventManagerActor ? CreateEvent(event)).mapTo[SmrtLinkSystemEvent]
-    } yield MessageResponse(s"Sent message ${event.eventTypeId} ${event.uuid}")
+
+    val fx = getAndUpdateAlarms()
+
+    fx.foreach { event =>
+      eventManagerActor ! CreateEvent(event)
+    }
+
+    fx.map(
+      event =>
+        MessageResponse(
+          s"Sent message ${event.eventTypeId} ${event.uuid} to EventManager"))
   }
 
   private def sendInternalAlarmsIfConfigured(): Future[MessageResponse] = {
