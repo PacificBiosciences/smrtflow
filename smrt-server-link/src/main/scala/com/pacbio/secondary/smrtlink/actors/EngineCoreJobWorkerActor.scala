@@ -41,10 +41,12 @@ class EngineCoreJobWorkerActor(engineManagerActor: ActorRef,
       // Within this runEngineJob, it should handle all updating of state on failure
       log.info(s"Worker $self attempting to run $engineJob")
 
-      // This blocks and is already wrapped in a Try
+      // This blocks and is already wrapped in a Try and we don't care about the
+      // details of the results
       val tx = serviceRunner.run(engineJob)
-
-      log.info(s"Worker $self Results from ServiceRunner $tx")
+      val resultMessage = if (tx.isSuccess) "successful" else "failed"
+      log.info(
+        s"Worker $self Results from $resultMessage Job ${engineJob.id} from ServiceRunner")
 
       val completedWork = CompletedWork(self, WORK_TYPE)
 
