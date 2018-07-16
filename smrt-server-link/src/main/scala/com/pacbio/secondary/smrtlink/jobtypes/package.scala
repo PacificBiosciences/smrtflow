@@ -38,6 +38,7 @@ import spray.json._
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -98,24 +99,11 @@ package object jobtypes {
                resultsWriter: JobResultsWriter,
                dao: JobsDao,
                config: SystemJobConfig): Try[Out] = {
-      Try {
-        run(resources, resultsWriter, dao, config)
-      } match {
-        case Success(result) =>
-          result match {
-            case Right(rx) => Success(rx)
-            case Left(rx) =>
-              val msg = s"Failed to run job ${rx.message}"
-              resultsWriter.writeLineError(msg)
-              Failure(new Exception(msg))
-          }
-        case Failure(ex) =>
-          val msg = s"Failed to run job ${ex.getMessage}"
-          resultsWriter.writeLineError(msg)
-          val sw = new StringWriter
-          ex.printStackTrace(new PrintWriter(sw))
-          resultsWriter.writeLineError(sw.toString)
-          Failure(new Exception(msg))
+
+      run(resources, resultsWriter, dao, config) match {
+        case Right(x) => Success(x)
+        case Left(resultFailed) =>
+          Failure(new Exception(resultFailed.message))
       }
     }
 

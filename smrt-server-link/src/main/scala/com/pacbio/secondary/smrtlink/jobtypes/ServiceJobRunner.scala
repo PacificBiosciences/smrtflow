@@ -48,7 +48,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
   import CommonModelImplicits._
   import com.pacbio.secondary.smrtlink.analysis.jobs.SecondaryJobProtocols._
 
-  def host = config.host
+  def host: String = config.host
 
   private def validateDsFile(
       dataStoreFile: DataStoreFile): Future[DataStoreFile] = {
@@ -164,7 +164,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
       results <- opts
         .toJob()
         .runTry(resource, writer, dao, config) // Returns Try[#Out] of the job type
-      _ <- andWrite(s"Successfully completed running core job. $results")
+      _ <- andWrite(s"Successfully completed running core job id:$jobIntId")
       msg <- importer(jobId, results, timeout)
       _ <- andWrite(msg)
       updatedEngineJob <- updateJobStateBlock(
@@ -181,7 +181,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
     // This is a little clumsy to get the error message written to the correct place
     // This is also potentially duplicated with the Either[ResultsFailed,ResultsSuccess] in the old core job level.
     tx.recoverWith(
-      writeError(writer, Some(s"Failed to run and import $jobIntId")))
+      writeError(writer, Some(s"Job $jobIntId Failed to execute or import")))
   }
 
   /**
@@ -198,12 +198,10 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
       case Some(errors) =>
         val msg = s"Failed to validate Job options $opts Error $errors"
         writer.writeLineError(msg)
-        logger.error(msg)
         Failure(new IllegalArgumentException(msg))
       case None =>
         val msg = s"Successfully validated Job Options $opts"
         writer.writeLine(msg)
-        logger.info(msg)
         Success(opts)
     }
   }
@@ -220,6 +218,8 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
       jobId: UUID,
       timeout: FiniteDuration): PartialFunction[Throwable, Try[T]] = {
     case NonFatal(ex) =>
+      // This has lost the details of the Failed state. This is why
+      // pbsmrtpipe doesn't propagate the TERMINAL state correctly
       updateJobStateBlock(jobId,
                           AnalysisJobStates.FAILED,
                           Some(s"Failed to Run Job $jobId"),
@@ -257,16 +257,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
                                  timeout)
     } yield results
 
-    tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout)) match {
-      case Success(msg) => Success(msg)
-      case Failure(ex) =>
-        val msg =
-          s"FAILED to update db state for ${engineJob.id} ${ex.getMessage}"
-        logger.error(msg)
-        writer.writeError(msg)
-        Failure(ex)
-    }
-
+    tx.recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
   }
 
   private def sendMail(jobId: Int): Future[String] = {
@@ -346,8 +337,6 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
               startedAt: Option[JodaDateTime] = None)(
       implicit timeout: FiniteDuration = 3.minutes): Try[String] = {
 
-    val runStartedAt = startedAt.getOrElse(JodaDateTime.now())
-
     // Enable logging to the System and to the Job log
     class FileAndLogWriter extends JobResultsWriter {
       override def write(msg: String): Unit = {
@@ -364,28 +353,35 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
     val localAndSystemWriter = new FileAndLogWriter()
 
     // Run the main, update state in db on success or failure
-    val tmain =
-      runner(engineJob, localAndSystemWriter, resources, runStartedAt)
+    // This will handled all error logging
+    val tryRunner =
+      runner(engineJob,
+             localAndSystemWriter,
+             resources,
+             startedAt.getOrElse(JodaDateTime.now()))
 
-    tmain.transform(
+    tryRunner.transform(
       sendMailOnSuccess(engineJob.id, localAndSystemWriter, timeout),
       sendMailOnFailure(engineJob.id, localAndSystemWriter, timeout))
   }
 
   /**
     * There's a little bit of gymnastics going on here to get the necessary components
-    * to compose AND also have context to the necessary JobWriter that will enable writing
+    * to compose AND also have context to the necessary JobResults Writer that will enable writing
     * locally to the job log, as well to the system log.
     *
     */
   def run(engineJob: EngineJob, startedAt: Option[JodaDateTime] = None)(
       implicit timeout: FiniteDuration = 3.minutes): Try[String] = {
 
-    val logOnlyWriter = new LogJobResultsWriter()
+    // Because the job isn't "setup" yet, we only log to the system
+    // After the job is successfully setup, a new log writer will be used
+    val systemOnlyLogWriter = new LogJobResultsWriter()
 
     // If the resource failed to setup, the mark the job as failed
-    val tx = Try(setupCoreJobResources(engineJob))
-      .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
+    val tx: Try[(FileJobResultsWriter, JobResource)] =
+      Try(setupCoreJobResources(engineJob))
+        .recoverWith(recoverAndUpdateToFailed(engineJob.uuid, timeout))
 
     // to adhere to the transform interface
     def runCoreJob(x: (FileJobResultsWriter, JobResource)): Try[String] =
@@ -395,7 +391,7 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
     // send an email and only log to the system log.
     tx.transform[String](
       runCoreJob,
-      sendMailOnFailure(engineJob.id, logOnlyWriter, timeout))
+      sendMailOnFailure(engineJob.id, systemOnlyLogWriter, timeout))
 
   }
 
