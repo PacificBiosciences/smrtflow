@@ -166,6 +166,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
                                   datastoreFiles: Seq[DataStoreFile]) = {
     Future.sequence {
       datastoreFiles
+        .filter(!_.isChunked)
         .map { f =>
           // this also may have the UUID mocked for testing
           val path = Paths
