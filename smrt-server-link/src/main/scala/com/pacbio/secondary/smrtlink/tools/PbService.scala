@@ -1,11 +1,9 @@
 package com.pacbio.secondary.smrtlink.tools
 
 import java.io.File
-import java.net.URL
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.Future
@@ -14,13 +12,11 @@ import scala.language.postfixOps
 import scala.math._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Properties, Success, Try}
-
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 import spray.json._
-
 import com.pacbio.common.models._
 import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.{
   ResourceNotFoundError,
@@ -32,10 +28,7 @@ import com.pacbio.secondary.smrtlink.analysis.converters._
 import com.pacbio.secondary.smrtlink.analysis.datasets.DataSetMetaTypes
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
-import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  AnalysisJobStates,
-  JobModels
-}
+
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.pipelines._
 import com.pacbio.secondary.smrtlink.analysis.tools._
@@ -43,9 +36,9 @@ import com.pacbio.secondary.smrtlink.actors.DaoFutureUtils
 import com.pacbio.secondary.smrtlink.client._
 import com.pacbio.secondary.smrtlink.jobtypes.PbsmrtpipeJobOptions
 import com.pacbio.secondary.smrtlink.models.QueryOperators.{
+  JobStateQueryOperator,
   StringInQueryOperator,
-  StringQueryOperator,
-  JobStateQueryOperator
+  StringQueryOperator
 }
 import com.pacbio.secondary.smrtlink.models._
 
@@ -1045,17 +1038,25 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     */
   private def listDataSetFiles(f: File): Array[File] = {
 
-    def metaDataFilter(fn: File): Boolean =
-      Try { getDataSetMiniMeta(fn.toPath) }.isSuccess
+    val ext = "set.xml"
 
-    val allFiles = f.listFiles
+    def getPacBioXMLFiles(f: File, files: Map[UUID, Path]): Map[UUID, Path] = {
 
-    allFiles
-      .filter(_.isFile)
-      .filter(_.getName.endsWith("set.xml"))
-      .filter(metaDataFilter) ++ allFiles
-      .filter(_.isDirectory)
-      .flatMap(listDataSetFiles)
+      if (f.isDirectory) {
+        f.listFiles()
+          .map(x => getPacBioXMLFiles(x, files))
+          .reduceLeftOption(_ ++ _)
+          .getOrElse(files)
+      } else if (f.getName.endsWith(ext)) {
+        Try(getDataSetMiniMeta(f.toPath))
+          .map(m => Map(m.uuid -> f.toPath) ++ files)
+          .getOrElse(files)
+      } else {
+        files
+      }
+    }
+
+    getPacBioXMLFiles(f, Map.empty[UUID, Path]).values.map(_.toFile).toArray
   }
 
   /**
@@ -1424,6 +1425,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
                              maxTimeOut,
                              projectName)
     def filterFile(p: Path) = Try { getDataSetMiniMeta(p) }.isSuccess
+
     execImportXml(path,
                   listDataSetFiles,
                   filterFile,
