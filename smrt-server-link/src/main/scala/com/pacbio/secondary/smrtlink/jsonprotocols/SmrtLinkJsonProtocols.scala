@@ -316,7 +316,7 @@ trait SmrtLinkJsonProtocols
   implicit val techSupportJobRecordFormat = jsonFormat3(
     TechSupportJobRecord.apply)
 
-  implicit val engineJobMetricsFormat = jsonFormat12(EngineJobMetrics)
+  implicit val engineJobMetricsFormat = jsonFormat14(EngineJobMetrics)
 
   // We bring the required imports from SecondaryJobJsonProtocols like this, as opposed to using it as a mixin, because
   // of namespace conflicts.

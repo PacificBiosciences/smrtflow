@@ -1716,7 +1716,9 @@ case class EngineJobMetrics(id: Int,
                             movieIds: Set[String],
                             isActive: Boolean = true,
                             isMultiJob: Boolean = false,
-                            importedAt: Option[JodaDateTime] = None)
+                            importedAt: Option[JodaDateTime] = None,
+                            jobStartedAt: Option[JodaDateTime] = None,
+                            jobCompletedAt: Option[JodaDateTime] = None)
 
 // Internal Job Metrics
 case class CompletedBoundServiceEntryPoint(fileTypeId: String,

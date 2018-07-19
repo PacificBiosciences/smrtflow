@@ -1,5 +1,8 @@
 # ChangeLog
 
+## 0.18.1
+- added jobStartedAt and jobCompletedAt to EngineJob data model and customer EngineJobMetrics
+
 ## 0.18.0
 
 - job failure is no longer logged to stderr of the server process

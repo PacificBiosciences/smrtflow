@@ -2,11 +2,14 @@ package com.pacbio.secondary.smrtlink.analysis.jobs
 
 import java.nio.file.{Path, Paths}
 import java.util.UUID
-import java.net.URL
+import java.util.concurrent.TimeUnit
 
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
+import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
+
+import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 
 object AnalysisJobStates {
 
@@ -442,7 +445,7 @@ object JobModels {
     * @param comment         User comment
     * @param createdAt       when the Job was created
     * @param updatedAt       when the job metadata was last updated at
-    * @param jobUpdatedAt    when the job execution was last updated at
+    * @param jobUpdatedAt    when the job execution was STATE was last updated at
     * @param state           current state of the job
     * @param projectId       id of the associated project
     * @param jobTypeId       job type id
@@ -480,8 +483,19 @@ object JobModels {
                        parentMultiJobId: Option[Int] = None,
                        importedAt: Option[JodaDateTime] = None,
                        tags: String = "",
-                       subJobTypeId: Option[String] = None)
+                       subJobTypeId: Option[String] = None,
+                       jobStartedAt: Option[JodaDateTime] = None,
+                       jobCompletedAt: Option[JodaDateTime] = None)
       extends SmrtLinkJob {
+
+    def getJobRunTime(): Option[FiniteDuration] = {
+      (jobStartedAt, jobCompletedAt) match {
+        case (Some(startedAt), Some(completedAt)) =>
+          val numSeconds = timeUtils.computeTimeDelta(completedAt, startedAt)
+          Some(FiniteDuration(numSeconds, TimeUnit.SECONDS))
+        case _ => None
+      }
+    }
 
     def toEngineCoreJob: EngineCoreJob = {
       EngineCoreJob(
@@ -504,7 +518,9 @@ object JobModels {
         projectId,
         parentMultiJobId,
         tags = tags,
-        subJobTypeId = subJobTypeId
+        subJobTypeId = subJobTypeId,
+        jobStartedAt = jobStartedAt,
+        jobCompletedAt = jobCompletedAt
       )
     }
   }
@@ -530,7 +546,9 @@ object JobModels {
                            projectId: Int = JobConstants.GENERAL_PROJECT_ID,
                            parentMultiJobId: Option[Int] = None,
                            tags: String = "",
-                           subJobTypeId: Option[String] = None)
+                           subJobTypeId: Option[String] = None,
+                           jobStartedAt: Option[JodaDateTime] = None,
+                           jobCompletedAt: Option[JodaDateTime] = None)
       extends SmrtLinkJob {}
 
   /**

@@ -119,15 +119,28 @@ trait ClientUtils extends timeUtils with DataSetFileUtils {
       val table = engineJobs
         .sortBy(_.id)
         .reverse
-        .map(
-          job =>
-            Seq(job.id.toString,
-                job.state.toString,
-                job.name,
-                job.uuid.toString,
-                job.createdBy.getOrElse(""),
-                job.tags))
-      toTable(table, Seq("ID", "State", "Name", "UUID", "CreatedBy", "Tags"))
+        .map(job =>
+          Seq(
+            job.id.toString,
+            job.state.toString,
+            job.name,
+            job.createdAt.toString(),
+            job.jobCompletedAt.map(_.toString()).getOrElse(""),
+            job.getJobRunTime().map(_.toString()).getOrElse(""),
+            job.uuid.toString,
+            job.createdBy.getOrElse(""),
+            job.tags
+        ))
+      toTable(table,
+              Seq("ID",
+                  "State",
+                  "Name",
+                  "CreatedAt",
+                  "CompletedAt",
+                  "RunTime",
+                  "UUID",
+                  "CreatedBy",
+                  "Tags"))
     }
   }
 

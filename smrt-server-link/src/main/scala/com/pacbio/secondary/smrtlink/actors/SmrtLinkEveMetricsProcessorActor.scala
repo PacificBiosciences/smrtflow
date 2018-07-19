@@ -149,16 +149,18 @@ trait SmrtLinkEveMetricsProcessor extends DaoFutureUtils with LazyLogging {
         job.id,
         job.uuid,
         job.createdAt,
-        job.updatedAt,
+        job.jobUpdatedAt,
         job.state,
         job.jobTypeId,
         Try(extractPipelineIdFromJsonSettings(job.jsonSettings))
-          .getOrElse(None),
+          .getOrElse(job.subJobTypeId),
         job.smrtlinkVersion,
         movieContexts,
         job.isActive,
         job.isMultiJob,
-        job.importedAt
+        job.importedAt,
+        job.jobStartedAt,
+        job.jobCompletedAt
       )
   }
 

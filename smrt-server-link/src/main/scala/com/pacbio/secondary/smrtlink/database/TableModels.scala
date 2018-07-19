@@ -155,8 +155,16 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
 
     def updatedAt: Rep[JodaDateTime] = column[JodaDateTime]("updated_at")
 
+    // This is really odd for it to not be Option[T]. This should be when the Job state has been changed after
+    // changing state to RUNNING.
     def jobUpdatedAt: Rep[JodaDateTime] =
       column[JodaDateTime]("job_updated_at")
+
+    def jobStartedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("job_started_at", O.Default(None))
+
+    def jobCompletedAt: Rep[Option[JodaDateTime]] =
+      column[Option[JodaDateTime]]("job_completed_at", O.Default(None))
 
     // This should be a foreign key into a new table
     def jobTypeId: Rep[String] = column[String]("job_type_id")
@@ -225,6 +233,8 @@ object TableModels extends PacBioDateTimeDatabaseFormat {
         importedAt ::
         tags ::
         subJobTypeId ::
+        jobStartedAt ::
+        jobCompletedAt ::
         HNil).mappedWith(Generic[EngineJob])
 
     def uuidIdx = index("engine_jobs_uuid", uuid, unique = true)
