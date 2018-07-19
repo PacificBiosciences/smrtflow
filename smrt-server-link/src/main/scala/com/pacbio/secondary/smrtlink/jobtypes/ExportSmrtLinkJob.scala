@@ -42,6 +42,10 @@ case class ExportSmrtLinkJobOptions(
     extends ServiceJobOptions
     with ValidateJobUtils {
 
+  private def MAX_NUMBER_JOBS = 5
+  private def toValidateError(): String =
+    s"Export SMRTLink Job(s) only supports <= $MAX_NUMBER_JOBS. Found ${ids.toSet.toList.length}."
+
   override def jobTypeId = JobTypeIds.EXPORT_JOBS
   override def toJob() = new ExportSmrtLinkJob(this)
 
@@ -53,6 +57,7 @@ case class ExportSmrtLinkJobOptions(
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
     val f: Future[Option[InvalidJobOptionError]] = for {
       _ <- validateOutputDir(outputPath)
+      _ <- validateMaxItems(MAX_NUMBER_JOBS, ids, toValidateError())
       _ <- validateJobIds(dao, ids)
     } yield None
 

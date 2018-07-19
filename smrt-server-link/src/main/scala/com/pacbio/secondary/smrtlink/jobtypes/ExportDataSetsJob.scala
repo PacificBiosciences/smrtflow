@@ -36,6 +36,9 @@ import scala.util.control.NonFatal
 
 trait ValidateJobUtils {
 
+  private def toFailed(msg: String) =
+    Future.failed(UnprocessableEntityError(msg))
+
   // I think this should be deleted.
   def projectJoiner(projectIds: Seq[Int]): Int = {
     val ids = projectIds.toSet
@@ -45,21 +48,27 @@ trait ValidateJobUtils {
 
   def validateOutputDir(dir: Path): Future[Path] = {
     if (!dir.toFile.exists)
-      Future.failed(
-        new UnprocessableEntityError(
-          s"The directory ${dir.toString} does not exist"))
+      toFailed(s"The directory ${dir.toString} does not exist")
     else if (!Files.isWritable(dir))
-      Future.failed(new UnprocessableEntityError(
-        s"SMRTLink does not have write permissions for the directory ${dir.toString}"))
+      toFailed(
+        s"SMRTLink does not have write permissions for the directory ${dir.toString}")
     else Future.successful(dir)
   }
 
   def validateOutputPath(p: Path): Future[Path] = {
     val dir = p.getParent
-    if (p.toFile.exists)
-      Future.failed(
-        new UnprocessableEntityError(s"The file $p already exists"))
+    if (p.toFile.exists) toFailed(s"The file $p already exists")
     else validateOutputDir(dir).map(d => p)
+  }
+
+  def validateMaxItems[T](maxItems: Int,
+                          items: Seq[T],
+                          msg: String): Future[Seq[T]] = {
+    if (items.toSet.toList.length <= maxItems) {
+      Future.successful(items)
+    } else {
+      toFailed(msg)
+    }
   }
 }
 
@@ -81,6 +90,10 @@ case class ExportDataSetsJobOptions(
 
   import CommonModelImplicits._
 
+  private def MAX_NUM_DATASETS = 10
+  private def toValidateError(): String =
+    s"Export DataSets only supports <= $MAX_NUM_DATASETS. Found ${ids.toSet.toList.length}."
+
   // Need to think about how this is set from the EngineJob or if it's even necessary
   override def jobTypeId = JobTypeIds.EXPORT_DATASETS
   override def toJob() = new ExportDataSetJob(this)
@@ -94,6 +107,7 @@ case class ExportDataSetsJobOptions(
     // This should probably reuse resolveEntryPoints
     val f: Future[Option[InvalidJobOptionError]] = for {
       _ <- validateOutputPath(outputPath)
+      _ <- validateMaxItems(MAX_NUM_DATASETS, ids, toValidateError())
       _ <- ValidateServiceDataSetUtils.resolveInputs(datasetType, ids, dao)
     } yield None
 
