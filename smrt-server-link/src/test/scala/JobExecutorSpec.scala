@@ -218,6 +218,7 @@ class JobExecutorSpec
         //println(s"Got job $engineJob")
         engineJob.state === AnalysisJobStates.SUCCESSFUL
         engineJob.jobTypeId === JobTypeIds.MOCK_PBSMRTPIPE.id
+        engineJob.getJobRunTime() must beSome
       }
     }
     "access job datastore" in {

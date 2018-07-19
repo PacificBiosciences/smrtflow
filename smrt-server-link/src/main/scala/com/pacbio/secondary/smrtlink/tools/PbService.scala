@@ -232,11 +232,11 @@ object PbServiceParser extends CommandLineToolVersion {
       c.copy(user = u)
     } text "User ID (requires password if used for authentication); defaults to the value of PB_SERVICE_AUTH_USER if set, otherwise the Unix user account name"
 
-    opt[String]("password") action { (p, c) =>
+    opt[String]('p', "password") action { (p, c) =>
       c.copy(password = Some(p))
     } text "Authentication password; defaults to the value of env var PB_SERVICE_AUTH_PASSWORD if set"
 
-    opt[Unit]('p', "ask-pass") action { (_, c) =>
+    opt[Unit]("ask-pass") action { (_, c) =>
       c.copy(usePassword = true)
     } text "Prompt for authentication password"
 

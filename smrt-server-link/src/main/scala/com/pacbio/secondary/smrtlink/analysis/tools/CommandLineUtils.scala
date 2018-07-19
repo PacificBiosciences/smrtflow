@@ -60,6 +60,9 @@ trait timeUtils {
 
 }
 
+// This should be renamed for consistency to TimeUtils and moved to a central location outside of "tools"
+object timeUtils extends timeUtils
+
 // These should all be deleted
 trait ToolResult {
   val toolId: String

@@ -502,11 +502,12 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
       for {
         job <- q1.result.head
         _ <- qEngineJobById(job.id)
-          .map(j => (j.state, j.updatedAt, j.jobUpdatedAt))
+          .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.jobStartedAt))
           .update(
             (AnalysisJobStates.RUNNING,
              JodaDateTime.now(),
-             JodaDateTime.now()))
+             JodaDateTime.now(),
+             Some(JodaDateTime.now())))
         _ <- jobEvents += JobEvent(
           UUID.randomUUID(),
           job.id,
@@ -544,13 +545,27 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     logger.info(s"Updating job state of JobId:${jobId.toIdString} to $state")
     val now = JodaDateTime.now()
 
+    val qUpdate = if (state.isCompleted) {
+      qEngineJobById(jobId)
+        .map(
+          j =>
+            (j.state,
+             j.updatedAt,
+             j.jobUpdatedAt,
+             j.jobCompletedAt,
+             j.errorMessage))
+        .update(state, now, now, Some(now), errorMessage)
+    } else {
+      qEngineJobById(jobId)
+        .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.errorMessage))
+        .update(state, now, now, errorMessage)
+    }
+
     // The error handling of this .head call needs to be improved
     for {
       job <- qEngineJobById(jobId).result.head
       _ <- DBIO.seq(
-        qEngineJobById(jobId)
-          .map(j => (j.state, j.updatedAt, j.jobUpdatedAt, j.errorMessage))
-          .update(state, now, now, errorMessage),
+        qUpdate,
         jobEvents += JobEvent(UUID.randomUUID(), job.id, state, message, now)
       )
       updatedJob <- qEngineJobById(jobId).result.head
