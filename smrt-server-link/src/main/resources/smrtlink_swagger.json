@@ -7418,12 +7418,20 @@
           "type": "string",
           "example": "PacBio.DataSet.SubreadSet",
           "title": "Dataset metatype",
-          "description": "File metatype string, prefixied by PacBio.DataSet"
+          "description": "File metatype string, prefixed by PacBio.DataSet"
         },
         "ids": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "example": [
+            1,
+            2,
+            3,
+            4
+          ],
           "title": "Dataset IDs",
-          "description": "Integer IDs of datasets in SMRT Link database",
+          "description": "Integer IDs of datasets in SMRT Link database (total number of datasets must be <= 10)",
           "items": {
             "type": "integer"
           }
@@ -7449,8 +7457,16 @@
       "properties": {
         "ids": {
           "type": "array",
+          "example": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "minItems": 1,
+          "maxItems": 5,
           "title": "Job IDs",
-          "description": "Integer IDs or UUIDs of jobs in SMRT Link database",
+          "description": "Integer IDs or UUIDs of jobs in SMRT Link database ((total number of Jobs must be <= 5)",
           "items": {
             "type": [
               "integer",
