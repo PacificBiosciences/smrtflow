@@ -236,6 +236,11 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       ds
     }
 
+    def andLog(sx: String): Future[String] = Future {
+      resultsWriter.writeLine(sx)
+      sx
+    }
+
     // for testing we need to be able to swap in a new UUID
     def getU(uuid: UUID): UUID = getUuid(uuid, opts.mockJobId.getOrElse(false))
 
@@ -250,13 +255,16 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       exportedJob <- Future.successful(
         manifest.job.copy(uuid = getU(manifest.job.uuid),
                           projectId = thisJob.projectId))
+      _ <- andLog(s"Successfully extracted job from manifest $exportedJob")
       importedJob <- dao.importRawEngineJob(exportedJob)
       importedPath <- Future.successful(Paths.get(importedJob.path))
+      jobSummary <- expandJobF(opts.zipPath, importedPath)
+      _ <- andLog(
+        s"Successfully extract ${jobSummary.nFiles} files to $importedPath")
       epDsFiles <- Future.successful(
         getEntryPointDataStoreFiles(resources.jobId,
                                     importedPath,
                                     manifest.entryPoints))
-      jobSummary <- expandJobF(opts.zipPath, importedPath)
       entryPointDatasets <- getOrImportEntryPoints(dao, epDsFiles)
       _ <- addEntryPoints(dao, importedJob.id, epDsFiles)
       _ <- addImportedJobFiles(dao, importedJob, jobDsFiles)
