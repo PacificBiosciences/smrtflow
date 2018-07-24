@@ -1093,19 +1093,16 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
   /**
     * Import a job from another SMRT Link system.
     * @param job EngineJob from exported manifest
-    * @param parentJob the import-job job being run
     * @param entryPoints entry point records
     * @return new EngineJob object for the imported job
     */
   def importRawEngineJob(
       job: EngineJob,
-      parentJob: EngineJob,
       entryPoints: Set[EngineJobEntryPointRecord] =
         Set.empty[EngineJobEntryPointRecord]): Future[EngineJob] = {
-    val importedJob = job.copy(id = -1,
-                               path = "",
-                               projectId = parentJob.projectId,
-                               importedAt = Some(JodaDateTime.now()))
+
+    val importedJob =
+      job.copy(id = -1, path = "", importedAt = Some(JodaDateTime.now()))
 
     // Submit must be false, otherwise the state will be mutated
     insertEngineJob(importedJob, entryPoints, submitJob = false)
