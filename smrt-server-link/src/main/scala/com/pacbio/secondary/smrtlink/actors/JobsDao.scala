@@ -1108,6 +1108,23 @@ trait JobDataStore extends LazyLogging with DaoFutureUtils {
     insertEngineJob(importedJob, entryPoints, submitJob = false)
   }
 
+  def updateJsonSettings(jobId: IdAble,
+                         jsonSettings: JsObject): Future[EngineJob] = {
+
+    val q0 = qEngineJobById(jobId)
+
+    val q1: DBIO[Int] = q0.map(_.jsonSettings).update(jsonSettings.toString())
+
+    // This is to get around slick not supporting Returning an object
+    val fx = DBIO
+      .seq(q1)
+      .andThen(q0.result.headOption)
+
+    db.run(fx.transactionally)
+      .flatMap(failIfNone(s"Unable to find Job ${jobId.toIdString}"))
+
+  }
+
   def addJobEvent(jobEvent: JobEvent): Future[JobEvent] =
     db.run(jobEvents += jobEvent).map(_ => jobEvent)
 
