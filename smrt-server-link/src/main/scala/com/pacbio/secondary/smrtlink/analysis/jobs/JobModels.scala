@@ -117,6 +117,7 @@ object JobModels {
     val JOB_STDOUT = "pbscala-job.stdout"
 
     val OUTPUT_DATASTORE_JSON = "datastore.json"
+    val OUTPUT_EXPORT_MANIFEST_JSON = "export-job-manifest.json"
 
     // This is the DataStore File "master" log. The fundamental log file for the
     // job should be stored here and added to the datastore for downstream consumers
@@ -931,9 +932,11 @@ object JobModels {
                                 success: Boolean,
                                 error: Option[String] = None)
 
-  case class ExportJobManifest(job: EngineJob,
-                               entryPoints: Seq[BoundEntryPoint],
-                               datastore: Option[PacBioDataStore])
+  case class ExportJobManifest(
+      job: EngineJob,
+      entryPoints: Seq[BoundEntryPoint],
+      datastore: Option[PacBioDataStore],
+      events: Option[Seq[JobEvent]]) // This really should be required
 
   // Tech Support Related Models. These really belong on "common"
 
