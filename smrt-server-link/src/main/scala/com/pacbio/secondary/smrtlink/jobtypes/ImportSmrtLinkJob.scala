@@ -106,6 +106,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
   type Out = PacBioDataStore
 
   import com.pacbio.common.models.CommonModelImplicits._
+  import com.pacbio.secondary.smrtlink.jsonprotocols.SmrtLinkJsonProtocols._
 
   private def entryPointFileToDataStoreFile(
       boundEntryPoint: BoundEntryPoint): DataStoreFile = {
@@ -374,7 +375,9 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
           toManifestDataStoreFile(
             importedPath.resolve(JobConstants.OUTPUT_EXPORT_MANIFEST_JSON)))
         ds <- Future.successful(
-          writeFilesToDataStore(Seq(logFile, jobDsManifestJson)))
+          writeFilesToDataStore(
+            Seq(logFile, jobDsManifestJson) ++ epDsFiles.map(
+              _._2.dataStoreFile)))
       } yield ds
 
     convertTry(runAndBlock(fx2, 30.seconds),
