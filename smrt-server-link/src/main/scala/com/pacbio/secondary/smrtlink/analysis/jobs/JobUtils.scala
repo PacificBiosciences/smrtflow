@@ -300,7 +300,7 @@ object ExportJob {
             zipFileName: Path,
             entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint],
             events: Seq[JobEvent] = Seq.empty[JobEvent]) = {
-    new JobExporter(job, zipFileName).toZip(entryPoints)
+    new JobExporter(job, zipFileName).toZip(entryPoints, events)
   }
 }
 
