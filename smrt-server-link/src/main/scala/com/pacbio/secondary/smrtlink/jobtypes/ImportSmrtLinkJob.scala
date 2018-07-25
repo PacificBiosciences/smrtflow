@@ -8,9 +8,9 @@ import com.pacbio.common.models.CommonModels.{IdAble, UUIDIdAble}
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.util.Try
 import org.joda.time.{DateTime => JodaDateTime}
+import spray.json._
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.actors.CommonMessages.MessageResponse
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
@@ -22,8 +22,10 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.{
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
+import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
 import com.pacbio.secondary.smrtlink.models.{
+  BoundServiceEntryPoint,
   DataSetMetaDataSet,
   EngineJobEntryPoint
 }
@@ -40,13 +42,15 @@ trait ImportServiceUtils {
     if (mockJobId) UUID.randomUUID() else id
 
   def canImportNewJob(jobId: IdAble, dao: JobsDao): Future[String] = {
-    val errorMsg = s"Job ${jobId.toIdString} is already present in SMRT Link"
+    def toError(job: EngineJob) =
+      s"Job Id: ${job.id} (${job.uuid}) is already present in SMRT Link. Unable to import Job."
+
     val successMsg =
       s"Job ${jobId.toIdString} has NOT be imported yet. Job ${jobId.toIdString} can be imported in SMRT Link."
 
     val f1 = dao
       .getJobById(jobId)
-      .flatMap(_ => Future.failed(UnprocessableEntityError(errorMsg)))
+      .flatMap(job => Future.failed(UnprocessableEntityError(toError(job))))
 
     f1.recoverWith {
       case _: ResourceNotFoundError => Future.successful(successMsg)
@@ -103,34 +107,57 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
 
   import com.pacbio.common.models.CommonModelImplicits._
 
-  private def getEntryPointDataStoreFiles(
-      jobId: UUID,
-      importPath: Path,
-      entryPoints: Seq[BoundEntryPoint]): Seq[DataStoreJobFile] = {
+  private def entryPointFileToDataStoreFile(
+      boundEntryPoint: BoundEntryPoint): DataStoreFile = {
+    val now = JodaDateTime.now()
+    val md = getDataSetMiniMeta(boundEntryPoint.path)
+
+    DataStoreFile(
+      uniqueId = md.uuid, // XXX does this need to be mockable too?
+      sourceId = "import-job",
+      fileTypeId = md.metatype.fileType.fileTypeId,
+      fileSize = boundEntryPoint.path.toFile.length(),
+      createdAt = now,
+      modifiedAt = now,
+      path = boundEntryPoint.path.toString,
+      name = s"Entry point ${boundEntryPoint.entryId}",
+      description = s"Imported entry point ${boundEntryPoint.entryId}"
+    )
+  }
+
+  private def getEntryPointFileToDataStoreJobFile(
+      boundEntryPoint: BoundEntryPoint,
+      jobId: UUID): DataStoreJobFile = {
+    DataStoreJobFile(jobId, entryPointFileToDataStoreFile(boundEntryPoint))
+  }
+
+  // Need to thread through the BoundEntryPoint for the EntryId
+  private def getEntryPointDataStoreFiles(jobId: UUID,
+                                          importPath: Path,
+                                          entryPoints: Seq[BoundEntryPoint])
+    : Seq[(BoundEntryPoint, DataStoreJobFile)] = {
     entryPoints.map { e =>
-      e.copy(path = importPath.resolve(e.path))
-    } map { e =>
-      val now = JodaDateTime.now()
-      val md = getDataSetMiniMeta(e.path)
-      val f = DataStoreFile(
-        uniqueId = md.uuid, // XXX does this need to be mockable too?
-        sourceId = "import-job",
-        fileTypeId = md.metatype.fileType.fileTypeId,
-        fileSize = 0L,
-        createdAt = now,
-        modifiedAt = now,
-        path = e.path.toString,
-        name = s"Entry point ${e.entryId}",
-        description = s"Imported entry point ${e.entryId}"
-      )
-      DataStoreJobFile(jobId, f)
+      val ep = e.copy(path = importPath.resolve(e.path))
+      val dsj = getEntryPointFileToDataStoreJobFile(ep, jobId)
+      (e, dsj)
     }
   }
 
-  private def getOrImportEntryPoint(
-      dao: JobsDao,
-      entryPointFile: DataStoreJobFile): Future[DataSetMetaDataSet] = {
+  // The datasetId is explicitly set to only Int because of the how works. The SL UI should fix this.
+  private def toBoundServiceEntryPoint(
+      boundEntryPoint: BoundEntryPoint,
+      fileTypeId: String,
+      datasetId: Int): BoundServiceEntryPoint = {
+    BoundServiceEntryPoint(boundEntryPoint.entryId, fileTypeId, datasetId)
+  }
+
+  private def getOrImportEntryPoint(dao: JobsDao,
+                                    entryPointFile: DataStoreJobFile,
+                                    boundEntryPoint: BoundEntryPoint)
+    : Future[(BoundServiceEntryPoint, DataSetMetaDataSet)] = {
+
     val uuid = entryPointFile.dataStoreFile.uniqueId
+    val fileType = entryPointFile.dataStoreFile.fileTypeId
 
     def andLog(ds: DataSetMetaDataSet): Future[DataSetMetaDataSet] = Future {
       // This should be to the import Job writer
@@ -139,28 +166,37 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       ds
     }
 
-    def importNewEntry(f: DataStoreJobFile): Future[DataSetMetaDataSet] =
+    def importNewEntry(f: DataStoreJobFile)
+      : Future[(BoundServiceEntryPoint, DataSetMetaDataSet)] =
       for {
         _ <- dao.addDataStoreFile(entryPointFile)
         ds <- dao.getDataSetMetaData(uuid)
-      } yield ds
+      } yield
+        (toBoundServiceEntryPoint(boundEntryPoint,
+                                  f.dataStoreFile.fileTypeId,
+                                  ds.id),
+         ds)
 
     dao
       .getDataSetMetaData(uuid)
       .flatMap(andLog)
+      .map { f =>
+        //FIXME THIS NEEDS TO BE REMOVED
+        val entryId =
+          PbsmrtpipeConstants.metaTypeToEntryId(fileType).getOrElse("unknown")
+        (BoundServiceEntryPoint(entryId, fileType, f.id), f)
+      }
       .recoverWith {
         case _: ResourceNotFoundError => importNewEntry(entryPointFile)
       }
   }
 
-  private def getOrImportEntryPoints(dao: JobsDao,
-                                     entryPointFiles: Seq[DataStoreJobFile])
-    : Future[Seq[DataSetMetaDataSet]] =
-    Future.sequence {
-      entryPointFiles.map { f =>
-        getOrImportEntryPoint(dao, f)
-      }
-    }
+  private def getOrImportEntryPoints(
+      dao: JobsDao,
+      entryPointFiles: Seq[(BoundEntryPoint, DataStoreJobFile)])
+    : Future[Seq[(BoundServiceEntryPoint, DataSetMetaDataSet)]] =
+    Future.sequence(
+      entryPointFiles.map(f => getOrImportEntryPoint(dao, f._2, f._1)))
 
   private def toDataStoreJobFile(ds: DataStoreFile,
                                  importedJob: UUID,
@@ -186,9 +222,10 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     }
   }
 
-  private def addEntryPoints(dao: JobsDao,
-                             jobId: Int, // unzipped job
-                             epDsFiles: Seq[DataStoreJobFile]) = {
+  private def addEntryPoints(
+      dao: JobsDao,
+      jobId: Int, // unzipped job
+      epDsFiles: Seq[DataStoreJobFile]): Future[Seq[EngineJobEntryPoint]] = {
     Future.sequence {
       epDsFiles.map { f =>
         dao.insertEntryPoint(
@@ -217,6 +254,59 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
       blocking { Future.fromTry { expandJob(zipPath, importedPath) } }
     }.flatMap(identity)
 
+  /**
+    * The original EntryPoints in the exported SMRT Link Job need to be updated
+    * to be set to the correct values of the current SL system.
+    *
+    * @param jsObject Original jsonSettings of the job to import
+    * @param entryPoints New (already imported) Entry Points
+    */
+  private def updateJsonSettings(
+      jsObject: JsObject,
+      entryPoints: Seq[BoundServiceEntryPoint]): JsObject = {
+
+    val update = JsObject("entryPoints" -> entryPoints.toJson)
+
+    new JsObject(jsObject.fields ++ update.fields)
+  }
+
+  private def updateEngineJobSettings(dao: JobsDao,
+                                      jobId: IdAble,
+                                      jsObject: JsObject): Future[String] = {
+    dao
+      .updateJsonSettings(jobId, jsObject)
+      .map(_ => s"Updated Job ${jobId.toIdString} JsonSettings")
+  }
+
+  private def addJobEvents(dao: JobsDao,
+                           events: Seq[JobEvent]): Future[String] = {
+    events match {
+      case Nil => Future.successful("No events to import")
+      case _ =>
+        dao
+          .addJobEvents(events)
+          .map(_ => s"Imported ${events.length} JobEvents")
+    }
+  }
+
+  /**
+    * Importing a Job from a ZIP file requires several steps to import
+    * difference data sources to make the imported Job to be indistinguishable. However, there's an important difference
+    * that the imported (DataSet) Entry Points will not have the computed reports that are produced by "import-dataset"
+    * job.
+    *
+    * To avoid confusion with the different jobs.
+    * - thisJob
+    * - rawJob (raw exported Job)
+    * - newJob (newly created imported Job where the raw job will be imported to)
+    *
+    * The "Entry Points" from raw exported job (jr) will be imported from j0 (via DataStore)
+    *
+    * 1. (Bootstrapping) By importing the "raw" EngineJob (jr) to create jc and getting the Job (Int) Id and Path (to write to)
+    * 2. Extracting the output of the zip to j1 Path (from #1)
+    * 3. Extract the Entry Points from the zip, update the job id to be j0 (this mimics that the DataStore files were
+    *   "created" by the j0. This is somewhat similar to ImportDataSet job. However, the reports will are computed.
+    */
   override def run(
       resources: JobResourceBase,
       resultsWriter: JobResultsWriter,
@@ -250,30 +340,42 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
     val jobDsFiles =
       manifest.datastore.map(_.files).getOrElse(Seq.empty[DataStoreFile])
 
-    val fx2 = for {
-      thisJob <- dao.getJobById(resources.jobId)
-      exportedJob <- Future.successful(
-        manifest.job.copy(uuid = getU(manifest.job.uuid),
-                          projectId = thisJob.projectId))
-      _ <- andLog(s"Successfully extracted job from manifest $exportedJob")
-      importedJob <- dao.importRawEngineJob(exportedJob)
-      importedPath <- Future.successful(Paths.get(importedJob.path))
-      jobSummary <- expandJobF(opts.zipPath, importedPath)
-      _ <- andLog(
-        s"Successfully extract ${jobSummary.nFiles} files to $importedPath")
-      epDsFiles <- Future.successful(
-        getEntryPointDataStoreFiles(resources.jobId,
-                                    importedPath,
-                                    manifest.entryPoints))
-      entryPointDatasets <- getOrImportEntryPoints(dao, epDsFiles)
-      _ <- addEntryPoints(dao, importedJob.id, epDsFiles)
-      _ <- addImportedJobFiles(dao, importedJob, jobDsFiles)
-      jobDsManifestJson <- Future.successful(
-        toManifestDataStoreFile(
-          importedPath.resolve("export-job-manifest.json")))
-      ds <- Future.successful(
-        writeFilesToDataStore(Seq(logFile, jobDsManifestJson)))
-    } yield ds
+    def fx2: Future[PacBioDataStore] =
+      for {
+        thisJob <- dao.getJobById(resources.jobId)
+        rawJob <- Future.successful(
+          manifest.job.copy(uuid = getU(manifest.job.uuid),
+                            projectId = thisJob.projectId))
+        _ <- andLog(s"Successfully extracted job from manifest $rawJob")
+        newJob <- dao.importRawEngineJob(rawJob)
+        importedPath <- Future.successful(Paths.get(newJob.path))
+        jobSummary <- expandJobF(opts.zipPath, importedPath)
+        _ <- andLog(
+          s"Successfully extract ${jobSummary.nFiles} files to $importedPath")
+        epDsFiles <- Future.successful(
+          getEntryPointDataStoreFiles(resources.jobId,
+                                      importedPath,
+                                      manifest.entryPoints))
+        entryPointDatasets <- getOrImportEntryPoints(dao, epDsFiles)
+        _ <- addEntryPoints(dao, newJob.id, epDsFiles.map(_._2))
+        _ <- addImportedJobFiles(dao, newJob, jobDsFiles)
+        updatedJobEvents <- Future.successful(
+          manifest.events
+            .getOrElse(Seq.empty[JobEvent])
+            .map(e => e.copy(jobId = newJob.id)))
+        msg <- addJobEvents(dao, updatedJobEvents)
+        _ <- andLog(msg)
+        _ <- updateEngineJobSettings(
+          dao,
+          newJob.id,
+          updateJsonSettings(rawJob.jsonSettings.parseJson.asJsObject,
+                             entryPointDatasets.map(_._1)))
+        jobDsManifestJson <- Future.successful(
+          toManifestDataStoreFile(
+            importedPath.resolve(JobConstants.OUTPUT_EXPORT_MANIFEST_JSON)))
+        ds <- Future.successful(
+          writeFilesToDataStore(Seq(logFile, jobDsManifestJson)))
+      } yield ds
 
     convertTry(runAndBlock(fx2, 30.seconds),
                resultsWriter,
