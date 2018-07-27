@@ -1136,14 +1136,18 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
       maxTimeOut: Option[FiniteDuration],
       projectName: Option[String]): Future[EngineJob] = {
 
-    def logIfPathIsDifferent(ds: DataSetMetaDataSet): DataSetMetaDataSet = {
+    def logIfPathIsDifferent(
+        ds: DataSetMetaDataSet): Future[DataSetMetaDataSet] = {
       if (ds.path != path.toString) {
         val msg =
           s"DataSet Path on Server will attempted to be updated to $path from ${ds.path}"
         logger.warn(msg)
         System.err.println(msg)
+        // this triggers the recoverWith block that re-imports
+        Future.failed(new RuntimeException(msg))
+      } else {
+        Future.successful(ds)
       }
-      ds
     }
 
     // The dataset has already been imported. Skip the entire job creation process.
@@ -1151,7 +1155,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     def fx =
       for {
         ds <- sal.getDataSet(uuid)
-        _ <- Future.successful(logIfPathIsDifferent(ds))
+        _ <- logIfPathIsDifferent(ds)
         job <- sal.getJob(ds.jobId)
         completedJob <- engineDriver(job, maxTimeOut)
       } yield completedJob
