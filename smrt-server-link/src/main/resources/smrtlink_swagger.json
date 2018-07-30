@@ -345,6 +345,23 @@
         },
         "x-auth-type": "Application & Application User"
       },
+      "delete": {
+        "description": "Delete an previously accepted user agreement acceptance record for specified version",
+        "x-scope": "analysis",
+        "produces": [
+          "application/json"
+        ],
+        "x-throttling-tier": "Unlimited",
+        "responses": {
+          "default": {
+            "description": "Return value"
+          },
+          "200": {
+            "description": "Message of the Success of deleting the user acceptance record"
+          }
+        },
+        "x-auth-type": "Application & Application User"
+      },
       "parameters": [
         {
           "description": "Version of EULA",
