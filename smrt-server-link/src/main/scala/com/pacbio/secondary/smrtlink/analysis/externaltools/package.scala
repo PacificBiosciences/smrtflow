@@ -168,12 +168,19 @@ package object externaltools {
       val fout = getWriter(stdout)
       val ferr = getWriter(stderr)
 
+      def cleanUp(): Unit = {
+        Seq(fout, ferr).foreach { f =>
+          f.flush()
+          f.close()
+        }
+      }
+
       // Write the subprocess standard error to propagate error message up.
       val errStr = new StringBuilder
 
       val pxl = processLogger.getOrElse(toProcessLogger(fout, ferr, errStr))
 
-      logger.info(s"Starting cmd $cmd")
+      logger.info(s"Starting cmd $cmd with process logger $pxl")
 
       val px = extraEnv
         .map(x => Process(cmd, cwd = None, extraEnv = x.toSeq: _*))
@@ -203,8 +210,7 @@ package object externaltools {
         case n => logFailedResult(toM("Failed", n))
       }
 
-      fout.close()
-      ferr.close()
+      cleanUp()
 
       rcode match {
         case 0 => Right(ExternalCmdSuccess(cmd, runTime))

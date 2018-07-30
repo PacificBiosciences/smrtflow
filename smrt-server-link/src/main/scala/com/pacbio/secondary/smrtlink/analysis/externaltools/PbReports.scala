@@ -49,6 +49,24 @@ trait CallPbReport extends Python {
     val fout = getWriter(stdout)
     val ferr = getWriter(stderr)
 
+    def cleanUp(): Unit = {
+      Seq(fout, ferr).foreach { f =>
+        f.flush()
+        f.close()
+      }
+    }
+
+    def runAndCleanUp(processLogger: ProcessLogger)
+      : Either[ExternalCmdFailure, ExternalCmdSuccess] = {
+      val result = runUnixCmd(cmd,
+                              stdout,
+                              stderr,
+                              processLogger = Some(processLogger),
+                              logErrors = false)
+      cleanUp()
+      result
+    }
+
     val errorMsg = new StringBuilder
 
     val processLogger: ProcessLogger = ProcessLogger(
@@ -61,11 +79,7 @@ trait CallPbReport extends Python {
       }
     )
 
-    runUnixCmd(cmd,
-               stdout,
-               stderr,
-               processLogger = Some(processLogger),
-               logErrors = false)
+    runAndCleanUp(processLogger)
   }
 
   def run(stsXml: Path,
