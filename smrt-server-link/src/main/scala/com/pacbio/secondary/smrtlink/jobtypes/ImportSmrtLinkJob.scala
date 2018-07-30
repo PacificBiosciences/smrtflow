@@ -363,7 +363,7 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
         updatedJobEvents <- Future.successful(
           manifest.events
             .getOrElse(Seq.empty[JobEvent])
-            .map(e => e.copy(jobId = newJob.id)))
+            .map(e => e.copy(jobId = newJob.id, eventId = getU(e.eventId))))
         msg <- addJobEvents(dao, updatedJobEvents)
         _ <- andLog(msg)
         _ <- updateEngineJobSettings(
