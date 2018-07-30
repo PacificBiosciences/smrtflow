@@ -269,7 +269,8 @@ class JobExporter(job: EngineJob, zipPath: Path)
   /**
     * Package the entire job directory into a zipfile.
     */
-  def toZip(entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint])
+  def toZip(entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint],
+            jobEvents: Seq[JobEvent] = Seq.empty[JobEvent])
     : Try[JobExportSummary] = {
     val jobPath = Paths.get(job.path)
     if (jobPath.toFile.isFile) {
@@ -277,14 +278,15 @@ class JobExporter(job: EngineJob, zipPath: Path)
     }
     val entryPointsOut = convertEntryPointPaths(entryPoints, jobPath)
     val datastore = getDataStore(jobPath)
-    val manifest = ExportJobManifest(job, entryPointsOut, datastore)
+    val manifest =
+      ExportJobManifest(job, entryPointsOut, datastore, Some(jobEvents))
     val manifestFile = Files.createTempFile("export-job-manifest", ".json")
     FileUtils.writeStringToFile(manifestFile.toFile,
                                 manifest.toJson.prettyPrint,
                                 "UTF-8")
     val nBytes: Long = exportPath(jobPath, jobPath) +
       exportEntryPoints(entryPoints, jobPath) +
-      exportFile(jobPath.resolve("export-job-manifest.json"),
+      exportFile(jobPath.resolve(JobConstants.OUTPUT_EXPORT_MANIFEST_JSON),
                  jobPath,
                  Some(manifestFile))
     out.close
@@ -296,8 +298,9 @@ class JobExporter(job: EngineJob, zipPath: Path)
 object ExportJob {
   def apply(job: EngineJob,
             zipFileName: Path,
-            entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint]) = {
-    new JobExporter(job, zipFileName).toZip(entryPoints)
+            entryPoints: Seq[BoundEntryPoint] = Seq.empty[BoundEntryPoint],
+            events: Seq[JobEvent] = Seq.empty[JobEvent]) = {
+    new JobExporter(job, zipFileName).toZip(entryPoints, events)
   }
 }
 

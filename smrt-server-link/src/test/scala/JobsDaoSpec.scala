@@ -97,7 +97,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
 
       val fx = for {
         project <- dao.getProjectByName(TEST_PROJECT_NAME)
-        importedJob <- dao.importRawEngineJob(rawEngineJob, rawEngineJob)
+        importedJob <- dao.importRawEngineJob(rawEngineJob)
         msg <- dao.importDataStoreFile(dsFile,
                                        jobUUID,
                                        projectId = Some(project.id))
@@ -137,7 +137,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
 
       val fxx: Future[(EngineJob, ReferenceServiceDataSet, Int)] = for {
         project <- dao.getProjectByName(TEST_PROJECT_NAME)
-        importedJob <- dao.importRawEngineJob(rawEngineJob, rawEngineJob)
+        importedJob <- dao.importRawEngineJob(rawEngineJob)
         msg <- dao.importDataStoreFile(dsFile,
                                        jobUUID,
                                        projectId = Some(project.id))
@@ -197,7 +197,7 @@ class JobsDaoSpec extends Specification with TestUtils with SetupMockData {
       ).map(toJobNames)
       val fx = for {
         jobs <- Future.sequence(pbsmrtpipeJobs.map { job =>
-          dao.importRawEngineJob(job, job)
+          dao.importRawEngineJob(job)
         })
         queries <- Future.sequence(searchCriteria.map(c => dao.getJobs(c)))
       } yield queries.map(_.map(_.name).toSet)

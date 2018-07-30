@@ -3,32 +3,28 @@ package com.pacbio.secondary.smrtlink.jobtypes
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
-import scala.util.{Try, Failure, Success}
-
+import scala.util.Try
 import org.joda.time.{DateTime => JodaDateTime}
 import org.joda.time.format.DateTimeFormat
-
 import com.pacbio.common.models.CommonModels.IdAble
 import com.pacbio.common.models.CommonModelImplicits
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.constants.FileTypes
 import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
-  InvalidJobOptionError,
-  JobResultsWriter,
   ExportJob,
-  AnalysisJobStates
+  InvalidJobOptionError,
+  JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.jobs.CoreJobUtils
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe.PbsmrtpipeConstants
 import com.pacbio.secondary.smrtlink.analysis.tools.timeUtils
+import com.pacbio.secondary.smrtlink.models.EngineJobEntryPoint
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
-import com.pacbio.secondary.smrtlink.services.PacBioServiceErrors.UnprocessableEntityError
 
 case class ExportSmrtLinkJobOptions(
     ids: Seq[IdAble],
@@ -83,61 +79,74 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
 
   private def resolveJobs(dao: JobsDao,
                           jobIds: Seq[IdAble]): Future[Seq[EngineJob]] =
-    Future.sequence(jobIds.map(dao.getJobById(_)))
+    Future.sequence(jobIds.map(dao.getJobById))
+
+  private def toDataStoreZip(path: Path,
+                             startedAt: JodaDateTime,
+                             jobId: Int): DataStoreFile = {
+    val endedAt = JodaDateTime.now()
+    DataStoreFile(
+      UUID.randomUUID(),
+      s"pbscala::${opts.jobTypeId}",
+      FileTypes.ZIP.fileTypeId,
+      path.toFile.length(),
+      startedAt,
+      endedAt,
+      path.toAbsolutePath.toString,
+      isChunked = false,
+      "ZIP file",
+      s"ZIP file containing job $jobId"
+    )
+  }
 
   private def runOne(job: EngineJob,
                      outputPath: Path,
-                     eps: Seq[BoundEntryPoint]): Try[DataStoreFile] = {
+                     eps: Seq[BoundEntryPoint],
+                     events: Seq[JobEvent]): Try[DataStoreFile] = {
     val startedAt = JodaDateTime.now()
     val now = DateTimeFormat.forPattern("yyyyddMM").print(startedAt)
-    val zipName = s"ExportJob_${job.id}_${now}.zip"
-    ExportJob(job, outputPath.resolve(zipName), eps) match {
-      case Success(result) =>
-        val endedAt = JodaDateTime.now()
-        Try {
-          DataStoreFile(
-            UUID.randomUUID(),
-            s"pbscala::${opts.jobTypeId}",
-            FileTypes.ZIP.fileTypeId,
-            result.nBytes,
-            startedAt,
-            endedAt,
-            outputPath.resolve(zipName).toAbsolutePath.toString,
-            isChunked = false,
-            "ZIP file",
-            s"ZIP file containing job ${job.id}"
-          )
-        }
-      case Failure(err) =>
-        logger.error(err.getMessage)
-        Failure(err)
-    }
+    val zipName = s"ExportJob_${job.id}_$now.zip"
+    val outputZipPath = outputPath.resolve(zipName)
+
+    for {
+      _ <- ExportJob(job, outputZipPath, eps, events)
+      ds <- Try(toDataStoreZip(outputZipPath, startedAt, job.id))
+    } yield ds
   }
 
-  private def resolveEntryPoints(
+  private def runOneF(job: EngineJob,
+                      outputPath: Path,
+                      eps: Seq[BoundEntryPoint],
+                      events: Seq[JobEvent]): Future[DataStoreFile] =
+    Future {
+      blocking(Future.fromTry(runOne(job, outputPath, eps, events)))
+    }.flatMap(identity)
+
+  private def resolveAndUpdateDataSet(
       dao: JobsDao,
-      jobs: Seq[EngineJob],
-      jobDir: Path): Future[Seq[Seq[BoundEntryPoint]]] = {
-    Future.sequence(jobs.map { job =>
-      for {
-        serviceEntryPoints <- dao.getJobEntryPoints(job.id)
-        eps <- Future.sequence(serviceEntryPoints.map {
-          e =>
-            dao
-              .getDataSetMetaData(e.datasetUUID)
-              .map { ds =>
-                Paths.get(ds.path)
-              }
-              .flatMap { p =>
-                updateDataSetandWriteToEntryPointsDir(p, jobDir, dao)
-              }
-              .map { p =>
-                val eid = PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType)
-                BoundEntryPoint(eid.getOrElse("unknown"), p)
-              }
-        })
-      } yield eps
-    })
+      jobDir: Path,
+      e: EngineJobEntryPoint): Future[BoundEntryPoint] = {
+    for {
+      x <- dao.getDataSetMetaData(e.datasetUUID)
+      p1 <- Future.successful(Paths.get(x.path))
+      p2 <- updateDataSetandWriteToEntryPointsDir(p1, jobDir, dao)
+      // FIXME. WTF was the ever added. This should have been explicitly extracted
+      eid <- Future.successful(
+        PbsmrtpipeConstants.metaTypeToEntryId(e.datasetType))
+    } yield BoundEntryPoint(eid.getOrElse("unknown"), p2)
+
+  }
+
+  private def resolveAndUpdateDataSet2(
+      dao: JobsDao,
+      job: EngineJob,
+      jobDir: Path): Future[Seq[BoundEntryPoint]] = {
+    for {
+      serviceEntryPoints <- dao.getJobEntryPoints(job.id)
+      eps <- Future.sequence(serviceEntryPoints.map { e =>
+        resolveAndUpdateDataSet(dao, jobDir, e)
+      })
+    } yield eps
   }
 
   override def run(
@@ -145,52 +154,52 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
       resultsWriter: JobResultsWriter,
       dao: JobsDao,
       config: SystemJobConfig): Either[ResultFailed, PacBioDataStore] = {
-    val fx = for {
-      jobs <- resolveJobs(dao, opts.ids)
-    } yield jobs
-    val jobs: Seq[EngineJob] = Await.result(fx, opts.DEFAULT_TIMEOUT)
-
-    val fx2 = for {
-      entryPoints <- resolveEntryPoints(dao, jobs, resources.path)
-    } yield entryPoints
-    val entryPoints: Seq[Seq[BoundEntryPoint]] = if (opts.includeEntryPoints) {
-      Await.result(fx2, opts.DEFAULT_TIMEOUT)
-    } else {
-      jobs.map(_ => Seq.empty[BoundEntryPoint])
-    }
 
     val logFile = getStdOutLog(resources, dao)
     val startedAt = JodaDateTime.now()
+
     resultsWriter.writeLine(
       s"Starting export of ${opts.ids.length} jobs at ${startedAt.toString}")
     resultsWriter.writeLine(s"Job Export options: $opts")
-    val datastoreJson = resources.path.resolve("datastore.json")
 
-    val results = jobs.zip(entryPoints).map {
-      case (job, eps) =>
-        runOne(job, opts.outputPath, eps)
-    }
-    val dsFiles: Seq[DataStoreFile] = Seq(logFile) ++ results
-      .filter(_.isSuccess)
-      .map(_.toOption.get)
-    val nErrors = results.count(_.isFailure == true)
-    if (nErrors > 0) {
-      val msg = s"One or more jobs could not be exported"
-      resultsWriter.writeLine(msg)
-      Left(
-        ResultFailed(resources.jobId,
-                     jobTypeId.toString,
-                     msg,
-                     computeTimeDeltaFromNow(startedAt),
-                     AnalysisJobStates.FAILED,
-                     host))
-    } else {
+    def writeFilesToDataStore(files: Seq[DataStoreFile]): PacBioDataStore = {
       val endedAt = JodaDateTime.now()
-      val ds = PacBioDataStore(startedAt, endedAt, "0.1.0", dsFiles)
+      val ds = PacBioDataStore(startedAt, endedAt, "0.1.0", files)
+      val datastoreJson =
+        resources.path.resolve(JobConstants.OUTPUT_DATASTORE_JSON)
       writeDataStore(ds, datastoreJson)
       resultsWriter.write(
         s"Successfully wrote datastore to ${datastoreJson.toAbsolutePath}")
-      Right(ds)
+      ds
     }
+
+    def resolver(job: EngineJob): Future[Seq[BoundEntryPoint]] = {
+      if (opts.includeEntryPoints)
+        resolveAndUpdateDataSet2(dao, job, resources.path)
+      else Future.successful(Seq.empty[BoundEntryPoint])
+    }
+
+    def resolveAll(job: EngineJob)
+      : Future[(EngineJob, Seq[BoundEntryPoint], Seq[JobEvent])] =
+      for {
+        eps <- resolver(job)
+        jobEvents <- dao.getJobEventsByJobId(job.id)
+      } yield (job, eps, jobEvents)
+
+    def fx2: Future[PacBioDataStore] =
+      for {
+        jobs <- resolveJobs(dao, opts.ids)
+        jobEpEvents <- Future.sequence(jobs.map(resolveAll))
+        dsFiles <- Future.sequence(
+          jobEpEvents.map(xs => runOneF(xs._1, opts.outputPath, xs._2, xs._3)))
+        ds <- Future.successful(writeFilesToDataStore(dsFiles ++ Seq(logFile)))
+      } yield ds
+
+    // The timeout needs to be computed
+    convertTry(runAndBlock(fx2, opts.DEFAULT_TIMEOUT),
+               resultsWriter,
+               startedAt,
+               resources.jobId)
+
   }
 }

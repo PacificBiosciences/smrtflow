@@ -198,14 +198,11 @@ trait MockUtils extends LazyLogging {
       None
     )
 
-    // This isn't a good idea
-    val parentJob = engineJob
-
     val getJobOrInsert: Future[EngineJob] = dao
       .getJobById(jobId)
       .recoverWith {
         case _ =>
-          dao.importRawEngineJob(engineJob, parentJob)
+          dao.importRawEngineJob(engineJob)
       }
 
     for {
@@ -258,7 +255,7 @@ trait MockUtils extends LazyLogging {
     val getJobOrInsert: Future[EngineJob] = dao
       .getJobById(jobId)
       .recoverWith {
-        case e => dao.importRawEngineJob(engineJob, engineJob)
+        case e => dao.importRawEngineJob(engineJob)
       }
 
     for {
@@ -329,7 +326,7 @@ trait MockUtils extends LazyLogging {
     val getJobOrInsert: Future[EngineJob] = dao
       .getJobById(jobId)
       .recoverWith {
-        case e => dao.importRawEngineJob(engineJob, engineJob)
+        case e => dao.importRawEngineJob(engineJob)
       }
 
     for {
