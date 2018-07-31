@@ -7,8 +7,7 @@ import java.util.UUID
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
-
+import scala.util.{Try, Failure, Success}
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -23,12 +22,13 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   CoreJobUtils,
+  InvalidJobOptionError,
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
 import com.pacbio.secondary.smrtlink.analysis.reports.{
-  ReportModels,
-  ReportJsonProtocol
+  ReportJsonProtocol,
+  ReportModels
 }
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
@@ -60,7 +60,16 @@ case class PbsmrtpipeJobOptions(
     Await.result(fx, DEFAULT_TIMEOUT)
   }
 
-  override def validate(dao: JobsDao, config: SystemJobConfig) = None
+  override def validate(
+      dao: JobsDao,
+      config: SystemJobConfig): Option[InvalidJobOptionError] = {
+    Try(resolveEntryPoints(dao)) match {
+      case Success(_) => None
+      case Failure(ex) =>
+        Some(InvalidJobOptionError(s"Invalid options. ${ex.getMessage}"))
+    }
+  }
+
   override def toJob() = new PbsmrtpipeJob(this)
 }
 
