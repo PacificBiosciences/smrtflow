@@ -78,9 +78,7 @@ case class PbsmrtpipeJobOptions(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
 
-    Try(resolveAndValidateBoundServiceEntryPoints(dao))
-      .failed
-      .toOption
+    Try(resolveAndValidateBoundServiceEntryPoints(dao)).failed.toOption
       .map(e => InvalidJobOptionError(s"Invalid options. ${e.getMessage}"))
   }
 
