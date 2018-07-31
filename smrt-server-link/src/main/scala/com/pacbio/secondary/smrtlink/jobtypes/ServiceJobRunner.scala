@@ -196,8 +196,10 @@ class ServiceJobRunner(dao: JobsDao, config: SystemJobConfig)(
       writer: JobResultsWriter): Try[T] = {
     Try { opts.validate(dao, config) }.flatMap {
       case Some(errors) =>
+        // Write to both out and err to make sure the err is communicated to out
         val msg = s"Failed to validate Job options $opts Error $errors"
         writer.writeLineError(msg)
+        writer.writeLine(msg)
         Failure(new IllegalArgumentException(msg))
       case None =>
         val msg = s"Successfully validated Job Options $opts"

@@ -78,7 +78,9 @@ case class PbsmrtpipeJobOptions(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
 
-    Try(resolveAndValidateBoundServiceEntryPoints(dao)).failed.toOption
+    Try(
+      Await.result(resolveAndValidateBoundServiceEntryPoints(dao),
+                   DEFAULT_TIMEOUT)).failed.toOption
       .map(e => InvalidJobOptionError(s"Invalid options. ${e.getMessage}"))
   }
 
@@ -154,7 +156,6 @@ trait PbsmrtpipeCoreJob
       commandTemplate: Option[CommandTemplate] = None,
       stdOut: Option[Path] = None,
       stdErr: Option[Path] = None): Either[ResultFailed, PacBioDataStore] = {
-    val startedAt = JodaDateTime.now()
 
     def writeOptions(opts: Seq[ServiceTaskOptionBase], msg: String): Unit = {
       val m = opts match {

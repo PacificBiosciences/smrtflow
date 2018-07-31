@@ -906,9 +906,10 @@ class PbsmrtpipeJobsService(override val dao: JobsDao,
   }
 
   private def failIfNotRunning(engineJob: EngineJob): Future[EngineJob] = {
-    if (engineJob.isRunning) Future { engineJob } else
+    if (engineJob.isRunning) Future.successful(engineJob)
+    else
       Future.failed(
-        new UnprocessableEntityError(
+        UnprocessableEntityError(
           s"Only terminating ${AnalysisJobStates.RUNNING} is supported"))
   }
 
