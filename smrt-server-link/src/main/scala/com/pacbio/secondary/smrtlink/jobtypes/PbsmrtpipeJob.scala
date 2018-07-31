@@ -7,7 +7,7 @@ import java.util.UUID
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
@@ -77,11 +77,11 @@ case class PbsmrtpipeJobOptions(
   override def validate(
       dao: JobsDao,
       config: SystemJobConfig): Option[InvalidJobOptionError] = {
-    Try(resolveAndValidateBoundServiceEntryPoints(dao)) match {
-      case Success(_) => None
-      case Failure(ex) =>
-        Some(InvalidJobOptionError(s"Invalid options. ${ex.getMessage}"))
-    }
+
+    Try(resolveAndValidateBoundServiceEntryPoints(dao))
+      .failed
+      .toOption
+      .map(e => InvalidJobOptionError(s"Invalid options. ${e.getMessage}"))
   }
 
   override def toJob() = new PbsmrtpipeJob(this)
