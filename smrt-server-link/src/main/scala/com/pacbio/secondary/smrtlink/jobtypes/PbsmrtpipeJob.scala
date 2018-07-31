@@ -1,18 +1,16 @@
 package com.pacbio.secondary.smrtlink.jobtypes
 
 import java.net.{URI, URL}
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime => JodaDateTime}
 import spray.json._
-
 import com.pacbio.secondary.smrtlink.JobServiceConstants
 import com.pacbio.secondary.smrtlink.actors.JobsDao
 import com.pacbio.secondary.smrtlink.analysis.externaltools.{
@@ -23,18 +21,20 @@ import com.pacbio.secondary.smrtlink.analysis.jobs.JobModels._
 import com.pacbio.secondary.smrtlink.analysis.jobs.{
   AnalysisJobStates,
   CoreJobUtils,
+  InvalidJobOptionError,
   JobResultsWriter
 }
 import com.pacbio.secondary.smrtlink.analysis.pbsmrtpipe._
 import com.pacbio.secondary.smrtlink.analysis.reports.{
-  ReportModels,
-  ReportJsonProtocol
+  ReportJsonProtocol,
+  ReportModels
 }
 import com.pacbio.secondary.smrtlink.models.{
   BoundServiceEntryPoint,
   EngineJobEntryPointRecord
 }
 import com.pacbio.secondary.smrtlink.models.ConfigModels.SystemJobConfig
+import com.pacbio.secondary.smrtlink.validators.ValidateServiceDataSetUtils
 
 /**
   * Created by mkocher on 8/17/17.
@@ -55,12 +55,33 @@ case class PbsmrtpipeJobOptions(
   override def subJobTypeId: Option[String] = Some(pipelineId)
 
   override def resolveEntryPoints(
-      dao: JobsDao): Seq[EngineJobEntryPointRecord] = {
-    val fx = resolver(entryPoints, dao).map(_.map(_._1))
-    Await.result(fx, DEFAULT_TIMEOUT)
+      dao: JobsDao): Seq[EngineJobEntryPointRecord] =
+    Await.result(resolver(entryPoints, dao).map(_.map(_._1)), DEFAULT_TIMEOUT)
+
+  private def resolveAndValidateBoundServiceEntryPoint(
+      dao: JobsDao,
+      e: BoundServiceEntryPoint): Future[BoundServiceEntryPoint] = {
+    for {
+      dst <- ValidateServiceDataSetUtils.validateDataSetType(e.fileTypeId)
+      _ <- ValidateServiceDataSetUtils.resolveAndValidatePath(dst,
+                                                              e.datasetId,
+                                                              dao)
+    } yield e
   }
 
-  override def validate(dao: JobsDao, config: SystemJobConfig) = None
+  private def resolveAndValidateBoundServiceEntryPoints(
+      dao: JobsDao): Future[Seq[BoundServiceEntryPoint]] =
+    Future.sequence(
+      entryPoints.map(e => resolveAndValidateBoundServiceEntryPoint(dao, e)))
+
+  override def validate(
+      dao: JobsDao,
+      config: SystemJobConfig): Option[InvalidJobOptionError] = {
+
+    Try(resolveAndValidateBoundServiceEntryPoints(dao)).failed.toOption
+      .map(e => InvalidJobOptionError(s"Invalid options. ${e.getMessage}"))
+  }
+
   override def toJob() = new PbsmrtpipeJob(this)
 }
 
