@@ -494,12 +494,6 @@ class DataSetScenario(client: SmrtLinkServiceClient,
     ImportDataSet(refFasta, ftReference) SHOULD_RAISE classOf[Exception],
     // Wrong ds metatype and will fail at Job creation/validation time at the service level
     ImportDataSet(subreads3, ftContigs) SHOULD_RAISE classOf[Exception],
-    // not barcodes
-    jobId := ImportFastaBarcodes(
-      Var(testResources.findById("misc-fasta").get.path),
-      Var("import-barcode-bad-fasta")),
-    jobStatus := WaitForJob(jobId),
-    fail("Expected barcode import to fail") IF jobStatus !=? EXIT_FAILURE,
     // wrong XML
     jobId := ConvertRsMovie(hdfSubreads1),
     jobStatus := WaitForJob(jobId),
