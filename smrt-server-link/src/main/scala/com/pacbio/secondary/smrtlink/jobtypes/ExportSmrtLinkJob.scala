@@ -195,8 +195,9 @@ class ExportSmrtLinkJob(opts: ExportSmrtLinkJobOptions)
         ds <- Future.successful(writeFilesToDataStore(dsFiles ++ Seq(logFile)))
       } yield ds
 
-    // The timeout needs to be computed
-    convertTry(runAndBlock(fx2, opts.DEFAULT_TIMEOUT),
+    //FIXME This should be computed based in a more principled way
+    val maxTimeOut: FiniteDuration = 1.minute * opts.ids.length
+    convertTry(runAndBlock(fx2, maxTimeOut),
                resultsWriter,
                startedAt,
                resources.jobId)

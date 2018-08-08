@@ -380,7 +380,9 @@ class ImportSmrtLinkJob(opts: ImportSmrtLinkJobOptions)
               _._2.dataStoreFile)))
       } yield ds
 
-    convertTry(runAndBlock(fx2, 30.seconds),
+    //FIXME This should be computed based on the file size.
+    val maxTimeOut: FiniteDuration = 2.minutes
+    convertTry(runAndBlock(fx2, maxTimeOut),
                resultsWriter,
                startedAt,
                resources.jobId)
