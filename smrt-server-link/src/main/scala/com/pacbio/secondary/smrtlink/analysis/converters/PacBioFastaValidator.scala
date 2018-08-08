@@ -119,7 +119,7 @@ object PacBioFastaValidator extends LazyLogging {
         s"Invalid fasta file detected ${path.toAbsolutePath.toString}"))
   }
 
-  def preValidation(path: Path) = {
+  def preValidation(path: Path): OptionE = {
     if (!Files.exists(path))
       Some(
         InvalidPacBioFastaError(
@@ -137,7 +137,7 @@ object PacBioFastaValidator extends LazyLogging {
     * @param path to Fasta File
     * @return
     */
-  def validateFastaFile(path: Path, barcodeMode: Boolean = false): RefOrE = {
+  def validateFastaFile(path: Path): RefOrE = {
     logger.info(s"Validating FASTA file $path")
 
     val headerIds = mutable.Set[String]()
@@ -192,10 +192,7 @@ object PacBioFastaValidator extends LazyLogging {
     error match {
       case Some(err) => Left(err)
       case None =>
-        if ((barcodeMode) && (allLengths.size > 1)) {
-          Left(InvalidPacBioFastaError(
-            s"All sequences in barcode FASTA files must be the same length; this file contains sequences of lengths $allLengths"))
-        } else Right(ContigsMetaData(nrecords, totalLength))
+        Right(ContigsMetaData(nrecords, totalLength))
     }
   }
 
@@ -207,15 +204,15 @@ object PacBioFastaValidator extends LazyLogging {
     * @param path to Fasta file
     * @return
     */
-  def apply(path: Path, barcodeMode: Boolean = false): RefOrE = {
+  def apply(path: Path): RefOrE = {
     preValidation(path) match {
       case Some(x) => Left(x)
-      case _ => validateFastaFile(path, barcodeMode)
+      case _ => validateFastaFile(path)
     }
   }
 
   // Centralizing to help compose
-  def toTry(path: Path, barcodeMode: Boolean = false): Try[ContigsMetaData] = {
+  def toTry(path: Path): Try[ContigsMetaData] = {
     apply(path) match {
       case Left(ex) =>
         Failure(new Exception(s"Failed to validate file. ${ex.msg}"))
@@ -223,8 +220,8 @@ object PacBioFastaValidator extends LazyLogging {
     }
   }
 
-  def validate(path: Path, barcodeMode: Boolean = false): ContigsMetaData = {
-    apply(path, barcodeMode) match {
+  def validate(path: Path): ContigsMetaData = {
+    apply(path) match {
       case Left(err) => throw err
       case Right(ctgs) => ctgs
     }

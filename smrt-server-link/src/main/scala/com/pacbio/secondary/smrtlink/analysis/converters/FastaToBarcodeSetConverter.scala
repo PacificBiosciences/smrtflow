@@ -60,7 +60,7 @@ object FastaBarcodesConverter
       name: String,
       fastaPath: Path,
       outputDir: Path): Either[DatasetConvertError, BarcodeSet] = {
-    PacBioFastaValidator(fastaPath, barcodeMode = true) match {
+    PacBioFastaValidator(fastaPath) match {
       case Left(x) => Left(DatasetConvertError(s"${x}"))
       case Right(refMetaData) =>
         Right(createBarcodeSet(fastaPath, refMetaData, name, outputDir))
