@@ -972,12 +972,10 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
   private def importFasta(path: Path,
                           dsType: FileTypes.DataSetBaseType,
                           runJob: (Option[Int]) => Future[EngineJob],
-                          projectName: Option[String],
-                          barcodeMode: Boolean = false): Future[String] = {
+                          projectName: Option[String]): Future[String] = {
     for {
       projectId <- getProjectIdByName(projectName)
-      contigs <- Future.successful(
-        PacBioFastaValidator.validate(path, barcodeMode))
+      contigs <- Future.successful(PacBioFastaValidator.validate(path))
       job <- runJob(projectId)
       successfulJob <- engineDriver(job, Some(maxTime))
       dataset <- getDataSetResult(job.id, dsType)
@@ -1008,8 +1006,7 @@ class PbService(val sal: SmrtLinkServiceClient, val maxTime: FiniteDuration)
     importFasta(path,
                 FileTypes.DS_BARCODE,
                 (projectId) => sal.importFastaBarcodes(path, name, projectId),
-                projectName,
-                barcodeMode = true)
+                projectName)
 
   def runImportFastaGmap(
       path: Path,

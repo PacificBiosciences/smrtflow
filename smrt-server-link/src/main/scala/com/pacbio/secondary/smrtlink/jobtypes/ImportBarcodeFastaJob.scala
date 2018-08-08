@@ -77,7 +77,7 @@ class ImportBarcodeFastaJob(opts: ImportBarcodeFastaJobOptions)
     val outputDir = resources.path.resolve("pacbio-barcodes")
 
     def validateAndRun(path: Path): Either[DatasetConvertError, BarcodeSetIO] = {
-      PacBioFastaValidator(path, barcodeMode = true) match {
+      PacBioFastaValidator(path) match {
         case Left(x) => Left(DatasetConvertError(x.msg))
         case Right(refMetaData) =>
           FastaBarcodesConverter(name, path, outputDir, mkdir = true)
@@ -97,18 +97,22 @@ class ImportBarcodeFastaJob(opts: ImportBarcodeFastaJobOptions)
             val ds = writeFiles(barcodeDatasetFileIO, logFile, resources, w)
             Right(ds)
           case Left(a) =>
-            Left(ResultFailed(
-              resources.jobId,
-              opts.jobTypeId.toString,
-              s"Failed to convert fasta file ${opts.path} ${a.msg} in $runTime sec",
-              runTime,
-              AnalysisJobStates.FAILED,
-              host))
+            val msg =
+              s"Failed to convert fasta file ${opts.path} ${a.msg} in $runTime sec"
+            w(msg)
+            Left(
+              ResultFailed(resources.jobId,
+                           opts.jobTypeId.toString,
+                           msg,
+                           runTime,
+                           AnalysisJobStates.FAILED,
+                           host))
         }
       case Failure(ex) =>
         val emsg =
           s"Failed to convert fasta file ${opts.path} ${ex.getMessage}"
         logger.error(emsg)
+        w(emsg)
         Left(
           ResultFailed(resources.jobId,
                        opts.jobTypeId.toString,

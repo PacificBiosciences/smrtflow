@@ -27,7 +27,7 @@ class FastaToBarcodesSpec extends Specification with BeforeAfterAll {
     "Import FASTA with variable sequence lengths" in {
       val uri = getClass.getResource("barcode-fasta/variable_lengths.fasta")
       val fastaPath = Paths.get(uri.getPath())
-      generateBarcodes(fastaPath) must beFalse
+      generateBarcodes(fastaPath) must beTrue
     }
   }
 }
