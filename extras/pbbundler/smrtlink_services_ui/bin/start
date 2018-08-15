@@ -112,17 +112,17 @@ check_pid_file() {
     declare pidfile="$1" componentName="$2"
 
     if [ -f "${pidfile}" ]; then
-       PID=`cat ${pidfile}`
+       PID=$( sed -e 's/\x0//g' "${pidfile}" )
        if [[ ${PID} =~ ^[0-9]+$ ]] ; then
           if kill -0 "$PID" > /dev/null 2>&1 ; then
-             echo "SMRT Link Sub-component ${componentName} process already running: $SL_SERVICES_PID" 1>&2
+             echo "SMRT Link Sub-component ${componentName} process already running: $PID" 1>&2
              echo "Run services-stop or kill process '$PID', then rerun" 1>&2
              echo "SMRT Link Sub-component ${componentName} services not started!" 1>&2
              exit 2;
           else
              # Stale pid file, remove it and continue on.
              echo "Removing SMRT Link Sub-component ${componentName} services pid file for stale pid ($PID)..."
-             rm -f "$SL_SERVICES_PID"
+             rm -f "$pidfile"
           fi
        else
           echo "Unrecognized pid ($PID) in pid file (${pidfile})" 1>&2
