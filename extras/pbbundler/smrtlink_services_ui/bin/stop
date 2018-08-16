@@ -39,7 +39,7 @@ STATUS=0
 wso2_dir="$__dir/../wso2am-2.0.0"
 wso2_pid="$wso2_dir/wso2carbon.pid"
 if [ -f ${wso2_pid} ]; then
-   PID=`cat ${wso2_pid}`
+   PID=$( sed -e 's/\x0//g' "${wso2_pid}" )
    echo "WSO2 PID: ${PID}"
 else
    PID=0
